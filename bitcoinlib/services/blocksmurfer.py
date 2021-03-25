@@ -85,23 +85,17 @@ class BlocksmurferClient(BaseClient):
             if not block_count:
                 block_count = self.blockcount()
             confirmations = block_count - block_height
-        tdate = None
-        try:  # FIXME: On blocksmurfer side: always return timestamp
-            tdate = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
-        except (KeyError, TypeError):
-            if 'time' in tx:
-                tdate = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], txid=tx['txid'],
-                        date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
-                        confirmations=confirmations, block_height=block_height, status=tx['status'],
-                        coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
+                        date=datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S"), input_total=tx['input_total'],
+                        output_total=tx['output_total'], confirmations=confirmations, block_height=block_height,
+                        status=tx['status'], coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
                         witness_type=tx['witness_type'])
         for ti in tx['inputs']:
-            # TODO: BS should return public key
-            t.add_input(prev_txid=ti['prev_txid'], output_n=ti['output_n'], index_n=ti['index_n'],
-                        unlocking_script=ti['script'], value=ti['value'], public_hash=bytes.fromhex(ti['public_hash']),
-                        address=ti['address'], witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
+            t.add_input(prev_txid=ti['prev_txid'], output_n=ti['output_n'], keys=ti.get('keys', []),
+                        index_n=ti['index_n'], unlocking_script=ti['script'], value=ti['value'],
+                        public_hash=bytes.fromhex(ti['public_hash']), address=ti['address'],
+                        witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
                         sigs_required=ti['sigs_required'], sequence=ti['sequence'], witnesses=ti['witnesses'])
