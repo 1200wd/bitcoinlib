@@ -909,9 +909,13 @@ class Input(object):
                         self.public_hash = script_dict['hashes'][0]
                     else:
                         return
+                elif self.witnesses and not self.signatures and not self.keys and \
+                        self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
+                    self.signatures = [Signature.from_str(self.witnesses[0])]
+                    self.keys = [Key(self.witnesses[1], network=self.network)]
                 else:
                     return
-            if not self.public_hash:
+            if not self.public_hash and self.keys:
                 self.public_hash = self.keys[0].hash160
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
@@ -920,10 +924,6 @@ class Input(object):
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
-            elif self.witnesses and not self.signatures and not self.keys and \
-                    self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
-                self.signatures = [self.witnesses[0]]
-                self.keys = [Key(self.witnesses[1], network=self.network)]
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
             elif self.witness_type == 'segwit':
