@@ -1028,8 +1028,7 @@ class Cache(object):
             witnesses = int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             new_node = DbCacheTransactionNode(txid=txid, address=i.address, index_n=i.index_n, value=i.value,
                                               is_input=True, ref_txid=i.prev_txid, ref_index_n=i.output_n_int,
-                                              script=i.unlocking_script, sequence=i.sequence,
-                                              witnesses=witnesses)
+                                              script=i.unlocking_script, sequence=i.sequence, witnesses=witnesses)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover

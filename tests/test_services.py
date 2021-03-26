@@ -866,6 +866,9 @@ class TestService(unittest.TestCase, CustomAssertions):
         if not txids:
             self.skipTest("Skip unconfirmed transaction test: none found")
         t = srv.gettransaction(txids[0])
+        if not t:
+            self.skipTest("Skip unconfirmed transaction test: no unconfirmed transactions found or could not "
+                          "successfully connect to service provider")
         if t.status != 'unconfirmed':
             self.skipTest("Skip unconfirmed transaction test: tx already confirmed")
         self.assertFalse(t.confirmations)
