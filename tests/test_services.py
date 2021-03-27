@@ -610,14 +610,11 @@ class TestService(unittest.TestCase, CustomAssertions):
                 ],
             'size': 191,
         }
-        # FIXME: Blocksmurfer
-        srv = ServiceTest(network='bitcoin', min_providers=3, exclude_providers=['blocksmurfer'])
-        # srv = ServiceTest(network='bitcoin', providers=['blocksmurfer'], cache_uri='')
+        srv = ServiceTest(network='bitcoin', min_providers=3)
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:
             print("\nComparing provider %s" % provider)
-            print(provider, srv.results[provider].verify())
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
@@ -646,7 +643,6 @@ class TestService(unittest.TestCase, CustomAssertions):
         address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
         srv = ServiceTest(network='litecoin_legacy')
         tx = srv.gettransaction(txid)
-        print(list(srv.results.keys())[0])
         self.assertEqual(tx.inputs[0].address, '3HbvJBjPxJ1wGYHiUJBkfmZziZohzhQhmy')
 
         balance = srv.getbalance(address)

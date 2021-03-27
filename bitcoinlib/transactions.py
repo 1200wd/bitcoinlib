@@ -696,7 +696,7 @@ class Input(object):
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
-        :type witnesses: list of bytes
+        :type witnesses: list of (bytes, str)
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
         :type encoding: str
         :param network: Network, leave empty for default
@@ -765,6 +765,9 @@ class Input(object):
             self.encoding = encoding
         self.valid = None
         self.key_path = key_path
+        self.witnesses = []
+        for w in witnesses if witnesses else []:
+            self.witnesses.append(bytes.fromhex(w) if isinstance(w, str) else w)
         self.witnesses = witnesses if witnesses else []
         self.script_code = b''
 
@@ -2032,7 +2035,7 @@ class Transaction(object):
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
-        :type witnesses: list of bytes
+        :type witnesses: list of (bytes, str)
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
         :type encoding: str
 
