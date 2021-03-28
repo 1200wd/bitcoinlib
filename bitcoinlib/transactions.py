@@ -913,7 +913,8 @@ class Input(object):
                     else:
                         return
                 elif self.witnesses and not self.signatures and not self.keys and \
-                        self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
+                        self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 \
+                        and b'\0' not in self.witnesses:
                     self.signatures = [Signature.from_str(self.witnesses[0])]
                     self.keys = [Key(self.witnesses[1], network=self.network)]
                 else:
