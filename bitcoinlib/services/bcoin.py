@@ -205,7 +205,7 @@ class BcoinClient(BaseClient):
         block['time'] = block['time']
         block['txs'] = parsed_txs
         block['page'] = page
-        block['pages'] = int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
+        block['pages'] = None if not limit else int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
         block['limit'] = limit
         block['prev_block'] = block.pop('prevBlock')
         block['merkle_root'] = block.pop('merkleRoot')

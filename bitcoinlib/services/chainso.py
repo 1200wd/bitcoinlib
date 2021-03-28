@@ -182,7 +182,7 @@ class ChainSo(BaseClient):
             'txs': txs,
             'version': b'',
             'page': page,
-            'pages': int(n_txs // limit) + (n_txs % limit > 0),
+            'pages': None if not limit else int(n_txs // limit) + (n_txs % limit > 0),
             'limit': limit
         }
         return block

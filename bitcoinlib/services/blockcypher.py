@@ -203,7 +203,7 @@ class BlockCypher(BaseClient):
             'txs': txs,
             'version': bd['ver'],
             'page': page,
-            'pages': int(bd['n_tx'] // limit) + (bd['n_tx'] % limit > 0),
+            'pages': None if not limit else int(bd['n_tx'] // limit) + (bd['n_tx'] % limit > 0),
             'limit': limit
         }
         return block

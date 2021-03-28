@@ -513,7 +513,7 @@ class Service(object):
 
         :return Block:
         """
-        if not limit:
+        if limit is None:
             limit = 10 if parse_transactions else 99999
 
         block = self.cache.getblock(blockid)
@@ -524,7 +524,7 @@ class Service(object):
             if block.transactions:
                 self.results_cache_n = 1
             is_last_page = page*limit > block.tx_count
-        if not block or not len(block.transactions) or (not is_last_page and len(block.transactions) < limit) or \
+        if not block or (not len(block.transactions) and limit != 0) or (not is_last_page and len(block.transactions) < limit) or \
                 (is_last_page and ((page-1)*limit - block.tx_count + len(block.transactions)) < 0):
             self.results_cache_n = 0
             bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)

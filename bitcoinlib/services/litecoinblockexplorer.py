@@ -178,7 +178,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'pages': None if not limit else int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
             'limit': limit
         }
         return block

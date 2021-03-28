@@ -214,7 +214,7 @@ class SmartbitClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
+            'pages': None if not limit else int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
             'limit': limit
         }
         return block
