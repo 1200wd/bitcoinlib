@@ -25,16 +25,90 @@ from bitcoinlib.config.opcodes import *
 
 _logger = logging.getLogger(__name__)
 
-
 # pop=0, operation='', arguments=None, min_elements=None, convert_to_number=False
 op_methods = {
     # 'op_name': (<number_of_pops, operation, arguments, min_elements, convert_to_number)
-    'op_add': (2, '__add__', None, 2, True),
-    'op_mul': (2, '__mul__', None, 2, True),
-    'op_dup': (0, '__getitem__', [-1], 1, False),
-    'op_equal': (2, '__eq__', None, 1, False),
+    'op_nop': (0, '', None, 0, False),
+    # op_ver
+    # op_ifs
+    # op_altstacks
     'op_2drop': (2, '', None, 2, False),
     'op_2dup': (0, '__getitem__', [slice(-2, None)], 2, False),
+    'op_3dup': (0, '__getitem__', [slice(-3, None)], 3, False),
+    # 'op_2over':
+    # 'op_2rot':
+    # 'op_2swap':
+    # 'op_ifdup':
+    # 'op_depth':
+    'op_drop': (1, '', None, 1, False),
+    'op_dup': (0, '__getitem__', [-1], 1, False),
+    # 'op_nip':
+    # 'op_over':
+    # 'op_pick':
+    # 'op_roll':
+    # 'op_rot':
+    # 'op_swap':
+    # 'op_tuck':
+    # 'op_cat':
+    # 'op_substr':
+    # 'op_left':
+    # 'op_right':
+    # 'op_size':
+    # 'op_invert':
+    # 'op_and':
+    # 'op_or':
+    # 'op_xor':
+    'op_equal': (2, '__eq__', None, 1, False),
+    # 'op_equalverify':
+    # 'op_reserved1':
+    # 'op_reserved2':
+    # 'op_1add':
+    # 'op_1sub':
+    # 'op_2mul':
+    # 'op_2div':
+    # 'op_abs':
+    # 'op_not':
+    # 'op_0notequal':
+    'op_add': (2, '__add__', None, 2, True),
+    'op_sub': (2, '__sub__', None, 2, True),
+    'op_mul': (2, '__mul__', None, 2, True),
+    # 'op_div':
+    # 'op_mod':
+    # 'op_lshift':
+    # 'op_rshift':
+    # 'op_booland':
+    # 'op_boolor':
+    # 'op_numequal':
+    # 'op_numequalverify':
+    # 'op_numnotequal':
+    # 'op_lessthan':
+    # 'op_greaterthan':
+    # 'op_lessthanorequal':
+    # 'op_greaterthanorequal':
+    # 'op_min':
+    # 'op_max':
+    # 'op_within':
+    # 'op_ripemd160':
+    # 'op_sha1':
+    # 'op_sha256':
+    # 'op_hash160':
+    # 'op_hash256':
+    # 'op_codeseparator':
+    # 'op_checksig':
+    # 'op_checksigverify':
+    # 'op_checkmultisig':
+    # 'op_checkmultisigverify':
+    'op_nop1': (0, '', None, 0, False),
+    # 'op_checklocktimeverify':
+    # 'op_checksequenceverify':
+    'op_nop4': (0, '', None, 0, False),
+    'op_nop5': (0, '', None, 0, False),
+    'op_nop6': (0, '', None, 0, False),
+    'op_nop7': (0, '', None, 0, False),
+    'op_nop8': (0, '', None, 0, False),
+    'op_nop9': (0, '', None, 0, False),
+    'op_nop10': (0, '', None, 0, False),
+    # 'op_invalidopcode':
 }
 
 
@@ -113,7 +187,7 @@ class Script(object):
         while len(commands):
             command = commands.pop(0)
             if isinstance(command, int):
-                print("Running operation %s" % opcodenames[command])
+                print("Stack: %s  ; Running operation %s" % (self.stack, opcodenames[command]))
                 if command == op.op_0:  # OP_0
                     self.stack.append(encode_num(0))
                     # self.stack.append(0)
@@ -135,7 +209,7 @@ class Script(object):
                     return False
                 else:
                     method = opcodenames[command].lower()
-                    if not method in op_methods:
+                    if method not in op_methods:
                         raise ScriptError("Method %s not found" % method)
                     method_args = op_methods[method]
                     self.stack.operate(*method_args)
