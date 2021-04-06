@@ -25,92 +25,6 @@ from bitcoinlib.config.opcodes import *
 
 _logger = logging.getLogger(__name__)
 
-# pop=0, operation='', arguments=None, min_elements=None, convert_to_number=False
-op_methods = {
-    # 'op_name': (<number_of_pops, operation, arguments, min_elements, convert_to_number)
-    'op_nop': (0, '', None, 0, False),
-    # op_ver
-    # op_ifs
-    # op_altstacks
-    'op_2drop': (2, '', None, 2, False),
-    'op_2dup': (0, '__getitem__', [slice(-2, None)], 2, False),
-    'op_3dup': (0, '__getitem__', [slice(-3, None)], 3, False),
-    # 'op_2over':
-    # 'op_2rot':
-    # 'op_2swap':
-    # 'op_ifdup':
-    # 'op_depth':
-    'op_drop': (1, '', None, 1, False),
-    'op_dup': (0, '__getitem__', [-1], 1, False),
-    # 'op_nip':
-    # 'op_over':
-    # 'op_pick':
-    # 'op_roll':
-    # 'op_rot':
-    # 'op_swap':
-    # 'op_tuck':
-    # 'op_cat':
-    # 'op_substr':
-    # 'op_left':
-    # 'op_right':
-    # 'op_size':
-    # 'op_invert':
-    # 'op_and':
-    # 'op_or':
-    # 'op_xor':
-    'op_equal': (2, '__eq__', None, 1, False),
-    # 'op_equalverify':
-    # 'op_reserved1':
-    # 'op_reserved2':
-    # 'op_1add':
-    # 'op_1sub':
-    # 'op_2mul':
-    # 'op_2div':
-    # 'op_abs':
-    # 'op_not':
-    # 'op_0notequal':
-    'op_add': (2, '__add__', None, 2, True),
-    'op_sub': (2, '__sub__', None, 2, True),
-    'op_mul': (2, '__mul__', None, 2, True),
-    # 'op_div':
-    # 'op_mod':
-    # 'op_lshift':
-    # 'op_rshift':
-    # 'op_booland':
-    # 'op_boolor':
-    # 'op_numequal':
-    # 'op_numequalverify':
-    # 'op_numnotequal':
-    # 'op_lessthan':
-    # 'op_greaterthan':
-    # 'op_lessthanorequal':
-    # 'op_greaterthanorequal':
-    # 'op_min':
-    # 'op_max':
-    # 'op_within':
-    # 'op_ripemd160':
-    # 'op_sha1':
-    # 'op_sha256':
-    # 'op_hash160':
-    # 'op_hash256':
-    # 'op_codeseparator':
-    # 'op_checksig':
-    # 'op_checksigverify':
-    # 'op_checkmultisig':
-    # 'op_checkmultisigverify':
-    'op_nop1': (0, '', None, 0, False),
-    # 'op_checklocktimeverify':
-    # 'op_checksequenceverify':
-    'op_nop4': (0, '', None, 0, False),
-    'op_nop5': (0, '', None, 0, False),
-    'op_nop6': (0, '', None, 0, False),
-    'op_nop7': (0, '', None, 0, False),
-    'op_nop8': (0, '', None, 0, False),
-    'op_nop9': (0, '', None, 0, False),
-    'op_nop10': (0, '', None, 0, False),
-    # 'op_invalidopcode':
-}
-
 
 class ScriptError(Exception):
     """
@@ -199,20 +113,19 @@ class Script(object):
                     # self.stack.append(bytes([command-80]))
                     self.stack.append(encode_num(command-80))
                     # self.stack.append(command-80)
-                elif command == op.op_verify:
-                    if len(self.stack) < 1:
-                        return False
-                    if self.stack.pop() == b'':
-                        return False
-                    return True
-                elif command == op.op_return:
-                    return False
                 else:
                     method = opcodenames[command].lower()
-                    if method not in op_methods:
+                    if method not in dir(self.stack):
                         raise ScriptError("Method %s not found" % method)
-                    method_args = op_methods[method]
-                    self.stack.operate(*method_args)
+                    # method_args = op_methods[method]
+                    # self.stack.operate(*method_args)
+                    try:
+                        res = getattr(self.stack, method)()
+                        if res is False:
+                            return False
+                    except Exception as e:
+                        print("Error: %s" % e)
+                        return False
 
                     # Encode new items on stack
                     for i in range(len(self.stack)):
@@ -239,107 +152,138 @@ class Script(object):
 
 class Stack(list):
 
-    def operate(self, pop=0, operation='', arguments=None, min_elements=None, convert_to_number=False):
-        if len(self) < pop:
-            raise ValueError("Not enough items in list to pop %d elements" % pop)
-        if min_elements and len(self) < min_elements:
-            raise ValueError("Not enough items in list, minimum required is %d" % min_elements)
-        if not arguments:
-            arguments = []
-        elements = []
-        for _ in range(pop):
-            el = self.pop()
-            if convert_to_number:
-                el = decode_num(el)
-            elements.append(el)
-        if operation:
-            if not elements:
-                new_elements = getattr(self, operation)(*arguments)
-                if isinstance(new_elements, list):
-                    self.extend(new_elements)
-                else:
-                    self.append(new_elements)
-            elif len(elements) == 1:
-                self.append(getattr(elements[0], operation)())
-            else:
-                self.append(getattr(elements[0], operation)(*elements[1:]))
+    def pop_as_number(self):
+        return decode_num(self.pop())
 
+    def op_nop(self):
+        pass
 
-def op_nop(stack):
-    return True
+    def op_verify(self):
+        if self.pop() == b'':
+            return False
+        return True
 
-# def op_ver(stack):
-# def op_if(stack):
-#  "OP_NOTIF", "OP_VERIF", "OP_VERNOTIF", "OP_ELSE", "OP_ENDIF"
-
-
-def op_verify(stack):
-    if len(stack) < 1:
+    @staticmethod
+    def op_return():
         return False
-    return False if stack.pop() == b'' else True
 
+    def op_2drop(self):
+        self.pop()
+        self.pop()
 
-def op_return(stack):
-    return False
+    def op_2dup(self):
+        self.extend(self[-2:])
 
-# "OP_TOALTSTACK", "OP_FROMALTSTACK", "OP_2DROP", "OP_2DUP", "OP_3DUP", "OP_2OVER",
-# "OP_2ROT", "OP_2SWAP", "OP_IFDUP", "OP_DEPTH", "OP_DROP",
+    def op_3dup(self):
+        self.extend(self[-3:])
 
+    def op_2over(self):
+        self.extend(self[-4:-2])
 
-def op_dup(stack):
-    if not stack:
-        return False
-    item = stack[0]
-    stack.append(item)
-    return True
+    def op_2rot(self):
+        self.extend([self.pop(-6), self.pop(-5)])
 
-#  "OP_NIP", "OP_OVER", "OP_PICK", "OP_ROLL",
-# "OP_ROT", "OP_SWAP", "OP_TUCK", "OP_CAT", "OP_SUBSTR", "OP_LEFT", "OP_RIGHT", "OP_SIZE", "OP_INVERT", "OP_AND",
-# "OP_OR", "OP_XOR", "OP_EQUAL", "OP_EQUALVERIFY", "OP_RESERVED1", "OP_RESERVED2", "OP_1ADD", "OP_1SUB", "OP_2MUL",
-# "OP_2DIV", "OP_NEGATE", "OP_ABS", "OP_NOT", "OP_0NOTEQUAL",
+    # 'op_2swap': (2, '__setitem__',  [slice(-2, -2)], 4, False, True),
+    # # 'op_ifdup':
 
+    def op_depth(self):
+        self.append(len(self))
 
-def op_add(stack):
-    if len(stack) < 2:
-        return False
-    a = decode_num(stack.pop())
-    b = decode_num(stack.pop())
-    stack.append(encode_num(a + b))
-    return True
+    def op_drop(self):
+        self.pop()
 
+    def op_dup(self):
+        if not len(self):
+            return False
+        self.append(self[-1:])
 
-def op_sub(stack):
-    if len(stack) < 2:
-        return False
-    a = decode_num(stack.pop())
-    b = decode_num(stack.pop())
-    stack.append(encode_num(a - b))
-    return True
+    # 'op_nip': (0, '__delitem__', [-2], 2),
+    # 'op_over': (0, '__getitem__', [-2], 1, False),
 
+    def op_pick(self):
+        self.append(self[-self.pop()])
 
-def op_mul(stack):
-    if len(stack) < 2:
-        return False
-    a = decode_num(stack.pop())
-    b = decode_num(stack.pop())
-    stack.append(encode_num(a * b))
-    return True
+    # # 'op_roll':
+    # 'op_rot': (0, 'pop', [-3], 3, False, True),
+    # 'op_swap': (1, 'insert', [-1], 2, False, True),
+    # # 'op_tuck': (1, 'insert', [-1, lambda a: a], 2, False, True),
+    # # 'op_cat': disabled in bitcoin
+    # # 'op_substr': disabled in bitcoin
+    # # 'op_left': disabled in bitcoin
+    # # 'op_right': disabled in bitcoin
+    # 'op_size': (0, '__len__', None, 0, False, True),
+    # # 'op_invert': disabled in bitcoin
+    # # 'op_and': disabled in bitcoin
+    # # 'op_or': disabled in bitcoin
+    # # 'op_xor': disabled in bitcoin
+    # 'op_equal': (2, '__eq__', None, 1, False),
+    def op_equal(self):
+        self.append(b'\x01' if self.pop() == self.pop() else b'')
 
-# "OP_DIV", "OP_MOD",
-# "OP_LSHIFT", "OP_RSHIFT", "OP_BOOLAND", "OP_BOOLOR", "OP_NUMEQUAL", "OP_NUMEQUALVERIFY", "OP_NUMNOTEQUAL",
-# "OP_LESSTHAN", "OP_GREATERTHAN", "OP_LESSTHANOREQUAL", "OP_GREATERTHANOREQUAL", "OP_MIN", "OP_MAX", "OP_WITHIN",
-# "OP_RIPEMD160", "OP_SHA1", "OP_SHA256", "OP_HASH160", "OP_HASH256", "OP_CODESEPARATOR", "OP_CHECKSIG",
-# "OP_CHECKSIGVERIFY", "OP_CHECKMULTISIG", "OP_CHECKMULTISIGVERIFY", "OP_NOP1", "OP_CHECKLOCKTIMEVERIFY",
-# "OP_CHECKSEQUENCEVERIFY", "OP_NOP4", "OP_NOP5", "OP_NOP6", "OP_NOP7", "OP_NOP8", "OP_NOP9", "OP_NOP10",
+    def op_equalverify(self):
+        self.op_equal()
 
+    # # 'op_reserved1': used by op_if
+    # # 'op_reserved2': used by op_if
+    # 'op_1add': (1, '__add__', [1], 1, True),
+    # 'op_1sub': (1, '__sub__', [1], 1, True),
+    # # 'op_2mul': disabled in bitcoin
+    # # 'op_2div': disabled in bitcoin
+    # # 'op_abs':
+    # # 'op_not': (1, '__bool__', None, 1, True),
+    # # 'op_0notequal':
 
-def op_equal(stack):
-    if len(stack) < 2:
-        return False
-    a = decode_num(stack.pop())
-    b = decode_num(stack.pop())
-    stack.append(b'\x01' if a == b else b'')
-    return True
+    def op_add(self):
+        self.append(encode_num(self.pop_as_number() + self.pop_as_number()))
+
+    def op_sub(self):
+        self.append(encode_num(self.pop_as_number() - self.pop_as_number()))
+
+    # # 'op_mul': disabled in bitcoin
+    # # 'op_div':disabled in bitcoin
+    # # 'op_mod': disabled in bitcoin
+    # # 'op_lshift': disabled in bitcoin
+    # # 'op_rshift': disabled in bitcoin
+    # 'op_booland': (2, '__and__', None, 2, True),
+    # # 'op_boolor':
+    # # 'op_numequal':
+    # # 'op_numequalverify':
+    # # 'op_numnotequal':
+    # # 'op_lessthan':
+    # # 'op_greaterthan':
+    # # 'op_lessthanorequal':
+    # # 'op_greaterthanorequal':
+    # # 'op_min':
+    # # 'op_max':
+    # # 'op_within':
+    # # 'op_ripemd160':
+    # # 'op_sha1':
+    # # 'op_sha256':
+
+    def op_hash160(self):
+        self.pop()
+        return 'hash160'
+
+    # # 'op_hash256':
+    # # 'op_codeseparator':
+
+    def op_checksig(self):
+        return True
+
+    # # 'op_checksigverify':
+    # # 'op_checkmultisig':
+    # # 'op_checkmultisigverify':
+    # 'op_nop1': (0, '', None, 0, False),
+    # # 'op_checklocktimeverify':
+    # # 'op_checksequenceverify':
+    # 'op_nop4': (0, '', None, 0, False),
+    # 'op_nop5': (0, '', None, 0, False),
+    # 'op_nop6': (0, '', None, 0, False),
+    # 'op_nop7': (0, '', None, 0, False),
+    # 'op_nop8': (0, '', None, 0, False),
+    # 'op_nop9': (0, '', None, 0, False),
+    # 'op_nop10': (0, '', None, 0, False),
+    # # 'op_invalidopcode':
 
 
 def encode_num(num):
