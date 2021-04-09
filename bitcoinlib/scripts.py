@@ -152,6 +152,14 @@ class Script(object):
 
 class Stack(list):
 
+    @classmethod
+    def from_ints(cls, list_ints):
+        return Stack([encode_num(n) for n in list_ints])
+
+    def as_ints(self):
+        # TODO: What to do with data/hashes?
+        return Stack([decode_num(x) for x in self])
+
     def pop_as_number(self):
         return decode_num(self.pop())
 
@@ -172,22 +180,34 @@ class Stack(list):
         self.pop()
 
     def op_2dup(self):
+        if len(self) < 2:
+            raise ValueError("Stack op_2dup method requires minimum of 2 stack items")
         self.extend(self[-2:])
 
     def op_3dup(self):
+        if len(self) < 3:
+            raise ValueError("Stack op_3dup method requires minimum of 3 stack items")
         self.extend(self[-3:])
 
     def op_2over(self):
+        if len(self) < 4:
+            raise ValueError("Stack op_2over method requires minimum of 4 stack items")
         self.extend(self[-4:-2])
 
     def op_2rot(self):
         self.extend([self.pop(-6), self.pop(-5)])
 
-    # 'op_2swap': (2, '__setitem__',  [slice(-2, -2)], 4, False, True),
-    # # 'op_ifdup':
+    def op_2swap(self):
+        self[-2:-2] = [self.pop(), self.pop()]
+
+    def op_ifdup(self):
+        if not len(self):
+            raise ValueError("Stack op_ifdup method requires minimum of 1 stack item")
+        if self[-1] != b'':
+            self.append(self[-1])
 
     def op_depth(self):
-        self.append(len(self))
+        self.append(encode_num(len(self)))
 
     def op_drop(self):
         self.pop()
@@ -195,27 +215,32 @@ class Stack(list):
     def op_dup(self):
         if not len(self):
             return False
-        self.append(self[-1:])
+        self.append(self[-1])
 
-    # 'op_nip': (0, '__delitem__', [-2], 2),
-    # 'op_over': (0, '__getitem__', [-2], 1, False),
+    def op_nip(self):
+        self.pop(-2)
+
+    def op_over(self):
+        if len(self) < 2:
+            raise ValueError("Stack op_over method requires minimum of 2 stack items")
+        self.append(self[-2])
 
     def op_pick(self):
-        self.append(self[-self.pop()])
+        self.append(self[-decode_num(self.pop())])
 
-    # # 'op_roll':
-    # 'op_rot': (0, 'pop', [-3], 3, False, True),
-    # 'op_swap': (1, 'insert', [-1], 2, False, True),
-    # # 'op_tuck': (1, 'insert', [-1, lambda a: a], 2, False, True),
-    # # 'op_cat': disabled in bitcoin
-    # # 'op_substr': disabled in bitcoin
-    # # 'op_left': disabled in bitcoin
-    # # 'op_right': disabled in bitcoin
+    def op_roll(self):
+        self.append(self.pop(-decode_num(self.pop())))
+
+    def op_rot(self):
+        self.append(self.pop(-3))
+
+    def op_swap(self):
+        self.append(self.pop(-2))
+
+    def op_tuck(self):
+        self.append(self[-2])
+
     # 'op_size': (0, '__len__', None, 0, False, True),
-    # # 'op_invert': disabled in bitcoin
-    # # 'op_and': disabled in bitcoin
-    # # 'op_or': disabled in bitcoin
-    # # 'op_xor': disabled in bitcoin
     # 'op_equal': (2, '__eq__', None, 1, False),
     def op_equal(self):
         self.append(b'\x01' if self.pop() == self.pop() else b'')
@@ -227,8 +252,6 @@ class Stack(list):
     # # 'op_reserved2': used by op_if
     # 'op_1add': (1, '__add__', [1], 1, True),
     # 'op_1sub': (1, '__sub__', [1], 1, True),
-    # # 'op_2mul': disabled in bitcoin
-    # # 'op_2div': disabled in bitcoin
     # # 'op_abs':
     # # 'op_not': (1, '__bool__', None, 1, True),
     # # 'op_0notequal':
@@ -239,11 +262,6 @@ class Stack(list):
     def op_sub(self):
         self.append(encode_num(self.pop_as_number() - self.pop_as_number()))
 
-    # # 'op_mul': disabled in bitcoin
-    # # 'op_div':disabled in bitcoin
-    # # 'op_mod': disabled in bitcoin
-    # # 'op_lshift': disabled in bitcoin
-    # # 'op_rshift': disabled in bitcoin
     # 'op_booland': (2, '__and__', None, 2, True),
     # # 'op_boolor':
     # # 'op_numequal':
