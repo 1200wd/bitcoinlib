@@ -139,6 +139,44 @@ class TestStack(unittest.TestCase):
         self.assertEqual(st, [b'\x01', b'\x02', b'\x01'])
         self.assertRaisesRegex(IndexError, 'list index out of range', Stack([2]).op_tuck)
 
+    def test_stack_op_size(self):
+        st = Stack([b'\x02\x88\xff'])
+        st.op_size()
+        self.assertEqual(st[-1], encode_num(3))
+        self.assertRaisesRegex(IndexError, 'list index out of range', Stack([]).op_size)
+
+    def test_stack_op_equal(self):
+        st = Stack.from_ints([1, 1])
+        st.op_equal()
+        self.assertEqual(len(st), 1)
+        self.assertEqual(st, [b'\x01'])
+        st = Stack.from_ints([1, 2])
+        st.op_equal()
+        self.assertEqual(len(st), 1)
+        self.assertEqual(st, [b''])
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([b'x99']).op_equal)
+
+    def test_stack_op_equal_verify(self):
+        st = Stack.from_ints([1, 1])
+        self.assertTrue(st.op_equalverify())
+        st = Stack.from_ints([1, 2])
+        self.assertFalse(st.op_equalverify())
+
+    # # 'op_reserved1': used by op_if
+    # # 'op_reserved2': used by op_if
+
+    def test_stack_op_1add(self):
+        st = Stack.from_ints([5])
+        st.op_1add()
+        self.assertEqual(st.as_ints(), [6])
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_1add)
+
+    def test_stack_op_1sub(self):
+        st = Stack.from_ints([5])
+        st.op_1sub()
+        self.assertEqual(st.as_ints(), [4])
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_1sub)
+
     def test_stack_operation_op_add(self):
         st = Stack.from_ints(range(1, 7))
         for _ in range(5):

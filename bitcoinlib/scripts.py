@@ -240,18 +240,25 @@ class Stack(list):
     def op_tuck(self):
         self.append(self[-2])
 
-    # 'op_size': (0, '__len__', None, 0, False, True),
-    # 'op_equal': (2, '__eq__', None, 1, False),
+    def op_size(self):
+        self.append(encode_num(len(self[-1])))
+
     def op_equal(self):
         self.append(b'\x01' if self.pop() == self.pop() else b'')
 
     def op_equalverify(self):
         self.op_equal()
+        return self.op_verify()
 
     # # 'op_reserved1': used by op_if
     # # 'op_reserved2': used by op_if
-    # 'op_1add': (1, '__add__', [1], 1, True),
-    # 'op_1sub': (1, '__sub__', [1], 1, True),
+
+    def op_1add(self):
+        self.append(encode_num(decode_num(self.pop()) + 1))
+
+    def op_1sub(self):
+        self.append(encode_num(decode_num(self.pop()) - 1))
+
     # # 'op_abs':
     # # 'op_not': (1, '__bool__', None, 1, True),
     # # 'op_0notequal':
