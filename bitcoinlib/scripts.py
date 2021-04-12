@@ -163,8 +163,21 @@ class Stack(list):
     def pop_as_number(self):
         return decode_num(self.pop())
 
+    def is_arithmetic(self, items=1):
+        """
+        Check if top stack item is or last stock are arithmetic and has no more then 4 bytes
+
+        :return bool:
+        """
+        if len(self) < items:
+            raise IndexError("Not enough items in list to run operation. Items %d, expected %d" % (len(self), items))
+        for i in self[-items:]:
+            if len(i) > 4:
+                return False
+        return True
+
     def op_nop(self):
-        pass
+        return True
 
     def op_verify(self):
         if self.pop() == b'':
@@ -178,73 +191,92 @@ class Stack(list):
     def op_2drop(self):
         self.pop()
         self.pop()
+        return True
 
     def op_2dup(self):
         if len(self) < 2:
             raise ValueError("Stack op_2dup method requires minimum of 2 stack items")
         self.extend(self[-2:])
+        return True
 
     def op_3dup(self):
         if len(self) < 3:
             raise ValueError("Stack op_3dup method requires minimum of 3 stack items")
         self.extend(self[-3:])
+        return True
 
     def op_2over(self):
         if len(self) < 4:
             raise ValueError("Stack op_2over method requires minimum of 4 stack items")
         self.extend(self[-4:-2])
+        return True
 
     def op_2rot(self):
         self.extend([self.pop(-6), self.pop(-5)])
+        return True
 
     def op_2swap(self):
         self[-2:-2] = [self.pop(), self.pop()]
+        return True
 
     def op_ifdup(self):
         if not len(self):
             raise ValueError("Stack op_ifdup method requires minimum of 1 stack item")
         if self[-1] != b'':
             self.append(self[-1])
+        return True
 
     def op_depth(self):
         self.append(encode_num(len(self)))
+        return True
 
     def op_drop(self):
         self.pop()
+        return True
 
     def op_dup(self):
         if not len(self):
             return False
         self.append(self[-1])
+        return True
 
     def op_nip(self):
         self.pop(-2)
+        return True
 
     def op_over(self):
         if len(self) < 2:
             raise ValueError("Stack op_over method requires minimum of 2 stack items")
         self.append(self[-2])
+        return True
 
     def op_pick(self):
-        self.append(self[-decode_num(self.pop())])
+        self.append(self[-self.pop_as_number()])
+        return True
 
     def op_roll(self):
-        self.append(self.pop(-decode_num(self.pop())))
+        self.append(self.pop(-self.pop_as_number()))
+        return True
 
     def op_rot(self):
         self.append(self.pop(-3))
+        return True
 
     def op_swap(self):
         self.append(self.pop(-2))
+        return True
 
     def op_tuck(self):
         self.append(self[-2])
+        return True
 
     def op_size(self):
         self.append(encode_num(len(self[-1])))
+        return True
 
     def op_equal(self):
         self.append(b'\x01' if self.pop() == self.pop() else b'')
+        return True
 
     def op_equalverify(self):
         self.op_equal()
@@ -254,33 +286,161 @@ class Stack(list):
     # # 'op_reserved2': used by op_if
 
     def op_1add(self):
-        self.append(encode_num(decode_num(self.pop()) + 1))
+        if not self.is_arithmetic():
+            return False
+        self.append(encode_num(self.pop_as_number() + 1))
+        return True
 
     def op_1sub(self):
-        self.append(encode_num(decode_num(self.pop()) - 1))
+        if not self.is_arithmetic():
+            return False
+        self.append(encode_num(self.pop_as_number() - 1))
+        return True
 
-    # # 'op_abs':
-    # # 'op_not': (1, '__bool__', None, 1, True),
-    # # 'op_0notequal':
+    def op_negate(self):
+        if not self.is_arithmetic():
+            return False
+        self.append(encode_num(-self.pop_as_number()))
+        return True
+
+    def op_abs(self):
+        if not self.is_arithmetic():
+            return False
+        self.append(encode_num(abs(self.pop_as_number())))
+        return True
+
+    def op_not(self):
+        if not self.is_arithmetic():
+            return False
+        self.append(b'\1' if self.pop() == b'' else b'')
+        return True
+
+    def op_0notequal(self):
+        if not self.is_arithmetic():
+            return False
+        self.append(b'' if self.pop() == b'' else b'\1')
+        return True
 
     def op_add(self):
+        if not self.is_arithmetic(2):
+            return False
         self.append(encode_num(self.pop_as_number() + self.pop_as_number()))
+        return True
 
     def op_sub(self):
+        if not self.is_arithmetic(2):
+            return False
         self.append(encode_num(self.pop_as_number() - self.pop_as_number()))
+        return True
 
-    # 'op_booland': (2, '__and__', None, 2, True),
-    # # 'op_boolor':
-    # # 'op_numequal':
-    # # 'op_numequalverify':
-    # # 'op_numnotequal':
-    # # 'op_lessthan':
-    # # 'op_greaterthan':
-    # # 'op_lessthanorequal':
-    # # 'op_greaterthanorequal':
-    # # 'op_min':
-    # # 'op_max':
-    # # 'op_within':
+    def op_booland(self):
+        if not self.is_arithmetic(2):
+            return False
+        a = self.pop()
+        b = self.pop()
+        if a != b'' and b != b'':
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_boolor(self):
+        if not self.is_arithmetic(2):
+            return False
+        a = self.pop()
+        b = self.pop()
+        if a != b'' or b != b'':
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_numequal(self):
+        if not self.is_arithmetic(2):
+            return False
+        if self.pop() == self.pop():
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_numequalverify(self):
+        self.op_numequal()
+        return self.op_verify()
+
+    def op_numnotequal(self):
+        if not self.is_arithmetic(2):
+            return False
+        if self.pop() != self.pop():
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_numlessthan(self):
+        if not self.is_arithmetic(2):
+            return False
+        if self.pop_as_number() < self.pop_as_number():
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_numgreaterthan(self):
+        if not self.is_arithmetic(2):
+            return False
+        if self.pop_as_number() > self.pop_as_number():
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_numlessthanorequal(self):
+        if not self.is_arithmetic(2):
+            return False
+        if self.pop_as_number() <= self.pop_as_number():
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_numgreaterthanorequal(self):
+        if not self.is_arithmetic(2):
+            return False
+        if self.pop_as_number() >= self.pop_as_number():
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_min(self):
+        if not self.is_arithmetic(2):
+            return False
+        a = self.pop_as_number()
+        b = self.pop_as_number()
+        self.append(encode_num(a) if a < b else encode_num(b))
+        return True
+
+    def op_max(self):
+        if not self.is_arithmetic(2):
+            return False
+        a = self.pop_as_number()
+        b = self.pop_as_number()
+        self.append(encode_num(a) if a > b else encode_num(b))
+        return True
+
+    def op_within(self):
+        if not self.is_arithmetic(3):
+            return False
+        x = self.pop_as_number()
+        vmin = self.pop_as_number()
+        vmax = self.pop_as_number()
+        if vmin <= x < vmax:
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
     # # 'op_ripemd160':
     # # 'op_sha1':
     # # 'op_sha256':

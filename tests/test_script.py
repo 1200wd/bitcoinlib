@@ -12,9 +12,9 @@ import unittest
 class TestStack(unittest.TestCase):
 
     # https://en.bitcoin.it/wiki/Script
-    def test_stack_op_npp(self):
+    def test_stack_op_nop(self):
         st = Stack()
-        self.assertIsNone(st.op_nop())
+        self.assertTrue(st.op_nop())
         self.assertEqual(st, [])
 
     def test_stack_op_verify(self):
@@ -28,14 +28,14 @@ class TestStack(unittest.TestCase):
 
     def test_stack_op_2drop(self):
         st = Stack.from_ints(range(1, 4))
-        st.op_2drop()
+        self.assertTrue(st.op_2drop())
         self.assertEqual(st, [encode_num(1)])
         self.assertRaisesRegex(IndexError, "pop from empty list", st.op_2drop)
 
     def test_stack_op_2dup(self):
         l1 = [b'\x01', b'\x02']
         st = Stack(l1)
-        st.op_2dup()
+        self.assertTrue(st.op_2dup())
         self.assertEqual(st, l1 + l1)
         self.assertRaisesRegex(ValueError, "Stack op_2dup method requires minimum of 2 stack items",
                                Stack([b'\x01']).op_2dup)
@@ -43,7 +43,7 @@ class TestStack(unittest.TestCase):
     def test_stack_op_3dup(self):
         l1 = [b'\x01', b'\x02', b'\x03']
         st = Stack(l1)
-        st.op_3dup()
+        self.assertTrue(st.op_3dup())
         self.assertEqual(st, l1 + l1)
         self.assertRaisesRegex(ValueError, "Stack op_3dup method requires minimum of 3 stack items",
                                Stack([b'\x01', b'\x02']).op_3dup)
@@ -52,45 +52,45 @@ class TestStack(unittest.TestCase):
         self.assertRaisesRegex(ValueError, "Stack op_2over method requires minimum of 4 stack items",
                                Stack([b'\x01', b'\x02']).op_2over)
         st = Stack.from_ints(range(1, 5))
-        st.op_2over()
+        self.assertTrue(st.op_2over())
         self.assertEqual(st, [b'\x01', b'\x02', b'\x03', b'\x04', b'\x01', b'\x02'])
 
     def test_stack_op_2rot(self):
         st = Stack.from_ints(range(1, 7))
-        st.op_2rot()
+        self.assertTrue(st.op_2rot())
         self.assertEqual(st, [b'\x03', b'\x04', b'\x05', b'\x06', b'\x01', b'\x02'])
         self.assertRaisesRegex(IndexError, "pop index out of range", Stack([b'\x02']).op_2rot)
 
     def test_stack_op_2swap(self):
         st = Stack.from_ints(range(1, 5))
-        st.op_2swap()
+        self.assertTrue(st.op_2swap())
         self.assertEqual(st, [b'\x04', b'\x03', b'\x01', b'\x02'])
 
     def test_stack_op_ifdup(self):
         st = Stack([b''])
-        st.op_ifdup()
+        self.assertTrue(st.op_ifdup())
         self.assertEqual(st, [b''])
         st = Stack([b'1'])
-        st.op_ifdup()
+        self.assertTrue(st.op_ifdup())
         self.assertEqual(st, [b'1', b'1'])
         st = Stack([])
         self.assertRaisesRegex(ValueError, 'Stack op_ifdup method requires minimum of 1 stack item', st.op_ifdup)
 
     def test_stack_op_depth(self):
         st = Stack.from_ints(range(1, 5))
-        st.op_depth()
+        self.assertTrue(st.op_depth())
         self.assertEqual(decode_num(st[-1]), 4)
 
     def test_stack_op_drop(self):
         st = Stack.from_ints(range(1, 3))
-        st.op_drop()
+        self.assertTrue(st.op_drop())
         self.assertEqual(st, [encode_num(1)])
-        st.op_drop()
+        self.assertTrue(st.op_drop())
         self.assertRaisesRegex(IndexError, "pop from empty list", st.op_drop)
 
     def test_stack_op_dup(self):
         st = Stack([b'\x10'])
-        st.op_dup()
+        self.assertTrue(st.op_dup())
         self.assertEqual(st, [b'\x10', b'\x10'])
         st = Stack()
         self.assertFalse(st.op_dup())
@@ -98,60 +98,60 @@ class TestStack(unittest.TestCase):
     def test_stack_op_nip(self):
         self.assertRaisesRegex(IndexError, 'pop index out of range', Stack([b'\x01']).op_nip)
         st = Stack.from_ints([1, 2])
-        st.op_nip()
+        self.assertTrue(st.op_nip())
         self.assertEqual(st, [b'\x02'])
 
     def test_stack_op_over(self):
         self.assertRaisesRegex(ValueError, 'Stack op_over method requires minimum of 2 stack items', Stack([]).op_over)
         st = Stack.from_ints([1, 2])
-        st.op_over()
+        self.assertTrue(st.op_over())
         self.assertEqual(st, [b'\x01', b'\x02', b'\x01'])
 
     def test_stack_op_pick(self):
         st = Stack.from_ints([1, 2, 3, 3])
-        st.op_pick()
+        self.assertTrue(st.op_pick())
         self.assertEqual(st.as_ints(), [1, 2, 3, 1])
         st = Stack.from_ints([1, 2, 3, 4])
         self.assertRaisesRegex(IndexError, 'list index out of range', st.op_pick)
 
     def test_stack_op_roll(self):
         st = Stack.from_ints([1, 2, 3, 3])
-        st.op_roll()
+        self.assertTrue(st.op_roll())
         self.assertEqual(st.as_ints(), [2, 3, 1])
         st = Stack.from_ints([1, 2, 3, 4])
         self.assertRaisesRegex(IndexError, 'pop index out of range', st.op_roll)
 
     def test_stack_op_rot(self):
         st = Stack.from_ints([1, 2, 3])
-        st.op_rot()
+        self.assertTrue(st.op_rot())
         self.assertEqual(st.as_ints(), [2, 3, 1])
         self.assertRaisesRegex(IndexError, 'pop index out of range', Stack([1, 2]).op_rot)
 
     def test_stack_op_swap(self):
         st = Stack.from_ints([1, 2])
-        st.op_swap()
+        self.assertTrue(st.op_swap())
         self.assertEqual(st.as_ints(), [2, 1])
         self.assertRaisesRegex(IndexError, 'pop index out of range', Stack([2]).op_swap)
 
     def test_stack_op_tuck(self):
         st = Stack.from_ints([1, 2])
-        st.op_tuck()
+        self.assertTrue(st.op_tuck())
         self.assertEqual(st, [b'\x01', b'\x02', b'\x01'])
         self.assertRaisesRegex(IndexError, 'list index out of range', Stack([2]).op_tuck)
 
     def test_stack_op_size(self):
         st = Stack([b'\x02\x88\xff'])
-        st.op_size()
+        self.assertTrue(st.op_size())
         self.assertEqual(st[-1], encode_num(3))
         self.assertRaisesRegex(IndexError, 'list index out of range', Stack([]).op_size)
 
     def test_stack_op_equal(self):
         st = Stack.from_ints([1, 1])
-        st.op_equal()
+        self.assertTrue(st.op_equal())
         self.assertEqual(len(st), 1)
         self.assertEqual(st, [b'\x01'])
         st = Stack.from_ints([1, 2])
-        st.op_equal()
+        self.assertTrue(st.op_equal())
         self.assertEqual(len(st), 1)
         self.assertEqual(st, [b''])
         self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([b'x99']).op_equal)
@@ -167,25 +167,205 @@ class TestStack(unittest.TestCase):
 
     def test_stack_op_1add(self):
         st = Stack.from_ints([5])
-        st.op_1add()
+        self.assertTrue(st.op_1add())
         self.assertEqual(st.as_ints(), [6])
-        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_1add)
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 1',
+                               Stack([]).op_1add)
 
     def test_stack_op_1sub(self):
         st = Stack.from_ints([5])
-        st.op_1sub()
+        self.assertTrue(st.op_1sub())
         self.assertEqual(st.as_ints(), [4])
-        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_1sub)
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 1',
+                               Stack([]).op_1sub)
 
-    def test_stack_operation_op_add(self):
+    def test_stack_op_negate(self):
+        st = Stack.from_ints([3])
+        self.assertTrue(st.op_negate())
+        self.assertEqual(decode_num(st[0]), -3)
+        st = Stack.from_ints([-1003])
+        self.assertTrue(st.op_negate())
+        self.assertEqual(decode_num(st[0]), 1003)
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 1',
+                               Stack([]).op_negate)
+
+    def test_stack_op_abs(self):
+        st = Stack.from_ints([3])
+        self.assertTrue(st.op_abs())
+        self.assertEqual(decode_num(st[0]), 3)
+        st = Stack.from_ints([-1003])
+        self.assertTrue(st.op_abs())
+        self.assertEqual(decode_num(st[0]), 1003)
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 1',
+                               Stack([]).op_abs)
+
+    def test_stack_op_not(self):
+        st = Stack([b''])
+        self.assertTrue(st.op_not())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\1'])
+        self.assertTrue(st.op_not())
+        self.assertEqual(st[-1], b'')
+        st = Stack([b'\x99\xff'])
+        self.assertTrue(st.op_not())
+        self.assertEqual(st[-1], b'')
+        self.assertFalse(Stack([b'\x99\xff\xff\xff\xff']).op_not())
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 1',
+                               Stack([]).op_not)
+
+    def test_stack_op_0notequal(self):
+        st = Stack([b'\1'])
+        self.assertTrue(st.op_0notequal())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b''])
+        self.assertTrue(st.op_0notequal())
+        self.assertEqual(st[-1], b'')
+        st = Stack([b'\x99\xff'])
+        self.assertTrue(st.op_0notequal())
+        self.assertEqual(st[-1], b'\1')
+        self.assertFalse(Stack([b'\x99\xff\xff\xff\xff']).op_0notequal())
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 1',
+                               Stack([]).op_0notequal)
+
+    def test_stack_op_add(self):
         st = Stack.from_ints(range(1, 7))
         for _ in range(5):
-            st.op_add()
-        self.assertEqual(decode_num(st[0]), 1+2+3+4+5+6)
-        self.assertRaisesRegex(IndexError, "pop from empty list", st.op_add)
+            self.assertTrue(st.op_add())
+        self.assertEqual(decode_num(st[0]), 1 + 2 + 3 + 4 + 5 + 6)
+        self.assertRaisesRegex(IndexError, "Not enough items in list to run operation. Items 1, expected 2",
+                               st.op_add)
 
-    def test_stack_operation_op_sub(self):
+    def test_stack_op_sub(self):
         st = Stack.from_ints([2, 5])
-        st.op_sub()
+        self.assertTrue(st.op_sub())
         self.assertEqual(decode_num(st[0]), 5 - 2)
-        self.assertRaisesRegex(IndexError, "pop from empty list", st.op_sub)
+        self.assertRaisesRegex(IndexError, "Not enough items in list to run operation. Items 1, expected 2",
+                               st.op_sub)
+
+    def test_stack_op_booland(self):
+        st = Stack([b'', b''])
+        self.assertTrue(st.op_booland())
+        self.assertEqual(st[-1], b'')
+        st = Stack([b'', b'\1'])
+        self.assertTrue(st.op_booland())
+        self.assertEqual(st[-1], b'')
+        st = Stack([b'\1', b'\1'])
+        self.assertTrue(st.op_booland())
+        self.assertEqual(st[-1], b'\1')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 2',
+                               Stack([]).op_booland)
+
+    def test_stack_op_boolor(self):
+        st = Stack([b'', b''])
+        self.assertTrue(st.op_boolor())
+        self.assertEqual(st[-1], b'')
+        st = Stack([b'', b'\1'])
+        self.assertTrue(st.op_boolor())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\1', b'\1'])
+        self.assertTrue(st.op_boolor())
+        self.assertEqual(st[-1], b'\1')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 2',
+                               Stack([]).op_boolor)
+
+    def test_stack_op_numequal(self):
+        st = Stack([b'\x08', b'\x08'])
+        self.assertTrue(st.op_numequal())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\x08', b'\x07'])
+        self.assertTrue(st.op_numequal())
+        self.assertEqual(st[-1], b'')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 2',
+                               Stack([]).op_numequal)
+
+    def test_stack_op_numequalverify(self):
+        st = Stack([b'\x08', b'\x08'])
+        self.assertTrue(st.op_numequalverify())
+        st = Stack([b'\x08', b'\x07'])
+        self.assertFalse(st.op_numequalverify())
+
+    def test_stack_op_numnotequal(self):
+        st = Stack([b'\x89', b'\x89'])
+        self.assertTrue(st.op_numnotequal())
+        self.assertEqual(st[-1], b'')
+        st = Stack([b'\x82', b'\x02'])
+        self.assertTrue(st.op_numnotequal())
+        self.assertEqual(st[-1], b'\1')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 0, expected 2',
+                               Stack([]).op_numnotequal)
+
+    def test_stack_op_numlessthan(self):
+        st = Stack([b'\2', b'\1'])
+        self.assertTrue(st.op_numlessthan())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\x82', b'\x02'])
+        self.assertTrue(st.op_numlessthan())
+        self.assertEqual(st[-1], b'')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 2',
+                               Stack([b'\1']).op_numlessthan)
+
+    def test_stack_op_numgreaterthan(self):
+        st = Stack([b'\2', b'\3'])
+        self.assertTrue(st.op_numgreaterthan())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\x04', b'\x81'])
+        self.assertTrue(st.op_numgreaterthan())
+        self.assertEqual(st[-1], b'')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 2',
+                               Stack([b'\1']).op_numgreaterthan)
+
+    def test_stack_op_numlessthanorequal(self):
+        st = Stack([b'\2', b'\2'])
+        self.assertTrue(st.op_numlessthanorequal())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\x82', b'\x02'])
+        self.assertTrue(st.op_numlessthanorequal())
+        self.assertEqual(st[-1], b'')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 2',
+                               Stack([b'\1']).op_numlessthanorequal)
+
+    def test_stack_op_numgreaterthanorequal(self):
+        st = Stack([b'\3', b'\3'])
+        self.assertTrue(st.op_numgreaterthanorequal())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\x04', b'\x81'])
+        self.assertTrue(st.op_numgreaterthanorequal())
+        self.assertEqual(st[-1], b'')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 2',
+                               Stack([b'\1']).op_numgreaterthanorequal)
+
+    def test_stack_op_min(self):
+        st = Stack([b'\1', b'\2'])
+        self.assertTrue(st.op_min())
+        self.assertEqual(st[-1], b'\1')
+        st = Stack([b'\3', b'\2'])
+        self.assertTrue(st.op_min())
+        self.assertEqual(st[-1], b'\2')
+        st = Stack([b'\3', b'\x82'])
+        self.assertTrue(st.op_min())
+        self.assertEqual(st[-1], b'\x82')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 2',
+                               Stack([b'\1']).op_min)
+
+    def test_stack_op_max(self):
+        st = Stack([b'\1', b'\2'])
+        self.assertTrue(st.op_max())
+        self.assertEqual(st[-1], b'\2')
+        st = Stack([b'\3', b'\2'])
+        self.assertTrue(st.op_max())
+        self.assertEqual(st[-1], b'\3')
+        st = Stack([b'\3', b'\x82'])
+        self.assertTrue(st.op_max())
+        self.assertEqual(st[-1], b'\3')
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 2',
+                               Stack([b'\1']).op_max)
+
+    def test_stack_op_within(self):
+        st = Stack([b'\x09', b'\x07', b'\x08'])
+        st.op_within()
+        self.assertEqual(st, [b'\1'])
+        st = Stack([b'\x09', b'\x07', b'\x09'])
+        st.op_within()
+        self.assertEqual(st, [b''])
+        self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 3',
+                               Stack([b'\1']).op_within)
