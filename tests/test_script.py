@@ -362,10 +362,40 @@ class TestStack(unittest.TestCase):
 
     def test_stack_op_within(self):
         st = Stack([b'\x09', b'\x07', b'\x08'])
-        st.op_within()
+        self.assertTrue(st.op_within())
         self.assertEqual(st, [b'\1'])
         st = Stack([b'\x09', b'\x07', b'\x09'])
-        st.op_within()
+        self.assertTrue(st.op_within())
         self.assertEqual(st, [b''])
         self.assertRaisesRegex(IndexError, 'Not enough items in list to run operation. Items 1, expected 3',
                                Stack([b'\1']).op_within)
+
+    def test_op_ripemd160(self):
+        st = Stack([b'The quick brown fox jumps over the lazy dog'])
+        self.assertTrue(st.op_ripemd160())
+        self.assertEqual(st[0].hex(), '37f332f68db77bd9d7edd4969571ad671cf9dd3b')
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_ripemd160)
+
+    def test_stack_op_sha1(self):
+        st = Stack([b'The quick brown fox jumps over the lazy dog'])
+        self.assertTrue(st.op_sha1())
+        self.assertEqual(st[0].hex(), '2fd4e1c67a2d28fced849ee1bb76e7391b93eb12')
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_sha1)
+
+    def test_stack_op_sha256(self):
+        st = Stack([b'The quick brown fox jumps over the lazy dog'])
+        self.assertTrue(st.op_sha256())
+        self.assertEqual(st[0].hex(), 'd7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592')
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_sha256)
+
+    def test_stack_op_hash160(self):
+        st = Stack([bytes.fromhex('0298ddb14f0a9871c4755985f0ece53f99580d243474e5e300078f3dad809b3d45')])
+        self.assertTrue(st.op_hash160())
+        self.assertEqual(st[0].hex(), 'c8d26159052b4eddb5a945f0795f220366868189')
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_hash160)
+
+    def test_stack_op_hash256(self):
+        st = Stack([b'The quick brown fox jumps over the lazy dog'])
+        self.assertTrue(st.op_hash256())
+        self.assertEqual(st[0].hex(), '6d37795021e544d82b41850edf7aabab9a0ebe274e54a519840c4666f35b3937')
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_hash256)

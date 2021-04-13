@@ -21,6 +21,7 @@
 from bitcoinlib.encoding import *
 from bitcoinlib.main import *
 from bitcoinlib.config.opcodes import *
+from bitcoinlib.keys import Signature
 
 
 _logger = logging.getLogger(__name__)
@@ -441,21 +442,43 @@ class Stack(list):
             self.append(b'')
         return True
 
-    # # 'op_ripemd160':
-    # # 'op_sha1':
-    # # 'op_sha256':
-
-    def op_hash160(self):
-        self.pop()
-        return 'hash160'
-
-    # # 'op_hash256':
-    # # 'op_codeseparator':
-
-    def op_checksig(self):
+    def op_ripemd160(self):
+        self.append(hashlib.new('ripemd160', self.pop()).digest())
         return True
 
-    # # 'op_checksigverify':
+    def op_sha1(self):
+        self.append(hashlib.sha1(self.pop()).digest())
+        return True
+
+    def op_sha256(self):
+        self.append(hashlib.sha256(self.pop()).digest())
+        return True
+
+    def op_hash160(self):
+        self.append(hash160(self.pop()))
+        return True
+
+    def op_hash256(self):
+        self.op_sha256()
+        self.op_sha256()
+        return True
+
+    # # 'op_codeseparator':
+
+    def op_checksig(self, txid):
+        signature = self.pop()
+        public_key = self.pop()
+        signature = Signature.from_str(signature, public_key=public_key)
+        if signature.verify(txid, public_key):
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+    def op_checksigverify(self, txid):
+        self.op_checksig(txid)
+        return self.op_verify()
+
     # # 'op_checkmultisig':
     # # 'op_checkmultisigverify':
     # 'op_nop1': (0, '', None, 0, False),
