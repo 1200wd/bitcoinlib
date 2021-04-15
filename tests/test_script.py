@@ -399,3 +399,28 @@ class TestStack(unittest.TestCase):
         self.assertTrue(st.op_hash256())
         self.assertEqual(st[0].hex(), '6d37795021e544d82b41850edf7aabab9a0ebe274e54a519840c4666f35b3937')
         self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([]).op_hash256)
+
+    def test_stack_op_checksig(self):
+        txid = b'G\x9bp)\xc8\x811\x97\xdeS\x90\xae\x86\xc2\xc7\xfb\x9d\xd3\x17\x01F\x13N,\x19v\xdb\x0f\x1a\xab\xd8X'
+        key = '03508cb60bb7fecfcf0b4e44eedf6e588cd54bdb28dd38b662f52fdbe35e61ab68'
+        sig = '3044022065affcfb58c7e4a8dd2ad787fb069e623dc1f8160b664a17695fcc2ed5c16be002206803240c5f9ba90d3ad2eab' \
+              '327fa4e6940cf74d639bfcde0f9d2aeb91182df5b01'
+        st = Stack([bytes.fromhex(sig), bytes.fromhex(key)])
+        self.assertTrue(st.op_checksig(txid))
+        self.assertEqual(st[0], b'\1')
+
+        sig = '3044022065affcfb58c7e4a8dd2ad787fb069e623dc1f8160b664a17695fcc2dd5c16be002206803240c5f9ba90d3ad2eab' \
+              '327fa4e6940cf74d639bfcde0f9d2aeb91182df5b01'
+        st = Stack([bytes.fromhex(sig), bytes.fromhex(key)])
+        self.assertTrue(st.op_checksig(txid))
+        self.assertEqual(st[0], b'')
+
+        self.assertRaisesRegex(IndexError, 'pop from empty list', Stack([bytes.fromhex(key)]).op_checksig, txid)
+
+    def test_op_stack_op_checksigverify(self):
+        txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        key = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+        sig = '70b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df5da0917d7bd645c2a09671894375e3d353' \
+              '3138e8de09bc89cb251cbfae4cc523'
+        st = Stack([bytes.fromhex(sig), bytes.fromhex(key)])
+        self.assertTrue(st.op_checksigverify(txid))

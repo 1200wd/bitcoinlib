@@ -42,25 +42,30 @@ class ScriptError(Exception):
 
 class Script(object):
 
-    def __init__(self, commands=None):
+    def __init__(self, commands=None, message=None):
         self.commands = []
         if commands:
             self.commands = commands
         self.raw = b''
         self.stack = []
+        self.message = message
         # self.is_locking =
         # self.type =
         # self.keys? signatures?
 
     @classmethod
-    def parse(cls, script):
+    def parse(cls, script, message=None):
         cur = 0
         commands = []
         while cur < len(script):
             ch = script[cur]
             cur += 1
             if 1 <= ch <= 75:  # Data
-                commands.append(script[cur:cur+ch])
+                subscript = script[cur:cur+ch]
+                if ch == 22:
+                    commands.extend(Script.parse(subscript).commands)
+                else:
+                    commands.append(subscript)
                 cur += ch
             elif ch == op.op_pushdata1:
                 length = script[cur]
@@ -76,7 +81,7 @@ class Script(object):
                 commands.append(ch)
         if cur != len(script):
             raise ScriptError("Parsing script failed, invalid length")
-        s = cls(commands)
+        s = cls(commands, message)
         s.raw = script
         return s
 
@@ -102,7 +107,7 @@ class Script(object):
         while len(commands):
             command = commands.pop(0)
             if isinstance(command, int):
-                print("Stack: %s  ; Running operation %s" % (self.stack, opcodenames[command]))
+                # print("Stack: %s  ; Running operation %s" % (self.stack, opcodenames[command]))
                 if command == op.op_0:  # OP_0
                     self.stack.append(encode_num(0))
                     # self.stack.append(0)
@@ -121,7 +126,11 @@ class Script(object):
                     # method_args = op_methods[method]
                     # self.stack.operate(*method_args)
                     try:
-                        res = getattr(self.stack, method)()
+                        method = getattr(self.stack, method)
+                        if method.__code__.co_argcount > 1:
+                            res = method(self.message)
+                        else:
+                            res = method()
                         if res is False:
                             return False
                     except Exception as e:
@@ -136,7 +145,7 @@ class Script(object):
                     # if not method(self.stack):
                     #     return False
             else:
-                print("Add data %s to stack" % command.hex())
+                # print("Add data %s to stack" % command.hex())
                 self.stack.append(command)
             # print(self.stack)
         return True
@@ -465,18 +474,18 @@ class Stack(list):
 
     # # 'op_codeseparator':
 
-    def op_checksig(self, txid):
-        signature = self.pop()
+    def op_checksig(self, message):
         public_key = self.pop()
+        signature = self.pop()
         signature = Signature.from_str(signature, public_key=public_key)
-        if signature.verify(txid, public_key):
+        if signature.verify(message, public_key):
             self.append(b'\1')
         else:
             self.append(b'')
         return True
 
-    def op_checksigverify(self, txid):
-        self.op_checksig(txid)
+    def op_checksigverify(self, message):
+        self.op_checksig(message)
         return self.op_verify()
 
     # # 'op_checkmultisig':
