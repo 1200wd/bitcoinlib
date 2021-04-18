@@ -1849,7 +1849,11 @@ class Transaction(object):
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
                              (len(i.signatures), i.sigs_required))
                 return False
-            transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
+            try:
+                transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
+            except TransactionError as e:
+                _logger.info("Could not create transaction hash. Error: %s" % e)
+                return False
             sig_id = 0
             key_n = 0
             for key in i.keys:

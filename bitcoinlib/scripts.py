@@ -488,6 +488,33 @@ class Stack(list):
         self.op_checksig(message)
         return self.op_verify()
 
+    def op_checkmultisig(self, message):
+        n = decode_num(self.pop())
+        pubkeys = []
+        for _ in range(n):
+            pubkeys.append(self.pop())
+        m = decode_num(self.pop())
+        signatures = []
+        for _ in range(m):
+            signatures.append(self.pop())
+        # OP_CHECKMULTISIG bug
+        self.pop()
+        sigcount = 0
+        for pubkey in pubkeys:
+            s = Signature.from_str(signatures[sigcount])
+            if s.verify(message, pubkey):
+                sigcount += 1
+                if sigcount >= len(signatures):
+                    break
+
+        if sigcount == len(signatures):
+            self.append(b'\1')
+        else:
+            self.append(b'')
+        return True
+
+
+
     # # 'op_checkmultisig':
     # # 'op_checkmultisigverify':
     # 'op_nop1': (0, '', None, 0, False),
