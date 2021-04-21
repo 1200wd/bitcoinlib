@@ -60,23 +60,31 @@ class Script(object):
         while cur < len(script):
             ch = script[cur]
             cur += 1
+            data = None
             if 1 <= ch <= 75:  # Data
-                subscript = script[cur:cur+ch]
-                if ch == 22:
-                    commands.extend(Script.parse(subscript).commands)
-                else:
-                    commands.append(subscript)
+                data = script[cur:cur+ch]
                 cur += ch
             elif ch == op.op_pushdata1:
                 length = script[cur]
                 cur += 1
-                commands.append(script[cur:cur+length])
+                data = script[cur:cur+length]
                 cur += length
             elif ch == op.op_pushdata2:
                 length = varbyteint_to_int(script[cur:cur+2])
                 cur += 2
-                commands.append(script[cur:cur+length])
+                data = script[cur:cur+length]
                 cur += length
+            if data:
+                # commands.append(data)
+                if (data.startswith(b'\x30') and 70 <= len(data) < 73) or \
+                        ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
+                        (data.startswith(b'\x04') and len(data) == 65) or len(data) == 20 or len(data) == 32:   #or _depth != 0:
+                    commands.append(data)
+                else:
+                    try:
+                        commands.extend(Script.parse(data).commands)
+                    except ScriptError:
+                        commands.append(data)
             else:  # Other opcode
                 commands.append(ch)
         if cur != len(script):
@@ -154,7 +162,7 @@ class Script(object):
         s_items = []
         for command in self.commands:
             if isinstance(command, int):
-                s_items.append(opcodenames[command])
+                s_items.append(opcodenames.get(command, 'unknown-op-%s' % command))
             else:
                 s_items.append(command.hex())
         return ' '.join(s_items)
