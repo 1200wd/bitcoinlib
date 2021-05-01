@@ -327,6 +327,20 @@ def varbyteint_to_int(byteint):
     return int.from_bytes(byteint[1:1+size][::-1], 'big'), size + 1
 
 
+def read_varbyteint(s):
+    """
+    Read variable length integer from BytesIO stream. Wrapper for the varbyteint_to_int method
+
+    :param s: A binary stream
+    :type s: BytesIO
+
+    :return int:
+    """
+    value, size = varbyteint_to_int(s.read(9))
+    s.seek(size - 9, 1)
+    return value
+
+
 def int_to_varbyteint(inp):
     """
     Convert integer to CompactSize Variable length integer in byte format.

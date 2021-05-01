@@ -22,6 +22,7 @@ from datetime import datetime
 import json
 import pickle
 import random
+from io import BytesIO
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
@@ -63,10 +64,11 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     """
 
     rawtx = to_bytes(rawtx)
-    version = rawtx[0:4][::-1]
     coinbase = False
     flag = None
     witness_type = 'legacy'
+
+    version = rawtx[0:4][::-1]
     cursor = 4
     if rawtx[4:5] == b'\0':
         flag = rawtx[5:6]
@@ -115,6 +117,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
         output_total += value
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
+
     if witness_type == 'segwit':
         for n in range(0, len(inputs)):
             n_items, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
@@ -845,6 +848,22 @@ class Input(object):
                     self.hash_type = sig.hash_type
         self.update_scripts(hash_type=self.hash_type)
 
+    @classmethod
+    def parse(cls, raw, witness_type='segwit', index_n=0, network=DEFAULT_NETWORK):
+        prev_hash = raw.read(32)[::-1]
+        if len(prev_hash) != 32:
+            raise TransactionError("Input transaction hash not found. Probably malformed raw transaction")
+        output_n = raw.read(4)[::-1]
+        unlocking_script_size = read_varbyteint(raw)
+        unlocking_script = raw.read(unlocking_script_size)
+        inp_type = 'legacy'
+        if witness_type == 'segwit' and not unlocking_script_size:
+            inp_type = 'segwit'
+        sequence_number = raw.read(4)
+
+        return Input(prev_txid=prev_hash, output_n=output_n, unlocking_script=unlocking_script,
+                     witness_type=inp_type, sequence=sequence_number, index_n=index_n, network=network)
+
     def set_locktime_relative_blocks(self, blocks):
         """
         Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
@@ -1195,6 +1214,13 @@ class Output(object):
         #     raise TransactionError("Output to %s must be more then dust amount %d" %
         #                            (self.address, self.network.dust_amount))
 
+    @classmethod
+    def parse(cls, raw, output_n=0, network=DEFAULT_NETWORK):
+        value = int.from_bytes(raw.read(8)[::-1], 'big')
+        lock_script_size = read_varbyteint(raw)
+        lock_script = raw.read(lock_script_size)
+        return Output(value=value, lock_script=lock_script, network=network, output_n=output_n)
+
     def as_dict(self):
         """
         Get transaction output information in json format
@@ -1246,13 +1272,118 @@ class Transaction(object):
         :type rawtx: bytes, str
         :param network: Network, leave empty for   default
         :type network: str, Network
-        :param check_size: Check if not bytes are left when parsing is finished. Disable when parsing list of transactions, such as the transactions in a raw block. Default is True
+        :param check_size: Check if no bytes are left when parsing is finished. Disable when parsing list of transactions, such as the transactions in a raw block. Default is True
         :type check_size: bool
 
         :return Transaction:
         """
 
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
+
+    @classmethod
+    def parse(cls, rawtx, network=DEFAULT_NETWORK):
+        coinbase = False
+        flag = None
+        witness_type = 'legacy'
+        network = network
+        if not isinstance(network, Network):
+            cls.network = Network(network)
+        if isinstance(rawtx, bytes):
+            raw_bytes = rawtx
+            rawtx = BytesIO(rawtx)
+        else:  # Assume BytesIO object
+            raw_bytes = rawtx.read()
+            rawtx.seek(0)
+
+        version = rawtx.read(4)[::-1]
+        if rawtx.read(1) == b'\0':
+            flag = rawtx.read(1)
+            if flag == b'\1':
+                witness_type = 'segwit'
+        else:
+            rawtx.seek(-1, 1)
+
+        # n_inputs, size = varbyteint_to_int(rawtx.read(9))
+        # rawtx.seek(size-9, 1)
+        n_inputs = read_varbyteint(rawtx)
+        inputs = []
+        for n in range(0, n_inputs):
+            inp = Input.parse(rawtx, index_n=n, witness_type=witness_type, network=network)
+            if inp.prev_txid == 32 * b'\0':
+                coinbase = True
+            inputs.append(inp)
+
+        outputs = []
+        output_total = 0
+        n_outputs = read_varbyteint(rawtx)
+        for n in range(0, n_outputs):
+            o = Output.parse(rawtx, output_n=n, network=network)
+            outputs.append(o)
+            output_total += o.value
+        if not outputs:
+            raise TransactionError("Error no outputs found in this transaction")
+
+        if witness_type == 'segwit':
+            for n in range(0, len(inputs)):
+                n_items = read_varbyteint(rawtx)
+                witnesses = []
+                for m in range(0, n_items):
+                    witness = b'\0'
+                    item_size = read_varbyteint(rawtx)
+                    witness = rawtx.read(item_size)
+                    witnesses.append(witness)
+                if witnesses and not coinbase:
+                    script_type = inputs[n].script_type
+                    witness_script_type = 'sig_pubkey'
+                    signatures = []
+                    keys = []
+                    sigs_required = 1
+                    public_hash = b''
+                    for witness in witnesses:
+                        if witness == b'\0':
+                            continue
+                        if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
+                            signatures.append(witness)
+                        elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
+                            keys.append(witness)
+                        else:
+                            rsds = script_deserialize(witness, script_types=['multisig'])
+                            if not rsds['script_type'] == 'multisig':
+                                # FIXME: Parse unknown scripts
+                                _logger.warning(
+                                    "Could not parse witnesses in transaction. Multisig redeemscript expected")
+                                witness_script_type = 'unknown'
+                                script_type = 'unknown'
+                            else:
+                                # FIXME: Do not mixup naming signatures and keys
+                                keys = rsds['signatures']
+                                sigs_required = rsds['number_of_sigs_m']
+                                witness_script_type = 'p2sh'
+                                script_type = 'p2sh_multisig'
+
+                    inp_witness_type = inputs[n].witness_type
+                    usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
+
+                    if usd['script_type'] == "p2wpkh" and witness_script_type == 'sig_pubkey':
+                        inp_witness_type = 'p2sh-segwit'
+                        script_type = 'p2sh_p2wpkh'
+                    elif usd['script_type'] == "p2wsh" and witness_script_type == 'p2sh':
+                        inp_witness_type = 'p2sh-segwit'
+                        script_type = 'p2sh_p2wsh'
+                    inputs[n] = Input(prev_txid=inputs[n].prev_txid, output_n=inputs[n].output_n, keys=keys,
+                                      unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
+                                      unlocking_script=inputs[n].unlocking_script, sigs_required=sigs_required,
+                                      signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
+                                      sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
+                                      network=inputs[n].network, witnesses=witnesses)
+        # if len(rawtx[cursor:]) != 4 and check_size:
+        #     raise TransactionError(
+        #         "Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
+        #         len(rawtx[cursor:]))
+        locktime = int.from_bytes(rawtx.read(4)[::-1], 'big')
+
+        return Transaction(inputs, outputs, locktime, version, network, size=len(raw_bytes), output_total=output_total,
+                           coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes)
 
     @staticmethod
     def load(txid=None, filename=None):
