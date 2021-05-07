@@ -1326,56 +1326,65 @@ class Transaction(object):
         if witness_type == 'segwit':
             for n in range(0, len(inputs)):
                 n_items = read_varbyteint(rawtx)
-                witnesses = []
+                # witnesses = []
+                #     witness_script_type = 'sig_pubkey'
+                signatures = []
+                keys = []
+                #     sigs_required = 1
+                #     public_hash = b''
                 for m in range(0, n_items):
-                    witness = b'\0'
                     item_size = read_varbyteint(rawtx)
                     witness = rawtx.read(item_size)
-                    witnesses.append(witness)
-                if witnesses and not coinbase:
-                    script_type = inputs[n].script_type
-                    witness_script_type = 'sig_pubkey'
-                    signatures = []
-                    keys = []
-                    sigs_required = 1
-                    public_hash = b''
-                    for witness in witnesses:
-                        if witness == b'\0':
-                            continue
-                        if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
-                            signatures.append(witness)
-                        elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
-                            keys.append(witness)
-                        else:
-                            rsds = script_deserialize(witness, script_types=['multisig'])
-                            if not rsds['script_type'] == 'multisig':
-                                # FIXME: Parse unknown scripts
-                                _logger.warning(
-                                    "Could not parse witnesses in transaction. Multisig redeemscript expected")
-                                witness_script_type = 'unknown'
-                                script_type = 'unknown'
-                            else:
-                                # FIXME: Do not mixup naming signatures and keys
-                                keys = rsds['signatures']
-                                sigs_required = rsds['number_of_sigs_m']
-                                witness_script_type = 'p2sh'
-                                script_type = 'p2sh_multisig'
+                    # witnesses.append(witness)
+                # if witnesses and not coinbase:
+                #     script_type = inputs[n].script_type
+                #     witness_script_type = 'sig_pubkey'
+                #     signatures = []
+                #     keys = []
+                #     sigs_required = 1
+                #     public_hash = b''
+                #     for witness in witnesses:
+                    if witness == b'\0':
+                        continue
+                    if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
+                        signatures.append(witness)
+                    elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
+                        keys.append(witness)
 
-                    inp_witness_type = inputs[n].witness_type
-                    usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
+                    inputs[n].keys = keys
+                    inputs[n].signatures = signatures
+                    inputs[n].witnesses.append(witness)
+                    # else:
+                    #     s = Script.parse
+                    #     rsds = script_deserialize(witness, script_types=['multisig'])
+                    #     if not rsds['script_type'] == 'multisig':
+                    #         # FIXME: Parse unknown scripts
+                    #         _logger.warning(
+                    #             "Could not parse witnesses in transaction. Multisig redeemscript expected")
+                    #         witness_script_type = 'unknown'
+                    #         script_type = 'unknown'
+                    #     else:
+                    #         # FIXME: Do not mixup naming signatures and keys
+                    #         keys = rsds['signatures']
+                    #         sigs_required = rsds['number_of_sigs_m']
+                    #         witness_script_type = 'p2sh'
+                    #         script_type = 'p2sh_multisig'
 
-                    if usd['script_type'] == "p2wpkh" and witness_script_type == 'sig_pubkey':
-                        inp_witness_type = 'p2sh-segwit'
-                        script_type = 'p2sh_p2wpkh'
-                    elif usd['script_type'] == "p2wsh" and witness_script_type == 'p2sh':
-                        inp_witness_type = 'p2sh-segwit'
-                        script_type = 'p2sh_p2wsh'
-                    inputs[n] = Input(prev_txid=inputs[n].prev_txid, output_n=inputs[n].output_n, keys=keys,
-                                      unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
-                                      unlocking_script=inputs[n].unlocking_script, sigs_required=sigs_required,
-                                      signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
-                                      sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
-                                      network=inputs[n].network, witnesses=witnesses)
+                    # inp_witness_type = inputs[n].witness_type
+                    # usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
+                    #
+                    # if usd['script_type'] == "p2wpkh" and witness_script_type == 'sig_pubkey':
+                    #     inp_witness_type = 'p2sh-segwit'
+                    #     script_type = 'p2sh_p2wpkh'
+                    # elif usd['script_type'] == "p2wsh" and witness_script_type == 'p2sh':
+                    #     inp_witness_type = 'p2sh-segwit'
+                    #     script_type = 'p2sh_p2wsh'
+                    # inputs[n] = Input(prev_txid=inputs[n].prev_txid, output_n=inputs[n].output_n, keys=keys,
+                    #                   unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
+                    #                   unlocking_script=inputs[n].unlocking_script, sigs_required=sigs_required,
+                    #                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
+                    #                   sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
+                    #                   network=inputs[n].network, witnesses=witnesses)
         # if len(rawtx[cursor:]) != 4 and check_size:
         #     raise TransactionError(
         #         "Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %

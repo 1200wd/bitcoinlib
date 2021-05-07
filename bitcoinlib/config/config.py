@@ -62,6 +62,7 @@ SCRIPT_TYPES_LOCKING = {
     'p2pk': ['public_key', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data'],
 }
+
 SCRIPT_TYPES_UNLOCKING = {
     # Unlocking scripts / scriptSig (Input)
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],

@@ -27,6 +27,32 @@ from bitcoinlib.keys import Signature
 _logger = logging.getLogger(__name__)
 
 
+# SCRIPT_TYPES_LOCKING = {
+#     # Locking scripts / scriptPubKey (Output)
+#     'p2pkh': ['OP_DUP', 'OP_HASH160', 'hash-20', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
+#     'p2sh': ['OP_HASH160', 'hash-20', 'OP_EQUAL'],
+#     'p2wpkh': ['OP_0', 'hash-20'],
+#     'p2wsh': ['OP_0', 'hash-32'],
+#     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
+#     'p2pk': ['public_key', 'OP_CHECKSIG'],
+#     'nulldata': ['OP_RETURN', 'return_data'],
+# }
+#
+# SCRIPT_TYPES_UNLOCKING = {
+#     # Unlocking scripts / scriptSig (Input)
+#     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
+#     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
+#     'p2sh_p2wpkh': ['OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
+#     'p2sh_p2wsh': ['OP_0', 'push_size', 'redeemscript'],
+#     'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
+#     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
+#     'signature': ['signature']
+# }
+SCRIPT_TYPES = [
+    ('p2pkh', 'locking', [op.op_dup, op.op_hash160, 'data-20', op.op_equalverify, op.op_checksig])
+]
+
+
 class ScriptError(Exception):
     """
     Handle Key class Exceptions
@@ -40,17 +66,28 @@ class ScriptError(Exception):
         return self.msg
 
 
+def _get_script_type(script_commands):
+    ss = []
+    for c in script_commands:
+        if isinstance(c, int):
+            ss.append(c)
+        else:
+            ss.append('data-%d' % len(c))
+    res = [(st[0], st[1]) for st in SCRIPT_TYPES if st[2] == ss]
+    return ('unknown', None) if len(res) != 1 else res[0]
+
+
 class Script(object):
 
-    def __init__(self, commands=None, message=None):
+    def __init__(self, commands=None, message=None, type='', is_locking=True):
         self.commands = []
         if commands:
             self.commands = commands
         self.raw = b''
         self.stack = []
         self.message = message
-        # self.is_locking =
-        # self.type =
+        self.type = type
+        self.is_locking = is_locking
         # self.keys? signatures?
 
     @classmethod
@@ -91,6 +128,9 @@ class Script(object):
             raise ScriptError("Parsing script failed, invalid length")
         s = cls(commands, message)
         s.raw = script
+        script_type, locking_type = _get_script_type(commands)
+        s.script_type = script_type
+        s.is_locking = True if locking_type == 'locking' else False
         return s
 
     def serialize(self):
