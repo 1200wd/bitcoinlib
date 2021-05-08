@@ -1347,9 +1347,12 @@ class Transaction(object):
                     if witness == b'\0':
                         continue
                     if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
-                        signatures.append(witness)
+                        signatures.append(Signature.from_str(witness))
                     elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
-                        keys.append(witness)
+                        k = Key(witness)
+                        keys.append(k)
+                        if not inputs[n].address:
+                            inputs[n].address = k.address
 
                     inputs[n].keys = keys
                     inputs[n].signatures = signatures
