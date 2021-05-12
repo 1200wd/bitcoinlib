@@ -49,7 +49,21 @@ _logger = logging.getLogger(__name__)
 #     'signature': ['signature']
 # }
 SCRIPT_TYPES = [
-    ('p2pkh', 'locking', [op.op_dup, op.op_hash160, 'data-20', op.op_equalverify, op.op_checksig])
+    ('p2pkh', 'locking', [op.op_dup, op.op_hash160, 'data-20', op.op_equalverify, op.op_checksig]),
+    ('p2sh', 'locking', [op.op_hash160, 'data-20', op.op_equal]),
+    ('p2wpkh', 'locking', [op.op_0, 'data-20']),
+    ('p2wsh', 'locking', [op.op_0, 'data-32']),
+    ('multisig', 'locking', ['op_m', 'data-32', 'op_n', op.op_checkmultisig]),
+    ('p2pk', 'locking', ['key', op.op_checksig]),
+    ('nulldata', 'locking', [op.op_return, 'data-0']),
+    ('sig_pubkey', 'unlocking', ['signature', 'key']),
+    ('p2sh_multisig', 'unlocking', [op.op_0, 'signature', 'redeemscript']),
+    ('p2sh_p2wpkh', 'unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal]),
+    ('p2sh_p2wsh', 'unlocking', [op.op_0, 'redeemscript']),
+    ('p2sh_p2wsh', 'unlocking', [op.op_0, 'redeemscript']),
+    ('signature', 'unlocking', ['signature']),
+    ('locktime_cltv', 'unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop]),
+    ('locktime_csv', 'unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop]),
 ]
 
 
@@ -66,34 +80,32 @@ class ScriptError(Exception):
         return self.msg
 
 
-def _get_script_type(script_commands):
-    ss = []
-    for c in script_commands:
-        if isinstance(c, int):
-            ss.append(c)
-        else:
-            ss.append('data-%d' % len(c))
-    res = [(st[0], st[1]) for st in SCRIPT_TYPES if st[2] == ss]
+def _get_script_type(blueprint):
+    res = [(st[0], st[1]) for st in SCRIPT_TYPES if st[2] == blueprint]
     return ('unknown', None) if len(res) != 1 else res[0]
 
 
 class Script(object):
 
-    def __init__(self, commands=None, message=None, type='', is_locking=True):
-        self.commands = []
-        if commands:
-            self.commands = commands
+    def __init__(self, commands=None, message=None, script_type='', is_locking=True, keys=None, signatures=None,
+                 blueprint=None):
+        self.commands = commands if commands else []
         self.raw = b''
         self.stack = []
         self.message = message
-        self.type = type
+        self.script_type = script_type
         self.is_locking = is_locking
-        # self.keys? signatures?
+        self.keys = keys if keys else []
+        self.signatures = signatures if signatures else []
+        self._blueprint = blueprint if blueprint else []
 
     @classmethod
     def parse(cls, script, message=None):
         cur = 0
         commands = []
+        signatures = []
+        keys = []
+        blueprint = []
         while cur < len(script):
             ch = script[cur]
             cur += 1
@@ -113,25 +125,51 @@ class Script(object):
                 cur += length
             if data:
                 # commands.append(data)
-                if (data.startswith(b'\x30') and 70 <= len(data) < 73) or \
-                        ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
-                        (data.startswith(b'\x04') and len(data) == 65) or len(data) == 20 or len(data) == 32:   #or _depth != 0:
+                if data.startswith(b'\x30') and 70 <= len(data) < 73:
                     commands.append(data)
+                    signatures.append(data)
+                    blueprint.append('signature')
+                elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
+                        (data.startswith(b'\x04') and len(data) == 65):
+                    commands.append(data)
+                    keys.append(data)
+                    blueprint.append('key')
+                elif len(data) == 20 or len(data) == 32:
+                    commands.append(data)
+                    blueprint.append('data-%d' % len(data))
                 else:
                     try:
-                        commands.extend(Script.parse(data).commands)
+                        s2 = Script.parse(data)
+                        commands.extend(s2.commands)
+                        blueprint.extend(s2.blueprint)
                     except ScriptError:
                         commands.append(data)
+                        blueprint.append('data-%d' % len(data))
             else:  # Other opcode
                 commands.append(ch)
+                blueprint.append(ch)
         if cur != len(script):
             raise ScriptError("Parsing script failed, invalid length")
-        s = cls(commands, message)
+        s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint)
         s.raw = script
-        script_type, locking_type = _get_script_type(commands)
+        script_type, locking_type = _get_script_type(blueprint)
         s.script_type = script_type
         s.is_locking = True if locking_type == 'locking' else False
         return s
+
+    def __str__(self):
+        s_items = []
+        for command in self.blueprint:
+            if isinstance(command, int):
+                s_items.append(opcodenames.get(command, 'unknown-op-%s' % command))
+            else:
+                s_items.append(command)
+        return ' '.join(s_items)
+
+    @property
+    def blueprint(self):
+        # TODO: create blueprint from commands if empty
+        return self._blueprint
 
     def serialize(self):
         raw = b''
@@ -197,15 +235,6 @@ class Script(object):
                 self.stack.append(command)
             # print(self.stack)
         return True
-
-    def __str__(self):
-        s_items = []
-        for command in self.commands:
-            if isinstance(command, int):
-                s_items.append(opcodenames.get(command, 'unknown-op-%s' % command))
-            else:
-                s_items.append(command.hex())
-        return ' '.join(s_items)
 
 
 class Stack(list):
