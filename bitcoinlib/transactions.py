@@ -1353,10 +1353,14 @@ class Transaction(object):
                         keys.append(k)
                         if not inputs[n].address:
                             inputs[n].address = k.address
+                            inputs[n].address = k.address(encoding=inputs[n].encoding)
+                            inputs[n].public_hash = k.hash160
 
                     inputs[n].keys = keys
                     inputs[n].signatures = signatures
                     inputs[n].witnesses.append(witness)
+                    inputs[n].update_scripts()
+
                     # else:
                     #     s = Script.parse
                     #     rsds = script_deserialize(witness, script_types=['multisig'])

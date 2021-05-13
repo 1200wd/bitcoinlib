@@ -17,6 +17,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from typing import Any, Union
 
 from bitcoinlib.encoding import *
 from bitcoinlib.main import *
@@ -48,23 +49,23 @@ _logger = logging.getLogger(__name__)
 #     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
 #     'signature': ['signature']
 # }
-SCRIPT_TYPES = [
-    ('p2pkh', 'locking', [op.op_dup, op.op_hash160, 'data-20', op.op_equalverify, op.op_checksig]),
-    ('p2sh', 'locking', [op.op_hash160, 'data-20', op.op_equal]),
-    ('p2wpkh', 'locking', [op.op_0, 'data-20']),
-    ('p2wsh', 'locking', [op.op_0, 'data-32']),
-    ('multisig', 'locking', ['op_m', 'data-32', 'op_n', op.op_checkmultisig]),
-    ('p2pk', 'locking', ['key', op.op_checksig]),
-    ('nulldata', 'locking', [op.op_return, 'data-0']),
-    ('sig_pubkey', 'unlocking', ['signature', 'key']),
-    ('p2sh_multisig', 'unlocking', [op.op_0, 'signature', 'redeemscript']),
-    ('p2sh_p2wpkh', 'unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal]),
-    ('p2sh_p2wsh', 'unlocking', [op.op_0, 'redeemscript']),
-    ('p2sh_p2wsh', 'unlocking', [op.op_0, 'redeemscript']),
-    ('signature', 'unlocking', ['signature']),
-    ('locktime_cltv', 'unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop]),
-    ('locktime_csv', 'unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop]),
-]
+SCRIPT_TYPES = {
+    # <name>: (<type>, <script_commands>, <data-lengths>)
+    'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
+    'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
+    'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
+    'p2wsh': ('locking', [op.op_0, 'data'], [32]),
+    'multisig': ('locking', ['op_m', 'data', 'op_n', op.op_checkmultisig], [32]),
+    'p2pk': ('locking', ['key', op.op_checksig], []),
+    'nulldata': ('locking', [op.op_return, 'data'], [0]),
+    'sig_pubkey': ('unlocking', ['signature', 'key'], []),
+    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
+    'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
+    'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
+    'signature': ('unlocking', ['signature'], []),
+    'locktime_cltv': ('unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop], []),
+    'locktime_csv': ('unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop], []),
+}
 
 
 class ScriptError(Exception):
@@ -81,8 +82,24 @@ class ScriptError(Exception):
 
 
 def _get_script_type(blueprint):
-    res = [(st[0], st[1]) for st in SCRIPT_TYPES if st[2] == blueprint]
-    return ('unknown', None) if len(res) != 1 else res[0]
+    bp = [('data' if isinstance(c, str) and c[:4] == 'data' else c) for c in blueprint]
+    bp_len = [int(c.split('-')[1]) for c in blueprint if isinstance(c, str) and c[:4] == 'data']
+    script_types = []
+    while len(bp):
+        res = [(key, len(values[1]), values[2]) for key, values in SCRIPT_TYPES.items() if
+               values[1] == bp[:len(values[1])]]
+        if not res:
+            break
+        data_lens = res[0][2]
+        for dl in data_lens:
+            bl = bp_len.pop(0)
+            if dl != bl and dl != 0:
+                _logger.info("Invalid data length in script. Expected %d, length %d" % (dl, bl))
+                return []
+        script_types.append(res[0][0])
+        bp = bp[res[0][1]:]
+
+    return script_types
 
 
 class Script(object):
@@ -134,7 +151,7 @@ class Script(object):
                     commands.append(data)
                     keys.append(data)
                     blueprint.append('key')
-                elif len(data) == 20 or len(data) == 32:
+                elif len(data) == 20 or len(data) == 32 or (commands and commands[-1] == op.op_return):
                     commands.append(data)
                     blueprint.append('data-%d' % len(data))
                 else:
@@ -152,9 +169,8 @@ class Script(object):
             raise ScriptError("Parsing script failed, invalid length")
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint)
         s.raw = script
-        script_type, locking_type = _get_script_type(blueprint)
-        s.script_type = script_type
-        s.is_locking = True if locking_type == 'locking' else False
+        s.script_type = _get_script_type(blueprint)
+        # s.is_locking = True if locking_type == 'locking' else False
         return s
 
     def __str__(self):
