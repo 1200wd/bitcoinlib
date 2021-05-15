@@ -86,19 +86,17 @@ def _get_script_type(blueprint):
     bp_len = [int(c.split('-')[1]) for c in blueprint if isinstance(c, str) and c[:4] == 'data']
     script_types = []
     while len(bp):
-        res = [(key, len(values[1]), values[2]) for key, values in SCRIPT_TYPES.items() if
-               values[1] == bp[:len(values[1])]]
-        if not res:
+        matches = [(key, len(values[1]), values[2]) for key, values in SCRIPT_TYPES.items() if
+                   values[1] == bp[:len(values[1])]]
+        if not matches:
             break
-        data_lens = res[0][2]
-        for dl in data_lens:
-            bl = bp_len.pop(0)
-            if dl != bl and dl != 0:
-                _logger.info("Invalid data length in script. Expected %d, length %d" % (dl, bl))
-                return []
-        script_types.append(res[0][0])
-        bp = bp[res[0][1]:]
-
+        for match in matches:
+            data_lens = match[2]
+            for i, data_len in enumerate(data_lens):
+                bl = bp_len[i]
+                if data_len == bl or data_len == 0:
+                    script_types.append(match[0])
+                    bp = bp[match[1]:]
     return script_types
 
 
@@ -203,7 +201,8 @@ class Script(object):
         self.raw = raw
         return raw
 
-    def evaluate(self):
+    def evaluate(self, message=None):
+        self.message = self.message if message is None else message
         self.stack = Stack()
         commands = self.commands[:]
         while len(commands):
