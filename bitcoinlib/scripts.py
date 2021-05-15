@@ -605,12 +605,13 @@ class Stack(list):
             self.append(b'')
         return True
 
-
-
     # # 'op_checkmultisig':
     # # 'op_checkmultisigverify':
     # 'op_nop1': (0, '', None, 0, False),
-    # # 'op_checklocktimeverify':
+    def op_checklocktimeverify(self):
+        locktime = int.from_bytes(self.pop(), 'little')
+        print(locktime)
+
     # # 'op_checksequenceverify':
     # 'op_nop4': (0, '', None, 0, False),
     # 'op_nop5': (0, '', None, 0, False),

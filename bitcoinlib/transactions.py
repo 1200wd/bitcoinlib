@@ -558,7 +558,7 @@ def script_add_locktime_cltv(locktime_cltv, script):
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
             return script
-    return locktime_cltv.to_bytes(4, 'little') + lockbytes + script
+    return varstr(locktime_cltv.to_bytes(4, 'little')) + lockbytes + script
 
 
 def script_add_locktime_csv(locktime_csv, script):
@@ -566,7 +566,7 @@ def script_add_locktime_csv(locktime_csv, script):
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
             return script
-    return locktime_csv.to_bytes(4, 'little') + lockbytes + script
+    return varstr(locktime_csv.to_bytes(4, 'little')) + lockbytes + script
 
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
