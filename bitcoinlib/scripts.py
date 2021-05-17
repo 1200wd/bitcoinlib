@@ -59,6 +59,7 @@ SCRIPT_TYPES = {
     'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2pk': ('locking', ['key', op.op_checksig], []),
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
+    'nulldata_2': ('locking', [op.op_return, op.op_0], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
     'p2sh_multisig': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2sh_multisig_2': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
@@ -126,6 +127,15 @@ def _get_script_type(blueprint):
     return script_types
 
 
+def data_pack(data):
+    if len(data) <= 75:
+        return len(data).to_bytes(1, 'big') + data
+    elif 75 < len(data) <= 255:
+        return b'L' + len(data).to_bytes(1, 'little') + data
+    else:
+        return b'M' + len(data).to_bytes(2, 'little') + data
+
+
 class Script(object):
 
     def __init__(self, commands=None, message=None, script_type='', is_locking=True, keys=None, signatures=None,
@@ -161,13 +171,13 @@ class Script(object):
                 data = script[cur:cur+length]
                 cur += length
             elif ch == op.op_pushdata2:
-                length = varbyteint_to_int(script[cur:cur+2])
+                length = varbyteint_to_int(script[cur:cur+2])[0]
                 cur += 2
                 data = script[cur:cur+length]
                 cur += length
             if data:
                 # commands.append(data)
-                if data.startswith(b'\x30') and 70 <= len(data) <= 73:
+                if data.startswith(b'\x30') and 69 <= len(data) <= 73:
                     commands.append(data)
                     signatures.append(data)
                     blueprint.append('signature')
@@ -223,13 +233,7 @@ class Script(object):
             if isinstance(cmd, int):
                 raw += bytes([cmd])
             else:
-                if len(cmd) <= 75:
-                    raw += len(cmd).to_bytes(1, 'big')
-                elif 75 < len(cmd) <= 255:
-                    raw += b'L' + len(cmd).to_bytes(1, 'little')
-                else:
-                    raw += b'M' + len(cmd).to_bytes(2, 'little')
-                raw += cmd
+                raw += data_pack(cmd)
         self.raw = raw
         return raw
 
