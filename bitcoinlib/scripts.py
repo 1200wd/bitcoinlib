@@ -52,14 +52,17 @@ _logger = logging.getLogger(__name__)
 SCRIPT_TYPES = {
     # <name>: (<type>, <script_commands>, <data-lengths>)
     'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
+    'p2pkh_2': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [32, 20]),
     'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
     'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
     'p2wsh': ('locking', [op.op_0, 'data'], [32]),
-    'multisig': ('locking', ['op_m', 'data', 'op_n', op.op_checkmultisig], [32]),
+    'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2pk': ('locking', ['key', op.op_checksig], []),
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
-    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
+    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2sh_multisig_2': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
+    'p2sh_multisig_3': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
     'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
     'signature': ('unlocking', ['signature'], []),
@@ -82,28 +85,51 @@ class ScriptError(Exception):
 
 
 def _get_script_type(blueprint):
-    bp = [('data' if isinstance(c, str) and c[:4] == 'data' else c) for c in blueprint]
+    # Convert blueprint to more generic format
+    bp = []
+    for item in blueprint:
+        if isinstance(item, str) and item[:4] == 'data':
+            bp.append('data')
+        elif isinstance(item, int) and op.op_1 <= item <= op.op_16:
+            bp.append('op_n')
+        elif item == 'key' and len(bp) and bp[-1] == 'key':
+            bp[-1] = 'key'
+        elif item == 'signature' and len(bp) and bp[-1] == 'signature':
+            bp[-1] = 'signature'
+        else:
+            bp.append(item)
     bp_len = [int(c.split('-')[1]) for c in blueprint if isinstance(c, str) and c[:4] == 'data']
+
     script_types = []
     while len(bp):
+        # Find all possible matches with blueprint
         matches = [(key, len(values[1]), values[2]) for key, values in SCRIPT_TYPES.items() if
                    values[1] == bp[:len(values[1])]]
         if not matches:
+            script_types.append('unknown')
             break
+
+        # Select match with correct data length if more then 1 match is found
+        match_id = 0
         for match in matches:
             data_lens = match[2]
             for i, data_len in enumerate(data_lens):
                 bl = bp_len[i]
                 if data_len == bl or data_len == 0:
-                    script_types.append(match[0])
-                    bp = bp[match[1]:]
+                    match_id = matches.index(match)
+                    break
+
+        # Add script type to list
+        script_types.append(matches[match_id][0])
+        bp = bp[matches[match_id][1]:]
+
     return script_types
 
 
 class Script(object):
 
     def __init__(self, commands=None, message=None, script_type='', is_locking=True, keys=None, signatures=None,
-                 blueprint=None):
+                 blueprint=None, tx_data=None):
         self.commands = commands if commands else []
         self.raw = b''
         self.stack = []
@@ -113,9 +139,10 @@ class Script(object):
         self.keys = keys if keys else []
         self.signatures = signatures if signatures else []
         self._blueprint = blueprint if blueprint else []
+        self.tx_data = tx_data
 
     @classmethod
-    def parse(cls, script, message=None):
+    def parse(cls, script, message=None, tx_data=None, _level=0):
         cur = 0
         commands = []
         signatures = []
@@ -140,7 +167,7 @@ class Script(object):
                 cur += length
             if data:
                 # commands.append(data)
-                if data.startswith(b'\x30') and 70 <= len(data) < 73:
+                if data.startswith(b'\x30') and 70 <= len(data) <= 73:
                     commands.append(data)
                     signatures.append(data)
                     blueprint.append('signature')
@@ -153,10 +180,15 @@ class Script(object):
                     commands.append(data)
                     blueprint.append('data-%d' % len(data))
                 else:
+                    # FIXME: Only parse sub-scripts if script is expected
                     try:
-                        s2 = Script.parse(data)
-                        commands.extend(s2.commands)
-                        blueprint.extend(s2.blueprint)
+                        if _level > 1:
+                            commands.append(data)
+                            blueprint.append('data-%d' % len(data))
+                        else:
+                            s2 = Script.parse(data, _level=_level+1)
+                            commands.extend(s2.commands)
+                            blueprint.extend(s2.blueprint)
                     except ScriptError:
                         commands.append(data)
                         blueprint.append('data-%d' % len(data))
@@ -165,7 +197,7 @@ class Script(object):
                 blueprint.append(ch)
         if cur != len(script):
             raise ScriptError("Parsing script failed, invalid length")
-        s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint)
+        s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data)
         s.raw = script
         s.script_type = _get_script_type(blueprint)
         # s.is_locking = True if locking_type == 'locking' else False
@@ -201,8 +233,9 @@ class Script(object):
         self.raw = raw
         return raw
 
-    def evaluate(self, message=None):
+    def evaluate(self, message=None, tx_data=None):
         self.message = self.message if message is None else message
+        self.tx_data = self.tx_data if tx_data is None else tx_data
         self.stack = Stack()
         commands = self.commands[:]
         while len(commands):
@@ -229,7 +262,7 @@ class Script(object):
                     try:
                         method = getattr(self.stack, method)
                         if method.__code__.co_argcount > 1:
-                            res = method(self.message)
+                            res = method(self.message, self.tx_data)
                         else:
                             res = method()
                         if res is False:
@@ -566,7 +599,7 @@ class Stack(list):
 
     # # 'op_codeseparator':
 
-    def op_checksig(self, message):
+    def op_checksig(self, message, _):
         public_key = self.pop()
         signature = self.pop()
         signature = Signature.from_str(signature, public_key=public_key)
@@ -576,11 +609,11 @@ class Stack(list):
             self.append(b'')
         return True
 
-    def op_checksigverify(self, message):
+    def op_checksigverify(self, message, _):
         self.op_checksig(message)
         return self.op_verify()
 
-    def op_checkmultisig(self, message):
+    def op_checkmultisig(self, message, _):
         n = decode_num(self.pop())
         pubkeys = []
         for _ in range(n):
@@ -608,9 +641,27 @@ class Stack(list):
     # # 'op_checkmultisig':
     # # 'op_checkmultisigverify':
     # 'op_nop1': (0, '', None, 0, False),
-    def op_checklocktimeverify(self):
-        locktime = int.from_bytes(self.pop(), 'little')
-        print(locktime)
+    def op_checklocktimeverify(self, _, data):
+        if 'sequence' not in data:
+            _logger.warning("Missing 'sequence' value in Script data parameter for operation check lock time verify.")
+        if data['sequence'] == 0xffffffff:
+            return False
+
+        locktime = int.from_bytes(self[-1], 'little')
+        if locktime < 0:
+            return False
+
+        if locktime > 50000000:
+            if int(datetime.now().timestamp()) < locktime:
+                return False
+        else:
+            if 'blockcount' not in data:
+                _logger.warning(
+                    "Missing 'blockcount' value in Script data parameter for operation check lock time verify.")
+                return False
+            if data['blockcount'] < locktime:
+                return False
+        return True
 
     # # 'op_checksequenceverify':
     # 'op_nop4': (0, '', None, 0, False),
