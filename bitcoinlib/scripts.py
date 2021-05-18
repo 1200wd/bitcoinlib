@@ -52,7 +52,7 @@ _logger = logging.getLogger(__name__)
 SCRIPT_TYPES = {
     # <name>: (<type>, <script_commands>, <data-lengths>)
     'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
-    'p2pkh_2': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [32, 20]),
+    'p2pkh_drop': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [32, 20]),
     'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
     'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
     'p2wsh': ('locking', [op.op_0, 'data'], [32]),
@@ -177,7 +177,7 @@ class Script(object):
                 cur += length
             if data:
                 # commands.append(data)
-                if data.startswith(b'\x30') and 69 <= len(data) <= 73:
+                if data.startswith(b'\x30') and 69 <= len(data) <= 74:
                     commands.append(data)
                     signatures.append(data)
                     blueprint.append('signature')
