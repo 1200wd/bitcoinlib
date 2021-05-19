@@ -140,7 +140,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                 for witness in witnesses:
                     if witness == b'\0':
                         continue
-                    if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
+                    if 69 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
                         signatures.append(witness)
                     elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
                         keys.append(witness)
@@ -202,7 +202,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         # scr = to_bytes(scr)
         items = []
         total_length = 0
-        if 70 <= len(scr) <= 74 and scr[:1] == b'\x30':
+        if 69 <= len(scr) <= 74 and scr[:1] == b'\x30':
             return [scr], len(scr)
         while len(scr) and (max_items is None or max_items > len(items)):
             itemlen, size = varbyteint_to_int(scr[0:9])
@@ -1346,7 +1346,7 @@ class Transaction(object):
                 #     for witness in witnesses:
                     if witness == b'\0':
                         continue
-                    if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
+                    if 69 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
                         signatures.append(Signature.from_str(witness))
                     elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
                         k = Key(witness)
