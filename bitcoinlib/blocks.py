@@ -99,9 +99,9 @@ class Block:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
             if self.transactions[0].coinbase and self.transactions[0].inputs[0].unlocking_script:
                 calc_height = int.from_bytes(self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00', 'little')
-                if height and calc_height != height:
-                    raise ValueError("Specified block height is different than calculated block height according to "
-                                     "BIP0034")
+                if height and calc_height != height and height > 227835:
+                    raise ValueError("Specified block height %d is different than calculated block height according to "
+                                     "BIP0034" % height)
                 self.height = calc_height
 
     def check_proof_of_work(self):
