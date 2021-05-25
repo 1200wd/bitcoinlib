@@ -186,7 +186,8 @@ class Script(object):
                     commands.append(data)
                     keys.append(data)
                     blueprint.append('key')
-                elif len(data) == 20 or len(data) == 32 or (commands and commands[-1] == op.op_return):
+                elif len(data) == 20 or len(data) == 32 or (commands and commands[-1] == op.op_return) or \
+                        1 < len(data) <= 4:
                     commands.append(data)
                     blueprint.append('data-%d' % len(data))
                 else:
