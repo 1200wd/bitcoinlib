@@ -171,7 +171,7 @@ class Script(object):
                 data = script[cur:cur+length]
                 cur += length
             elif ch == op.op_pushdata2:
-                length = varbyteint_to_int(script[cur:cur+2])[0]
+                length = int.from_bytes(script[cur:cur+2], 'little')
                 cur += 2
                 data = script[cur:cur+length]
                 cur += length
