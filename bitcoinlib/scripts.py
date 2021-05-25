@@ -200,7 +200,7 @@ class Script(object):
                             s2 = Script.parse(data, _level=_level+1)
                             commands.extend(s2.commands)
                             blueprint.extend(s2.blueprint)
-                    except ScriptError:
+                    except (ScriptError, IndexError):
                         commands.append(data)
                         blueprint.append('data-%d' % len(data))
             else:  # Other opcode
