@@ -62,11 +62,12 @@ SCRIPT_TYPES = {
     'nulldata_2': ('locking', [op.op_return, op.op_0], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
     'p2sh_multisig': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
-    'p2sh_multisig_2': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
-    'p2sh_multisig_3': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
+    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
+    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
     'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
     'signature': ('unlocking', ['signature'], []),
+    'signature_multisig?': ('unlocking', [op.op_0, 'signature'], []),
     'locktime_cltv': ('unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop], []),
     'locktime_csv': ('unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop], []),
 }
@@ -193,7 +194,7 @@ class Script(object):
                 else:
                     # FIXME: Only parse sub-scripts if script is expected
                     try:
-                        if _level > 1:
+                        if _level >= 1:
                             commands.append(data)
                             blueprint.append('data-%d' % len(data))
                         else:
@@ -207,7 +208,11 @@ class Script(object):
                 commands.append(ch)
                 blueprint.append(ch)
         if cur != len(script):
-            raise ScriptError("Parsing script failed, invalid length")
+            msg = "Parsing script failed, invalid length"
+            if _level == 1:
+                raise ScriptError(msg)
+            else:
+                _logger.warning(msg)
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data)
         s.raw = script
         s.script_type = _get_script_type(blueprint)
@@ -254,10 +259,15 @@ class Script(object):
                     # self.stack.append(b'\x81')
                     self.stack.append(encode_num(-1))
                     # self.stack.append(-1)
-                elif 81 <= command <= 96:   # OP_1 to OP_16
+                elif op.op_1 <= command <= op.op_16:   # OP_1 to OP_16
                     # self.stack.append(bytes([command-80]))
                     self.stack.append(encode_num(command-80))
                     # self.stack.append(command-80)
+                elif command == op.op_if or command == op.op_notif:
+                    method = opcodenames[command].lower()
+                    method = getattr(self.stack, method)
+                    if not method(commands):
+                        return False
                 else:
                     method = opcodenames[command].lower()
                     if method not in dir(self.stack):
@@ -287,6 +297,10 @@ class Script(object):
                 # print("Add data %s to stack" % command.hex())
                 self.stack.append(command)
             # print(self.stack)
+        if len(self.stack) == 0:
+            return False
+        if self.stack.pop() == b'':
+            return False
         return True
 
 
@@ -315,6 +329,40 @@ class Stack(list):
             if len(i) > 4:
                 return False
         return True
+
+    # def op_ver()  # nodig?
+
+    def op_if(self, commands):
+        true_items = []
+        false_items = []
+        current_array = true_items
+        found = False
+        num_endifs_needed = 1
+        while len(commands) > 0:
+            item = commands.pop(0)
+            if item in (99, 100):
+                # nested if, we have to go another endif
+                num_endifs_needed += 1
+                current_array.append(item)
+            elif num_endifs_needed == 1 and item == 103:
+                current_array = false_items
+            elif item == 104:
+                if num_endifs_needed == 1:
+                    found = True
+                    break
+                else:
+                    num_endifs_needed -= 1
+                    current_array.append(item)
+            else:
+                current_array.append(item)
+        if not found:
+            return False
+        element = self.pop()
+        if decode_num(element) == 0:
+            commands[:0] = false_items
+        else:
+            commands[:0] = true_items
+        return True    #  "OP_NOTIF", "OP_VERIF", "OP_VERNOTIF", "OP_ELSE", "OP_ENDIF"
 
     def op_nop(self):
         return True
@@ -604,7 +652,7 @@ class Stack(list):
 
     # # 'op_codeseparator':
 
-    def op_checksig(self, message, _):
+    def op_checksig(self, message, _=None):
         public_key = self.pop()
         signature = self.pop()
         signature = Signature.from_str(signature, public_key=public_key)
@@ -614,11 +662,11 @@ class Stack(list):
             self.append(b'')
         return True
 
-    def op_checksigverify(self, message, _):
-        self.op_checksig(message)
+    def op_checksigverify(self, message, _=None):
+        self.op_checksig(message, None)
         return self.op_verify()
 
-    def op_checkmultisig(self, message, _):
+    def op_checkmultisig(self, message, _=None):
         n = decode_num(self.pop())
         pubkeys = []
         for _ in range(n):
