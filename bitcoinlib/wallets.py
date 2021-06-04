@@ -909,7 +909,7 @@ class WalletTransaction(Transaction):
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
-        :param skip_change: Do not include outputs to own wallet (default)
+        :param skip_change: Do not include outputs to own wallet (default). Please note: So if this is an internal transfer nothing is exported.
         :type skip_change: boolean
 
         :return list of tuple:
@@ -3234,7 +3234,7 @@ class Wallet(object):
             te = t.export()
 
             # When transaction is outgoing deduct fee from cumulative value
-            if t.outgoing_tx:
+            if te and t.outgoing_tx:
                 cumulative_value -= t.fee
 
             # Loop through all transaction inputs and outputs
