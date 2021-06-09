@@ -603,7 +603,9 @@ class WalletTransaction(Transaction):
         if hdwallet.witness_type in ['segwit', 'p2sh-segwit']:
             witness_type = 'segwit'
         Transaction.__init__(self, witness_type=witness_type, *args, **kwargs)
-        self.outgoing_tx = bool([i.address for i in self.inputs if i.address in hdwallet.addresslist()])
+        addresslist = hdwallet.addresslist()
+        self.outgoing_tx = bool([i.address for i in self.inputs if i.address in addresslist])
+        self.incoming_tx = bool([o.address for o in self.outputs if o.address in addresslist])
 
     def __repr__(self):
         return "<WalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -917,12 +919,18 @@ class WalletTransaction(Transaction):
         mut_list = []
         wlt_addresslist = self.hdwallet.addresslist()
         input_addresslist = [i.address for i in self.inputs]
+        if self.txid == '9b2e0e6f3b21da8d4d8f64ce1bc281609dab71ef70f2ca550f66aef118e0b30e':
+            print(self.txid)
         if self.outgoing_tx:
             fee_per_output = self.fee / len(self.outputs)
             for o in self.outputs:
-                if o.address in wlt_addresslist and skip_change:
-                    continue
-                mut_list.append((self.date, self.txid, 'out', input_addresslist, o.address, -o.value, fee_per_output))
+                o_value = -o.value
+                if o.address in wlt_addresslist:
+                    if skip_change:
+                        continue
+                    elif self.incoming_tx:
+                        o_value = 0
+                mut_list.append((self.date, self.txid, 'out', input_addresslist, o.address, o_value, fee_per_output))
         else:
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
@@ -3211,7 +3219,7 @@ class Wallet(object):
             txs.append(self.transaction(tx[0].hex()))
         return txs
 
-    def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None):
+    def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None, skip_change=True):
         """
         Export wallets transactions as list of tuples with the following fields:
             (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative, fee)
@@ -3224,6 +3232,8 @@ class Wallet(object):
         :type include_new: bool
         :param key_id: Filter by key ID
         :type key_id: int, None
+        :param skip_change: Do not include change outputs. Default is True
+        :type skip_change: bool
 
         :return list of tuple:
         """
@@ -3231,7 +3241,7 @@ class Wallet(object):
         txs_tuples = []
         cumulative_value = 0
         for t in self.transactions(account_id, network, include_new, key_id):
-            te = t.export()
+            te = t.export(skip_change=skip_change)
 
             # When transaction is outgoing deduct fee from cumulative value
             if t.outgoing_tx:

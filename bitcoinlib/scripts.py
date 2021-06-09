@@ -61,8 +61,8 @@ SCRIPT_TYPES = {
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
     'nulldata_2': ('locking', [op.op_return, op.op_0], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
-    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
-    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
+    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
+    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
     'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check with variant is standard
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
     'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
@@ -666,7 +666,7 @@ class Stack(list):
         self.op_checksig(message, None)
         return self.op_verify()
 
-    def op_checkmultisig(self, message, _=None):
+    def op_checkmultisig(self, message, data=None):
         n = decode_num(self.pop())
         pubkeys = []
         for _ in range(n):
@@ -686,7 +686,10 @@ class Stack(list):
                     break
 
         if sigcount == len(signatures):
-            self.append(b'\1')
+            if data and 'redeemscript' in data:
+                self.append(data['redeemscript'])
+            else:
+                self.append(b'\1')
         else:
             self.append(b'')
         return True
