@@ -484,3 +484,31 @@ class TestScript(unittest.TestCase):
         self.assertEqual(str(s), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
         transaction_hash = bytes.fromhex('d63e8748dd7fd62d7530c6e611f8103b906318e01ef80a107832c9166159a58a')
         self.assertTrue(s.evaluate(message=transaction_hash))
+
+    def test_script_verify_transaction_input_p2wsh(self):
+        lock_script = op.op_sha256.to_bytes(1, 'little') + \
+                      bytes.fromhex('20701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d') + \
+                      op.op_equal.to_bytes(1, 'little')
+        redeemscript = bytes.fromhex(
+            '52210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce6632'
+            '07659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f8'
+            '8053ae')
+        witnesses = varstr(bytes.fromhex(
+            '304402200ff7be6d618235673218107f7f5ffcefeaed5b045dc01a88b7253ec8cc053ec5022039b2eaa510d3a5cf634377e8df'
+            'a95061d9ad81e83a334c8cb03084cee110faf301')) + \
+                    varstr(bytes.fromhex(
+                        '3044022026312b6c39a71168113aaf7073bc904b1c77b4253e741e60de78ff16239cfe6202205cc9c4d6905a9b'
+                        '3cebd970d91261896cb7ade4d198d16112651ac6833083b49e01')) + \
+                    bytes.fromhex(
+                        '52210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c2103a1b26313f430c4b'
+                        '15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a4'
+                        '8ad05bd8dbb395c011a32cf9f88053ae')
+
+        script = witnesses + lock_script
+        s = Script.parse(script)
+        self.assertEqual(s.blueprint, ['signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 168, 'data-32', 135])
+        self.assertEqual(s.script_type, ['signature', 'multisig', 'unknown'])
+        self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
+        transaction_hash = bytes.fromhex('43f0f6dfb58acc8ed05f5afc224c2f6c50523230bfcba5e5fd91d345e8a159ab')
+        data = {'redeemscript': redeemscript}
+        self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))

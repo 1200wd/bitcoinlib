@@ -675,8 +675,9 @@ class Stack(list):
         signatures = []
         for _ in range(m):
             signatures.append(self.pop())
-        # OP_CHECKMULTISIG bug
-        self.pop()
+        if len(self):
+            # OP_CHECKMULTISIG bug
+            self.pop()
         sigcount = 0
         for pubkey in pubkeys:
             s = Signature.from_str(signatures[sigcount])
