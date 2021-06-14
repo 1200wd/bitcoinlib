@@ -512,3 +512,13 @@ class TestScript(unittest.TestCase):
         transaction_hash = bytes.fromhex('43f0f6dfb58acc8ed05f5afc224c2f6c50523230bfcba5e5fd91d345e8a159ab')
         data = {'redeemscript': redeemscript}
         self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
+
+    # TODO def test_script_verify_transaction_input_p2pk(self):
+
+    def test_script_verify_transaction_output_return(self):
+        script = bytes.fromhex('6a26062c74e4b802d60ffdd1daa37b848e39a2b0ecb2de72c6ca24d71b87813b5e056cb7f1e8c8b0')
+        s = Script.parse(script)
+        self.assertEqual(s.blueprint, [106, 'data-38'])
+        self.assertEqual(s.script_type, ['nulldata'])
+        self.assertEqual(str(s), "OP_RETURN data-38")
+        self.assertFalse(s.evaluate())
