@@ -38,4 +38,4 @@ import bitcoinlib.services.insightdash
 import bitcoinlib.services.smartbit
 import bitcoinlib.services.blockstream
 import bitcoinlib.services.blocksmurfer
-import bitcoinlib.services.chainso
+# import bitcoinlib.services.chainso
