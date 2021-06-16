@@ -468,6 +468,58 @@ class TestScript(unittest.TestCase):
         data = {'redeemscript': redeemscript}
         self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
 
+    def test_script_verify_transaction_input_p2sh_multisig_huge(self):
+        # Verify txid d0244d87cb38b01a7b4591c2d8001569011ce949b12a0779807e283764c559a3, input 0
+        lock_script = bytes.fromhex('a91442c0ef1bc8426c22fc1b352b3914d947afad220f87')
+        unlock_script = bytes.fromhex(
+            '0047304402203668ee9156149aefd7538669f6f66c92e4f6aa802f6c18c736c388941b282fae022044b040b4527f6a6ef66c3c46'
+            'cbc02e7a0ae5e08cb17a6abf9004de45a0d44f2e014830450221009af3500b12ec21aaeb0b9c5edc8fa0c078c9173e244a1162cd'
+            '4686f4da8d6ee502203680ef8b9bc3a4a81c7b01d0fac34c3c1be7b744be7909b90e2f4f22d04308430147304402200611698a6c'
+            '21953350cce43f7b21dd307bf23582f9759fbc499f8e4d5dcd1791022018feec8fbadb366e276d254ce1a109b8428212e11092d5'
+            '73c9241f4edee42cfa01473044022075e937491475fa17152a455bdba429dce5c62b7f11f816fdaa5d100d9f2cc4b4022062c8c6'
+            '627950f86efe1634a6e624951e8669552882d53b7460ad273337d048800147304402204cd6e7fce0e7b5e92cfed5d167966ef066'
+            '4b299b564e57f00e8789b6c457b5b002201ebec3bada198b42411d5b3e26144a6f98b60b03c67c222343f7491edd8c7410014730'
+            '4402203af77501770fe323688e184fdf92b370013d683dded4314c248cf1a8edf959db02205ea1d43f4773f047f670394d23dffd'
+            '8ab41c6d3a7cce0edae8ecfefd8540ff0a0148304502210094adc3574386905392c18a680c18097cac7e1c17fb6776945f814bb8'
+            'ca2c50200220446a0576514cccca0905d251ca978ad8393649e5ac8d80b6b37581a50da21dc6014730440220579369a2eee6f828'
+            '1d57a34af15c3572d6b64e9ae6cee60bfc33b2e831520a420220630b2fd75159cdb7eef6495ef3754a35ff6e30800600f0c89be4'
+            'aa0df6524842014d01025821032673b3bbd1cf671d483221ba3314a0e78def088ca28a35f881791eae10b537da21029ab6d3131d'
+            '26d98576c51c1cb1357255ce31dc09f8331c22f9c1a4324246dbe32103f77c139a101535b23ae058726c0683b2b3b4cc488a14c9'
+            '735308b1f8d57f7b902102cd0d5e4051e00c31b47d2cddf8a2650a602196ee1d0dcc871e3c82e91395c3de21037cc775b5b3be47'
+            'b14aa1f58ec19a6e23d9a0a546e76a18a8386377ad993365522102fbf91889e817b14551be30d2c7b2a1c3d6bbaa045b24f66775'
+            '561a0bcd0c7561210384b9f424fb646da1bf59b4d226190b3eae808a9ac4db7eb3be8f8cb0b29e20282103f65e07f56ef1ab3df0'
+            '88003710a68ce47cfce91e377061394eff4c7cb6931f5c210254f9e470c2ca756059966fd95a161021ab221424bd5feb27a0144e'
+            'fb6484bdca21025bcbfc18bfb1fc956b0b4936806926acd7e940477a364b2377bab7c8a0056d102103d53fb58f0628544c60a796'
+            '2cd8064810865aae782d9d0c9777e1a36952db1c0e210378c616601b5a91eaec5c157988393fc45cf947033a10ebca6c40481406'
+            '4e750721022f8e765f9dcd25102f0dc53b1155720e9e63c52d6c89fdf2be13a465b74c75892102c3ac37a4a4a47a193907a08fee'
+            '9ffb09a6c51f402db71b7524caf7c067c5495e2102ce51833ecc7751a4a48062f182b08c6bd641a0866a7ce4d2fdbdc7b30e76ba'
+            '8e5fae')
+        redeemscript = bytes.fromhex(
+            '5821032673b3bbd1cf671d483221ba3314a0e78def088ca28a35f881791eae10b537da21029ab6d3131d26d98576c51c1cb13572'
+            '55ce31dc09f8331c22f9c1a4324246dbe32103f77c139a101535b23ae058726c0683b2b3b4cc488a14c9735308b1f8d57f7b9021'
+            '02cd0d5e4051e00c31b47d2cddf8a2650a602196ee1d0dcc871e3c82e91395c3de21037cc775b5b3be47b14aa1f58ec19a6e23d9'
+            'a0a546e76a18a8386377ad993365522102fbf91889e817b14551be30d2c7b2a1c3d6bbaa045b24f66775561a0bcd0c7561210384'
+            'b9f424fb646da1bf59b4d226190b3eae808a9ac4db7eb3be8f8cb0b29e20282103f65e07f56ef1ab3df088003710a68ce47cfce9'
+            '1e377061394eff4c7cb6931f5c210254f9e470c2ca756059966fd95a161021ab221424bd5feb27a0144efb6484bdca21025bcbfc'
+            '18bfb1fc956b0b4936806926acd7e940477a364b2377bab7c8a0056d102103d53fb58f0628544c60a7962cd8064810865aae782d'
+            '9d0c9777e1a36952db1c0e210378c616601b5a91eaec5c157988393fc45cf947033a10ebca6c404814064e750721022f8e765f9d'
+            'cd25102f0dc53b1155720e9e63c52d6c89fdf2be13a465b74c75892102c3ac37a4a4a47a193907a08fee9ffb09a6c51f402db71b'
+            '7524caf7c067c5495e2102ce51833ecc7751a4a48062f182b08c6bd641a0866a7ce4d2fdbdc7b30e76ba8e5fae')
+
+        script = unlock_script + lock_script
+        s = Script.parse(script)
+        self.assertEqual(s.blueprint, [0, 'signature', 'signature', 'signature', 'signature', 'signature',
+                                       'signature', 'signature', 'signature', 88, 'key', 'key', 'key', 'key',
+                                       'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key',
+                                       95, 174, 169, 'data-20', 135])
+        self.assertEqual(s.script_type, ['p2sh_multisig', 'p2sh'])
+        self.assertEqual(str(s), "OP_0 signature signature signature signature signature signature signature "
+                                 "signature OP_8 key key key key key key key key key key key key key key key OP_15 "
+                                 "OP_CHECKMULTISIG OP_HASH160 data-20 OP_EQUAL")
+        transaction_hash = bytes.fromhex('8d190df3d02369999cad3eb222ac18b3315ff2bdc449b8fb30eb14db45730fe3')
+        data = {'redeemscript': redeemscript}
+        self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
+
     def test_script_verify_transaction_input_p2wpkh(self):
         # Verify txid 75a918220a54d31cf43ce93e6d62bc0c642932cfabab0cb73c8b99b0a2b015c2, input 0
         lock_script = op.op_dup.to_bytes(1, 'little') + op.op_hash160.to_bytes(1, 'little') + \
@@ -513,7 +565,9 @@ class TestScript(unittest.TestCase):
         data = {'redeemscript': redeemscript}
         self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
 
-    # TODO def test_script_verify_transaction_input_p2pk(self):
+    def test_script_verify_transaction_input_p2pk(self):
+        pass
+        # TODO
 
     def test_script_verify_transaction_output_return(self):
         script = bytes.fromhex('6a26062c74e4b802d60ffdd1daa37b848e39a2b0ecb2de72c6ca24d71b87813b5e056cb7f1e8c8b0')

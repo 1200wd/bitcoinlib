@@ -821,7 +821,7 @@ class Input(object):
 
         for key in keys:
             if not isinstance(key, Key):
-                kobj = Key(key, network=network)
+                kobj = Key(key, network=network, strict=False)
             else:
                 kobj = key
             if kobj not in self.keys:

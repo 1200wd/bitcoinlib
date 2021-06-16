@@ -71,11 +71,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes
     :param network: Optional network. Method raises BKeyError if keys belongs to another network
-    :type network: str
+    :type network: str, None
     :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
-    :type kf_networks: list
+    :type kf_networks: list, None
     :param default_network: Specify different default network, leave empty for default (bitcoin)
-    :type default_network: str
+    :type default_network: str, None
     
     :return str: Network name
     """
@@ -662,7 +662,7 @@ class Key(object):
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, network=None, compressed=True, password='', is_private=None):
+    def __init__(self, import_key=None, network=None, compressed=True, password='', is_private=None, strict=True):
         """
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc. If import_key is empty a new
         private key will be generated.
@@ -693,6 +693,8 @@ class Key(object):
         :type password: str
         :param is_private: Specify if imported key is private or public. Default is None: derive from provided key
         :type is_private: bool
+        :param strict: Raise BKeyError if key is invalid. Default is True. Set to False if you're parsing blockchain transactions, as some may contain invalid keys, but the transaction is/was still valid.
+        :type strict: bool
 
         :return: Key object
         """
@@ -711,6 +713,9 @@ class Key(object):
         self.secret = None
         self.compressed = compressed
         self._hash160 = None
+        self.key_format = None
+        self.is_private = None
+
         if not import_key:
             import_key = random.SystemRandom().randint(1, secp256k1_n - 1)
             self.key_format = 'decimal'
@@ -718,27 +723,35 @@ class Key(object):
             assert is_private is True or is_private is None
             self.is_private = True  # Ignore provided attribute
         else:
-            kf = get_key_format(import_key)
-            if kf['format'] == 'address':
-                raise BKeyError("Can not create Key object from address")
-            self.key_format = kf["format"]
-            networks_extracted = kf["networks"]
-            self.is_private = is_private
-            if is_private is None:
-                if kf['is_private']:
-                    self.is_private = True
-                elif kf['is_private'] is None:
-                    raise BKeyError("Could not determine if key is private or public")
+            try:
+                kf = get_key_format(import_key)
+            except BKeyError:
+                if strict:
+                    raise BKeyError("Unrecognised key format")
                 else:
-                    self.is_private = False
-        network_name = None
+                    networks_extracted = []
+            else:
+                if kf['format'] == 'address':
+                    raise BKeyError("Can not create Key object from address")
+                self.key_format = kf["format"]
+                networks_extracted = kf["networks"]
+                self.is_private = is_private
+                if is_private is None:
+                    if kf['is_private']:
+                        self.is_private = True
+                    elif kf['is_private'] is None:
+                        raise BKeyError("Could not determine if key is private or public")
+                    else:
+                        self.is_private = False
+
         if network is not None:
             self.network = network
             if not isinstance(network, Network):
                 self.network = Network(network)
-            network_name = self.network.name
-        network = check_network_and_key(import_key, network_name, networks_extracted)
-        self.network = Network(network)
+        elif networks_extracted:
+            self.network = Network(check_network_and_key(import_key, None, networks_extracted))
+        else:
+            self.network = Network(DEFAULT_NETWORK)
 
         if self.key_format == "wif_protected":
             import_key, self.compressed = self._bip38_decrypt(import_key, password, network)

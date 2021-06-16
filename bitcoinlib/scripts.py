@@ -699,9 +699,9 @@ class Stack(list):
     # # 'op_checkmultisigverify':
     # 'op_nop1': (0, '', None, 0, False),
     def op_checklocktimeverify(self, _, data):
-        if 'sequence' not in data:
+        if not data or 'sequence' not in data:
             _logger.warning("Missing 'sequence' value in Script data parameter for operation check lock time verify.")
-        if data['sequence'] == 0xffffffff:
+        if data and data['sequence'] == 0xffffffff:
             return False
 
         locktime = int.from_bytes(self[-1], 'little')
