@@ -315,6 +315,8 @@ def varbyteint_to_int(byteint):
     """
     if not isinstance(byteint, (bytes, list)):
         raise EncodingError("Byteint must be a list or defined as bytes")
+    if byteint == b'':
+        return 0
     ni = byteint[0]
     if ni < 253:
         return ni, 1
@@ -336,8 +338,9 @@ def read_varbyteint(s):
 
     :return int:
     """
+    pos = s.tell()
     value, size = varbyteint_to_int(s.read(9))
-    s.seek(size - 9, 1)
+    s.seek(pos + size)
     return value
 
 

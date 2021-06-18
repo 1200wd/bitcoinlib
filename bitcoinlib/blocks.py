@@ -176,10 +176,10 @@ class Block:
         while parse_transactions and txs_data:
             if limit != 0 and len(transactions) >= limit:
                 break
-            t = transaction_deserialize(txs_data, network=network, check_size=False)
-            transactions.append(t)
-
-            txs_data = txs_data[t.size:]
+            transactions.append(Transaction.parse(txs_data))
+            # t = transaction_deserialize(txs_data, network=network, check_size=False)
+            # transactions.append(t)
+            # txs_data = txs_data[t.size:]
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))

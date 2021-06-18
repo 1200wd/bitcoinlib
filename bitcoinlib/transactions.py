@@ -45,6 +45,7 @@ class TransactionError(Exception):
         return self.msg
 
 
+# @deprecated  # Replaced by Transaction.parse() in version 0.6
 def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     """
     Deserialize a raw transaction
@@ -1261,6 +1262,7 @@ class Transaction(object):
     """
 
     @staticmethod
+    # @deprecated  # Replaced by Transaction.parse() in version 0.6
     def import_raw(rawtx, network=DEFAULT_NETWORK, check_size=True):
         """
         Import a raw transaction and create a Transaction object
