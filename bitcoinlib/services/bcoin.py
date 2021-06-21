@@ -50,8 +50,8 @@ class BcoinClient(BaseClient):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
-        # t = Transaction.import_raw(tx['hex'])
-        t = Transaction.parse(bytes.fromhex(tx['hex']))
+        t = Transaction.import_raw(tx['hex'])
+        # t = Transaction.parse(bytes.fromhex(tx['hex']))
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']

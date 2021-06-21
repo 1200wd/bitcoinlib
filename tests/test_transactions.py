@@ -1604,7 +1604,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                  "305a5152cd4ad1377a2286a1016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c" \
                  "2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fe" \
                  "e45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000"
-        t = Transaction.import_raw(raw_tx)
+        t = Transaction.import_raw(bytes.fromhex(raw_tx))
         self.assertEqual(t.inputs[0].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
         self.assertEqual(t.outputs[2].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
         t.inputs[0].value = 61501176

@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from io import BytesIO
 from bitcoinlib.encoding import *
 from bitcoinlib.networks import Network
 from bitcoinlib.transactions import transaction_deserialize, Transaction
@@ -171,12 +172,17 @@ class Block:
 
         # Parse coinbase transaction so we can extract extra information
         transactions = [transaction_deserialize(txs_data, network=network, check_size=False)]
-        txs_data = txs_data[transactions[0].size:]
+        txs_data = BytesIO(txs_data[transactions[0].size:])
+        # block_txs_data = txs_data.read()
+        txs_data_size = txs_data.seek(0, 2)
+        txs_data.seek(0)
 
-        while parse_transactions and txs_data:
+        while parse_transactions and txs_data and txs_data.tell() < txs_data_size:
             if limit != 0 and len(transactions) >= limit:
                 break
-            transactions.append(Transaction.parse(txs_data))
+            t = Transaction.parse(txs_data)
+            transactions.append(t)
+            print(t.txid)
             # t = transaction_deserialize(txs_data, network=network, check_size=False)
             # transactions.append(t)
             # txs_data = txs_data[t.size:]
@@ -190,7 +196,7 @@ class Block:
 
         block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, height,
                     network=network)
-        block.txs_data = txs_data
+        block.txs_data = txs_data.read()
         block.tx_count = tx_count
         return block
 

@@ -28,6 +28,7 @@ from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
 from bitcoinlib.values import Value, value_to_satoshi
+from bitcoinlib.scripts import Script
 
 _logger = logging.getLogger(__name__)
 
@@ -1290,12 +1291,13 @@ class Transaction(object):
         network = network
         if not isinstance(network, Network):
             cls.network = Network(network)
+        raw_bytes = b''
         if isinstance(rawtx, bytes):
-            raw_bytes = rawtx
+            # raw_bytes = rawtx
             rawtx = BytesIO(rawtx)
-        else:  # Assume BytesIO object
-            raw_bytes = rawtx.read()
-            rawtx.seek(0)
+        # else:  # Assume BytesIO object
+            # raw_bytes = rawtx.read()
+            # rawtx.seek(0)
 
         version = rawtx.read(4)[::-1]
         if rawtx.read(1) == b'\0':
@@ -1354,7 +1356,6 @@ class Transaction(object):
                     inputs[n].redeemscript = serialize_multisig_redeemscript(
                         inputs[n].keys, n_required=inputs[n].sigs_required, compressed=inputs[n].compressed)
                     inputs[n].script_code = unlock_script
-
 
         locktime = int.from_bytes(rawtx.read(4)[::-1], 'big')
 
@@ -1840,17 +1841,17 @@ class Transaction(object):
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
                                    sign_id)
 
-        if not self.inputs[sign_id].script_code:
-            self.inputs[sign_id].script_code = self.inputs[sign_id].redeemscript
+        if not self.inputs[sign_id].redeemscript:
+            self.inputs[sign_id].redeemscript = self.inputs[sign_id].script_code
 
-        if (not self.inputs[sign_id].script_code or self.inputs[sign_id].script_code == b'\0') and \
-                self.inputs[sign_id].script_type != 'unknown':
-            raise TransactionError("Script code missing")
+        if (not self.inputs[sign_id].redeemscript or self.inputs[sign_id].redeemscript == b'\0') and \
+                self.inputs[sign_id].redeemscript != 'unknown':
+            raise TransactionError("Redeem script missing")
 
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_txid[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            varstr(self.inputs[sign_id].script_code) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
+            varstr(self.inputs[sign_id].redeemscript) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
             self.inputs[sign_id].sequence.to_bytes(4, 'little') + \
             hash_outputs + self.locktime.to_bytes(4, 'little') + hash_type.to_bytes(4, 'little')
         return ser_tx
