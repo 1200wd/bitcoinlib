@@ -576,3 +576,17 @@ class TestScript(unittest.TestCase):
         self.assertEqual(s.script_type, ['nulldata'])
         self.assertEqual(str(s), "OP_RETURN data-38")
         self.assertFalse(s.evaluate())
+
+    def test_script_add(self):
+        # Verify txid 6efe4f943b7898c4308c67b47bac57551ff41977edc254eafb0436467632450f, input 0
+        lock_script = Script.parse(bytes.fromhex('76a914f9cc73824051cc82d64a716c836c54467a21e22c88ac'))
+        unlock_script = Script.parse(bytes.fromhex(
+            '483045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437df1ea8f98'
+            '19d344e05b9c93e38e88df1fc46abb6194506c50ce1012103e481f20561573cfd800e64efda61405917cb29e4bd20bed168c5'
+            '2b674937f535'))
+        script = unlock_script + lock_script
+        self.assertEqual(script.blueprint, ['signature', 'key', 118, 169, 'data-20', 136, 172])
+        self.assertEqual(script.script_type, ['sig_pubkey', 'p2pkh'])
+        self.assertEqual(str(script), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
+        transaction_hash = bytes.fromhex('12824db63e7856d00ee5e109fd1c26ac8a6a015858c26f4b336274f6b52da1c3')
+        self.assertTrue(script.evaluate(message=transaction_hash))

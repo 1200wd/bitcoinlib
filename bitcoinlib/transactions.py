@@ -1330,32 +1330,32 @@ class Transaction(object):
                 n_items = read_varbyteint(rawtx)
                 signatures = []
                 keys = []
-                unlock_script = b''
+                # addr_data = b''
+                script = Script()
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
                     witness = rawtx.read(item_size)
-                    if witness == b'\0':
-                        continue
-                    if 69 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
-                        signatures.append(Signature.from_str(witness))
-                    elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
-                        k = Key(witness)
-                        keys.append(k)
-                        if not inputs[n].address:
-                            inputs[n].address = k.address
-                            inputs[n].address = k.address(encoding=inputs[n].encoding)
-                            inputs[n].public_hash = k.hash160
-                    else:
-                        unlock_script = witness
                     inputs[n].witnesses.append(witness)
+                    s = Script.parse(varstr(witness))
+                    signatures += [Signature.from_str(i) for i in s.signatures]
+                    keys += [Key(k) for k in s.keys]
+                    script += s
 
                 inputs[n].keys = keys
                 inputs[n].signatures = signatures
-                # inputs[n].update_scripts()
-                if inputs[n].script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
-                    inputs[n].redeemscript = serialize_multisig_redeemscript(
-                        inputs[n].keys, n_required=inputs[n].sigs_required, compressed=inputs[n].compressed)
-                    inputs[n].script_code = unlock_script
+                inputs[n].script_type = script.script_types[0]
+                if inputs[n].script_type in ['p2sh_multisig']:  # , 'p2sh_p2wsh'
+                    inputs[n].redeemscript = inputs[n].witnesses[-1]
+                #     inputs[n].public_hash = hashlib.sha256(inputs[n].witnesses[-1]).digest()
+                #     inputs[n].script_code = varstr(b'\0' + varstr(inputs[n].public_hash))
+                #     addr_data = inputs[n].public_hash
+                #
+                # if addr_data and not inputs[n].address:
+                #     inputs[n].address = Address(
+                #         hashed_data=addr_data, encoding=inputs[n].encoding, network=inputs[n].network,
+                #         script_type=inputs[n].script_type, witness_type=inputs[n].witness_type).address
+
+                inputs[n].update_scripts()
 
         locktime = int.from_bytes(rawtx.read(4)[::-1], 'big')
 

@@ -86,7 +86,7 @@ class ScriptError(Exception):
         return self.msg
 
 
-def _get_script_type(blueprint):
+def _get_script_types(blueprint):
     # Convert blueprint to more generic format
     bp = []
     for item in blueprint:
@@ -139,13 +139,13 @@ def data_pack(data):
 
 class Script(object):
 
-    def __init__(self, commands=None, message=None, script_type='', is_locking=True, keys=None, signatures=None,
+    def __init__(self, commands=None, message=None, script_types='', is_locking=True, keys=None, signatures=None,
                  blueprint=None, tx_data=None):
         self.commands = commands if commands else []
         self.raw = b''
         self.stack = []
         self.message = message
-        self.script_type = script_type
+        self.script_types = script_types if script_types else []
         self.is_locking = is_locking
         self.keys = keys if keys else []
         self.signatures = signatures if signatures else []
@@ -199,8 +199,10 @@ class Script(object):
                             blueprint.append('data-%d' % len(data))
                         else:
                             s2 = Script.parse(data, _level=_level+1)
-                            commands.extend(s2.commands)
-                            blueprint.extend(s2.blueprint)
+                            commands += s2.commands
+                            blueprint += s2.blueprint
+                            keys += s2.keys
+                            signatures += s2.signatures
                     except (ScriptError, IndexError):
                         commands.append(data)
                         blueprint.append('data-%d' % len(data))
@@ -215,7 +217,7 @@ class Script(object):
                 _logger.warning(msg)
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data)
         s.raw = script
-        s.script_type = _get_script_type(blueprint)
+        s.script_types = _get_script_types(blueprint)
         # s.is_locking = True if locking_type == 'locking' else False
         return s
 
@@ -227,6 +229,19 @@ class Script(object):
             else:
                 s_items.append(command)
         return ' '.join(s_items)
+
+    def __add__(self, other):
+        self.commands += other.commands
+        self.raw += other.raw
+        # self.stack += other.stack
+        # self.message = message
+        self.is_locking = None
+        self.keys += other.keys
+        self.signatures += other.signatures
+        self._blueprint += other._blueprint
+        self.script_types = _get_script_types(self._blueprint)
+        # self.tx_data = tx_data
+        return self
 
     @property
     def blueprint(self):
