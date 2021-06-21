@@ -438,7 +438,7 @@ class TestScript(unittest.TestCase):
         script = unlock_script + lock_script
         s = Script.parse(script)
         self.assertEqual(s.blueprint, ['signature', 'key', 118, 169, 'data-20', 136, 172])
-        self.assertEqual(s.script_type, ['sig_pubkey', 'p2pkh'])
+        self.assertEqual(s.script_types, ['sig_pubkey', 'p2pkh'])
         self.assertEqual(str(s), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
         transaction_hash = bytes.fromhex('12824db63e7856d00ee5e109fd1c26ac8a6a015858c26f4b336274f6b52da1c3')
         self.assertTrue(s.evaluate(message=transaction_hash))
@@ -461,7 +461,7 @@ class TestScript(unittest.TestCase):
         s = Script.parse(script)
         self.assertEqual(s.blueprint, [0, 'signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 169,
                                        'data-20', 135])
-        self.assertEqual(s.script_type, ['p2sh_multisig', 'p2sh'])
+        self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
         self.assertEqual(str(s), "OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_HASH160 "
                                  "data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('5a805853bf82bcdd865deb09c73ccdd61d2331ac19d8c2911f17c7d954aec059')
@@ -512,7 +512,7 @@ class TestScript(unittest.TestCase):
                                        'signature', 'signature', 'signature', 88, 'key', 'key', 'key', 'key',
                                        'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key',
                                        95, 174, 169, 'data-20', 135])
-        self.assertEqual(s.script_type, ['p2sh_multisig', 'p2sh'])
+        self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
         self.assertEqual(str(s), "OP_0 signature signature signature signature signature signature signature "
                                  "signature OP_8 key key key key key key key key key key key key key key key OP_15 "
                                  "OP_CHECKMULTISIG OP_HASH160 data-20 OP_EQUAL")
@@ -532,7 +532,7 @@ class TestScript(unittest.TestCase):
         script = witnesses + lock_script
         s = Script.parse(script)
         self.assertEqual(s.blueprint, ['signature', 'key', 118, 169, 'data-20', 136, 172])
-        self.assertEqual(s.script_type, ['sig_pubkey', 'p2pkh'])
+        self.assertEqual(s.script_types, ['sig_pubkey', 'p2pkh'])
         self.assertEqual(str(s), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
         transaction_hash = bytes.fromhex('d63e8748dd7fd62d7530c6e611f8103b906318e01ef80a107832c9166159a58a')
         self.assertTrue(s.evaluate(message=transaction_hash))
@@ -559,7 +559,7 @@ class TestScript(unittest.TestCase):
         script = witnesses + lock_script
         s = Script.parse(script)
         self.assertEqual(s.blueprint, ['signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 168, 'data-32', 135])
-        self.assertEqual(s.script_type, ['signature', 'multisig', 'unknown'])
+        self.assertEqual(s.script_types, ['signature', 'multisig', 'unknown'])
         self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
         transaction_hash = bytes.fromhex('43f0f6dfb58acc8ed05f5afc224c2f6c50523230bfcba5e5fd91d345e8a159ab')
         data = {'redeemscript': redeemscript}
@@ -573,7 +573,7 @@ class TestScript(unittest.TestCase):
         script = bytes.fromhex('6a26062c74e4b802d60ffdd1daa37b848e39a2b0ecb2de72c6ca24d71b87813b5e056cb7f1e8c8b0')
         s = Script.parse(script)
         self.assertEqual(s.blueprint, [106, 'data-38'])
-        self.assertEqual(s.script_type, ['nulldata'])
+        self.assertEqual(s.script_types, ['nulldata'])
         self.assertEqual(str(s), "OP_RETURN data-38")
         self.assertFalse(s.evaluate())
 
@@ -586,7 +586,7 @@ class TestScript(unittest.TestCase):
             '2b674937f535'))
         script = unlock_script + lock_script
         self.assertEqual(script.blueprint, ['signature', 'key', 118, 169, 'data-20', 136, 172])
-        self.assertEqual(script.script_type, ['sig_pubkey', 'p2pkh'])
+        self.assertEqual(script.script_types, ['sig_pubkey', 'p2pkh'])
         self.assertEqual(str(script), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
         transaction_hash = bytes.fromhex('12824db63e7856d00ee5e109fd1c26ac8a6a015858c26f4b336274f6b52da1c3')
         self.assertTrue(script.evaluate(message=transaction_hash))

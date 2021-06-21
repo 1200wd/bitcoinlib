@@ -107,7 +107,7 @@ class TestTransactionInputs(unittest.TestCase):
                 'c99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66a' \
                 'dea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7ff' \
                 'f527757d5987ffffffff'
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         t.inputs[0].set_locktime_relative_time(1000)
         self.assertEqual(t.inputs[0].sequence, 4194305)
         t.inputs[0].set_locktime_relative_time(0)
@@ -165,7 +165,7 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_deserialize_raw(self):
         for r in self.rawtxs:
             # print("Deserialize %s" % r[0], r[1])
-            t = Transaction.import_raw(r[1], r[4])
+            t = Transaction.parse(r[1], r[4])
             self.assertEqual(len(t.inputs), r[2], msg="Incorrect numbers of inputs for tx '%s'" % r[0])
             self.assertEqual(len(t.outputs), r[3], msg="Incorrect numbers of outputs for tx '%s'" % r[0])
 
@@ -176,7 +176,7 @@ class TestTransactions(unittest.TestCase):
                 u'733deffffffff02be9d9600000000001976a914b66e314587c282d5ce290918228e390c0279884688ace280590b0b0000' \
                 u'001976a914f2ea76adc2345f3591ce997def9043fbe68ecc1a88ac00000000'
         self.assertEqual('1P9RQEr2XeE3PEb44ZE35sfZRRW1JHU8qx',
-                         Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
+                         Transaction.parse(rawtx).as_dict()['outputs'][1]['address'])
 
     def test_transaction_deserialize_raw_coinbase(self):
         rawtx = "02000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d03f6591c046945e" \
@@ -184,7 +184,7 @@ class TestTransactions(unittest.TestCase):
                 "01000000000000001f9aff78ef65000000000000ffffffff026dd1b34a000000001976a914b0b0451e297b39ea0f5298279" \
                 "3fb245ff446438988ac0000000000000000266a24aa21a9ed9eed30e9aebb9f3b08026a3c3105e3ca963a895cf5f9b55037" \
                 "cfdf592c02d77100000000"
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertTrue(t.coinbase)
         self.assertEqual(t.inputs[0].value, 0)
         self.assertEqual(t.input_total, 0)
@@ -200,7 +200,7 @@ class TestTransactions(unittest.TestCase):
                 '0272a9d882836778834d454e9293486f2da74ebdce82282bfcfaf2873a95ac2e5d21023c7776e9908983e35e3304c540816f' \
                 'ab387523fd7bdce168be7bbfef7afc4c6e53aeffffffff02a08601000000000017a914eb2f6545c638f7ab3897dfeb9e92bb' \
                 '8b11b840c687f23a0d000000000017a9145ac6cc10677d242eeb260dae9770221be9c87c8b8700000000'
-        t = Transaction.import_raw(rawtx, 'testnet')
+        t = Transaction.parse(rawtx, 'testnet')
         self.assertEqual(t.inputs[0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
         self.assertEqual(t.outputs[0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
         self.assertEqual(t.outputs[1].address, '2N1XCxDRsyi8so3wr6C5xj5Arcv2wej7znf')
@@ -236,13 +236,13 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
             # print("Verify %s" % r[0])
-            t = Transaction.import_raw(r[1], r[4])
+            t = Transaction.parse(r[1], r[4])
             if len(t.inputs) < 5:
                 self.assertTrue(t.verify(), msg="Can not verify transaction '%s'" % r[0])
 
     def test_transactions_serialize_raw(self):
         for r in self.rawtxs:
-            t = Transaction.import_raw(r[1], r[4])
+            t = Transaction.parse(r[1], r[4])
             self.assertEqual(t.raw_hex(), r[1],
                              "Deserialize / serialize error in transaction %s" % r[0])
 
@@ -971,12 +971,12 @@ class TestTransactions(unittest.TestCase):
             "82ce59f11d4f6c59c9a41560a1bd10521bf38780c267000000000017a9140526bae392f9c5574c458c8da1131d7989994f82" \
             "878a2b8600000000001976a914a9dc0d1398fef2dbc68a233c45c7710aff9682b888acf751bba3010000001976a914e71deb" \
             "e251bb26c7e757d9ae265da6e5d00f31b988ac00000000"
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(len(t.inputs), 201)
         self.assertEqual(len(t.outputs), 86)
 
     def test_transactions_import_raw_totals(self):
-        raw_tx = "0100000003efdad76b8da190878c1de4c92fd4aaa0a287984171a4398c1140df11663cb84c010000006b483045022065db" \
+        rawtx = "0100000003efdad76b8da190878c1de4c92fd4aaa0a287984171a4398c1140df11663cb84c010000006b483045022065db" \
                  "71606b84edc291eb2ec55e49ee2fd44afef8b20b4ef88fc2a01c2ba6e963022100dfb24228f2f80574d64a3a2964c5b3d0" \
                  "54c14f0bf18c409f72345331271b5020012102a1e806a0c19aaf32363eb19e91a901eafdfc513d13f632f4e2a39f3cb894" \
                  "ad27ffffffff670fa789f11df8b202f380ebc6b4f76fa312f6bfb11494811f00411d7bbb0ae0010000006b483045022100" \
@@ -987,7 +987,7 @@ class TestTransactions(unittest.TestCase):
                  "daf98b6ed05dfbf5e3225ae9b3afe24b8924d50121028b04194cb938044761bb93d3917abcce13f910a0500c08e61bdaaf" \
                  "5ea29b5ca0ffffffff02b0c39203000000001976a9148a81571528050b80099821ed0bc4e48ed33e5e4d88ac1f6db80a01" \
                  "0000001976a914963f47c50eaafd07c8b0a8a505c825216a4fee6d88ac00000000"
-        t = Transaction.import_raw(raw_tx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(t.output_total, 4534776015)
         self.assertEqual(t.size, 523)
         self.assertEqual(t.txid, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
@@ -1168,7 +1168,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '0a5e02c78f4c3f96f5a393f7cd01ffffffff0278270b0000000000232103b907bb026b78706e612df821c66c6d86b3881d45' \
                 '382f359e92e7c3418cacb8edac0000000000000000226a2012a4aba1a3909f8ad69e2a9f1f0e90346b0fef1f9c5b373dc2ec' \
                 '7be3f3e457b000000000'
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(t.inputs[0].script_type, 'signature')
         self.assertEqual(t.outputs[0].script_type, 'p2pk')
 
@@ -1221,7 +1221,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '8a21a3c567b4c6defe8ffca06012103ab51db28d30d3ac99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdff' \
                 'ffff029b040000000000001976a91406d66adea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a914061' \
                 '4a615ee10d84a1e6d85ec1ff7fff527757d5987b0cc0800'
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(t.locktime, 576688)
         rawtx = '010000000159dc9ad3dc18cd76827f107a50fd96981e323aec7be4cbf982df176b9ab64f4900000000fd170147304402207' \
                 '97987a17ee28181a94437e20c60b9d8da8974e68f91f250c424b623f06aeea9022036faa2834da6f883078abc3dd2fb48c1' \
@@ -1231,7 +1231,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d11ac670475f2df5cb17521025c8ee352e8b0d12' \
                 'aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bdac68feffffff011f000200000000001976a91436963a21b49f' \
                 '701acf03dd1e778ab5774017b53c88ac75f2df5c'
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(t.locktime, 1558180469)
         # Input level locktimes
         t = Transaction()
@@ -1263,7 +1263,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                   "fc6969e43f4825bded505e351e7b4a3492b5c6f0054c940121033c152137b251654f971bc4b2335646186e1298" \
                   "bfcbb0b7608ec33609ac08cc6fffffffff01050c0000000000001976a91475a94834a58225d5aa1d0403f3c72f" \
                   "7d8b01b0dd88ac00000000"
-        t1 = Transaction.import_raw(raw_hex)
+        t1 = Transaction.parse(raw_hex)
         t2 = Transaction([Input('a8d4eb4ba80e5cc87fc38c0a7df44461e995fb021ed33bfd5ecf0d12137fb85e', 0,
                                 '033c152137b251654f971bc4b2335646186e1298bfcbb0b7608ec33609ac08cc6f',
                                 '1e989d20c6f25bd36df33ef0206398b0708069ac7d1d7cdb0cd756dcb05f4dcc3c6ad2ca53cd3b5b82fc6969'
@@ -1369,7 +1369,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertTrue(t.verify())
 
         # Now deserialize and check if redeemscript is still the same
-        t2 = Transaction.import_raw(t.raw_hex(), network='testnet')
+        t2 = Transaction.parse(t.raw_hex(), network='testnet')
         self.assertEqual(t2.inputs[0].redeemscript.hex(), redeemscript)
 
     def test_transaction_multisig_sign_3_of_5(self):
@@ -1486,7 +1486,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
             Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0)]
         outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
         t = Transaction(inputs, outputs, locktime=locktime)
-        t2 = Transaction.import_raw(t.raw())
+        t2 = Transaction.parse(t.raw())
         self.assertEqual(t2.locktime, locktime)
 
     def test_transaction_relative_timelock(self):
@@ -1495,7 +1495,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
             Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, sequence=sequence)]
         outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
         t = Transaction(inputs, outputs)
-        t2 = Transaction.import_raw(t.raw())
+        t2 = Transaction.parse(t.raw())
         self.assertEqual(t2.inputs[0].sequence, sequence)
 
     def test_transaction_lock_methods(self):
@@ -1558,7 +1558,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
                 '410424140e929701fe8ad2b00e2f0995fa37357c3e0f67fa4061d387fa88f3b33f3834fec71063060de578c191cc7ab52f' \
                 'b5a095b72a6b692e5740fe2739ec1fcd9fffffffff02404b4c00000000001976a91427470c0fb0c4a68221f80bf01bf0e2' \
                 '67a0a48d6888ac99c11200000000001976a91465be988f0a457cf68203271536428698776f2c5188ac00000000'
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertTrue(t.verify())
         t.save()
 
@@ -1578,7 +1578,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
         # t = Transaction(inputs, outputs)
         # TODO
         pass
-        # raw_tx = ''
+        # rawtx = ''
         # print(t.raw_hex())
         # print(t.inputs[0].unlocking_script_unsigned)
 
@@ -1595,7 +1595,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
 
     def test_transaction_segwit_deserialize_p2wsh(self):
         # Random segwit p2wsh transaction - bbff3196a5668f5d90a901056adcc8c6dbec2e7ba0b9721772ea45693f08ce81
-        raw_tx = "01000000000101c2f54901df3f74e7999f505b629f5229a2cafcf8cc6325bb2a1f216748cb9fcb0200000000ffffffff03" \
+        rawtx = "01000000000101c2f54901df3f74e7999f505b629f5229a2cafcf8cc6325bb2a1f216748cb9fcb0200000000ffffffff03" \
                  "40a4b600000000001976a91437883c91fbfbd90330fadec0d1b38ee2e5de449488ac00735500000000001976a914c77d15" \
                  "052e9a8cce5cea9bb41e1edd6bd93dd8d988ac78bb9d0200000000220020701a8d401c84fb13e6baf169d59684e17abd9f" \
                  "a216c8cc5b9fc63d622ff8c58d0400473044022042f474d354a3d406b01748bdb08ff771abb85b2de6dc220956b342eca6" \
@@ -1604,7 +1604,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                  "305a5152cd4ad1377a2286a1016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c" \
                  "2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fe" \
                  "e45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000"
-        t = Transaction.import_raw(bytes.fromhex(raw_tx))
+        t = Transaction.parse(bytes.fromhex(rawtx))
         self.assertEqual(t.inputs[0].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
         self.assertEqual(t.outputs[2].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
         t.inputs[0].value = 61501176
@@ -1612,11 +1612,11 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
 
     def test_transaction_segwit_deserialize_p2wpkh(self):
         # Random segwit p2wpkh transaction - 299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4
-        raw_tx = "02000000000101b99ef54dd7695be7574ac6fb4a6d1a2dd98cb4ec7ee53b06117754da424a4c440100000000ffffffff01" \
+        rawtx = "02000000000101b99ef54dd7695be7574ac6fb4a6d1a2dd98cb4ec7ee53b06117754da424a4c440100000000ffffffff01" \
                  "12d62d1e00000000160014f922634ea00272421ffdb6f187935602159e17500247304402204c040218c1a5dc87e0ba3597" \
                  "06fbd0c9c36063fd89c6b4dd900e03cd69de7fd602204c7ebe180a072cc415ba3337dd66d259a4c7de2b563269a90e055f" \
                  "91898bcf590121025477b3e0aa2619e1ed61b7734b31369c156d9ff7fcbcdc1b7e3c79ed657aab0f00000000"
-        t = Transaction.import_raw(raw_tx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(t.inputs[0].address, 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc')
         self.assertEqual(t.outputs[0].address, 'bc1qly3xxn4qqfeyy8lakmcc0y6kqg2eu96srjzycu')
         t.inputs[0].value = 506323064
@@ -1656,6 +1656,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertEqual(t2.inputs[1].prev_txid, inp_prev_tx2)
         self.assertEqual(t2.signature_hash(1).hex(),
                          'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
+        self.assertTrue(t2.verify())
 
     def test_transactions_segwit_p2sh_p2wpkh(self):
         pk_input1 = 'eb696a065ef48a2192da5b28b694f87544b30fae8327c4510137a922f32c6dcf'
@@ -1680,7 +1681,8 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t.sign([pk1], 0)
         self.assertTrue(t.verify())
-        t2 = Transaction.import_raw(t.raw())
+        print(t.raw_hex())
+        t2 = Transaction.parse(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
         self.assertEqual(t2.signature_hash(0).hex(),
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
@@ -1703,7 +1705,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         self.assertEqual(t.signature_hash(0).hex(),
                          'e671e16a05001059a87767057700a7cb935c30a90e0728b739f24dd0d55ebae8')
-        t2 = Transaction.import_raw(t.raw())
+        t2 = Transaction.parse(t.raw())
         t2.inputs[0].value = 70626
         t2.verify()
         self.assertTrue(t2.verify())
@@ -1725,7 +1727,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         self.assertEqual(t.signature_hash(0).hex(),
                          '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
-        t2 = Transaction.import_raw(t.raw())
+        t2 = Transaction.parse(t.raw())
         t2.inputs[0].value = 70626
         self.assertTrue(t2.verify())
         self.assertEqual(t2.signature_hash(0).hex(),
@@ -1746,7 +1748,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                 '2aa58887be5d9b00000000001600148ceebc8944c8bb2af9f6714d60c88860191032f302473044022025a38facc3e83e532a' \
                 '6ad5a09ff2cc5e10bf1b09249169b233c5a3ffc21003de022031715687bc57778f7564924861a2d821b4eb6d15b1957ef895' \
                 '5fd7d6f93df7bd0121034168c3df0c9db74c8159388b270a6dbb30778b8ac74e6b456ad1ebb8c4bb344f00000000'
-        t = Transaction.import_raw(rawtx, network='litecoin')
+        t = Transaction.parse(rawtx, network='litecoin')
         self.assertEqual(t.inputs[0].address, 'MLairbWquSaGqMF1cWJZSH7xU6iY8jZBi5')
         self.assertEqual(t.outputs[0].address, 'MTigBXDpqJTK12Lhmd8P8UPqDGe97zVgNW')
         self.assertEqual(t.outputs[0].value, 109817418)
@@ -1779,7 +1781,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
             ],
             network='testnet', witness_type='segwit')
         rawtx = t.raw()
-        Transaction.import_raw(rawtx)
+        Transaction.parse(rawtx)
         self.assertEqual(rawtx, t.raw())
 
     def test_transaction_segwit_vsize(self):
@@ -1818,6 +1820,6 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                 '2102adcb252c63a2b123b5c6babbd7597346746b6f325ec1b0201285dd4b0aa28b872102b397599904498723c736b1546f0' \
                 '0e5663ec8f01f59731d16cd5270e36fdbdb072103328a7e1d161f8a7e4d1a2001715c74dab0a593c5d0178a5b2afbe14e63' \
                 'b53c2454aef9f80900'
-        t = Transaction.import_raw(rawtx)
+        t = Transaction.parse(rawtx)
         self.assertEqual(t.vsize, 612)
         self.assertEqual(t.weight_units, 2445)

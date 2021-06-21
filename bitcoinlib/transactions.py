@@ -1296,6 +1296,9 @@ class Transaction(object):
         if isinstance(rawtx, bytes):
             raw_bytes = rawtx
             rawtx = BytesIO(rawtx)
+        elif isinstance(rawtx, str):
+            raw_bytes = bytes.fromhex(rawtx)
+            rawtx = BytesIO(raw_bytes)
         else:  # Assume BytesIO object
             pos_start = rawtx.tell()
 
@@ -1328,6 +1331,8 @@ class Transaction(object):
         if witness_type == 'segwit':
             for n in range(0, len(inputs)):
                 n_items = read_varbyteint(rawtx)
+                if not n_items:
+                    continue
                 signatures = []
                 keys = []
                 # addr_data = b''
@@ -1343,8 +1348,10 @@ class Transaction(object):
 
                 inputs[n].keys = keys
                 inputs[n].signatures = signatures
-                inputs[n].script_type = script.script_types[0]
-                if inputs[n].script_type in ['p2sh_multisig']:  # , 'p2sh_p2wsh'
+                # inputs[n].script_type = script.script_types[0]
+                # if inputs[n].script_type in ['p2sh_multisig']:  # , 'p2sh_p2wsh'
+                if script.script_types[0] in ['p2sh_multisig', 'p2sh_multisig_2?', 'p2sh_multisig_3?']:  # , 'p2sh_p2wsh'
+                    inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
                 #     inputs[n].public_hash = hashlib.sha256(inputs[n].witnesses[-1]).digest()
                 #     inputs[n].script_code = varstr(b'\0' + varstr(inputs[n].public_hash))
