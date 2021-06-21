@@ -1292,12 +1292,12 @@ class Transaction(object):
         if not isinstance(network, Network):
             cls.network = Network(network)
         raw_bytes = b''
+        pos_start = 0
         if isinstance(rawtx, bytes):
-            # raw_bytes = rawtx
+            raw_bytes = rawtx
             rawtx = BytesIO(rawtx)
-        # else:  # Assume BytesIO object
-            # raw_bytes = rawtx.read()
-            # rawtx.seek(0)
+        else:  # Assume BytesIO object
+            pos_start = rawtx.tell()
 
         version = rawtx.read(4)[::-1]
         if rawtx.read(1) == b'\0':
@@ -1358,8 +1358,14 @@ class Transaction(object):
                 inputs[n].update_scripts()
 
         locktime = int.from_bytes(rawtx.read(4)[::-1], 'big')
+        raw_len = len(raw_bytes)
+        if not raw_bytes:
+            pos_end = rawtx.tell()
+            raw_len = pos_end - pos_start
+            rawtx.seek(pos_start)
+            raw_bytes = rawtx.read(raw_len)
 
-        return Transaction(inputs, outputs, locktime, version, network, size=len(raw_bytes), output_total=output_total,
+        return Transaction(inputs, outputs, locktime, version, network, size=raw_len, output_total=output_total,
                            coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes)
 
     @staticmethod
