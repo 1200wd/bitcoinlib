@@ -367,7 +367,7 @@ def main():
             else:
                 print("Error creating transaction: %s" % wt.error)
         else:
-            print("\nTransaction created but not send yet. Transaction dictionary for export: ")
+            print("\nTransaction created but not sent yet. Transaction dictionary for export: ")
             print_transaction(wt)
         clw_exit()
     if args.sweep:
@@ -389,7 +389,7 @@ def main():
             else:
                 print("Error sweeping wallet: %s" % wt.error)
         else:
-            print("\nTransaction created but not send yet. Transaction dictionary for export: ")
+            print("\nTransaction created but not sent yet. Transaction dictionary for export: ")
             print_transaction(wt)
         clw_exit()
 
