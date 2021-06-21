@@ -700,7 +700,7 @@ class Input(object):
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
-        :type witnesses: list of (bytes, str)
+        :type witnesses: list of bytes, list of str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
         :type encoding: str
         :param network: Network, leave empty for default
@@ -1305,8 +1305,6 @@ class Transaction(object):
         else:
             rawtx.seek(-1, 1)
 
-        # n_inputs, size = varbyteint_to_int(rawtx.read(9))
-        # rawtx.seek(size-9, 1)
         n_inputs = read_varbyteint(rawtx)
         inputs = []
         for n in range(0, n_inputs):
@@ -1328,24 +1326,12 @@ class Transaction(object):
         if witness_type == 'segwit':
             for n in range(0, len(inputs)):
                 n_items = read_varbyteint(rawtx)
-                # witnesses = []
-                #     witness_script_type = 'sig_pubkey'
                 signatures = []
                 keys = []
-                #     sigs_required = 1
-                #     public_hash = b''
+                unlock_script = b''
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
                     witness = rawtx.read(item_size)
-                    # witnesses.append(witness)
-                # if witnesses and not coinbase:
-                #     script_type = inputs[n].script_type
-                #     witness_script_type = 'sig_pubkey'
-                #     signatures = []
-                #     keys = []
-                #     sigs_required = 1
-                #     public_hash = b''
-                #     for witness in witnesses:
                     if witness == b'\0':
                         continue
                     if 69 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
@@ -1357,47 +1343,19 @@ class Transaction(object):
                             inputs[n].address = k.address
                             inputs[n].address = k.address(encoding=inputs[n].encoding)
                             inputs[n].public_hash = k.hash160
-
-                    inputs[n].keys = keys
-                    inputs[n].signatures = signatures
+                    else:
+                        unlock_script = witness
                     inputs[n].witnesses.append(witness)
-                    inputs[n].update_scripts()
 
-                    # else:
-                    #     s = Script.parse
-                    #     rsds = script_deserialize(witness, script_types=['multisig'])
-                    #     if not rsds['script_type'] == 'multisig':
-                    #         # FIXME: Parse unknown scripts
-                    #         _logger.warning(
-                    #             "Could not parse witnesses in transaction. Multisig redeemscript expected")
-                    #         witness_script_type = 'unknown'
-                    #         script_type = 'unknown'
-                    #     else:
-                    #         # FIXME: Do not mixup naming signatures and keys
-                    #         keys = rsds['signatures']
-                    #         sigs_required = rsds['number_of_sigs_m']
-                    #         witness_script_type = 'p2sh'
-                    #         script_type = 'p2sh_multisig'
+                inputs[n].keys = keys
+                inputs[n].signatures = signatures
+                # inputs[n].update_scripts()
+                if inputs[n].script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
+                    inputs[n].redeemscript = serialize_multisig_redeemscript(
+                        inputs[n].keys, n_required=inputs[n].sigs_required, compressed=inputs[n].compressed)
+                    inputs[n].script_code = unlock_script
 
-                    # inp_witness_type = inputs[n].witness_type
-                    # usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
-                    #
-                    # if usd['script_type'] == "p2wpkh" and witness_script_type == 'sig_pubkey':
-                    #     inp_witness_type = 'p2sh-segwit'
-                    #     script_type = 'p2sh_p2wpkh'
-                    # elif usd['script_type'] == "p2wsh" and witness_script_type == 'p2sh':
-                    #     inp_witness_type = 'p2sh-segwit'
-                    #     script_type = 'p2sh_p2wsh'
-                    # inputs[n] = Input(prev_txid=inputs[n].prev_txid, output_n=inputs[n].output_n, keys=keys,
-                    #                   unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
-                    #                   unlocking_script=inputs[n].unlocking_script, sigs_required=sigs_required,
-                    #                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
-                    #                   sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
-                    #                   network=inputs[n].network, witnesses=witnesses)
-        # if len(rawtx[cursor:]) != 4 and check_size:
-        #     raise TransactionError(
-        #         "Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
-        #         len(rawtx[cursor:]))
+
         locktime = int.from_bytes(rawtx.read(4)[::-1], 'big')
 
         return Transaction(inputs, outputs, locktime, version, network, size=len(raw_bytes), output_total=output_total,
@@ -1882,17 +1840,17 @@ class Transaction(object):
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
                                    sign_id)
 
-        script_code = self.inputs[sign_id].redeemscript
-        if not script_code:
-            script_code = self.inputs[sign_id].script_code
+        if not self.inputs[sign_id].script_code:
+            self.inputs[sign_id].script_code = self.inputs[sign_id].redeemscript
 
-        if (not script_code or script_code == b'\0') and self.inputs[sign_id].script_type != 'unknown':
+        if (not self.inputs[sign_id].script_code or self.inputs[sign_id].script_code == b'\0') and \
+                self.inputs[sign_id].script_type != 'unknown':
             raise TransactionError("Script code missing")
 
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_txid[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            varstr(script_code) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
+            varstr(self.inputs[sign_id].script_code) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
             self.inputs[sign_id].sequence.to_bytes(4, 'little') + \
             hash_outputs + self.locktime.to_bytes(4, 'little') + hash_type.to_bytes(4, 'little')
         return ser_tx
