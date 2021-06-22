@@ -46,7 +46,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-# @deprecated  # Replaced by Transaction.parse() in version 0.6
+@deprecated  # Replaced by Transaction.parse() in version 0.6
 def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     """
     Deserialize a raw transaction
@@ -1263,7 +1263,7 @@ class Transaction(object):
     """
 
     @staticmethod
-    # @deprecated  # Replaced by Transaction.parse() in version 0.6
+    @deprecated  # Replaced by Transaction.parse() in version 0.6
     def import_raw(rawtx, network=DEFAULT_NETWORK, check_size=True):
         """
         Import a raw transaction and create a Transaction object
@@ -1335,7 +1335,6 @@ class Transaction(object):
                     continue
                 signatures = []
                 keys = []
-                # addr_data = b''
                 script = Script()
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
@@ -1348,19 +1347,9 @@ class Transaction(object):
 
                 inputs[n].keys = keys
                 inputs[n].signatures = signatures
-                # inputs[n].script_type = script.script_types[0]
-                # if inputs[n].script_type in ['p2sh_multisig']:  # , 'p2sh_p2wsh'
-                if script.script_types[0] in ['p2sh_multisig', 'p2sh_multisig_2?', 'p2sh_multisig_3?']:  # , 'p2sh_p2wsh'
+                if script.script_types[0][:13] == 'p2sh_multisig':  # , 'p2sh_p2wsh'
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
-                #     inputs[n].public_hash = hashlib.sha256(inputs[n].witnesses[-1]).digest()
-                #     inputs[n].script_code = varstr(b'\0' + varstr(inputs[n].public_hash))
-                #     addr_data = inputs[n].public_hash
-                #
-                # if addr_data and not inputs[n].address:
-                #     inputs[n].address = Address(
-                #         hashed_data=addr_data, encoding=inputs[n].encoding, network=inputs[n].network,
-                #         script_type=inputs[n].script_type, witness_type=inputs[n].witness_type).address
 
                 inputs[n].update_scripts()
 

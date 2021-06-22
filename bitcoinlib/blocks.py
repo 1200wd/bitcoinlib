@@ -168,14 +168,15 @@ class Block:
         bits = raw[72:76][::-1]
         nonce = raw[76:80][::-1]
         tx_count, size = varbyteint_to_int(raw[80:89])
-        txs_data = raw[80+size:]
+        txs_data = BytesIO(raw[80+size:])
 
         # Parse coinbase transaction so we can extract extra information
-        transactions = [transaction_deserialize(txs_data, network=network, check_size=False)]
-        txs_data = BytesIO(txs_data[transactions[0].size:])
+        # transactions = [Transaction.parse(txs_data, network=network)]
+        # txs_data = BytesIO(txs_data[transactions[0].size:])
         # block_txs_data = txs_data.read()
-        txs_data_size = txs_data.seek(0, 2)
-        txs_data.seek(0)
+        # txs_data_size = txs_data.seek(0, 2)
+        # txs_data.seek(0)
+        transactions = []
 
         while parse_transactions and txs_data and txs_data.tell() < txs_data_size:
             if limit != 0 and len(transactions) >= limit:
