@@ -50,8 +50,7 @@ class BcoinClient(BaseClient):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
-        t = Transaction.import_raw(tx['hex'])
-        # t = Transaction.parse(bytes.fromhex(tx['hex']))
+        t = Transaction.parse(tx['hex'])
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
@@ -156,7 +155,7 @@ class BcoinClient(BaseClient):
         res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
         txid = ''
         if 'success' in res and res['success']:
-            t = Transaction.import_raw(rawtx)
+            t = Transaction.parse(rawtx)
             txid = t.txid
         return {
             'txid': txid,

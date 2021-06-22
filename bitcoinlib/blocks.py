@@ -21,7 +21,7 @@
 from io import BytesIO
 from bitcoinlib.encoding import *
 from bitcoinlib.networks import Network
-from bitcoinlib.transactions import transaction_deserialize, Transaction
+from bitcoinlib.transactions import Transaction
 
 
 class Block:
@@ -174,8 +174,8 @@ class Block:
         # transactions = [Transaction.parse(txs_data, network=network)]
         # txs_data = BytesIO(txs_data[transactions[0].size:])
         # block_txs_data = txs_data.read()
-        # txs_data_size = txs_data.seek(0, 2)
-        # txs_data.seek(0)
+        txs_data_size = txs_data.seek(0, 2)
+        txs_data.seek(0)
         transactions = []
 
         while parse_transactions and txs_data and txs_data.tell() < txs_data_size:
@@ -183,7 +183,6 @@ class Block:
                 break
             t = Transaction.parse(txs_data)
             transactions.append(t)
-            print(t.txid)
             # t = transaction_deserialize(txs_data, network=network, check_size=False)
             # transactions.append(t)
             # txs_data = txs_data[t.size:]
@@ -197,7 +196,7 @@ class Block:
 
         block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, height,
                     network=network)
-        block.txs_data = txs_data.read()
+        block.txs_data = txs_data
         block.tx_count = tx_count
         return block
 
@@ -211,10 +210,9 @@ class Block:
         :return:
         """
         n = 0
-        while self.txs_data and (limit == 0 or n < limit):
-            t = transaction_deserialize(self.txs_data, network=self.network, check_size=False)
+        while self.txs_data and (limit == 0 or n < limit) and len(self.transactions) < self.tx_count:
+            t = Transaction.parse(self.txs_data, network=self.network)  # , check_size=False
             self.transactions.append(t)
-            self.txs_data = self.txs_data[t.size:]
             n += 1
 
     def as_dict(self):
