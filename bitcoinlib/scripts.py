@@ -163,7 +163,7 @@ class Script(object):
             ch = script[cur]
             cur += 1
             data = None
-            if 1 <= ch <= 75:  # Data
+            if 1 <= ch <= 75:  # Data`
                 data = script[cur:cur+ch]
                 cur += ch
             elif ch == op.op_pushdata1:

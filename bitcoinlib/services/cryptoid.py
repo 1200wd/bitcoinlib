@@ -91,7 +91,7 @@ class CryptoID(BaseClient):
     def gettransaction(self, txid):
         variables = {'id': txid, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
-        t = Transaction.import_raw(tx['hex'], self.network)
+        t = Transaction.parse(tx['hex'], self.network)
         variables = {'t': txid}
         tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):

@@ -85,7 +85,7 @@ class BitGoClient(BaseClient):
     # RAW TRANSACTION DOES NOT CONTAIN CORRECT RAW TRANSACTION (MISSING SIGS)
     # def gettransaction(self, txid):
     #     tx = self.compose_request('tx', txid)
-    #     t = Transaction.import_raw(tx['hex'], network=self.network)
+    #     t = Transaction.parse(tx['hex'], network=self.network)
     #     t.status = 'unconfirmed'
     #     t.date = None
     #     if tx['confirmations']:
@@ -153,7 +153,7 @@ class BitGoClient(BaseClient):
     # RAW TRANSACTION DOES NOT CONTAIN CORRECT RAW TRANSACTION (MISSING SIGS)
     # def getrawtransaction(self, txid):
     #     tx = self.compose_request('tx', txid)
-    #     t = Transaction.import_raw(tx['hex'], network=self.network)
+    #     t = Transaction.parse(tx['hex'], network=self.network)
     #     for i in t.inputs:
     #         if not i.address:
     #             raise ClientError("Address missing in input. Provider might not support segwit transactions")
