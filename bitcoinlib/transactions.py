@@ -653,7 +653,7 @@ class Input(object):
     """
 
     def __init__(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
-                 unlocking_script_unsigned=None, script_type=None, address='',
+                 unlocking_script_unsigned=None, script=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
                  witnesses=None, encoding=None, network=DEFAULT_NETWORK):
@@ -719,6 +719,7 @@ class Input(object):
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
             else to_bytes(unlocking_script_unsigned)
+        self.script = None
         if isinstance(sequence, numbers.Number):
             self.sequence = sequence
         else:
@@ -1273,7 +1274,7 @@ class Transaction(object):
         
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
-        :param network: Network, leave empty for   default
+        :param network: Network, leave empty for default
         :type network: str, Network
         :param check_size: Check if no bytes are left when parsing is finished. Disable when parsing list of transactions, such as the transactions in a raw block. Default is True
         :type check_size: bool
@@ -1285,6 +1286,16 @@ class Transaction(object):
 
     @classmethod
     def parse(cls, rawtx, network=DEFAULT_NETWORK):
+        """
+        Parse a raw transaction and create a Transaction object
+
+        :param rawtx: Raw transaction string
+        :type rawtx: BytesIO, bytes, str
+        :param network: Network, leave empty for default network
+        :type network: str, Network
+
+        :return Transaction:
+        """
         coinbase = False
         flag = None
         witness_type = 'legacy'
@@ -1333,20 +1344,17 @@ class Transaction(object):
                 n_items = read_varbyteint(rawtx)
                 if not n_items:
                     continue
-                signatures = []
-                keys = []
                 script = Script()
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
                     witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
                     s = Script.parse(varstr(witness))
-                    signatures += [Signature.from_str(i) for i in s.signatures]
-                    keys += [Key(k) for k in s.keys]
                     script += s
 
-                inputs[n].keys = keys
-                inputs[n].signatures = signatures
+                inputs[n].script = script
+                inputs[n].keys = [Key(k) for k in script.keys]
+                inputs[n].signatures = [Signature.from_str(x) for x in script.signatures]
                 if script.script_types[0][:13] == 'p2sh_multisig':  # , 'p2sh_p2wsh'
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]

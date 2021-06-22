@@ -28,27 +28,6 @@ from bitcoinlib.keys import Signature
 _logger = logging.getLogger(__name__)
 
 
-# SCRIPT_TYPES_LOCKING = {
-#     # Locking scripts / scriptPubKey (Output)
-#     'p2pkh': ['OP_DUP', 'OP_HASH160', 'hash-20', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
-#     'p2sh': ['OP_HASH160', 'hash-20', 'OP_EQUAL'],
-#     'p2wpkh': ['OP_0', 'hash-20'],
-#     'p2wsh': ['OP_0', 'hash-32'],
-#     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
-#     'p2pk': ['public_key', 'OP_CHECKSIG'],
-#     'nulldata': ['OP_RETURN', 'return_data'],
-# }
-#
-# SCRIPT_TYPES_UNLOCKING = {
-#     # Unlocking scripts / scriptSig (Input)
-#     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
-#     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
-#     'p2sh_p2wpkh': ['OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
-#     'p2sh_p2wsh': ['OP_0', 'push_size', 'redeemscript'],
-#     'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
-#     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
-#     'signature': ['signature']
-# }
 SCRIPT_TYPES = {
     # <name>: (<type>, <script_commands>, <data-lengths>)
     'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
@@ -129,6 +108,14 @@ def _get_script_types(blueprint):
 
 
 def data_pack(data):
+    """
+    Add data length prefix to data string to include data in a script
+
+    :param data: Data to be packed
+    :type data: bytes
+
+    :return bytes:
+    """
     if len(data) <= 75:
         return len(data).to_bytes(1, 'big') + data
     elif 75 < len(data) <= 255:
@@ -141,6 +128,19 @@ class Script(object):
 
     def __init__(self, commands=None, message=None, script_types='', is_locking=True, keys=None, signatures=None,
                  blueprint=None, tx_data=None):
+        """
+        Create a Script object with specified parameters. Use parse() method to create a Script from raw hex
+
+        :param commands:
+        :type commands: list
+        :param message:
+        :param script_types:
+        :param is_locking:
+        :param keys:
+        :param signatures:
+        :param blueprint:
+        :param tx_data:
+        """
         self.commands = commands if commands else []
         self.raw = b''
         self.stack = []

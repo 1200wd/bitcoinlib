@@ -57,7 +57,7 @@ class Service(object):
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
                  max_errors=SERVICE_MAX_ERRORS):
         """
-        Open a service object for the specified network. By default the object connect to 1 service provider, but you
+        Create a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
