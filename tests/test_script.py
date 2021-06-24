@@ -463,7 +463,22 @@ class TestStack(unittest.TestCase):
         for n in [None, 1] + list(range(4, 11)):
             self.assertTrue(getattr(Stack(), 'op_nop%s' % (str(n) if n else ''))())
 
-    # def test_op_if(self):
+    def test_op_if(self):
+        s = Script([op.op_5, op.op_1, op.op_if, op.op_2, op.op_else, op.op_5, op.op_endif, op.op_add, op.op_1])
+        self.assertTrue(s.evaluate())
+        self.assertEqual(decode_num(s.stack[0]), 7)
+
+        s = Script([op.op_5, op.op_0, op.op_if, op.op_2, op.op_else, op.op_5, op.op_endif, op.op_add, op.op_1])
+        self.assertTrue(s.evaluate())
+        self.assertEqual(decode_num(s.stack[0]), 10)
+
+        s = Script([op.op_5, op.op_1, op.op_notif, op.op_2, op.op_else, op.op_5, op.op_endif, op.op_add, op.op_1])
+        self.assertTrue(s.evaluate())
+        self.assertEqual(decode_num(s.stack[0]), 10)
+
+        s = Script([op.op_5, op.op_0, op.op_notif, op.op_2, op.op_else, op.op_5, op.op_endif, op.op_add, op.op_1])
+        self.assertTrue(s.evaluate())
+        self.assertEqual(decode_num(s.stack[0]), 7)
 
 
 class TestScript(unittest.TestCase):
@@ -627,11 +642,30 @@ class TestScript(unittest.TestCase):
         transaction_hash = bytes.fromhex('12824db63e7856d00ee5e109fd1c26ac8a6a015858c26f4b336274f6b52da1c3')
         self.assertTrue(script.evaluate(message=transaction_hash))
 
+    def test_script_create_simple(self):
+        script = Script([op.op_2, op.op_5, op.op_sub, op.op_1])
+        self.assertEqual(str(script), 'OP_2 OP_5 OP_SUB OP_1')
+        self.assertEqual(script.serialize().hex(), '52559451')
+        self.assertTrue(script.evaluate())
+        self.assertEqual(script.stack, [b'\3'])
+
     def test_script_serialize(self):
-        # self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
-        sig1 = b"0E\x02!\x00\xde\x8fDH\xe2\xd2\xe7F\x18>B\xe4\xfd\x87\xb8\x0b\x87\xfb\xb1\xd7ZYL\xa4\x08\x12\xe5\x07v\xd5\xd6\x14\x02 ]kH\xfe\x1c\xc5\x90\r\xf6fF\x085\xfa\x10C\xb8^\x92":\x15\x87\x98\x95\xf1(\t\xdb?}\xe3\x01"
-        sig2 = b"0D\x02 hp\xd6\xdc\r\xe3\xef\xd5\xd6\xe1u\xd3i\xc8\x81KN\x86X\x96S!\x8c\xe9R\xe6\xbc\xc1\xa4>\xd5\xa3\x02 U\xafu\xda\xad`\x92$\xd1\xf6Jc5\xeb\xb9\xe1M\xeb!L&\xec'{\xb2\xaeW2n\xa7\xb3\x02\x01"
-        key1 =
+        # Serialize p2sh_p2wsh tx 77ad5a0f9447dbfb9adcdb9b2437e91780519ec8ee24a8eda91b25a0666205cb from sigs and keys
+        sig1 = b'0E\x02!\x00\xde\x8fDH\xe2\xd2\xe7F\x18>B\xe4\xfd\x87\xb8\x0b\x87\xfb\xb1\xd7ZYL\xa4\x08\x12\xe5\x07v' \
+               b'\xd5\xd6\x14\x02 ]kH\xfe\x1c\xc5\x90\r\xf6fF\x085\xfa\x10C\xb8^\x92":\x15\x87\x98\x95\xf1(\t\xdb?}' \
+               b'\xe3\x01'
+        sig2 = b"0D\x02 hp\xd6\xdc\r\xe3\xef\xd5\xd6\xe1u\xd3i\xc8\x81KN\x86X\x96S!\x8c\xe9R\xe6\xbc\xc1\xa4>\xd5\xa3" \
+               b"\x02 U\xafu\xda\xad`\x92$\xd1\xf6Jc5\xeb\xb9\xe1M\xeb!L&\xec'{\xb2\xaeW2n\xa7\xb3\x02\x01"
+        key1 = bytes.fromhex('02cd9107f8f1505ffd779bb7d8596ee686afc116e340f01b435871a038922255eb')
+        key2 = bytes.fromhex('0297faa15d33e14e80ca8a8616030b677941245fea12c4ef2ca28b14bd35ed42e1')
+        key3 = bytes.fromhex('0221b302fb92b25f171f1cd57bd22e60a1d2956f5831df17d94b3e9c3490aad598')
+        redeemscript = Script([op.op_2, key1, key2, key3, op.op_3, op.op_checkmultisig])
+        script_hash = bytes.fromhex('b0fcc0caed77aeba9786f39920151162dfaf90e679aafab7a71e9b978e7d3f39')
 
-
-
+        transaction_hash = b'\xc9u\x9d*]\xc8*\xf2\xb9-\xb5z\x02\x96\xc7\xce\x88e\xdd$\x8dO{M\x8e\x92ge\xc1g\x8f\x84'
+        script = Script([op.op_0, sig1, sig2]) + Script(redeemscript.commands) + \
+                 Script([op.op_sha256, script_hash, op.op_equal])
+        self.assertEqual(str(script), 'OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 '
+                                      'data-32 OP_EQUAL')
+        self.assertTrue(script.evaluate(message=transaction_hash, tx_data={'redeemscript': redeemscript.serialize()}))
+        self.assertEqual(script.stack, [])

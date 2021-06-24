@@ -124,6 +124,27 @@ def data_pack(data):
         return b'M' + len(data).to_bytes(2, 'little') + data
 
 
+def get_data_type(data):
+    """
+    Get type of data in script. Recognises signatures, keys, hashes or sequence data. Return 'other' if data is not
+    recognised.
+
+    :param data: Data part of script
+    :type data: bytes
+
+    :return str:
+    """
+    if data.startswith(b'\x30') and 69 <= len(data) <= 74:
+        return 'signature'
+    elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
+            (data.startswith(b'\x04') and len(data) == 65):
+        return 'key'
+    elif len(data) == 20 or len(data) == 32 or 1 < len(data) <= 4:
+        return 'data-%d' % len(data)
+    else:
+        return 'other'
+
+
 class Script(object):
 
     def __init__(self, commands=None, message=None, script_types='', is_locking=True, keys=None, signatures=None,
@@ -152,8 +173,31 @@ class Script(object):
         self._blueprint = blueprint if blueprint else []
         self.tx_data = tx_data
 
+        if not (keys and signatures and blueprint):
+            self._blueprint = []
+            for c in self.commands:
+                if isinstance(c, int):
+                    self._blueprint.append(c)
+                else:
+                    data_type = get_data_type(c)
+                    if data_type in ['key', 'signature']:
+                        self._blueprint.append(data_type)
+                    else:
+                        self._blueprint.append('data-%d' % len(c))
+
     @classmethod
     def parse(cls, script, message=None, tx_data=None, _level=0):
+        """
+        Parse raw bytes script and return Script object. Extracts script commands, keys, signatures and other data.
+
+        :param script: Raw script
+        :type script: bytes
+        :param message:
+        :param tx_data:
+        :param _level:
+
+        :return Script:
+        """
         cur = 0
         commands = []
         signatures = []
@@ -177,34 +221,32 @@ class Script(object):
                 data = script[cur:cur+length]
                 cur += length
             if data:
-                # commands.append(data)
-                if data.startswith(b'\x30') and 69 <= len(data) <= 74:
-                    commands.append(data)
+                data_type = get_data_type(data)
+                commands.append(data)
+                if data_type == 'signature':
                     signatures.append(Signature.from_str(data))
                     blueprint.append('signature')
-                elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
-                        (data.startswith(b'\x04') and len(data) == 65):
-                    commands.append(data)
+                elif data_type == 'key':
                     keys.append(Key(data))
                     blueprint.append('key')
-                elif len(data) == 20 or len(data) == 32 or (commands and commands[-1] == op.op_return) or \
-                        1 < len(data) <= 4:
-                    commands.append(data)
+                elif data_type[:4] == 'data':
+                    # FIXME: This is arbitrary
+                    blueprint.append('data-%d' % len(data))
+                elif commands and commands[-1] == op.op_return:
                     blueprint.append('data-%d' % len(data))
                 else:
                     # FIXME: Only parse sub-scripts if script is expected
                     try:
                         if _level >= 1:
-                            commands.append(data)
                             blueprint.append('data-%d' % len(data))
                         else:
                             s2 = Script.parse(data, _level=_level+1)
+                            commands.pop()
                             commands += s2.commands
                             blueprint += s2.blueprint
                             keys += s2.keys
                             signatures += s2.signatures
                     except (ScriptError, IndexError):
-                        commands.append(data)
                         blueprint.append('data-%d' % len(data))
             else:  # Other opcode
                 commands.append(ch)
@@ -218,7 +260,6 @@ class Script(object):
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data)
         s.raw = script
         s.script_types = _get_script_types(blueprint)
-        # s.is_locking = True if locking_type == 'locking' else False
         return s
 
     def __str__(self):
@@ -233,14 +274,15 @@ class Script(object):
     def __add__(self, other):
         self.commands += other.commands
         self.raw += other.raw
-        # self.stack += other.stack
-        # self.message = message
+        if other.message and not self.message:
+            self.message = other.message
         self.is_locking = None
         self.keys += other.keys
         self.signatures += other.signatures
         self._blueprint += other._blueprint
         self.script_types = _get_script_types(self._blueprint)
-        # self.tx_data = tx_data
+        if other.tx_data and not self.tx_data:
+            self.tx_data = other.tx_data
         return self
 
     @property
@@ -262,22 +304,17 @@ class Script(object):
         self.message = self.message if message is None else message
         self.tx_data = self.tx_data if tx_data is None else tx_data
         self.stack = Stack()
+
         commands = self.commands[:]
         while len(commands):
             command = commands.pop(0)
             if isinstance(command, int):
-                # print("Stack: %s  ; Running operation %s" % (self.stack, opcodenames[command]))
                 if command == op.op_0:  # OP_0
                     self.stack.append(encode_num(0))
-                    # self.stack.append(0)
                 elif command == op.op_1negate:  # OP_1NEGATE
-                    # self.stack.append(b'\x81')
                     self.stack.append(encode_num(-1))
-                    # self.stack.append(-1)
                 elif op.op_1 <= command <= op.op_16:   # OP_1 to OP_16
-                    # self.stack.append(bytes([command-80]))
                     self.stack.append(encode_num(command-80))
-                    # self.stack.append(command-80)
                 elif command == op.op_if or command == op.op_notif:
                     method = opcodenames[command].lower()
                     method = getattr(self.stack, method)
@@ -287,8 +324,6 @@ class Script(object):
                     method = opcodenames[command].lower()
                     if method not in dir(self.stack):
                         raise ScriptError("Method %s not found" % method)
-                    # method_args = op_methods[method]
-                    # self.stack.operate(*method_args)
                     try:
                         method = getattr(self.stack, method)
                         if method.__code__.co_argcount > 1:
@@ -300,22 +335,14 @@ class Script(object):
                     except Exception as e:
                         print("Error: %s" % e)
                         return False
-
-                    # Encode new items on stack
-                    for i in range(len(self.stack)):
-                        if isinstance(self.stack[i], int):
-                            self.stack[i] = encode_num(self.stack[i])
-
-                    # if not method(self.stack):
-                    #     return False
             else:
-                # print("Add data %s to stack" % command.hex())
                 self.stack.append(command)
-            # print(self.stack)
+
         if len(self.stack) == 0:
             return False
         if self.stack.pop() == b'':
             return False
+
         return True
 
 
@@ -377,7 +404,15 @@ class Stack(list):
             commands[:0] = false_items
         else:
             commands[:0] = true_items
-        return True    #  "OP_NOTIF", "OP_VERIF", "OP_VERNOTIF", "OP_ELSE", "OP_ENDIF"
+        return True
+
+    def op_notif(self, commands):
+        element = self.pop()
+        if decode_num(element) == 0:
+            self.append(b'\1')
+        else:
+            self.append(b'\0')
+        return self.op_if(commands)
 
     def op_nop(self):
         return True
