@@ -22,7 +22,7 @@ from typing import Any, Union
 from bitcoinlib.encoding import *
 from bitcoinlib.main import *
 from bitcoinlib.config.opcodes import *
-from bitcoinlib.keys import Signature
+from bitcoinlib.keys import Signature, Key
 
 
 _logger = logging.getLogger(__name__)
@@ -180,12 +180,12 @@ class Script(object):
                 # commands.append(data)
                 if data.startswith(b'\x30') and 69 <= len(data) <= 74:
                     commands.append(data)
-                    signatures.append(data)
+                    signatures.append(Signature.from_str(data))
                     blueprint.append('signature')
                 elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
                         (data.startswith(b'\x04') and len(data) == 65):
                     commands.append(data)
-                    keys.append(data)
+                    keys.append(Key(data))
                     blueprint.append('key')
                 elif len(data) == 20 or len(data) == 32 or (commands and commands[-1] == op.op_return) or \
                         1 < len(data) <= 4:
@@ -710,9 +710,12 @@ class Stack(list):
             self.append(b'')
         return True
 
-    # # 'op_checkmultisig':
-    # # 'op_checkmultisigverify':
+    def op_checkmultisigverify(self, message, data=None):
+        self.op_checkmultisig(message, data)
+        return self.op_verify()
+
     # 'op_nop1': (0, '', None, 0, False),
+
     def op_checklocktimeverify(self, _, data):
         if not data or 'sequence' not in data:
             _logger.warning("Missing 'sequence' value in Script data parameter for operation check lock time verify.")

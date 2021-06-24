@@ -1353,8 +1353,10 @@ class Transaction(object):
                     script += s
 
                 inputs[n].script = script
-                inputs[n].keys = [Key(k) for k in script.keys]
-                inputs[n].signatures = [Signature.from_str(x) for x in script.signatures]
+                # inputs[n].keys = [Key(k) for k in script.keys]
+                inputs[n].keys = script.keys
+                # inputs[n].signatures = [Signature.from_str(x) for x in script.signatures]
+                inputs[n].signatures = script.signatures
                 if script.script_types[0][:13] == 'p2sh_multisig':  # , 'p2sh_p2wsh'
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
