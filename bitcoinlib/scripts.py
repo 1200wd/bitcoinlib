@@ -40,9 +40,9 @@ SCRIPT_TYPES = {
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
     'nulldata_2': ('locking', [op.op_return, op.op_0], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
-    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check which variant is standard
-    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check which variant is standard
-    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),  # Check which variant is standard
+    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
     'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
     'signature': ('unlocking', ['signature'], []),
@@ -345,7 +345,7 @@ class Stack(list):
                 return False
         return True
 
-    # def op_ver()  # nodig?
+    # def op_ver()  # unused
 
     def op_if(self, commands):
         true_items = []
@@ -485,8 +485,8 @@ class Stack(list):
         self.op_equal()
         return self.op_verify()
 
-    # # 'op_reserved1': used by op_if
-    # # 'op_reserved2': used by op_if
+    # # 'op_reserved1': unused
+    # # 'op_reserved2': unused
 
     def op_1add(self):
         if not self.is_arithmetic():
@@ -665,7 +665,7 @@ class Stack(list):
         self.op_sha256()
         return True
 
-    # # 'op_codeseparator':
+    # 'op_codeseparator':  not implemented, mostly unused
 
     def op_checksig(self, message, _=None):
         public_key = self.pop()
@@ -678,8 +678,7 @@ class Stack(list):
         return True
 
     def op_checksigverify(self, message, _=None):
-        self.op_checksig(message, None)
-        return self.op_verify()
+        return self.op_checksig(message, None) and self.op_verify()
 
     def op_checkmultisig(self, message, data=None):
         n = decode_num(self.pop())
@@ -711,10 +710,10 @@ class Stack(list):
         return True
 
     def op_checkmultisigverify(self, message, data=None):
-        self.op_checkmultisig(message, data)
-        return self.op_verify()
+        return self.op_checkmultisig(message, data) and  self.op_verify()
 
-    # 'op_nop1': (0, '', None, 0, False),
+    def op_nop1(self):
+        return True
 
     def op_checklocktimeverify(self, _, data):
         if not data or 'sequence' not in data:
@@ -739,13 +738,28 @@ class Stack(list):
         return True
 
     # # 'op_checksequenceverify':
-    # 'op_nop4': (0, '', None, 0, False),
-    # 'op_nop5': (0, '', None, 0, False),
-    # 'op_nop6': (0, '', None, 0, False),
-    # 'op_nop7': (0, '', None, 0, False),
-    # 'op_nop8': (0, '', None, 0, False),
-    # 'op_nop9': (0, '', None, 0, False),
-    # 'op_nop10': (0, '', None, 0, False),
+
+    def op_nop4(self):
+        return True
+
+    def op_nop5(self):
+        return True
+
+    def op_nop6(self):
+        return True
+
+    def op_nop7(self):
+        return True
+
+    def op_nop8(self):
+        return True
+
+    def op_nop9(self):
+        return True
+
+    def op_nop10(self):
+        return True
+
     # # 'op_invalidopcode':
 
 

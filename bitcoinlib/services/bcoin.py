@@ -51,6 +51,8 @@ class BcoinClient(BaseClient):
         if tx['confirmations']:
             status = 'confirmed'
         t = Transaction.parse(tx['hex'])
+        if not t.txid == tx['hash']:
+            raise ClientError('Received transaction has different txid')
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']

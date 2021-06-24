@@ -235,6 +235,11 @@ class TestStack(unittest.TestCase):
         self.assertRaisesRegex(IndexError, "Not enough items in list to run operation. Items 1, expected 2",
                                st.op_add)
 
+        st = Stack.from_ints(range(-2, 3))
+        for _ in range(len(st) - 1):
+            self.assertTrue(st.op_add())
+        self.assertEqual(decode_num(st[0]), 0)
+
     def test_stack_op_sub(self):
         st = Stack.from_ints([2, 5])
         self.assertTrue(st.op_sub())
@@ -426,11 +431,18 @@ class TestStack(unittest.TestCase):
         self.assertTrue(st.op_checksigverify(txid))
 
     def test_op_stack_op_checkmultisig(self):
-        sig1 = b'0E\x02!\x00\xa7]\n\xf9\xf7f\xaa\xc1\xdc\xd2&e[\x089\x81\x02e\xff\x1b\xb34\xb00\xa3_\xa0Q\xd2s`\x92\x02 B\xb6\xbb\xb3\x15d\x8b\x9c\xd5\x07\x87\xdd&u\xf5~\xee\xe7\xf6\x97\xa5\xfc\xb3\x81\xb4\x9d\x90\x82L\xbf7,\x01'
-        sig2 = b'0F\x02!\x00\xbb\xb0!\x81\xf1\x10\xa1\x93\x8b\xa6N\xec\xafZV0\xd4\xa6\x91cb\x04c\xad\xc9\xb0#\xdb\xbe\x7f!z\x02!\x00\x80\xd7\xef"\xec\xd4\x08\x9a@nb\'\xb4\x88\xfd\'\xf4\x02jg\x9b:\x1b\xf8ck\xbe\xaf<\x1a\x07n\x01'
-        key1 = b'\x04\xdf_j\x9b\x95\xa9\xdb>n\xea!\xfa\xf0\\\xe1\x13p\xd3\x8dW\x14\xf6\x04\xf4\xff\xeb\x9dA\x8a\x1a~O \xea\x16\xe2\xe8J\xf1\xd7\xde\xac]\xa3\xcc\xf8\xf1\x8c\x1d\x18Sbd\xa6\xe9\xccMv\x04\xa4z\xe7\xcb\xc5'
-        key2 = b'\x042J\xef\x0f65R"n\xf7@\xff|\x82\xacI\x80\x9am\xee\x16y\xde<\x9c~|\x14\x0b\x04\x16\x05;\xe3\x8d\x19\xc9?\xbeM\xd7\x1b\xfds\xaa?\rK\x87\xe1\x92\x06_\xb3X3\xc4B\xb8qn\x96\x8d?'
-        key3 = b"\x04\x13\x07\x04Za\xc6\x9c\x84\x03\xb1\x07n\x0f4\xa8=\r\xcc\x1f\xacc\x07\xbe\xbf\n\x11R\xf0\x1dX\xdaw\xe3\n\x19\xcd\xeds<ie-\xc8y\xfb,4S\xbb8wj\xef\xe6\x12\x1e<\xf8\xde<Y\xa8'\xcc"
+        sig1 = b'0E\x02!\x00\xa7]\n\xf9\xf7f\xaa\xc1\xdc\xd2&e[\x089\x81\x02e\xff\x1b\xb34\xb00\xa3_\xa0Q\xd2s`\x92' \
+               b'\x02 B\xb6\xbb\xb3\x15d\x8b\x9c\xd5\x07\x87\xdd&u\xf5~\xee\xe7\xf6\x97\xa5\xfc\xb3\x81\xb4\x9d\x90' \
+               b'\x82L\xbf7,\x01'
+        sig2 = b'0F\x02!\x00\xbb\xb0!\x81\xf1\x10\xa1\x93\x8b\xa6N\xec\xafZV0\xd4\xa6\x91cb\x04c\xad\xc9\xb0#\xdb\xbe' \
+               b'\x7f!z\x02!\x00\x80\xd7\xef"\xec\xd4\x08\x9a@nb\'\xb4\x88\xfd\'\xf4\x02jg\x9b:\x1b\xf8ck\xbe\xaf<' \
+               b'\x1a\x07n\x01'
+        key1 = b'\x04\xdf_j\x9b\x95\xa9\xdb>n\xea!\xfa\xf0\\\xe1\x13p\xd3\x8dW\x14\xf6\x04\xf4\xff\xeb\x9dA\x8a\x1a~' \
+               b'O \xea\x16\xe2\xe8J\xf1\xd7\xde\xac]\xa3\xcc\xf8\xf1\x8c\x1d\x18Sbd\xa6\xe9\xccMv\x04\xa4z\xe7\xcb\xc5'
+        key2 = b'\x042J\xef\x0f65R"n\xf7@\xff|\x82\xacI\x80\x9am\xee\x16y\xde<\x9c~|\x14\x0b\x04\x16\x05;\xe3\x8d\x19' \
+               b'\xc9?\xbeM\xd7\x1b\xfds\xaa?\rK\x87\xe1\x92\x06_\xb3X3\xc4B\xb8qn\x96\x8d?'
+        key3 = b"\x04\x13\x07\x04Za\xc6\x9c\x84\x03\xb1\x07n\x0f4\xa8=\r\xcc\x1f\xacc\x07\xbe\xbf\n\x11R\xf0\x1dX\xda" \
+               b"w\xe3\n\x19\xcd\xeds<ie-\xc8y\xfb,4S\xbb8wj\xef\xe6\x12\x1e<\xf8\xde<Y\xa8'\xcc"
         transaction_hash = bytes.fromhex('feb5df818d0120d3d08853a375e802267ea2cdfb80bfde37027606fac5219e2f')
         st = Stack([sig1, sig2, b'\2', key1, key2, key3, b'\3'])
         self.assertTrue(st.op_checkmultisig(message=transaction_hash))
@@ -446,6 +458,12 @@ class TestStack(unittest.TestCase):
         st = Stack([sig1, sig2, b'\2', key1, key2, key3, b'\3'])
         self.assertTrue(st.op_checkmultisigverify(message=transaction_hash))
         self.assertEqual(st, [])
+
+    def test_op_nops(self):
+        for n in [None, 1] + list(range(4, 11)):
+            self.assertTrue(getattr(Stack(), 'op_nop%s' % (str(n) if n else ''))())
+
+    # def test_op_if(self):
 
 
 class TestScript(unittest.TestCase):
@@ -568,15 +586,11 @@ class TestScript(unittest.TestCase):
             '07659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f8'
             '8053ae')
         witnesses = varstr(bytes.fromhex(
-            '304402200ff7be6d618235673218107f7f5ffcefeaed5b045dc01a88b7253ec8cc053ec5022039b2eaa510d3a5cf634377e8df'
-            'a95061d9ad81e83a334c8cb03084cee110faf301')) + \
+                        '304402200ff7be6d618235673218107f7f5ffcefeaed5b045dc01a88b7253ec8cc053ec50'
+                        '22039b2eaa510d3a5cf634377e8dfa95061d9ad81e83a334c8cb03084cee110faf301')) + \
                     varstr(bytes.fromhex(
                         '3044022026312b6c39a71168113aaf7073bc904b1c77b4253e741e60de78ff16239cfe6202205cc9c4d6905a9b'
-                        '3cebd970d91261896cb7ade4d198d16112651ac6833083b49e01')) + \
-                    bytes.fromhex(
-                        '52210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c2103a1b26313f430c4b'
-                        '15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fee45e84a8a4'
-                        '8ad05bd8dbb395c011a32cf9f88053ae')
+                        '3cebd970d91261896cb7ade4d198d16112651ac6833083b49e01')) + redeemscript
 
         script = witnesses + lock_script
         s = Script.parse(script)
@@ -612,3 +626,12 @@ class TestScript(unittest.TestCase):
         self.assertEqual(str(script), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
         transaction_hash = bytes.fromhex('12824db63e7856d00ee5e109fd1c26ac8a6a015858c26f4b336274f6b52da1c3')
         self.assertTrue(script.evaluate(message=transaction_hash))
+
+    def test_script_serialize(self):
+        # self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
+        sig1 = b"0E\x02!\x00\xde\x8fDH\xe2\xd2\xe7F\x18>B\xe4\xfd\x87\xb8\x0b\x87\xfb\xb1\xd7ZYL\xa4\x08\x12\xe5\x07v\xd5\xd6\x14\x02 ]kH\xfe\x1c\xc5\x90\r\xf6fF\x085\xfa\x10C\xb8^\x92":\x15\x87\x98\x95\xf1(\t\xdb?}\xe3\x01"
+        sig2 = b"0D\x02 hp\xd6\xdc\r\xe3\xef\xd5\xd6\xe1u\xd3i\xc8\x81KN\x86X\x96S!\x8c\xe9R\xe6\xbc\xc1\xa4>\xd5\xa3\x02 U\xafu\xda\xad`\x92$\xd1\xf6Jc5\xeb\xb9\xe1M\xeb!L&\xec'{\xb2\xaeW2n\xa7\xb3\x02\x01"
+        key1 =
+
+
+
