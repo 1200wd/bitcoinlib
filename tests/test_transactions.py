@@ -1682,7 +1682,6 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t.sign([pk1], 0)
         self.assertTrue(t.verify())
-        print(t.raw_hex())
         t2 = Transaction.parse(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
         self.assertEqual(t2.signature_hash(0).hex(),

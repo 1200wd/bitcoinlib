@@ -31,7 +31,8 @@ _logger = logging.getLogger(__name__)
 SCRIPT_TYPES = {
     # <name>: (<type>, <script_commands>, <data-lengths>)
     'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
-    'p2pkh_drop': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [32, 20]),
+    'p2pkh_drop': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig],
+                   [32, 20]),
     'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
     'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
     'p2wsh': ('locking', [op.op_0, 'data'], [32]),
@@ -41,8 +42,10 @@ SCRIPT_TYPES = {
     'nulldata_2': ('locking', [op.op_return, op.op_0], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
     'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
-    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
-    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig],
+                         []),
+    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig],
+                         []),
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
     'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
     'signature': ('unlocking', ['signature'], []),
@@ -172,6 +175,8 @@ class Script(object):
         self.signatures = signatures if signatures else []
         self._blueprint = blueprint if blueprint else []
         self.tx_data = tx_data
+        self.sigs_required = 1
+        self.redeemscript = b''
 
         if not (keys and signatures and blueprint):
             self._blueprint = []
@@ -203,6 +208,9 @@ class Script(object):
         signatures = []
         keys = []
         blueprint = []
+        redeemscript = b''
+        sigs_required = None
+
         while cur < len(script):
             ch = script[cur]
             cur += 1
@@ -246,6 +254,8 @@ class Script(object):
                             blueprint += s2.blueprint
                             keys += s2.keys
                             signatures += s2.signatures
+                            redeemscript = s2.redeemscript
+                            sigs_required = s2.sigs_required
                     except (ScriptError, IndexError):
                         blueprint.append('data-%d' % len(data))
             else:  # Other opcode
@@ -259,7 +269,13 @@ class Script(object):
                 _logger.warning(msg)
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data)
         s.raw = script
+
         s.script_types = _get_script_types(blueprint)
+        if s.script_types == ['multisig']:
+            s.redeemscript = s.raw
+            s.sigs_required = s.commands[0] - 80
+        s.redeemscript = redeemscript if redeemscript else s.redeemscript
+        s.sigs_required = sigs_required if sigs_required else s.sigs_required
         return s
 
     def __str__(self):

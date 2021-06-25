@@ -776,36 +776,50 @@ class Input(object):
             self.witnesses.append(bytes.fromhex(w) if isinstance(w, str) else w)
         self.witnesses = witnesses if witnesses else []
         self.script_code = b''
+        self.script = None
 
         # If unlocking script is specified extract keys, signatures, type from script
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
-            us_dict = script_deserialize(self.unlocking_script)
-            if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
-                raise TransactionError("Could not parse unlocking script (%s)" % self.unlocking_script.hex())
-            if us_dict['script_type'] not in ['', 'unknown', 'empty']:
-                self.sigs_required = us_dict['number_of_sigs_n']
-                self.redeemscript = us_dict['redeemscript']
-                if us_dict['signatures'] not in signatures:
-                    signatures += us_dict['signatures']
-                if not keys:
-                    keys = us_dict['keys']
-                sigs_required = us_dict['number_of_sigs_m']
-                if not signatures and not self.public_hash:
-                    self.public_hash = us_dict['hashes'][0]
+            # us_dict = script_deserialize(self.unlocking_script)
+            self.script = Script.parse(self.unlocking_script)
+            # if self.script.script_types[0:] == 'p2sh_multisig':
+            #     sigs_required = next(x for x in self.script.commands[1:] if isinstance(x, int))
+                # self.redeemscript =
+                # self.public_hash =
+            keys = self.script.keys
+            signatures = self.script.signatures
+            sigs_required = self.script.sigs_required
+            self.redeemscript = self.script.redeemscript if self.script.redeemscript else self.redeemscript
+            if len(self.script.script_types) == 1 and not self.script_type:
+                self.script_type = self.script.script_types[0]
+            if 'p2wpkh' in self.script.script_types or 'p2wsh' in self.script.script_types:
+                self.witness_type = 'segwit'
+            # if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
+            #     raise TransactionError("Could not parse unlocking script (%s)" % self.unlocking_script.hex())
+            # if us_dict['script_type'] not in ['', 'unknown', 'empty']:
+            #     self.sigs_required = us_dict['number_of_sigs_n']
+            #     self.redeemscript = us_dict['redeemscript']
+            #     if us_dict['signatures'] not in signatures:
+            #         signatures += us_dict['signatures']
+            #     if not keys:
+            #         keys = us_dict['keys']
+            #     sigs_required = us_dict['number_of_sigs_m']
+            #     if not signatures and not self.public_hash:
+            #         self.public_hash = us_dict['hashes'][0]
                 # Determine locking script type for unlocking script type
-                if not self.script_type:
-                    self.script_type = us_dict['script_type']
-                    if us_dict['script_type'] == 'p2wsh':
-                        self.script_type = 'p2sh_p2wsh'
-                    elif us_dict['script_type'] == 'p2wpkh':
-                        self.script_type = 'p2sh_p2wpkh'
-        elif unlocking_script_unsigned and not signatures:
-            ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
-            if ls_dict['hashes']:
-                self.public_hash = ls_dict['hashes'][0]
-                if ls_dict['script_type'] in ['p2wpkh', 'p2wsh']:
-                    self.witness_type = 'segwit'
-                self.script_type = get_unlocking_script_type(ls_dict['script_type'])
+                # if not self.script_type:
+                #     self.script_type = us_dict['script_type']
+                #     if us_dict['script_type'] == 'p2wsh':
+                #         self.script_type = 'p2sh_p2wsh'
+                #     elif us_dict['script_type'] == 'p2wpkh':
+                #         self.script_type = 'p2sh_p2wpkh'
+        # elif unlocking_script_unsigned and not signatures:
+        #     ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
+        #     if ls_dict['hashes']:
+        #         self.public_hash = ls_dict['hashes'][0]
+        #         if ls_dict['script_type'] in ['p2wpkh', 'p2wsh']:
+        #             self.witness_type = 'segwit'
+        #         self.script_type = get_unlocking_script_type(ls_dict['script_type'])
         self.sigs_required = sigs_required
         if self.script_type is None and self.witness_type is None and self.witnesses:
             self.witness_type = 'segwit'
@@ -926,7 +940,7 @@ class Input(object):
 
         addr_data = b''
         unlock_script = b''
-        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
+        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh']:  # fixme: p2wpkh == p2sh_p2wpkh
             if not self.keys and not self.public_hash:
                 if self.unlocking_script_unsigned:
                     script_dict = script_deserialize(self.unlocking_script_unsigned)
@@ -956,7 +970,7 @@ class Input(object):
                 self.unlocking_script = b''
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
-        elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
+        elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh', 'p2wsh']:  # fixme: p2sh_p2wsh == p2wsh
             # if not self.keys and not self.public_hash:
             #     raise TransactionError("Please provide keys to append multisig transaction input")
             if not self.redeemscript and self.keys:
@@ -1352,14 +1366,14 @@ class Transaction(object):
                     s = Script.parse(varstr(witness))
                     script += s
 
-                inputs[n].script = script
-                # inputs[n].keys = [Key(k) for k in script.keys]
+                inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
-                # inputs[n].signatures = [Signature.from_str(x) for x in script.signatures]
                 inputs[n].signatures = script.signatures
                 if script.script_types[0][:13] == 'p2sh_multisig':  # , 'p2sh_p2wsh'
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
+                elif inputs[n].script_type == 'p2wpkh' or inputs[n].script_type == 'p2wsh':
+                    inputs[n].witness_type = 'p2sh-segwit'
 
                 inputs[n].update_scripts()
 
