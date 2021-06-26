@@ -177,6 +177,7 @@ class Script(object):
         self.tx_data = tx_data
         self.sigs_required = 1
         self.redeemscript = b''
+        self.public_hash = b''
 
         if not (keys and signatures and blueprint):
             self._blueprint = []
@@ -271,11 +272,17 @@ class Script(object):
         s.raw = script
 
         s.script_types = _get_script_types(blueprint)
-        if s.script_types == ['multisig']:
-            s.redeemscript = s.raw
-            s.sigs_required = s.commands[0] - 80
+
+        # Extract extra information from script data
+        for st in s.script_types:
+            if st == ['multisig']:
+                s.redeemscript = s.raw
+                s.sigs_required = s.commands[0] - 80
+            elif st in ['p2wpkh', 'p2wsh']:
+                s.public_hash = s.commands[-1]
         s.redeemscript = redeemscript if redeemscript else s.redeemscript
         s.sigs_required = sigs_required if sigs_required else s.sigs_required
+
         return s
 
     def __str__(self):

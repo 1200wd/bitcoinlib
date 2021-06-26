@@ -184,6 +184,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                        coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=rawtx)
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def script_deserialize(script, script_types=None, locking_script=None, size_bytes_check=True):
     """
     Deserialize a script: determine type, number of signatures and script data.
@@ -415,6 +416,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     return data
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def script_to_string(script, name_data=False):
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
@@ -457,6 +459,7 @@ def script_to_string(script, name_data=False):
     return ' '.join(scriptstr)
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def _serialize_multisig_redeemscript(public_key_list, n_required=None):
     # Serialize m-to-n multisig script. Needs a list of public keys
     for key in public_key_list:
@@ -474,6 +477,7 @@ def _serialize_multisig_redeemscript(public_key_list, n_required=None):
     return script
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
     """
     Create a multisig redeemscript used in a p2sh.
@@ -518,6 +522,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
     return _serialize_multisig_redeemscript(public_key_list, n_required)
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=False):
     usu = b'\x00'
     if as_list:
@@ -555,6 +560,7 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
     return usu
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def script_add_locktime_cltv(locktime_cltv, script):
     lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
     if script and len(script) > 6:
@@ -563,6 +569,7 @@ def script_add_locktime_cltv(locktime_cltv, script):
     return varstr(locktime_cltv.to_bytes(4, 'little')) + lockbytes + script
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def script_add_locktime_csv(locktime_csv, script):
     lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
     if script and len(script) > 6:
@@ -571,6 +578,7 @@ def script_add_locktime_csv(locktime_csv, script):
     return varstr(locktime_csv.to_bytes(4, 'little')) + lockbytes + script
 
 
+@deprecated  # Replaced by Script class in version 0.6
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
     """
     Specify locking script type and get corresponding script type for unlocking script
@@ -1161,6 +1169,7 @@ class Output(object):
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
+        self.script = None
 
         if self.address_obj:
             self.script_type = self.address_obj.script_type if script_type is None else script_type
