@@ -1715,25 +1715,27 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                          'e671e16a05001059a87767057700a7cb935c30a90e0728b739f24dd0d55ebae8')
 
     def test_transaction_segwit_p2sh_p2wsh(self):
+        txid = '11f0e444a5a51b58370b16aaa5ad7c494d1143cd956d27e04d5eb1cc119cfa0b'
         key1 = Key('241e4ec8680a77404bfd8ec8618c5db99dcb6c3eadd913d28a5e85bf28a29d92')
         key2 = Key('36751e0bfcdee1509209f29edefaee6ce0f9dc1a7e46062740c68ae7879d08ba')
         prev_tx = 'b7053498280442bb6c792c0c8883e72ced2172ecb2e31499f4ea59c7ec275433'
         inputs = [
             Input(prev_tx, 1, sequence=0xffffffff, value=70626, keys=[key1.public_byte, key2.public_byte],
-                  sigs_required=2, script_type='p2sh_multisig', witness_type='p2sh-segwit', sort=True)
+                  sigs_required=1, script_type='p2sh_multisig', witness_type='p2sh-segwit', sort=True)
         ]
         outputs = [Output(65000, 'bc1qq3lc6h2nqju2z79ll0tursx8cf2xlj20cwefzzkmn43pnptmtk0sa68kvp', encoding='bech32'), ]
         t = Transaction(inputs, outputs, witness_type='segwit')
-        t.sign(key1)
         t.sign(key2)
         self.assertTrue(t.verify())
         self.assertEqual(t.signature_hash(0).hex(),
-                         '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
+                         '1926c08d8c0f54498382e97704e7b2d8b4181ffa524b4c0d8a43aba61e3fc656')
+        self.assertEqual(t.txid, txid)
         t2 = Transaction.parse(t.raw())
         t2.inputs[0].value = 70626
         self.assertTrue(t2.verify())
         self.assertEqual(t2.signature_hash(0).hex(),
-                         '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
+                         '1926c08d8c0f54498382e97704e7b2d8b4181ffa524b4c0d8a43aba61e3fc656')
+        self.assertEqual(t2.txid, txid)
 
     def test_transaction_segwit_addresses(self):
         pk = 'Ky4o5RNziUHUuDjUaAKuHnfMt2hRsX4y4itaGPGNMPDhR11faGtA'

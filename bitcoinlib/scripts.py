@@ -41,7 +41,8 @@ SCRIPT_TYPES = {
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
     'nulldata_2': ('locking', [op.op_return, op.op_0], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
-    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    # 'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
     'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig],
                          []),
     'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig],
@@ -151,7 +152,8 @@ def get_data_type(data):
 class Script(object):
 
     def __init__(self, commands=None, message=None, script_types='', is_locking=True, keys=None, signatures=None,
-                 blueprint=None, tx_data=None, public_hash=b''):
+                 blueprint=None, tx_data=None, public_hash=b'', sigs_required=None, redeemscript=b'',
+                 hash_type=SIGHASH_ALL):
         """
         Create a Script object with specified parameters. Use parse() method to create a Script from raw hex
 
@@ -175,15 +177,17 @@ class Script(object):
         self.signatures = signatures if signatures else []
         self._blueprint = blueprint if blueprint else []
         self.tx_data = tx_data
-        self.sigs_required = 1
-        self.redeemscript = b''
+        self.sigs_required = sigs_required if sigs_required else len(self.keys) if len(self.keys) else 1
+        self.redeemscript = redeemscript
         self.public_hash = public_hash
+        self.hash_type = hash_type
 
         if not self.commands and self.script_types and (self.keys or self.signatures or self.public_hash):
             for st in self.script_types:
                 st_values = SCRIPT_TYPES[st]
                 script_template = st_values[1]
                 self.is_locking = True if st_values[0] == 'locking' else False
+                sig_n_and_m = [len(self.keys), sigs_required]
                 for tc in script_template:
                     command = [tc]
                     if tc == 'data':
@@ -192,6 +196,10 @@ class Script(object):
                         command = self.signatures
                     elif tc == 'key':
                         command = self.keys
+                    elif tc == 'op_n':
+                        command = [sig_n_and_m.pop() + 80]
+                    elif tc == 'redeemscript':
+                        command = [redeemscript]
                     if not command or command == [b'']:
                         raise ScriptError("Cannot create script, please supply %s" % (tc if tc != 'data' else
                                           'public key hash'))
@@ -335,15 +343,30 @@ class Script(object):
         # TODO: create blueprint from commands if empty
         return self._blueprint
 
-    def serialize(self):
+    def serialize(self, as_list=False):
         raw = b''
         for cmd in self.commands:
             if isinstance(cmd, int):
                 raw += bytes([cmd])
             else:
-                raw += data_pack(cmd)
+                if get_data_type(cmd) == 'signature':
+                    raw += data_pack(cmd + self.hash_type.to_bytes(1, 'big'))
+                else:
+                    raw += data_pack(cmd)
         self.raw = raw
         return raw
+
+    def serialize_list(self):
+        clist = []
+        for cmd in self.commands:
+            if isinstance(cmd, int):
+                clist.append(bytes([cmd]))
+            else:
+                if get_data_type(cmd) == 'signature':
+                    clist.append(cmd + self.hash_type.to_bytes(1, 'big'))
+                else:
+                    clist.append(cmd)
+        return clist
 
     def evaluate(self, message=None, tx_data=None):
         self.message = self.message if message is None else message
