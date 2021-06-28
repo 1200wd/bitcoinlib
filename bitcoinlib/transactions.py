@@ -821,6 +821,12 @@ class Input(object):
                 #         self.script_type = 'p2sh_p2wsh'
                 #     elif us_dict['script_type'] == 'p2wpkh':
                 #         self.script_type = 'p2sh_p2wpkh'
+        if self.unlocking_script_unsigned and not self.signatures:
+            ls = Script.parse(self.unlocking_script_unsigned)
+            self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash
+            if ls.script_types[0] in ['p2wpkh', 'p2wsh']:
+                self.witness_type = 'segwit'
+            # self.script_type = self.script_type if not ls.script_types else ls.script_types[0]
         # elif unlocking_script_unsigned and not signatures:
         #     ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
         #     if ls_dict['hashes']:
@@ -950,13 +956,13 @@ class Input(object):
         unlock_script = b''
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh']:  # fixme: p2wpkh == p2sh_p2wpkh
             if not self.keys and not self.public_hash:
-                if self.unlocking_script_unsigned:
-                    script_dict = script_deserialize(self.unlocking_script_unsigned)
-                    if script_dict['script_type'] == 'p2pkh':
-                        self.public_hash = script_dict['hashes'][0]
-                    else:
-                        return
-                elif self.witnesses and not self.signatures and not self.keys and \
+                # if self.unlocking_script_unsigned:
+                #     script_dict = script_deserialize(self.unlocking_script_unsigned)
+                #     if script_dict['script_type'] == 'p2pkh':
+                #         self.public_hash = script_dict['hashes'][0]
+                #     else:
+                #         return
+                if self.witnesses and not self.signatures and not self.keys and \
                         self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 \
                         and b'\0' not in self.witnesses:
                     self.signatures = [Signature.from_str(self.witnesses[0])]
@@ -1169,13 +1175,32 @@ class Output(object):
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
-        self.script = None
+        self.script = Script.parse(self.lock_script)
 
         if self.address_obj:
             self.script_type = self.address_obj.script_type if script_type is None else script_type
             self.public_hash = self.address_obj.hash_bytes
             self.network = self.address_obj.network
             self.encoding = self.address_obj.encoding
+
+        # if self.lock_script and not self.public_hash:
+        if self.script:
+            # ss = script_deserialize(self.lock_script, locking_script=True)
+            # self.script_type = ss['script_type']
+            self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                self.encoding = 'bech32'
+            # if ss['hashes']:
+            #     self.public_hash = ss['hashes'][0]
+            self.public_hash = self.script.public_hash
+            # self.keys = self.script.keys if not self.keys else self.keys
+            if self.script.keys:
+                self.public_key = self.script.keys[0].public_hex
+            # if ss['keys']:
+            #     self.public_key = ss['keys'][0]
+            #     k = Key(self.public_key, is_private=False, network=network)
+            #     self.public_hash = k.hash160
+
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
             self.public_hash = k.hash160
@@ -1198,17 +1223,7 @@ class Output(object):
             self.encoding = 'base58'
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.encoding = 'bech32'
-        if self.lock_script and not self.public_hash:
-            ss = script_deserialize(self.lock_script, locking_script=True)
-            self.script_type = ss['script_type']
-            if self.script_type in ['p2wpkh', 'p2wsh']:
-                self.encoding = 'bech32'
-            if ss['hashes']:
-                self.public_hash = ss['hashes'][0]
-            if ss['keys']:
-                self.public_key = ss['keys'][0]
-                k = Key(self.public_key, is_private=False, network=network)
-                self.public_hash = k.hash160
+
         if self.script_type is None:
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
@@ -1218,20 +1233,23 @@ class Output(object):
                                        encoding=self.encoding, network=self.network)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
-        if self.lock_script == b'':
-            if self.script_type == 'p2pkh':
-                self.lock_script = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
-            elif self.script_type == 'p2sh':
-                self.lock_script = b'\xa9\x14' + self.public_hash + b'\x87'
-            elif self.script_type == 'p2wpkh':
-                self.lock_script = b'\x00\x14' + self.public_hash
-            elif self.script_type == 'p2wsh':
-                self.lock_script = b'\x00\x20' + self.public_hash
-            elif self.script_type == 'p2pk':
-                if not self.public_key:
-                    raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
-                self.lock_script = varstr(self.public_key) + b'\xac'
-            else:
+        if not self.script:
+            self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
+            self.lock_script = self.script.serialize()
+            # if self.script_type == 'p2pkh':
+            #     self.lock_script = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
+            # elif self.script_type == 'p2sh':
+            #     self.lock_script = b'\xa9\x14' + self.public_hash + b'\x87'
+            # elif self.script_type == 'p2wpkh':
+            #     self.lock_script = b'\x00\x14' + self.public_hash
+            # elif self.script_type == 'p2wsh':
+            #     self.lock_script = b'\x00\x20' + self.public_hash
+            # elif self.script_type == 'p2pk':
+            #     if not self.public_key:
+            #         raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
+            #     self.lock_script = varstr(self.public_key) + b'\xac'
+            # else:
+            if not self.script:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
         self.spending_txid = spending_txid

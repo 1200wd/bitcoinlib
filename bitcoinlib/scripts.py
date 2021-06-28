@@ -151,7 +151,7 @@ def get_data_type(data):
 class Script(object):
 
     def __init__(self, commands=None, message=None, script_types='', is_locking=True, keys=None, signatures=None,
-                 blueprint=None, tx_data=None):
+                 blueprint=None, tx_data=None, public_hash=b''):
         """
         Create a Script object with specified parameters. Use parse() method to create a Script from raw hex
 
@@ -177,8 +177,25 @@ class Script(object):
         self.tx_data = tx_data
         self.sigs_required = 1
         self.redeemscript = b''
-        self.public_hash = b''
+        self.public_hash = public_hash
 
+        if not self.commands and self.script_types and (self.keys or self.signatures or self.public_hash):
+            for st in self.script_types:
+                st_values = SCRIPT_TYPES[st]
+                script_template = st_values[1]
+                self.is_locking = True if st_values[0] == 'locking' else False
+                for tc in script_template:
+                    command = [tc]
+                    if tc == 'data':
+                        command = [self.public_hash] if self.public_hash else []
+                    elif tc == 'signature':
+                        command = self.signatures
+                    elif tc == 'key':
+                        command = self.keys
+                    if not command or command == [b'']:
+                        raise ScriptError("Cannot create script, please supply %s" % (tc if tc != 'data' else
+                                          'public key hash'))
+                    self.commands += command
         if not (keys and signatures and blueprint):
             self._blueprint = []
             for c in self.commands:
@@ -274,12 +291,14 @@ class Script(object):
         s.script_types = _get_script_types(blueprint)
 
         # Extract extra information from script data
-        for st in s.script_types:
-            if st == ['multisig']:
+        for st in s.script_types[:1]:
+            if st == 'multisig':
                 s.redeemscript = s.raw
                 s.sigs_required = s.commands[0] - 80
-            elif st in ['p2wpkh', 'p2wsh']:
-                s.public_hash = s.commands[-1]
+            elif st in ['p2wpkh', 'p2wsh', 'p2sh'] and len(s.commands) > 1:
+                s.public_hash = s.commands[1]
+            elif st == 'p2pkh' and len(s.commands) > 2:
+                s.public_hash = s.commands[2]
         s.redeemscript = redeemscript if redeemscript else s.redeemscript
         s.sigs_required = sigs_required if sigs_required else s.sigs_required
 
@@ -307,6 +326,9 @@ class Script(object):
         if other.tx_data and not self.tx_data:
             self.tx_data = other.tx_data
         return self
+
+    def __bool__(self):
+        return bool(self.commands)
 
     @property
     def blueprint(self):
