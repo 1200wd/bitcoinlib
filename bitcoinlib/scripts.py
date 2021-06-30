@@ -39,7 +39,8 @@ SCRIPT_TYPES = {
     'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2pk': ('locking', ['key', op.op_checksig], []),
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
-    'nulldata_2': ('locking', [op.op_return, op.op_0], []),
+    'nulldata_1': ('locking', [op.op_return, op.op_0], []),
+    'nulldata_2': ('locking', [op.op_return], []),
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
     # 'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
@@ -219,6 +220,11 @@ class Script(object):
                         self._blueprint.append('data-%d' % len(c))
 
     @classmethod
+    def parse_hex(cls, script, message=None, tx_data=None):
+        script_bytes = bytes.fromhex(script)
+        return cls.parse(script_bytes, message, tx_data)
+
+    @classmethod
     def parse(cls, script, message=None, tx_data=None, _level=0):
         """
         Parse raw bytes script and return Script object. Extracts script commands, keys, signatures and other data.
@@ -238,6 +244,7 @@ class Script(object):
         blueprint = []
         redeemscript = b''
         sigs_required = None
+        hash_type = SIGHASH_ALL
 
         while cur < len(script):
             ch = script[cur]
@@ -260,7 +267,9 @@ class Script(object):
                 data_type = get_data_type(data)
                 commands.append(data)
                 if data_type == 'signature':
-                    signatures.append(Signature.from_str(data))
+                    sig = Signature.from_str(data)
+                    signatures.append(sig)
+                    hash_type = sig.hash_type
                     blueprint.append('signature')
                 elif data_type == 'key':
                     keys.append(Key(data))
@@ -295,7 +304,8 @@ class Script(object):
                 raise ScriptError(msg)
             else:
                 _logger.warning(msg)
-        s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data)
+        s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data,
+                hash_type=hash_type)
         s.raw = script
 
         s.script_types = _get_script_types(blueprint)
@@ -305,6 +315,12 @@ class Script(object):
             if st == 'multisig':
                 s.redeemscript = s.raw
                 s.sigs_required = s.commands[0] - 80
+                if s.sigs_required > len(keys):
+                    raise ScriptError("Number of signatures required (%d) is higher then number of keys (%d)" %
+                                      (s.sigs_required, len(keys)))
+                if len(s.keys) != s.commands[-2] - 80:
+                    raise ScriptError("%d keys found but %d keys expected" %
+                                      (len(s.keys), s.commands[-2] - 80))
             elif st in ['p2wpkh', 'p2wsh', 'p2sh'] and len(s.commands) > 1:
                 s.public_hash = s.commands[1]
             elif st == 'p2pkh' and len(s.commands) > 2:
