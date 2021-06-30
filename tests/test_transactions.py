@@ -201,6 +201,7 @@ class TestTransactions(unittest.TestCase):
                 'ab387523fd7bdce168be7bbfef7afc4c6e53aeffffffff02a08601000000000017a914eb2f6545c638f7ab3897dfeb9e92bb' \
                 '8b11b840c687f23a0d000000000017a9145ac6cc10677d242eeb260dae9770221be9c87c8b8700000000'
         t = Transaction.parse(rawtx, 'testnet')
+        t.info()
         self.assertEqual(t.inputs[0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
         self.assertEqual(t.outputs[0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
         self.assertEqual(t.outputs[1].address, '2N1XCxDRsyi8so3wr6C5xj5Arcv2wej7znf')
@@ -1727,6 +1728,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t = Transaction(inputs, outputs, witness_type='segwit')
         t.sign(key2)
         self.assertTrue(t.verify())
+        print(t.raw_hex())
         self.assertEqual(t.signature_hash(0).hex(),
                          '1926c08d8c0f54498382e97704e7b2d8b4181ffa524b4c0d8a43aba61e3fc656')
         self.assertEqual(t.txid, txid)

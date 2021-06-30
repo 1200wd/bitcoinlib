@@ -800,6 +800,8 @@ class Input(object):
             self.redeemscript = self.script.redeemscript if self.script.redeemscript else self.redeemscript
             if len(self.script.script_types) == 1 and not self.script_type:
                 self.script_type = self.script.script_types[0]
+            elif self.script.script_types == ['signature_multisig', 'multisig']:
+                self.script_type = 'p2sh_multisig'
             if 'p2wpkh' in self.script.script_types or 'p2wsh' in self.script.script_types:
                 self.witness_type = 'segwit'
             # if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
@@ -985,11 +987,7 @@ class Input(object):
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh', 'p2wsh']:  # fixme: p2sh_p2wsh == p2wsh
-            # if not self.keys and not self.public_hash:
-            #     raise TransactionError("Please provide keys to append multisig transaction input")
             if not self.redeemscript and self.keys:
-                # self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
-                #                                                     compressed=self.compressed)
                 self.redeemscript = Script(script_types=['multisig'], keys=[k.public_byte for k in self.keys],
                                            sigs_required=self.sigs_required).serialize()
             if self.redeemscript:
@@ -1010,21 +1008,13 @@ class Input(object):
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
                 if len(signatures):
-                    us_as_list = False
-                    if self.witness_type in ['segwit', 'p2sh-segwit']:
-                        us_as_list = True
-                    unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type, as_list=us_as_list)
                     unlock_script_obj = Script(script_types=['p2sh_multisig'], keys=[k.public_byte for k in self.keys],
                                                signatures=signatures, sigs_required=self.sigs_required,
                                                redeemscript=self.redeemscript)
-                    if us_as_list:
-                        unlock_script2 = unlock_script_obj.serialize_list()
+                    if self.witness_type in ['segwit', 'p2sh-segwit']:
+                        unlock_script = unlock_script_obj.serialize_list()
                     else:
-                        unlock_script2 = unlock_script_obj.serialize()
-                    if unlock_script != unlock_script2:
-                        print(unlock_script)
-                        print(unlock_script2)
-                        unlock_script = unlock_script2
+                        unlock_script = unlock_script_obj.serialize()
                 if self.witness_type == 'segwit':
                     script_code = b''
                     for k in self.keys:
@@ -1408,7 +1398,7 @@ class Transaction(object):
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
-                if script.script_types[0][:13] == 'p2sh_multisig':  # , 'p2sh_p2wsh'
+                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] == 'signature_multisig':  # , 'p2sh_p2wsh'
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
                 elif inputs[n].script_type == 'p2wpkh':

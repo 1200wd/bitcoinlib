@@ -43,14 +43,12 @@ SCRIPT_TYPES = {
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
     # 'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
-    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'op_n', 'key', 'op_n', op.op_checkmultisig],
-                         []),
-    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'op_n', 'key', 'op_n', op.op_checkmultisig],
-                         []),
+    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'redeemscript'], []),
+    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'redeemscript'], []),
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
     'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
     'signature': ('unlocking', ['signature'], []),
-    'signature_multisig?': ('unlocking', [op.op_0, 'signature'], []),
+    'signature_multisig': ('unlocking', [op.op_0, 'signature'], []),
     'locktime_cltv': ('unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop], []),
     'locktime_csv': ('unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop], []),
 }
@@ -105,7 +103,11 @@ def _get_script_types(blueprint):
                     break
 
         # Add script type to list
-        script_types.append(matches[match_id][0])
+        script_type = matches[match_id][0]
+        if script_type == 'multisig' and script_types[-1:] == ['signature_multisig']:
+            script_types.pop()
+            script_type = 'p2sh_multisig'
+        script_types.append(script_type)
         bp = bp[matches[match_id][1]:]
 
     return script_types
@@ -187,7 +189,7 @@ class Script(object):
                 st_values = SCRIPT_TYPES[st]
                 script_template = st_values[1]
                 self.is_locking = True if st_values[0] == 'locking' else False
-                sig_n_and_m = [len(self.keys), sigs_required]
+                sig_n_and_m = [len(self.keys), self.sigs_required]
                 for tc in script_template:
                     command = [tc]
                     if tc == 'data':
@@ -199,12 +201,12 @@ class Script(object):
                     elif tc == 'op_n':
                         command = [sig_n_and_m.pop() + 80]
                     elif tc == 'redeemscript':
-                        command = [redeemscript]
+                        command = [self.redeemscript]
                     if not command or command == [b'']:
                         raise ScriptError("Cannot create script, please supply %s" % (tc if tc != 'data' else
                                           'public key hash'))
                     self.commands += command
-        if not (keys and signatures and blueprint):
+        if not (self.keys and self.signatures and self.blueprint):
             self._blueprint = []
             for c in self.commands:
                 if isinstance(c, int):
