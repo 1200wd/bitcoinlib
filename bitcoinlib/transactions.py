@@ -578,7 +578,6 @@ def script_add_locktime_csv(locktime_csv, script):
     return varstr(locktime_csv.to_bytes(4, 'little')) + lockbytes + script
 
 
-@deprecated  # Replaced by Script class in version 0.6
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
     """
     Specify locking script type and get corresponding script type for unlocking script
@@ -753,7 +752,7 @@ class Input(object):
             self.address = address.address
             self.encoding = address.encoding
             self.network = address.network
-            self.script_type = address.script_type
+            # self.script_type = address.script_type
         else:
             self.address = address
         self.signatures = []
@@ -819,10 +818,11 @@ class Input(object):
                 # Determine locking script type for unlocking script type
                 # if not self.script_type:
                 #     self.script_type = us_dict['script_type']
-                #     if us_dict['script_type'] == 'p2wsh':
-                #         self.script_type = 'p2sh_p2wsh'
-                #     elif us_dict['script_type'] == 'p2wpkh':
-                #         self.script_type = 'p2sh_p2wpkh'
+            if self.witness_type == 'p2sh-segwit':
+                if self.script_type == 'p2wsh':
+                    self.script_type = 'p2sh_p2wsh'
+                elif self.script_type == 'p2wpkh':
+                    self.script_type = 'p2sh_p2wpkh'
         if self.unlocking_script_unsigned and not self.signatures:
             ls = Script.parse(self.unlocking_script_unsigned)
             self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash

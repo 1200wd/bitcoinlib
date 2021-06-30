@@ -126,14 +126,16 @@ class BlockChairClient(BaseClient):
 
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
-                witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
+                # witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
+                witnesses = ti['spending_witness'].split(",")
                 address = Address.import_address(ti['recipient'])
                 if address.script_type == 'p2sh':
                     witness_type = 'p2sh-segwit'
                 else:
                     witness_type = 'segwit'
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
-                            unlocking_script=witnesses, index_n=index_n, value=ti['value'],
+                            unlocking_script=ti['spending_signature_hex'],
+                            witnesses=witnesses, index_n=index_n, value=ti['value'],
                             address=address, witness_type=witness_type, sequence=ti['spending_sequence'])
             else:
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],

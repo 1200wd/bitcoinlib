@@ -79,10 +79,9 @@ class SmartbitClient(BaseClient):
                         witness_type = 'p2sh-segwit'
                     else:
                         witness_type = 'segwit'
-                    unlocking_script = b"".join([varstr(bytes.fromhex(x)) for x in ti['witness']])
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
-                            witness_type=witness_type)
+                            witness_type=witness_type, witnesses=ti['witness'])
                 index_n += 1
 
         for to in tx['outputs']:
