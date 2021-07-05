@@ -61,6 +61,7 @@ class SmartbitClient(BaseClient):
         t_time = None
         if tx['time']:
             t_time = datetime.utcfromtimestamp(tx['time'])
+        print(tx['txid'])
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
                         size=tx['size'], txid=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
@@ -81,7 +82,7 @@ class SmartbitClient(BaseClient):
                         witness_type = 'segwit'
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
-                            witness_type=witness_type, witnesses=ti['witness'])
+                            witness_type=witness_type, witnesses=ti['witness'] if ti['witness'] != ['NULL'] else [])
                 index_n += 1
 
         for to in tx['outputs']:
