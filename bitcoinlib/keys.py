@@ -883,10 +883,10 @@ class Key(object):
         return "<Key(public_hex=%s, network=%s)>" % (self.public_hex, self.network.name)
 
     def __str__(self):
-        if self.is_private:
-            return self.private_hex
-        else:
-            return self.public_hex
+        return self.public_hex
+
+    def __len__(self):
+        return len(self.public_hex)
 
     def __eq__(self, other):
         if other is None:

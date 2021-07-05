@@ -35,7 +35,8 @@ class TestKeyClasses(unittest.TestCase):
         pk = 'xprv9s21ZrQH143K4EDmQNMBqXwUTcrRoUctKkTegGsaBcMLnR1fJkMjVSRwVswjHzJspfWCUwzge1F521cY4wfWD54tzXVUqeo' \
              'TFkZo17HiK2y'
         k = HDKey(pk)
-        self.assertEqual(str(k), 'd3caaca97fbba3d4ebd87e855c6e05080b0ac9118bd886c0f575d79940bd6eb4')
+        self.assertEqual(str(k), '03dc86716b2be27a0575558bac73279290ac22c3ea0240e42a2152d584f2b4006b')
+        self.assertEqual(len(k), 66)
         self.assertEqual(int(k), 95796105828208927954168018443072630832764875640480247096632116413925408206516)
         k2 = HDKey(pk)
         self.assertTrue(k == k2)
