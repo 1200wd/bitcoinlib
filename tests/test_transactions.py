@@ -164,7 +164,6 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_deserialize_raw(self):
         for r in self.rawtxs:
-            # print("Deserialize %s" % r[0], r[1])
             t = Transaction.parse(r[1], r[4])
             self.assertEqual(len(t.inputs), r[2], msg="Incorrect numbers of inputs for tx '%s'" % r[0])
             self.assertEqual(len(t.outputs), r[3], msg="Incorrect numbers of outputs for tx '%s'" % r[0])
@@ -1055,23 +1054,6 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                         '028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd63676d0e OP_3 OP_CHECKMULTISIG'
         self.assertEqual(script_to_string(script), script_string)
 
-    def test_transaction_script_deserialize_sig_pk2(self):
-        spk = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5' \
-              'b412bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe6' \
-              '1385aa7446'
-        ds = script_deserialize(spk)
-        self.assertEqual(ds['script_type'], 'sig_pubkey')
-        self.assertEqual(
-            ds['signatures'][0].hex(), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e00220'
-                                       '7345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
-        self.assertEqual(
-            ds['keys'][0].hex(), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
-
-    def test_transaction_deserialize_script_with_sizebyte(self):
-        script_size_byte = b'\x16\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
-        script = b'\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
-        self.assertDictEqualExt(script_deserialize(script_size_byte), script_deserialize(script))
-
     def test_transaction_sign_uncompressed(self):
         ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='dash_testnet', compressed=False)
         prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
@@ -1167,15 +1149,6 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(get_unlocking_script_type('p2pk'), 'signature')
         self.assertRaisesRegexp(TransactionError, "Unknown locking script type troep", get_unlocking_script_type,
                                 'troep')
-
-    def test_transaction_redeemscript(self):
-        redeemscript = '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09' \
-                       'e63975a1700c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff' \
-                       '90e28da1848f640de68c2fe913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c7' \
-                       '0776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea6' \
-                       '00bd217870a8b4f1f09f3a8e8353ae'
-        sd = script_deserialize('00c9' + redeemscript)
-        self.assertEqual(sd['redeemscript'].hex(), redeemscript)
 
     def test_transaction_equal(self):
         raw_hex = "01000000015eb87f13120dcf5efd3bd31e02fb95e96144f47d0a8cc37fc85c0ea84bebd4a8000000006a473044" \

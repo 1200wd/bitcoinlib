@@ -7,6 +7,7 @@
 
 from bitcoinlib.scripts import *
 import unittest
+from tests.test_custom import CustomAssertions
 
 
 class TestStack(unittest.TestCase):
@@ -568,7 +569,7 @@ class TestScriptTypes(unittest.TestCase):
                          b'\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e')
 
 
-class TestScript(unittest.TestCase):
+class TestScript(unittest.TestCase, CustomAssertions):
 
     def test_script_verify_transaction_input_p2pkh(self):
         # Verify txid 6efe4f943b7898c4308c67b47bac57551ff41977edc254eafb0436467632450f, input 0
@@ -757,4 +758,33 @@ class TestScript(unittest.TestCase):
         self.assertTrue(script.evaluate(message=transaction_hash, tx_data={'redeemscript': redeemscript.serialize()}))
         self.assertEqual(script.stack, [])
 
+    def test_script_deserialize_sig_pk2(self):
+        spk = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5' \
+              'b412bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe6' \
+              '1385aa7446'
+        s = Script.parse_hex(spk)
+        self.assertEqual(s.script_types, ['sig_pubkey'])
+        self.assertEqual(
+            s.signatures[0].as_der_encoded().hex(),
+            '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e00220'
+            '7345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d')
+        self.assertEqual(
+            s.keys[0].hex(), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
+
+    def test_deserialize_script_with_sizebyte(self):
+        script_size_byte = b'\x16\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
+        script = b'\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
+        s1 = Script.parse(script_size_byte)
+        s2 = Script.parse(script)
+        s1.raw = s2.raw
+        self.assertDictEqualExt(s1.__dict__, s2.__dict__)
+
+    def test_script_parse_redeemscript(self):
+        redeemscript = '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09' \
+                       'e63975a1700c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff' \
+                       '90e28da1848f640de68c2fe913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c7' \
+                       '0776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea6' \
+                       '00bd217870a8b4f1f09f3a8e8353ae'
+        s = Script.parse_hex(redeemscript)
+        self.assertEqual(s.serialize().hex(), redeemscript)
 

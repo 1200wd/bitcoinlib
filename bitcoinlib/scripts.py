@@ -141,7 +141,11 @@ def get_data_type(data):
 
     :return str:
     """
-    if data.startswith(b'\x30') and 69 <= len(data) <= 74:
+    if isinstance(data, Key):
+        return 'key_object'
+    elif isinstance(data, Signature):
+        return 'signature_object'
+    elif data.startswith(b'\x30') and 69 <= len(data) <= 74:
         return 'signature'
     elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
             (data.startswith(b'\x04') and len(data) == 65):
@@ -214,7 +218,7 @@ class Script(object):
                     self._blueprint.append(c)
                 else:
                     data_type = get_data_type(c)
-                    if data_type in ['key', 'signature']:
+                    if data_type in ['key', 'signature', 'key_object', 'signature_object']:
                         self._blueprint.append(data_type)
                     else:
                         self._blueprint.append('data-%d' % len(c))
@@ -244,7 +248,8 @@ class Script(object):
         blueprint = []
         redeemscript = b''
         sigs_required = None
-        hash_type = SIGHASH_ALL
+        # hash_type = SIGHASH_ALL  # todo: check
+        hash_type = None
 
         while cur < len(script):
             ch = script[cur]
@@ -361,7 +366,7 @@ class Script(object):
         # TODO: create blueprint from commands if empty
         return self._blueprint
 
-    def serialize(self, as_list=False):
+    def serialize(self):
         raw = b''
         for cmd in self.commands:
             if isinstance(cmd, int):
