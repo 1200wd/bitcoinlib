@@ -810,3 +810,9 @@ class TestScript(unittest.TestCase, CustomAssertions):
         redeemscript = Script(keys=[key1], sigs_required=1, script_types=['multisig'])
         expected_redeemscript = '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae'
         self.assertEqual(expected_redeemscript, redeemscript.serialize().hex())
+
+    def test_script_different_hashtype(self):
+        scr = '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a' \
+              '715cf7c938e238afde90207e9d103dd9018e12cb7180e03'
+        s = Script.parse_hex(scr)
+        self.assertEqual(s.signatures[0].hash_type, 3)

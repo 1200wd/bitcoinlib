@@ -31,8 +31,8 @@ from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
 from bitcoinlib.values import Value, value_to_satoshi
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
-                                     serialize_multisig_redeemscript)
+from bitcoinlib.transactions import Input, Output, Transaction, get_unlocking_script_type
+from bitcoinlib.scripts import Script
 from sqlalchemy import func, or_
 
 _logger = logging.getLogger(__name__)
@@ -1641,7 +1641,11 @@ class Wallet(object):
         public_key_ids = [str(x.key_id) for x in public_keys]
 
         # Calculate redeemscript and address and add multisig key to database
-        redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
+        # redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
+
+        # todo: pass key object, reuse key objects
+        redeemscript = Script(script_types=['multisig'], keys=public_key_list,
+                              sigs_required=self.multisig_n_required).serialize()
         script_type = 'p2sh'
         if self.witness_type == 'p2sh-segwit':
             script_type = 'p2sh_p2wsh'
