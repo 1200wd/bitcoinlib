@@ -898,7 +898,7 @@ class Key(object):
         return len(self.public_byte)
 
     def __eq__(self, other):
-        if other is None:
+        if other is None or not isinstance(other, Key):
             return False
         if self.is_private and other.is_private:
             return self.private_hex == other.private_hex

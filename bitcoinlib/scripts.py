@@ -170,7 +170,9 @@ class Script(object):
         :param script_types:
         :param is_locking:
         :param keys:
+        :type keys: list of Key
         :param signatures:
+        :type signatures: list of Signature
         :param blueprint:
         :param tx_data:
         """

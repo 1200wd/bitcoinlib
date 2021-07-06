@@ -1177,24 +1177,6 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         key3 = '5JjHVMwJdjPEPQhq34WMUhzLcEd4SD7HgZktEh8WHstWcCLRceV'
         self.keylist = [key1, key2, key3]
 
-    def test_transaction_multisig_redeemscript(self):
-        redeemscript = serialize_multisig_redeemscript(self.keylist, 2, False)
-        expected_redeemscript = \
-            '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09e63975a1700' \
-            'c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff90e28da1848f640de68c2f' \
-            'e913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c70776538d079fbae117dc38effafb33304' \
-            'af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea600bd217870a8b4f1f09f3a8e8353ae'
-        self.assertEqual(redeemscript.hex(), expected_redeemscript)
-        self.assertEqual(serialize_multisig_redeemscript([]), b'')
-        self.assertRaisesRegexp(TransactionError, "Argument public_key_list must be of type list",
-                                serialize_multisig_redeemscript, 2)
-        k = '02600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f49584'
-        self.assertEqual(serialize_multisig_redeemscript([k]).hex(),
-                         '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
-        # k = to_bytes(k)
-        # print(to_hexstring(serialize_multisig_redeemscript([k])),
-        #       '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
-
     def test_transaction_multisig_p2sh_sign(self):
         t = Transaction()
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
@@ -1206,9 +1188,9 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         t.sign([pk1, pk2])
         self.assertTrue(t.verify())
         unlocking_script = t.inputs[0].unlocking_script
-        unlocking_script_str = script_deserialize(unlocking_script)
-        self.assertEqual(unlocking_script_str['script_type'], 'p2sh_multisig')
-        self.assertEqual(len(unlocking_script_str['signatures']), 2)
+        unlocking_script_scr = Script.parse(unlocking_script)
+        self.assertEqual(unlocking_script_scr.script_types, ['p2sh_multisig'])
+        self.assertEqual(len(unlocking_script_scr.signatures), 2)
 
     def test_transaction_multisig_p2sh_sign_separate(self):
         t = Transaction()
@@ -1223,8 +1205,8 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         t.sign([pk1])
         t.sign([pk2])
         unlocking_script = t.inputs[0].unlocking_script
-        unlocking_script_str = script_deserialize(unlocking_script)
-        self.assertEqual(len(unlocking_script_str['signatures']), 2)
+        unlocking_script_scr = Script.parse(unlocking_script)
+        self.assertEqual(len(unlocking_script_scr.signatures), 2)
 
 
 class TestTransactionsMultisig(unittest.TestCase):

@@ -788,3 +788,25 @@ class TestScript(unittest.TestCase, CustomAssertions):
         s = Script.parse_hex(redeemscript)
         self.assertEqual(s.serialize().hex(), redeemscript)
 
+    def test_script_create_redeemscript(self):
+        key1 = '5JruagvxNLXTnkksyLMfgFgf3CagJ3Ekxu5oGxpTm5mPfTAPez3'
+        key2 = '5JX3qAwDEEaapvLXRfbXRMSiyRgRSW9WjgxeyJQWwBugbudCwsk'
+        key3 = '5JjHVMwJdjPEPQhq34WMUhzLcEd4SD7HgZktEh8WHstWcCLRceV'
+        keylist = [Key(k) for k in [key1, key2, key3]]
+        redeemscript = Script(keys=keylist, sigs_required=2, script_types=['multisig'])
+        expected_redeemscript = \
+                       '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09' \
+                       'e63975a1700c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff' \
+                       '90e28da1848f640de68c2fe913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c7' \
+                       '0776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea6' \
+                       '00bd217870a8b4f1f09f3a8e8353ae'
+        self.assertEqual(expected_redeemscript, redeemscript.serialize().hex())
+
+        redeemscript3 = b'\x52' + b''.join([varstr(k) for k in keylist]) + b'\x53\xae'
+        self.assertEqual(redeemscript3, redeemscript.serialize())
+
+    def test_script_create_redeemscript_2(self):
+        key1 = Key('02600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f49584')
+        redeemscript = Script(keys=[key1], sigs_required=1, script_types=['multisig'])
+        expected_redeemscript = '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae'
+        self.assertEqual(expected_redeemscript, redeemscript.serialize().hex())
