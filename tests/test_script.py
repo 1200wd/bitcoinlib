@@ -550,7 +550,7 @@ class TestScriptTypes(unittest.TestCase):
         self.assertEqual(s.signatures[0].as_der_encoded(),
                          bytearray(b"0F\x02!\x00\xcfMuq\xddG\xa4\xd4\x7f\\\xb7g\xd5Mg\x02S\n5Urk\'\xb6\xacV"
                                    b"\x11\x7f^x\x08\xfe\x02!\x00\x8c\xbbB#;\xb0M\x7f(\xa7\x15\xcf|\x93\x8e#"
-                                   b"\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e"))
+                                   b"\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e\x01"))
         self.assertEqual(s.keys[0].public_byte,
                          bytearray(b'\x04-\xaa\x931^\xeb\xbe,\xb9\xb5\xc3P]\xf4\xc6\xfbl\xac\xa8\xb7Vx`\x98'
                                    b'VuP\xd4\x82\x0c\t\xdb\x98\x8f\xe9\x99}\x04\x9dhr\x92\xf8\x15\xcc\xd6'
@@ -566,7 +566,7 @@ class TestScriptTypes(unittest.TestCase):
         self.assertEqual(s.signatures[0].as_der_encoded(),
                          b"0F\x02!\x00\xcfMuq\xddG\xa4\xd4\x7f\\\xb7g\xd5Mg\x02S\n5Urk'\xb6\xacV\x11\x7f^x\x08\xfe"
                          b"\x02!\x00\x8c\xbbB#;\xb0M\x7f(\xa7\x15\xcf|\x93\x8e#"
-                         b'\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e')
+                         b'\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e\x03')
 
 
 class TestScript(unittest.TestCase, CustomAssertions):
@@ -767,7 +767,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertEqual(
             s.signatures[0].as_der_encoded().hex(),
             '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e00220'
-            '7345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d')
+            '7345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
         self.assertEqual(
             s.keys[0].hex(), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 

@@ -26,7 +26,7 @@ from bitcoinlib.keys import *
 
 # Number of bulktests for generation of private, public keys and HDKeys. Set to 0 to disable
 # WARNING: Can be slow for a larger number of tests
-BULKTESTCOUNT = 10
+BULKTESTCOUNT = 100
 
 
 class TestKeyClasses(unittest.TestCase):
@@ -36,14 +36,18 @@ class TestKeyClasses(unittest.TestCase):
              'TFkZo17HiK2y'
         k = HDKey(pk)
         self.assertEqual(str(k), '03dc86716b2be27a0575558bac73279290ac22c3ea0240e42a2152d584f2b4006b')
-        self.assertEqual(len(k), 66)
+        self.assertEqual(len(k), 33)
         self.assertEqual(int(k), 95796105828208927954168018443072630832764875640480247096632116413925408206516)
         k2 = HDKey(pk)
         self.assertTrue(k == k2)
         pubk2 = HDKey(k.wif_public())
         self.assertEqual(str(pubk2), '03dc86716b2be27a0575558bac73279290ac22c3ea0240e42a2152d584f2b4006b')
         self.assertTrue(k.public() == pubk2)
-        
+        self.assertEqual(k + k2, b'\x03\xdc\x86qk+\xe2z\x05uU\x8b\xacs\'\x92\x90\xac"\xc3\xea\x02@\xe4*!R\xd5'
+                                 b'\x84\xf2\xb4\x00k\x03\xdc\x86qk+\xe2z\x05uU\x8b\xacs\'\x92\x90\xac"'
+                                 b'\xc3\xea\x02@\xe4*!R\xd5\x84\xf2\xb4\x00k')
+        self.assertEqual(k + k2, k.public_byte + k2.public_byte)
+
     def test_dict_and_json_outputs(self):
         k = HDKey()
         k.address(script_type='p2wsh', encoding='bech32')
@@ -776,16 +780,16 @@ class TestKeysSignatures(unittest.TestCase):
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
         self.assertEqual(sig_method1.hex(), sig_tests[0][3])
-        self.assertEqual(sig_method1.as_der_encoded().hex(), sig_tests[0][4])
+        self.assertEqual(sig_method1.as_der_encoded(include_hash_type=False).hex(), sig_tests[0][4])
         count = 0
         for case in sig_tests:
             sig = Signature.create(case[0], case[1], k=case[2])
             self.assertEqual(sig.hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.hex(), case[3]))
-            self.assertEqual(sig.as_der_encoded().hex(), case[4])
+            self.assertEqual(sig.as_der_encoded(include_hash_type=False).hex(), case[4])
             self.assertTrue(sig.verify())
             count += 1
 
-    def test_rfc6979(self):
+    def test_signatures_rfc6979(self):
         if not USE_FASTECDSA:
             # This test are only useful when fastecdsa library is used
             return True
@@ -860,11 +864,11 @@ class TestKeysSignatures(unittest.TestCase):
             sig = sign(msg_hash, x, k=k)
             self.assertEqual(sig.hex(), vector[3])
 
-    def test_sig_from_r_and_s(self):
+    def test_signatures_from_r_and_s(self):
         r = 0x657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c
         s = 0x00ed3bf3456eb76677fd899c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e
         expected_der = '30450220657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c022100ed3bf345' \
-                       '6eb76677fd899c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e'
+                       '6eb76677fd899c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e01'
         expected_sig_bytes = b'ey\x12\xa7-:\xc8\x16\x9f\xe8\xea\xec\xd5\xab@\x1c\x94\xfc\x99\x81q~>m\xd4\x97\x18' \
                              b'\x89\xf7\x85y\x0c\xed;\xf3En\xb7fw\xfd\x89\x9c\x8c\xcd\x1c\xc6\xd1\xeb\xc61\xb9LB' \
                              b'\xf7\xc4W\x8f(Y\re\x1cn'
@@ -876,7 +880,7 @@ class TestKeysSignatures(unittest.TestCase):
         self.assertEqual(sig.bytes(), expected_sig_bytes)
         self.assertEqual(sig.hex(), expected_sig_hex)
 
-    def test_sig_rs_out_of_curve(self):
+    def test_signatures_rs_out_of_curve(self):
         outofcurveint = 115792089237316195423570985008687907852837564279074904382605163141518161494339
         self.assertRaisesRegexp(BKeyError, "r is not a positive integer smaller than the curve order",
                                 Signature, outofcurveint, 10)
@@ -884,6 +888,26 @@ class TestKeysSignatures(unittest.TestCase):
                                 Signature, 0, 10)
         self.assertRaisesRegexp(BKeyError, "s is not a positive integer smaller than the curve order",
                                 Signature, 11, outofcurveint)
+
+    def test_signatures_dunder(self):
+        sig1 = Signature.from_str('3045022100c949a465a057f3ca7d20e80511e93d0be21e3efbeb8720ca3e0adfbce6883d0a022070b'
+                                  '2c6bee101a4ffcb854bae34dbd1f35c31140a46559148a1fa883eedede03401')
+        sig2 = Signature.from_str('3045022100b5ce13dc408c65208cf475b44b2012845d4d3fb7a2cacfa35f6b5143761f976f02207d8'
+                                  '581d6004779c7f168e90496d544407d5f0e2eecd44c50fcef1006a86731ec01')
+        self.assertEqual(len(sig1), 72)
+        self.assertEqual(sig1 + sig2, sig1.as_der_encoded() + sig2.as_der_encoded())
+        self.assertEqual(sig1 + sig2, b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
+                                      b'\xfb\xeb\x87 \xca>\n\xdf\xbc\xe6\x88=\n\x02 p\xb2\xc6\xbe\xe1'
+                                      b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
+                                      b'\xed\xe04\x010E\x02!\x00\xb5\xce\x13\xdc@\x8ce \x8c\xf4u\xb4K \x12\x84]M?'
+                                      b'\xb7\xa2\xca\xcf\xa3_kQCv\x1f\x97o\x02 }\x85\x81\xd6\x00Gy\xc7\xf1'
+                                      b'h\xe9\x04\x96\xd5D@}_\x0e.\xec\xd4LP\xfc\xef\x10\x06\xa8g1\xec\x01')
+        self.assertEqual(str(sig1), '3045022100c949a465a057f3ca7d20e80511e93d0be21e3efbeb8720ca3e0adfbce6883d0a0220'
+                                    '70b2c6bee101a4ffcb854bae34dbd1f35c31140a46559148a1fa883eedede03401')
+        self.assertEqual(bytes(sig1), b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
+                                      b'\xfb\xeb\x87 \xca>\n\xdf\xbc\xe6\x88=\n\x02 p\xb2\xc6\xbe\xe1'
+                                      b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
+                                      b'\xed\xe04\x01')
 
 
 if __name__ == '__main__':

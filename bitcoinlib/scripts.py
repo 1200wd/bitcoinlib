@@ -219,6 +219,10 @@ class Script(object):
                 else:
                     data_type = get_data_type(c)
                     if data_type in ['key', 'signature', 'key_object', 'signature_object']:
+                        if data_type == 'key_object':
+                            data_type = 'key'
+                        elif data_type == 'signature_object':
+                            data_type = 'signature'
                         self._blueprint.append(data_type)
                     else:
                         self._blueprint.append('data-%d' % len(c))
@@ -276,8 +280,15 @@ class Script(object):
                     signatures.append(sig)
                     hash_type = sig.hash_type
                     blueprint.append('signature')
+                elif data_type == 'signature_object':
+                    signatures.append(data)
+                    hash_type = data.hash_type
+                    blueprint.append('signature')
                 elif data_type == 'key':
                     keys.append(Key(data))
+                    blueprint.append('key')
+                elif data_type == 'key_object':
+                    keys.append(data)
                     blueprint.append('key')
                 elif data_type[:4] == 'data':
                     # FIXME: This is arbitrary
@@ -372,10 +383,7 @@ class Script(object):
             if isinstance(cmd, int):
                 raw += bytes([cmd])
             else:
-                if get_data_type(cmd) == 'signature':
-                    raw += data_pack(cmd + self.hash_type.to_bytes(1, 'big'))
-                else:
-                    raw += data_pack(cmd)
+                raw += data_pack(cmd)
         self.raw = raw
         return raw
 
@@ -385,10 +393,7 @@ class Script(object):
             if isinstance(cmd, int):
                 clist.append(bytes([cmd]))
             else:
-                if get_data_type(cmd) == 'signature':
-                    clist.append(cmd + self.hash_type.to_bytes(1, 'big'))
-                else:
-                    clist.append(cmd)
+                clist.append(cmd)
         return clist
 
     def evaluate(self, message=None, tx_data=None):

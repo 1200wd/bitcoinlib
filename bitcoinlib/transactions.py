@@ -942,8 +942,7 @@ class Input(object):
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash
             if self.signatures and self.keys:
-                self.witnesses = [self.signatures[0].as_der_encoded() +
-                                  hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
+                self.witnesses = [self.signatures[0].as_der_encoded() if hash_type else b'', self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
@@ -974,8 +973,8 @@ class Input(object):
                                            "Is DER encoded version of signature defined?")
                 if len(signatures):
                     unlock_script_obj = Script(script_types=['p2sh_multisig'], keys=[k.public_byte for k in self.keys],
-                                               signatures=signatures, sigs_required=self.sigs_required,
-                                               redeemscript=self.redeemscript)
+                                               signatures=self.signatures[:self.sigs_required],
+                                               sigs_required=self.sigs_required, redeemscript=self.redeemscript)
                     if self.witness_type in ['segwit', 'p2sh-segwit']:
                         unlock_script = unlock_script_obj.serialize_list()
                     else:
@@ -1002,7 +1001,7 @@ class Input(object):
                 self.unlocking_script_unsigned = self.script_code
                 addr_data = self.keys[0].public_byte
             if self.signatures:
-                self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + hash_type.to_bytes(1, 'big'))
+                self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
         elif self.script_type not in ['coinbase', 'unknown']:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:

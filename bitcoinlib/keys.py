@@ -885,8 +885,17 @@ class Key(object):
     def __str__(self):
         return self.public_hex
 
+    def __bytes__(self):
+        return self.public_byte
+
+    def __add__(self, other):
+        return self.public_byte + other
+
+    def __radd__(self, other):
+        return other + self.public_byte
+
     def __len__(self):
-        return len(self.public_hex)
+        return len(self.public_byte)
 
     def __eq__(self, other):
         if other is None:
@@ -2001,7 +2010,6 @@ class Signature(object):
         self._txid = None
         self.txid = txid
         self.secret = None if not secret else int(secret)
-        self._der_encoded = to_bytes(der_signature)
         if isinstance(signature, bytes):
             self._signature = signature
             signature = signature.hex()
@@ -2013,11 +2021,32 @@ class Signature(object):
         self.public_key = public_key
         self.k = k
         self.hash_type = hash_type
+        self.hash_type_byte = self.hash_type.to_bytes(1, 'big')
+        self.der_signature = der_signature
+        if not der_signature:
+            self.der_signature = der_encode_sig(self.r, self.s)
+
+        self._der_encoded = to_bytes(der_signature) + self.hash_type_byte
 
     def __repr__(self):
         der_sig = '' if not self._der_encoded else self._der_encoded.hex()
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
                (self.r, self.s, self.hex(), der_sig)
+
+    def __str__(self):
+        return self.as_der_encoded(as_hex=True)
+
+    def __bytes__(self):
+        return self.as_der_encoded()
+
+    def __add__(self, other):
+        return self.as_der_encoded() + other
+
+    def __radd__(self, other):
+        return other + self.as_der_encoded()
+
+    def __len__(self):
+        return len(self.as_der_encoded())
 
     @property
     def txid(self):
@@ -2076,18 +2105,24 @@ class Signature(object):
             self._signature = self.r.to_bytes(32, 'big') + self.s.to_bytes(32, 'big')
         return self._signature
 
-    def as_der_encoded(self, as_hex=False):
+    def as_der_encoded(self, as_hex=False, include_hash_type=True):
         """
         Get DER encoded signature
 
         :param as_hex: Output as hexstring
         :type as_hex: bool
+        :param include_hash_type: Include hash_type byte at end of signatures as used in raw scripts. Default is True
+        :type include_hash_type: bool
 
         :return bytes: 
         """
-        if not self._der_encoded:
-            self._der_encoded = der_encode_sig(self.r, self.s)
-        return self._der_encoded.hex() if as_hex else self._der_encoded
+        if not self._der_encoded or len(self._der_encoded) < 2:
+            self._der_encoded = der_encode_sig(self.r, self.s) + self.hash_type_byte
+
+        if include_hash_type:
+            return self._der_encoded.hex() if as_hex else self._der_encoded
+        else:
+            return der_encode_sig(self.r, self.s).hex() if as_hex else der_encode_sig(self.r, self.s)
 
     def verify(self, txid=None, public_key=None):
         """
