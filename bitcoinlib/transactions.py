@@ -781,8 +781,8 @@ class Input(object):
         # If unlocking script is specified extract keys, signatures, type from script
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
             self.script = Script.parse(self.unlocking_script)
-            keys = self.script.keys
-            signatures = self.script.signatures
+            self.keys = self.script.keys
+            self.signatures = self.script.signatures
             sigs_required = self.script.sigs_required
             self.redeemscript = self.script.redeemscript if self.script.redeemscript else self.redeemscript
             if len(self.script.script_types) == 1 and not self.script_type:
@@ -1976,36 +1976,63 @@ class Transaction(object):
             if not i.signatures:
                 _logger.info("No signatures found for transaction input %d" % i.index_n)
                 return False
-            if len(i.signatures) < i.sigs_required:
-                _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
-                             (len(i.signatures), i.sigs_required))
-                return False
+            # if len(i.signatures) < i.sigs_required:
+            #     _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
+            #                  (len(i.signatures), i.sigs_required))
+            #     return False
             try:
                 transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
             except TransactionError as e:
                 _logger.info("Could not create transaction hash. Error: %s" % e)
                 return False
-            sig_id = 0
+            if not transaction_hash:
+                _logger.info("Need at least 1 key to create segwit transaction signature")
+                return False
+
+            sig_n = 0
             key_n = 0
-            for key in i.keys:
-                if sig_id > i.sigs_required - 1:
-                    break
-                if sig_id >= len(i.signatures):
+            sigs_verified = 0
+            while sigs_verified < i.sigs_required:
+                if key_n >= len(i.keys):
+                    _logger.info(
+                        "Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
+                        (i.index_n, sigs_verified, i.sigs_required))
+                    return False
+                if sig_n >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                if not transaction_hash:
-                    _logger.info("Need at least 1 key to create segwit transaction signature")
-                    return False
+                key = i.keys[key_n]
+                sig = i.signatures[sig_n]
+                if verify(transaction_hash, sig, key):
+                    sigs_verified += 1
+                    sig_n += 1
+                elif sig_n > 0:
+                    # try previous signature
+                    prev_sig = i.signatures[sig_n-1]
+                    if verify(transaction_hash, prev_sig, key):
+                        sigs_verified += 1
                 key_n += 1
-                if verify(transaction_hash, i.signatures[sig_id], key):
-                    sig_id += 1
-                    i.valid = True
-                else:
-                    i.valid = False
-            if sig_id < i.sigs_required:
-                _logger.info("Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
-                             (i.index_n, sig_id, i.sigs_required))
-                return False
+
+
+            i.valid = True
+            # for key in i.keys:
+            #     if sig_id > i.sigs_required - 1:
+            #         break
+            #     if sig_id >= len(i.signatures):
+            #         _logger.info("No valid signatures found")
+            #         return False
+            #
+            #     # key_n += 1
+            #     if verify(transaction_hash, i.signatures[sig_id], key):
+            #         sigs_verified += 1
+            #         i.valid = True
+            #     else:
+            #         sig_id += 1
+            #         i.valid = False
+            # if sigs_verified < i.sigs_required:
+            #     _logger.info("Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
+            #                  (i.index_n, sig_id, i.sigs_required))
+            #     return False
         self.verified = True
         return True
 
