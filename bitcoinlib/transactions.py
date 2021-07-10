@@ -1976,10 +1976,6 @@ class Transaction(object):
             if not i.signatures:
                 _logger.info("No signatures found for transaction input %d" % i.index_n)
                 return False
-            # if len(i.signatures) < i.sigs_required:
-            #     _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
-            #                  (len(i.signatures), i.sigs_required))
-            #     return False
             try:
                 transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
             except TransactionError as e:
@@ -2008,31 +2004,12 @@ class Transaction(object):
                     sig_n += 1
                 elif sig_n > 0:
                     # try previous signature
-                    prev_sig = i.signatures[sig_n-1]
+                    prev_sig = deepcopy(i.signatures[sig_n-1])
                     if verify(transaction_hash, prev_sig, key):
                         sigs_verified += 1
                 key_n += 1
-
-
             i.valid = True
-            # for key in i.keys:
-            #     if sig_id > i.sigs_required - 1:
-            #         break
-            #     if sig_id >= len(i.signatures):
-            #         _logger.info("No valid signatures found")
-            #         return False
-            #
-            #     # key_n += 1
-            #     if verify(transaction_hash, i.signatures[sig_id], key):
-            #         sigs_verified += 1
-            #         i.valid = True
-            #     else:
-            #         sig_id += 1
-            #         i.valid = False
-            # if sigs_verified < i.sigs_required:
-            #     _logger.info("Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
-            #                  (i.index_n, sig_id, i.sigs_required))
-            #     return False
+
         self.verified = True
         return True
 

@@ -1407,6 +1407,35 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                                 Wallet.create, wallet_name, keys=key_list_wallet, sigs_required=sigs_req,
                                 network=network, db_uri=self.DATABASE_URI)
 
+    def test_wallet_multisig_replace_sig_bug(self):
+        network = 'bitcoinlib_test'
+        witness_type = 'legacy'
+        wallet_name = 'test_wallet_multisig_sign_bug'
+        sigs_req = 3
+        pk_hex_list = [
+            '842b1d54c9eceda72de8f4cfaa2daf1e90fe1707541e9038286849cd56ff0093',
+            'bf19b9c9438bb1048a5dbc08600046f47129611d7ab61ca0ea96d914b8b0e231',
+            '8d0d44f34565f38f48faa79bedf4f36788ae5df937140c784acae3cc3d6a26aa',
+            'aa9e08e1a46b6a08556338748ce911c98efb4038dceb6d7bf8d3dd6d8072c482',
+            '2631ab1a4745f657f7216c636fb8ac708a3f6b63a6cd5cf773bfc9a3ebe6e1ba',
+            '97a66126f42fd3241cf256846e58cd7049d4d395f84b1811f73a3f5d33ff833e',
+        ]
+        key_list = [HDKey(pk, network=network) for pk in pk_hex_list]
+        key_list_cosigners = [k.public_master(multisig=True) for k in key_list if k is not key_list[0]]
+        key_list_wallet = [key_list[0]] + key_list_cosigners
+        w = wallet_create_or_open(wallet_name, keys=key_list_wallet, sigs_required=sigs_req, witness_type=witness_type,
+                                  network=network, db_uri=self.DATABASE_URI)
+        w.get_keys()
+        w.utxos_update()
+        to_address = HDKey(network=network, witness_type=witness_type).address()
+        t = w.send_to(to_address, 1000000)
+        key_pool = [i for i in range(0, len(key_list) - 1) if i != 0]
+        co_ids = [4, 2]
+        while len(t.inputs[0].signatures) < sigs_req:
+            co_id = co_ids.pop(0)
+            t.sign(key_list[co_id])
+            key_pool.remove(co_id)
+        self.assertTrue(t.verify())
 
 @parameterized_class(*params)
 class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
