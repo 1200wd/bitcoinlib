@@ -1352,6 +1352,19 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.sign(pk3)
         self.assertTrue(t.verify())
 
+    def test_transaction_multisig_same_sigs_for_keys(self):
+        traw = '0100000001b4397ffe208657210147a452ca85f9a2c934f6be09a81fb19b6eb9b10310053501000000fdfe0000483045022' \
+               '100acff5e244831a294909567601e8851533c17cc8692201f4ee056920a522dbc050220730cdc85757564e0bacbe9ecf3f2' \
+               '0fde3bb48cca7fa133c72b267e17616f022301483045022100acff5e244831a294909567601e8851533c17cc8692201f4ee' \
+               '056920a522dbc050220730cdc85757564e0bacbe9ecf3f20fde3bb48cca7fa133c72b267e17616f0223014c6952210368e6' \
+               'fbfaa06e1a878e1c1ea6624c7fe502f786cae4820c9b4d0114a1908cf004210368e6fbfaa06e1a878e1c1ea6624c7fe502f' \
+               '786cae4820c9b4d0114a1908cf004210368e6fbfaa06e1a878e1c1ea6624c7fe502f786cae4820c9b4d0114a1908cf00453' \
+               'aeffffffff02a0acb903000000001976a9146170e2cc18a4415f807cc4b29c50e52bd1157c4b88ac787bb6030000000017a' \
+               '914bb87f55537ee62a232f042f39fbc0d86b77d07fb8700000000'
+        t = Transaction.parse(bytes.fromhex(traw))
+        t.inputs[0].value = 972612109
+        self.assertTrue(t.verify())
+
 
 class TestTransactionsTimelocks(unittest.TestCase):
 
