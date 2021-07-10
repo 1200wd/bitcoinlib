@@ -905,6 +905,12 @@ class Key(object):
         else:
             return self.public_hex == other.public_hex
 
+    def __hash__(self):
+        if self.is_private:
+            return hash(self.private_byte)
+        else:
+            return hash(self.public_byte)
+
     def __int__(self):
         if self.is_private:
             return self.secret

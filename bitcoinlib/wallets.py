@@ -744,11 +744,9 @@ class WalletTransaction(Transaction):
         for ti in self.inputs:
             priv_key_list = []
             for (key_path, priv_key) in priv_key_list_arg:
-                if not key_path or key_path == ti.key_path:
+                if (not key_path or key_path == ti.key_path) and priv_key not in priv_key_list:
                     priv_key_list.append(priv_key)
-            for k in ti.keys:
-                if k.is_private:
-                    priv_key_list.append(k)
+            priv_key_list += [k for k in ti.keys if k.is_private]
             Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, fail_on_unknown_key,
                              replace_signatures)
         self.verify()

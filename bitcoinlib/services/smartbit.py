@@ -61,7 +61,6 @@ class SmartbitClient(BaseClient):
         t_time = None
         if tx['time']:
             t_time = datetime.utcfromtimestamp(tx['time'])
-        print(tx['txid'])
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
                         size=tx['size'], txid=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
