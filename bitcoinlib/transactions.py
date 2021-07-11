@@ -952,7 +952,7 @@ class Input(object):
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh', 'p2wsh']:  # fixme: p2sh_p2wsh == p2wsh
             if not self.redeemscript and self.keys:
-                self.redeemscript = Script(script_types=['multisig'], keys=[k.public_byte for k in self.keys],
+                self.redeemscript = Script(script_types=['multisig'], keys=self.keys,
                                            sigs_required=self.sigs_required).serialize()
             if self.redeemscript:
                 if self.witness_type == 'segwit' or self.witness_type == 'p2sh-segwit':

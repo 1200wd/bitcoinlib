@@ -96,7 +96,7 @@ class TestTransactionInputs(unittest.TestCase):
         self.assertEqual(ti.value, 123000)
         self.assertRaisesRegex(ValueError, "Value uses different network \(litecoin\) then supplied network: bitcoin",
                                Input, prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1 LTC')
-        
+
     def test_transaction_input_locktime(self):
         rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
                 '022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b' \
@@ -302,6 +302,31 @@ class TestTransactions(unittest.TestCase):
         # See txid 1ec28c925df0079ead9976d38165909ccb3580a428ce069ee13e63879df0c2fc
         t.sign(pk1, 0)
         t.sign(pk2.private_byte, 1)
+        self.assertTrue(t.verify())
+
+    def test_transaction_parse_short_signature(self):
+        # txid: 69ac9a4eedbe76d9e8280c72cf081425cd3dd97222a394d11efad734f6fdc304
+        rawtx = '010000000567dca68f795a97a34ee4cbff4d82484d461c34952ed7fa0157e90ef83658ec0a0000000088453042022054dc8' \
+                '43891ecf3bbaa3943c7825341ad08c70fb380bdc62d91f7f06bbc5c9643021e615f6e2910b967dd5ee22d20b56428e5f5bc9' \
+                '92018e81ca053c7bf345cda01410486f1fd6bfc10df09640b73bac9e9f848ded2d68fa22370260b270965ca655325a0af4fb' \
+                '8c6fb6d170c79c29bb504f47c567f1d80a14a4bb154217fab25c3778affffffff72211fb98d1f62d21d758e630b551a2fc57' \
+                '72fad3d0bae2c3a1c924aa883a7c5000000008a4730440220118c280092c819a1d56d2ef180f4d6de0941254a7a3913fa07' \
+                '918361c0cef84702206359cb9cb4a87151590e12d1e748a6efa10199b7c159cba0c841a5bb206a03280141047083ee011a1' \
+                'd60770ded2a6c20587743a7cc43d888041e4847b94db77f7c82f3d1ad02eafcbedfc363ffd0564aad117341ab25111a2a9e' \
+                'e74c88d0a2c1d330f0ffffffff8dec15d6b710dcd074184183cd3af848072f16f8376186d90e54c6a352897205000000008' \
+                'c493046022100d220f64008f96d45b70f1f84e6123a003a0bd3f77dc1b193887a1d0762884f80022100c14d6737f5041cb8' \
+                '6c27e46a3d8627966471d886102733d261d6cf5e448c7817014104ca749ff487dcd380faa1d0ae6f593de9e45319a28e1e4' \
+                '02a33fecac3d8ad69da765be8d8fd2b4d22d6cb136fe92fd46a57fb014c2417aae39f49cb1d15757c57ffffffff5a1492eb' \
+                'aa1914db47107f09bebde56322d9007286b7d7e1a0d42c9298f8e152000000008b483045022100f582b0c9570c7ee727384' \
+                'abafafc644a16647932d5b1dec6c0a9ca7362f65415022072629df1d6e676e8b56b79f38b64a4be1f004530395b0a82e6dd' \
+                'd9cb0788f053014104f12f07ff9bd16eb1d9aea9836b5ecebeb9059a9457a5e88a6d0e5e2aed1a60b4c1dbf6e4678e38cc2' \
+                '8cfa15db726d995e82ec95f0c047e60f9060081c2b871c7ffffffff4f3dae3e8c4572d2618d2f0d63bdaac6ae05708cd0ec' \
+                '32c53b861ae235885324000000008c493046022100b446531a4ad2c13e4c455968cbfca43b5b7215931b6c39444529882e1' \
+                '8fa6661022100990b0967c108ff8ebe1fc855f5ed55c15ce343b36c0a651dbb9a297401ee3c29014104e6f1edde395e9547' \
+                '8081dc8860fbac092ad04546d07fdd578f69352acac161ad61524a36c492304b1eaf809e1a79bdca1ac2553309b1d25abe8' \
+                '1f8ab198ef533ffffffff02007c118d350000001976a91468ed5fc3d3e2e6b9b8e5bbf49936a463026c39ab88ac401b' \
+                '718d000000001976a9146f21f217969e9571876d7d1df2deef2040561b4388ac00000000'
+        t = Transaction.parse(rawtx)
         self.assertTrue(t.verify())
 
     def test_transactions_estimate_size_p2pkh(self):
@@ -978,16 +1003,16 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_parse_totals(self):
         rawtx = "0100000003efdad76b8da190878c1de4c92fd4aaa0a287984171a4398c1140df11663cb84c010000006b483045022065db" \
-                 "71606b84edc291eb2ec55e49ee2fd44afef8b20b4ef88fc2a01c2ba6e963022100dfb24228f2f80574d64a3a2964c5b3d0" \
-                 "54c14f0bf18c409f72345331271b5020012102a1e806a0c19aaf32363eb19e91a901eafdfc513d13f632f4e2a39f3cb894" \
-                 "ad27ffffffff670fa789f11df8b202f380ebc6b4f76fa312f6bfb11494811f00411d7bbb0ae0010000006b483045022100" \
-                 "9b5fe2b2bff2a9801725351ae2a8eb410b10b6fecb44edb442ee750e6825f1a4022038e19b3b0e3a95b4a3952dde87efc0" \
-                 "49d4a72a4424872ab768f7fb3220be4c1e0121032256cb5a8e6d3c9354da72369b939a35febb80d35e6afb50e6f348c20c" \
-                 "6c6c05ffffffff52dd5a0965f2d36850f3d2ddeb1457cd72e1cd5a325656af44a3c6ba9f2d42fa010000006c4930460221" \
-                 "008a9bf9a1ba9b4125ac9b8cf10423447ad8c7ede3414028237c4c0e0b3b3dc4fd0221009f94721c04b7d4eb33bb1aad61" \
-                 "daf98b6ed05dfbf5e3225ae9b3afe24b8924d50121028b04194cb938044761bb93d3917abcce13f910a0500c08e61bdaaf" \
-                 "5ea29b5ca0ffffffff02b0c39203000000001976a9148a81571528050b80099821ed0bc4e48ed33e5e4d88ac1f6db80a01" \
-                 "0000001976a914963f47c50eaafd07c8b0a8a505c825216a4fee6d88ac00000000"
+                "71606b84edc291eb2ec55e49ee2fd44afef8b20b4ef88fc2a01c2ba6e963022100dfb24228f2f80574d64a3a2964c5b3d0" \
+                "54c14f0bf18c409f72345331271b5020012102a1e806a0c19aaf32363eb19e91a901eafdfc513d13f632f4e2a39f3cb894" \
+                "ad27ffffffff670fa789f11df8b202f380ebc6b4f76fa312f6bfb11494811f00411d7bbb0ae0010000006b483045022100" \
+                "9b5fe2b2bff2a9801725351ae2a8eb410b10b6fecb44edb442ee750e6825f1a4022038e19b3b0e3a95b4a3952dde87efc0" \
+                "49d4a72a4424872ab768f7fb3220be4c1e0121032256cb5a8e6d3c9354da72369b939a35febb80d35e6afb50e6f348c20c" \
+                "6c6c05ffffffff52dd5a0965f2d36850f3d2ddeb1457cd72e1cd5a325656af44a3c6ba9f2d42fa010000006c4930460221" \
+                "008a9bf9a1ba9b4125ac9b8cf10423447ad8c7ede3414028237c4c0e0b3b3dc4fd0221009f94721c04b7d4eb33bb1aad61" \
+                "daf98b6ed05dfbf5e3225ae9b3afe24b8924d50121028b04194cb938044761bb93d3917abcce13f910a0500c08e61bdaaf" \
+                "5ea29b5ca0ffffffff02b0c39203000000001976a9148a81571528050b80099821ed0bc4e48ed33e5e4d88ac1f6db80a01" \
+                "0000001976a914963f47c50eaafd07c8b0a8a505c825216a4fee6d88ac00000000"
         t = Transaction.parse(rawtx)
         self.assertEqual(t.output_total, 4534776015)
         self.assertEqual(t.size, 523)
@@ -1140,9 +1165,9 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df49453e', 0, locktime_cltv=10000)
         t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494511', 0, locktime_csv=20000)
         t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494522', 0,
-                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG+30000)
+                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG + 30000)
         t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494533', 0,
-                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG+40000)
+                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG + 40000)
         self.assertIsNone(t.info())
 
     def test_transaction_get_unlocking_script_type(self):
@@ -1365,6 +1390,44 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.inputs[0].value = 972612109
         self.assertTrue(t.verify())
 
+    def test_transaction_multisig_1_key_15_signatures(self):
+        traw = '0100000001d20aad24a7e93e30d78081e020cee0009fab4b1c66af206993367ad63910f6c201000000fd4406004730440220' \
+               '1e363199808511326dc353016b3bfaa92da3c9680ddfdabeaef057ebeec3ef810220299c4d162e616c4987f947524c75db45' \
+               '27c0659e55aaa86b6dc76f99ce9e895101473044022027b3e39e9effd3662cd6c8fe92a9fa1e42f3a80d302d8262822e52fe' \
+               '061addcd02204b5dd56e708cea0988bb38733107a561343ca44aaa058259c06194b2ad840e7901483045022100836d6bf5ae' \
+               '2cfaf8726594677c111b504a4cbe587f9545d91dfbfb66cb0db95b02203ddfff28ee54b14af1da679a7a69b3a69727961d634' \
+               '09a19c1b1187c1d1cf6d50147304402206b8cdafc5d3817129f09238879510d5423c1819b3ebd8a076a38e007911162400220' \
+               '344d3c145d7cf19a6a54222286521c0ef7f53f8fb90ea65225ecc1237e0b2b2401483045022100d95fa83c36734c4f3aabc9f' \
+               '687db172967dbeb229d7136b8f3640ff522e3e86e02200711c74f6a7a9f7984a01e683b1d12d166eb27d177b4345847397441' \
+               '4031c9880147304402201ba2c802199b6fdefd0d20dadd337c62fbf3c73928531aadb7b72169c00ba79a0220513cfdce99e0' \
+               '1f8a3b683f4942dc8c166d806e7154bdeeef16634334cdb9816901473044022027130fb0f6747c50caf5d755086b05554af6' \
+               '7f504e3df4af2c1b7066cf228f4f0220769add9b177795a0cb6a2e6ad5bfcd8ab7e7b4bb612b036d31ab03584744f1020148' \
+               '3045022100bc2c4af0b77683a57924808de0e5700a4f7c1e150428e8f7be52546b0ab4631b022010b38d148975147c3c3049' \
+               'a85067d53622a578d899a0db634e61ce650fe8d8570147304402202f164b46f985b2cd59bec2a7df47f5950fdfc37275b1127' \
+               '9351302428c2671ae022033a8017240cf6dc7c386be26d01271e949974b65192d83bc6e5bbf60d7da3f310147304402201df4' \
+               'e0f48dd1ccc96b9dfb8cc5c1aac1051eea2009bc5a2366aefd31fa5109af0220194fbadff36c68987b8db46b182261637b95' \
+               '0214f1ba8c3d2bf412b15639d090014730440220371399a5f2c1ee913f8f2844e0e221e711f26f535528d191b66d39c95d42' \
+               'd5ec02201862b1af6c08345f390d784ab88c9abbdcbe39f050e982754d0208aee14494a801483045022100f32331461900a4' \
+               '0bb7febc02207a71b4997c6491e01a8d954e5a5af1115a747702207c3f66b6652a6cf80e59a4a1aeb274f8d7b374c89f54f5' \
+               '914254db99dec850f201483045022100fdaec4474c6c0bc7b053ad2e15c23e4a1923496ae71ca77b2767f5112746c8570220' \
+               '0115e933cb82da95b0d2aa03261381fd4fbdce7854e7191e949697dd9e6b383301483045022100a50bda908d27137888dd093' \
+               '45d9088a3fe7521053f3b1e79904696d3c8e3e4860220601d61906d85f8ce4e7e361e397f9acaa8b6652e5326af89ec509a4' \
+               '5eb317070014830450221008ac256312bcee7c50ae9bb95189588374f147012a609a344a1e5d2bd779eedc502203bac6a60' \
+               '58f666d7980057e5d5d514a3f51797f1ccf570d0e9feac6035e649bc014d01025f2103938f49f584ecdb52041cab7e8ac2b2' \
+               '41feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18' \
+               'd52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8a' \
+               'c2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2' \
+               'df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab' \
+               '7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e2494' \
+               '25a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb5204' \
+               '1cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e' \
+               '249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb' \
+               '52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823' \
+               'ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d55faeffffffff01' \
+               '801a06000000000017a914b4dc5ff2cc2d3a29b0ca08f4df97bb42002181628700000000'
+        t = Transaction.parse(bytes.fromhex(traw))
+        self.assertTrue(t.verify())
+
 
 class TestTransactionsTimelocks(unittest.TestCase):
 
@@ -1484,14 +1547,14 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
     def test_transaction_segwit_deserialize_p2wsh(self):
         # Random segwit p2wsh transaction - bbff3196a5668f5d90a901056adcc8c6dbec2e7ba0b9721772ea45693f08ce81
         rawtx = "01000000000101c2f54901df3f74e7999f505b629f5229a2cafcf8cc6325bb2a1f216748cb9fcb0200000000ffffffff03" \
-                 "40a4b600000000001976a91437883c91fbfbd90330fadec0d1b38ee2e5de449488ac00735500000000001976a914c77d15" \
-                 "052e9a8cce5cea9bb41e1edd6bd93dd8d988ac78bb9d0200000000220020701a8d401c84fb13e6baf169d59684e17abd9f" \
-                 "a216c8cc5b9fc63d622ff8c58d0400473044022042f474d354a3d406b01748bdb08ff771abb85b2de6dc220956b342eca6" \
-                 "c6ea00022030fce68b5db9ad760dfff39389a0e9c340f77fd95e9b256b01f2220192143f9e01483045022100b68f7f4848" \
-                 "b145197cfd38a204e46a443646fe292d5c553184e8adc6b1ed14f802206c2548d8b9a4901ab18fc26c11d249e62e716500" \
-                 "305a5152cd4ad1377a2286a1016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c" \
-                 "2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fe" \
-                 "e45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000"
+                "40a4b600000000001976a91437883c91fbfbd90330fadec0d1b38ee2e5de449488ac00735500000000001976a914c77d15" \
+                "052e9a8cce5cea9bb41e1edd6bd93dd8d988ac78bb9d0200000000220020701a8d401c84fb13e6baf169d59684e17abd9f" \
+                "a216c8cc5b9fc63d622ff8c58d0400473044022042f474d354a3d406b01748bdb08ff771abb85b2de6dc220956b342eca6" \
+                "c6ea00022030fce68b5db9ad760dfff39389a0e9c340f77fd95e9b256b01f2220192143f9e01483045022100b68f7f4848" \
+                "b145197cfd38a204e46a443646fe292d5c553184e8adc6b1ed14f802206c2548d8b9a4901ab18fc26c11d249e62e716500" \
+                "305a5152cd4ad1377a2286a1016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c" \
+                "2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fe" \
+                "e45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000"
         t = Transaction.parse(bytes.fromhex(rawtx))
         self.assertEqual(t.inputs[0].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
         self.assertEqual(t.outputs[2].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
@@ -1501,9 +1564,9 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
     def test_transaction_segwit_deserialize_p2wpkh(self):
         # Random segwit p2wpkh transaction - 299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4
         rawtx = "02000000000101b99ef54dd7695be7574ac6fb4a6d1a2dd98cb4ec7ee53b06117754da424a4c440100000000ffffffff01" \
-                 "12d62d1e00000000160014f922634ea00272421ffdb6f187935602159e17500247304402204c040218c1a5dc87e0ba3597" \
-                 "06fbd0c9c36063fd89c6b4dd900e03cd69de7fd602204c7ebe180a072cc415ba3337dd66d259a4c7de2b563269a90e055f" \
-                 "91898bcf590121025477b3e0aa2619e1ed61b7734b31369c156d9ff7fcbcdc1b7e3c79ed657aab0f00000000"
+                "12d62d1e00000000160014f922634ea00272421ffdb6f187935602159e17500247304402204c040218c1a5dc87e0ba3597" \
+                "06fbd0c9c36063fd89c6b4dd900e03cd69de7fd602204c7ebe180a072cc415ba3337dd66d259a4c7de2b563269a90e055f" \
+                "91898bcf590121025477b3e0aa2619e1ed61b7734b31369c156d9ff7fcbcdc1b7e3c79ed657aab0f00000000"
         t = Transaction.parse(rawtx)
         self.assertEqual(t.inputs[0].address, 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc')
         self.assertEqual(t.outputs[0].address, 'bc1qly3xxn4qqfeyy8lakmcc0y6kqg2eu96srjzycu')
