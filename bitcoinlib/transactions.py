@@ -848,6 +848,20 @@ class Input(object):
 
     @classmethod
     def parse(cls, raw, witness_type='segwit', index_n=0, network=DEFAULT_NETWORK):
+        """
+        Parse raw BytesIO string and return Input object
+
+        :param raw: Input
+        :type raw: BytesIO
+        :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Derived from script if not specified.
+        :type witness_type: str
+        :param index_n: Index number of input
+        :type index_n: int
+        :param network: Network, leave empty for default
+        :type network: str, Network
+
+        :return Input:
+        """
         prev_hash = raw.read(32)[::-1]
         if len(prev_hash) != 32:
             raise TransactionError("Input transaction hash not found. Probably malformed raw transaction")
@@ -1149,23 +1163,13 @@ class Output(object):
             self.network = self.address_obj.network
             self.encoding = self.address_obj.encoding
 
-        # if self.lock_script and not self.public_hash:
         if self.script:
-            # ss = script_deserialize(self.lock_script, locking_script=True)
-            # self.script_type = ss['script_type']
             self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.encoding = 'bech32'
-            # if ss['hashes']:
-            #     self.public_hash = ss['hashes'][0]
             self.public_hash = self.script.public_hash
-            # self.keys = self.script.keys if not self.keys else self.keys
             if self.script.keys:
                 self.public_key = self.script.keys[0].public_hex
-            # if ss['keys']:
-            #     self.public_key = ss['keys'][0]
-            #     k = Key(self.public_key, is_private=False, network=network)
-            #     self.public_hash = k.hash160
 
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
@@ -1202,19 +1206,6 @@ class Output(object):
         if not self.script:
             self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
             self.lock_script = self.script.serialize()
-            # if self.script_type == 'p2pkh':
-            #     self.lock_script = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
-            # elif self.script_type == 'p2sh':
-            #     self.lock_script = b'\xa9\x14' + self.public_hash + b'\x87'
-            # elif self.script_type == 'p2wpkh':
-            #     self.lock_script = b'\x00\x14' + self.public_hash
-            # elif self.script_type == 'p2wsh':
-            #     self.lock_script = b'\x00\x20' + self.public_hash
-            # elif self.script_type == 'p2pk':
-            #     if not self.public_key:
-            #         raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
-            #     self.lock_script = varstr(self.public_key) + b'\xac'
-            # else:
             if not self.script:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
@@ -1226,6 +1217,18 @@ class Output(object):
 
     @classmethod
     def parse(cls, raw, output_n=0, network=DEFAULT_NETWORK):
+        """
+        Parse raw BytesIO string and return Output object
+
+        :param raw: raw output stream
+        :type raw: BytesIO
+        :param output_n: Output number of Transaction output
+        :type output_n: int
+        :param network: Network, leave empty for default network
+        :type network: str, Network
+
+        :return Output:
+        """
         value = int.from_bytes(raw.read(8)[::-1], 'big')
         lock_script_size = read_varbyteint(raw)
         lock_script = raw.read(lock_script_size)
@@ -1278,6 +1281,8 @@ class Transaction(object):
         
         Uses the transaction_deserialize method to parse the raw transaction and then calls the init method of
         this transaction class to create the transaction object
+
+        REPLACED BY THE PARSE() METHOD
         
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
@@ -1954,6 +1959,11 @@ class Transaction(object):
         return self.raw(sign_id, hash_type=hash_type, witness_type=witness_type).hex()
 
     def witness_data(self):
+        """
+        Get witness data for all inputs of this transaction
+
+        :return bytes:
+        """
         witness_data = b''
         for i in self.inputs:
             witness_data += int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
@@ -2338,6 +2348,11 @@ class Transaction(object):
             return self.vsize
 
     def calc_weight_units(self):
+        """
+        Calculate weight units and vsize for this Transaction. Weight units are used to determine fee.
+
+        :return int:
+        """
         if not self.size:
             return None
         wu = self.size * 4
