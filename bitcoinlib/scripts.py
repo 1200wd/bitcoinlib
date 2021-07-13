@@ -17,8 +17,8 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from typing import Any, Union
 
+from io import BytesIO
 from bitcoinlib.encoding import *
 from bitcoinlib.main import *
 from bitcoinlib.config.opcodes import *
@@ -240,7 +240,7 @@ class Script(object):
         Parse raw bytes script and return Script object. Extracts script commands, keys, signatures and other data.
 
         :param script: Raw script
-        :type script: bytes
+        :type script: BytesIO, str
         :param message:
         :param tx_data:
         :param _level:
@@ -257,23 +257,43 @@ class Script(object):
         # hash_type = SIGHASH_ALL  # todo: check
         hash_type = None
 
-        while cur < len(script):
-            ch = script[cur]
-            cur += 1
+        if not isinstance(script, BytesIO):
+            script = BytesIO(script)
+
+        # while cur < len(script):
+        while script:
+            chb = script.read(1)
+            if not chb:
+                break
+            # ch = script[cur]
+            # cur += 1
+            ch = int.from_bytes(chb, 'big')
             data = None
+            data_length = 0
             if 1 <= ch <= 75:  # Data`
-                data = script[cur:cur+ch]
-                cur += ch
+                # data = script[cur:cur+ch]
+                # data = script.read(ch)
+                # cur += ch
+                # data = script.read(ch)
+                data_length = ch
             elif ch == op.op_pushdata1:
-                length = script[cur]
-                cur += 1
-                data = script[cur:cur+length]
-                cur += length
+                # length = script[cur]
+                # cur += 1
+                data_length = int.from_bytes(script.read(1), 'big')
+                # data = script[cur:cur+length]
+                # cur += length
+                # data = script.read(length)
             elif ch == op.op_pushdata2:
-                length = int.from_bytes(script[cur:cur+2], 'little')
-                cur += 2
-                data = script[cur:cur+length]
-                cur += length
+                data_length = int.from_bytes(script.read(2), 'little')
+                # cur += 2
+                # data = script[cur:cur+length]
+                # cur += length
+                # data = script.read(length)
+            if data_length:
+                data = script.read(data_length)
+                if len(data) != data_length:
+                    raise ScriptError("Malformed script, not enough data found")
+
             if data:
                 data_type = get_data_type(data)
                 commands.append(data)
@@ -316,15 +336,16 @@ class Script(object):
             else:  # Other opcode
                 commands.append(ch)
                 blueprint.append(ch)
-        if cur != len(script):
-            msg = "Parsing script failed, invalid length"
-            if _level == 1:
-                raise ScriptError(msg)
-            else:
-                _logger.warning(msg)
+        # if cur != len(script):
+        #     msg = "Parsing script failed, invalid length"
+        #     if _level == 1:
+        #         raise ScriptError(msg)
+        #     else:
+        #         _logger.warning(msg)
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data,
                 hash_type=hash_type)
-        s.raw = script
+        script.seek(0)
+        s.raw = script.read()
 
         s.script_types = _get_script_types(blueprint)
 
