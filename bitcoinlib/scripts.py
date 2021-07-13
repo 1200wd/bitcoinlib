@@ -235,7 +235,7 @@ class Script(object):
         return cls.parse(script_bytes, message, tx_data)
 
     @classmethod
-    def parse(cls, script, message=None, tx_data=None, _level=0):
+    def parse(cls, script, message=None, tx_data=None, strict=False, _level=0):
         """
         Parse raw bytes script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -243,6 +243,8 @@ class Script(object):
         :type script: BytesIO, str
         :param message:
         :param tx_data:
+        :param strict: Raise exception when script is malformed or incomplete
+        :type strict: bool
         :param _level:
 
         :return Script:
@@ -292,7 +294,11 @@ class Script(object):
             if data_length:
                 data = script.read(data_length)
                 if len(data) != data_length:
-                    raise ScriptError("Malformed script, not enough data found")
+                    msg = "Malformed script, not enough data found"
+                    if strict:
+                        raise ScriptError(msg)
+                    else:
+                        _logger.warning(msg)
 
             if data:
                 data_type = get_data_type(data)
