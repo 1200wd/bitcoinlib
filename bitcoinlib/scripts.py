@@ -321,7 +321,7 @@ class Script(object):
                 elif data_type[:4] == 'data':
                     # FIXME: This is arbitrary
                     blueprint.append('data-%d' % len(data))
-                elif commands and commands[-1] == op.op_return:
+                elif len(commands) >= 2 and commands[-2] == op.op_return:
                     blueprint.append('data-%d' % len(data))
                 else:
                     # FIXME: Only parse sub-scripts if script is expected
