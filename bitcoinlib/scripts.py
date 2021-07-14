@@ -230,26 +230,46 @@ class Script(object):
                         self._blueprint.append('data-%d' % len(c))
 
     @classmethod
-    def parse_hex(cls, script, message=None, tx_data=None):
+    def parse_hex(cls, script, message=None, tx_data=None, strict=False):
+        """
+        Parse hexadecimal script and return Script object. Extracts script commands, keys, signatures and other data.
+
+        Wrapped for the parse() method.
+
+        :param script: Raw script to parse
+        :type script: BytesIO, bytes
+        :param message: Signed mesage to verify, normally a transaction hash
+        :type message: bytes
+        :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
+        multisignature scripts and 'blockcount' for time locked scripts
+        :type tx_data: dict
+        :param strict: Raise exception when script is malformed or incomplete
+        :type strict: bool
+
+        :return Script:
+        """
         script_bytes = bytes.fromhex(script)
-        return cls.parse(script_bytes, message, tx_data)
+        return cls.parse(script_bytes, message, tx_data, strict)
 
     @classmethod
     def parse(cls, script, message=None, tx_data=None, strict=False, _level=0):
         """
-        Parse raw bytes script and return Script object. Extracts script commands, keys, signatures and other data.
+        Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
-        :param script: Raw script
-        :type script: BytesIO, str
-        :param message:
-        :param tx_data:
+        :param script: Raw script to parse
+        :type script: BytesIO, bytes
+        :param message: Signed mesage to verify, normally a transaction hash
+        :type message: bytes
+        :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
+        multisignature scripts and 'blockcount' for time locked scripts
+        :type tx_data: dict
         :param strict: Raise exception when script is malformed or incomplete
         :type strict: bool
-        :param _level:
+        :param _level: Internal argument used to avoid recursive depth
+        :type _level: int
 
         :return Script:
         """
-        cur = 0
         commands = []
         signatures = []
         keys = []
@@ -262,35 +282,19 @@ class Script(object):
         if not isinstance(script, BytesIO):
             script = BytesIO(script)
 
-        # while cur < len(script):
         while script:
             chb = script.read(1)
             if not chb:
                 break
-            # ch = script[cur]
-            # cur += 1
             ch = int.from_bytes(chb, 'big')
             data = None
             data_length = 0
             if 1 <= ch <= 75:  # Data`
-                # data = script[cur:cur+ch]
-                # data = script.read(ch)
-                # cur += ch
-                # data = script.read(ch)
                 data_length = ch
             elif ch == op.op_pushdata1:
-                # length = script[cur]
-                # cur += 1
                 data_length = int.from_bytes(script.read(1), 'big')
-                # data = script[cur:cur+length]
-                # cur += length
-                # data = script.read(length)
             elif ch == op.op_pushdata2:
                 data_length = int.from_bytes(script.read(2), 'little')
-                # cur += 2
-                # data = script[cur:cur+length]
-                # cur += length
-                # data = script.read(length)
             if data_length:
                 data = script.read(data_length)
                 if len(data) != data_length:
@@ -342,12 +346,7 @@ class Script(object):
             else:  # Other opcode
                 commands.append(ch)
                 blueprint.append(ch)
-        # if cur != len(script):
-        #     msg = "Parsing script failed, invalid length"
-        #     if _level == 1:
-        #         raise ScriptError(msg)
-        #     else:
-        #         _logger.warning(msg)
+
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data,
                 hash_type=hash_type)
         script.seek(0)
@@ -407,6 +406,11 @@ class Script(object):
         return self._blueprint
 
     def serialize(self):
+        """
+        Serialize script. Return all commands and data as bytes
+
+        :return bytes:
+        """
         raw = b''
         for cmd in self.commands:
             if isinstance(cmd, int):
@@ -417,6 +421,11 @@ class Script(object):
         return raw
 
     def serialize_list(self):
+        """
+        Serialize script and return commands and data as list
+
+        :return list of bytes:
+        """
         clist = []
         for cmd in self.commands:
             if isinstance(cmd, int):
