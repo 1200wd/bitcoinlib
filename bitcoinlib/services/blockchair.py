@@ -128,7 +128,7 @@ class BlockChairClient(BaseClient):
             if ti['spending_witness']:
                 # witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
                 witnesses = ti['spending_witness'].split(",")
-                address = Address.import_address(ti['recipient'])
+                address = Address.parse(ti['recipient'])
                 if address.script_type == 'p2sh':
                     witness_type = 'p2sh-segwit'
                 else:

@@ -1197,7 +1197,7 @@ class Wallet(object):
                     except BKeyError:
                         try:
                             scheme = 'single'
-                            key = Address.import_address(key, encoding=encoding, network=network)
+                            key = Address.parse(key, encoding=encoding, network=network)
                         except Exception:
                             raise WalletError("Invalid key or address: %s" % key)
                     if network is None:
@@ -3774,6 +3774,8 @@ class Wallet(object):
 
         if network is None:
             network = self.network.name
+        if isinstance(rawtx, str):
+            rawtx = bytes.fromhex(str)
         t_import = Transaction.parse(rawtx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, locktime=t_import.locktime,
                                      random_output_order=False)

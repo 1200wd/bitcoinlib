@@ -850,7 +850,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 '01d07e0100000000001600142e141b3fadd7882aeceb857e754808113f5568e2024930460221009e8e33fc0c918ee200' \
                 '09d7c1f461cd56ae83d121d38e7929b159104b62832136022100f261ca17f65bc5dc175eda20003084e6f3158c4570e7' \
                 '4163b8890d6888cce604012103ff27f8e30cb98ab7e7406821b4775158792b8f1deccaaf993f826a471a2fb1b800000000'
-        t = Transaction.parse(rawtx)
+        t = Transaction.parse_hex(rawtx)
         self.assertEqual(t.inputs[0].value, 0)
         srv = ServiceTest(network='testnet')
         srv.getinputvalues(t)

@@ -37,9 +37,9 @@ if USE_FASTECDSA:
     from fastecdsa import point as fastecdsa_point
 else:
     import ecdsa
+
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
-
 
 _logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class BKeyError(Exception):
     Handle Key class Exceptions
 
     """
+
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
@@ -163,7 +164,7 @@ def get_key_format(key, is_private=None):
         key_format = 'hex'
         if is_private is None:
             is_private = True
-    elif len(key) == 66 and key[-2:] in ['01'] and not(is_private is False):
+    elif len(key) == 66 and key[-2:] in ['01'] and not (is_private is False):
         key_format = 'hex_compressed'
         is_private = True
     elif len(key) == 58 and key[:2] == '6P':
@@ -458,8 +459,41 @@ class Address(object):
     """
 
     @classmethod
+    @deprecated
     def import_address(cls, address, compressed=None, encoding=None, depth=None, change=None,
                        address_index=None, network=None, network_overrides=None):
+        """
+        Import an address to the Address class. Specify network if available, otherwise it will be
+        derived form the address.
+
+        >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
+        >>> addr.as_dict()
+        {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
+
+        :param address: Address to import
+        :type address: str
+        :param compressed: Is key compressed or not, default is None
+        :type compressed: bool
+        :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
+        :type encoding: str
+        :param depth: Level of depth in BIP32 key path
+        :type depth: int
+        :param change: Use 0 for normal address/key, and 1 for change address (for returned/change payments)
+        :type change: int
+        :param address_index: Index of address. Used in BIP32 key paths
+        :type address_index: int
+        :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
+        :type network: str
+        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
+        :type network_overrides: dict
+
+        :return Address:
+        """
+        return cls.parse(address, compressed, encoding, depth, change, address_index, network, network_overrides)
+
+    @classmethod
+    def parse(cls, address, compressed=None, encoding=None, depth=None, change=None,
+              address_index=None, network=None, network_overrides=None):
         """
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
@@ -495,19 +529,9 @@ class Address(object):
         if network is None:
             network = addr_dict['network']
         script_type = addr_dict['script_type']
-        return Address(hashed_data=public_key_hash_bytes,  prefix=prefix, script_type=script_type,
+        return Address(hashed_data=public_key_hash_bytes, prefix=prefix, script_type=script_type,
                        compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
                        address_index=address_index, network=network, network_overrides=network_overrides)
-
-    # FIXME: Circulair import, use separate Script object
-    # @classmethod
-    # def from_script(cls, script, witness_type='legacy', encoding=None):
-    #     us_dict = script_deserialize(script)
-    #     if witness_type == 'segwit' and not encoding:
-    #         encoding = 'bech32'
-    #     elif not encoding:
-    #         encoding = 'legacy'
-    #     cls(hashed_data=us_dict['hashes'][0], script_type=us_dict['script_type'], encoding=encoding)
 
     def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
                  compressed=None, encoding=None, witness_type=None, depth=None, change=None,
@@ -567,7 +591,7 @@ class Address(object):
         self.redeemscript = b''
         if not self.hash_bytes:
             if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig']) or \
-                            self.script_type in ['p2wsh', 'p2sh_p2wsh']:
+                    self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hash160(self.data_bytes)
@@ -581,7 +605,7 @@ class Address(object):
                 self.hash_bytes = hash160(self.redeemscript)
             if self.prefix is None:
                 if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \
-                                self.witness_type == 'p2sh-segwit':
+                        self.witness_type == 'p2sh-segwit':
                     self.prefix = self.network.prefix_address_p2sh
                 else:
                     self.prefix = self.network.prefix_address
@@ -625,8 +649,8 @@ class Address(object):
         :return dict:
         """
         addr_dict = deepcopy(self.__dict__)
-        del(addr_dict['data_bytes'])
-        del(addr_dict['hash_bytes'])
+        del (addr_dict['data_bytes'])
+        del (addr_dict['hash_bytes'])
         if isinstance(addr_dict['network'], Network):
             addr_dict['network'] = addr_dict['network'].name
         addr_dict['redeemscript'] = addr_dict['redeemscript'].hex()
@@ -1123,7 +1147,7 @@ class Key(object):
             raise BKeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if self._address_obj and script_type is None:
             script_type = self._address_obj.script_type
-        if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
+        if not (self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
             self._address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
                                         encoding=encoding, compressed=compressed)
         return self._address_obj.address
@@ -1540,9 +1564,9 @@ class HDKey(Key):
         if child_index:
             self.child_index = child_index
         raw = prefix + self.depth.to_bytes(1, 'big') + self.parent_fingerprint + \
-            self.child_index.to_bytes(4, 'big') + self.chain + typebyte + rkey
+              self.child_index.to_bytes(4, 'big') + self.chain + typebyte + rkey
         chk = double_sha256(raw)[:4]
-        ret = raw+chk
+        ret = raw + chk
         return change_base(ret, 256, 58, 111)
 
     def wif_key(self, prefix=None):
@@ -1785,7 +1809,7 @@ class HDKey(Key):
             raise BKeyError("Key cannot be zero. Try another index number.")
         newkey = int.to_bytes(newkey, 32, 'big')
 
-        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
+        return HDKey(key=newkey, chain=chain, depth=self.depth + 1, parent_fingerprint=self.fingerprint,
                      child_index=index, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
@@ -1840,7 +1864,7 @@ class HDKey(Key):
             prefix = '02'
         xhex = change_base(ki_x, 10, 16, 64)
         secret = bytes.fromhex(prefix + xhex)
-        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
+        return HDKey(key=secret, chain=chain, depth=self.depth + 1, parent_fingerprint=self.fingerprint,
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 

@@ -74,7 +74,7 @@ class SmartbitClient(BaseClient):
                 unlocking_script = ti['script_sig']['hex']
                 witness_type = 'legacy'
                 if ti['witness'] and ti['witness'] != ['NULL']:
-                    address = Address.import_address(ti['addresses'][0])
+                    address = Address.parse(ti['addresses'][0])
                     if address.script_type == 'p2sh':
                         witness_type = 'p2sh-segwit'
                     else:
