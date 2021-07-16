@@ -663,7 +663,7 @@ class Input(object):
                  unlocking_script_unsigned=None, script=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
-                 witnesses=None, encoding=None, network=DEFAULT_NETWORK):
+                 witnesses=None, encoding=None, strict=True, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -711,6 +711,8 @@ class Input(object):
         :type witnesses: list of bytes, list of str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
         :type encoding: str
+        :param strict: Raise exception when input is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -796,7 +798,7 @@ class Input(object):
                 self.script_type = 'p2sh_p2wsh'
                 self.witness_type = 'p2sh-segwit'
         if self.unlocking_script_unsigned and not self.signatures:
-            ls = Script.parse_bytes(self.unlocking_script_unsigned)
+            ls = Script.parse_bytes(self.unlocking_script_unsigned, strict=strict)
             self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash
             if ls.script_types[0] in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
@@ -847,7 +849,7 @@ class Input(object):
         self.update_scripts(hash_type=self.hash_type)
 
     @classmethod
-    def parse(cls, raw, witness_type='segwit', index_n=0, network=DEFAULT_NETWORK):
+    def parse(cls, raw, witness_type='segwit', index_n=0, strict=True, network=DEFAULT_NETWORK):
         """
         Parse raw BytesIO string and return Input object
 
@@ -857,6 +859,8 @@ class Input(object):
         :type witness_type: str
         :param index_n: Index number of input
         :type index_n: int
+        :param strict: Raise exception when input is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default
         :type network: str, Network
 
@@ -874,7 +878,7 @@ class Input(object):
         sequence_number = raw.read(4)
 
         return Input(prev_txid=prev_hash, output_n=output_n, unlocking_script=unlocking_script,
-                     witness_type=inp_type, sequence=sequence_number, index_n=index_n, network=network)
+                     witness_type=inp_type, sequence=sequence_number, index_n=index_n, strict=strict, network=network)
 
     def set_locktime_relative_blocks(self, blocks):
         """
@@ -929,6 +933,8 @@ class Input(object):
 
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param strict: Raise exception when input is malformed, incomplete or not understood
+        :type strict: bool
 
         :return bool: Always returns True when method is completed
         """
@@ -1084,7 +1090,7 @@ class Output(object):
     """
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                 output_n=0, script_type=None, encoding=None, spending_txid='', spending_index_n=None,
+                 output_n=0, script_type=None, encoding=None, spending_txid='', spending_index_n=None, strict=True,
                  network=DEFAULT_NETWORK):
         """
         Create a new transaction output
@@ -1118,6 +1124,8 @@ class Output(object):
         :type spending_txid: str
         :param spending_index_n: Index number of input spending this transaction output
         :type spending_index_n: int
+        :param strict: Raise exception when output is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -1155,7 +1163,7 @@ class Output(object):
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
-        self.script = Script.parse_bytes(self.lock_script)
+        self.script = Script.parse_bytes(self.lock_script, strict=strict)
 
         if self.address_obj:
             self.script_type = self.address_obj.script_type if script_type is None else script_type
@@ -1216,7 +1224,7 @@ class Output(object):
         #                            (self.address, self.network.dust_amount))
 
     @classmethod
-    def parse(cls, raw, output_n=0, network=DEFAULT_NETWORK):
+    def parse(cls, raw, output_n=0, strict=True, network=DEFAULT_NETWORK):
         """
         Parse raw BytesIO string and return Output object
 
@@ -1224,6 +1232,8 @@ class Output(object):
         :type raw: BytesIO
         :param output_n: Output number of Transaction output
         :type output_n: int
+        :param strict: Raise exception when output is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default network
         :type network: str, Network
 
@@ -1232,7 +1242,7 @@ class Output(object):
         value = int.from_bytes(raw.read(8)[::-1], 'big')
         lock_script_size = read_varbyteint(raw)
         lock_script = raw.read(lock_script_size)
-        return Output(value=value, lock_script=lock_script, network=network, output_n=output_n)
+        return Output(value=value, lock_script=lock_script, output_n=output_n, strict=strict, network=network)
 
     def as_dict(self):
         """
@@ -1297,12 +1307,14 @@ class Transaction(object):
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
     @classmethod
-    def parse(cls, rawtx, network=DEFAULT_NETWORK):
+    def parse(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
         """
         Parse a raw transaction and create a Transaction object
 
         :param rawtx: Raw transaction string
         :type rawtx: BytesIO, bytes, str
+        :param strict: Raise exception when transaction is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default network
         :type network: str, Network
 
@@ -1313,15 +1325,17 @@ class Transaction(object):
         elif isinstance(rawtx, str):
             rawtx = BytesIO(bytes.fromhex(rawtx))
 
-        return cls.parse_bytesio(rawtx, network)
+        return cls.parse_bytesio(rawtx, strict, network)
 
     @classmethod
-    def parse_bytesio(cls, rawtx, network=DEFAULT_NETWORK):
+    def parse_bytesio(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
         """
         Parse a raw transaction and create a Transaction object
 
         :param rawtx: Raw transaction string
         :type rawtx: BytesIO
+        :param strict: Raise exception when transaction is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default network
         :type network: str, Network
 
@@ -1352,7 +1366,7 @@ class Transaction(object):
         n_inputs = read_varbyteint(rawtx)
         inputs = []
         for n in range(0, n_inputs):
-            inp = Input.parse(rawtx, index_n=n, witness_type=witness_type, network=network)
+            inp = Input.parse(rawtx, index_n=n, witness_type=witness_type, strict=strict, network=network)
             if inp.prev_txid == 32 * b'\0':
                 coinbase = True
             inputs.append(inp)
@@ -1361,7 +1375,7 @@ class Transaction(object):
         output_total = 0
         n_outputs = read_varbyteint(rawtx)
         for n in range(0, n_outputs):
-            o = Output.parse(rawtx, output_n=n, network=network)
+            o = Output.parse(rawtx, output_n=n, strict=strict, network=network)
             outputs.append(o)
             output_total += o.value
         if not outputs:
@@ -1377,7 +1391,7 @@ class Transaction(object):
                     item_size = read_varbyteint(rawtx)
                     witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
-                    s = Script.parse_bytes(varstr(witness))
+                    s = Script.parse_bytes(varstr(witness), strict=strict)
                     script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
@@ -1407,36 +1421,40 @@ class Transaction(object):
                            coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes)
 
     @classmethod
-    def parse_hex(cls, rawtx, network=DEFAULT_NETWORK):
+    def parse_hex(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
         """
         Parse a raw hexadecimal transaction and create a Transaction object. Wrapper for the :func:`parse_bytesio`
         method
 
         :param rawtx: Raw transaction hexadecimal string
         :type rawtx: str
+        :param strict: Raise exception when transaction is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default network
         :type network: str, Network
 
         :return Transaction:
         """
 
-        return cls.parse(BytesIO(bytes.fromhex(rawtx)), network)
+        return cls.parse(BytesIO(bytes.fromhex(rawtx)), strict, network)
 
     @classmethod
-    def parse_bytes(cls, rawtx, network=DEFAULT_NETWORK):
+    def parse_bytes(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
         """
         Parse a raw bytes transaction and create a Transaction object.  Wrapper for the :func:`parse_bytesio`
         method
 
         :param rawtx: Raw transaction hexadecimal string
         :type rawtx: bytes
+        :param strict: Raise exception when transaction is malformed, incomplete or not understood
+        :type strict: bool
         :param network: Network, leave empty for default network
         :type network: str, Network
 
         :return Transaction:
         """
 
-        return cls.parse(BytesIO(rawtx), network)
+        return cls.parse(BytesIO(rawtx), strict, network)
 
     @staticmethod
     def load(txid=None, filename=None):
@@ -2186,7 +2204,7 @@ class Transaction(object):
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  key_path='', witness_type=None, witnesses=None, encoding=None):
+                  key_path='', witness_type=None, witnesses=None, encoding=None, strict=True):
         """
         Add input to this transaction
         
@@ -2236,6 +2254,8 @@ class Transaction(object):
         :type witnesses: list of (bytes, str)
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
         :type encoding: str
+        :param strict: Raise exception when input is malformed or incomplete
+        :type strict: bool
 
         :return int: Transaction index number (index_n)
         """
@@ -2254,11 +2274,11 @@ class Transaction(object):
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,
-                  witnesses=witnesses, encoding=encoding, network=self.network.name))
+                  witnesses=witnesses, encoding=encoding, strict=strict, network=self.network.name))
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                   output_n=None, encoding=None, spending_txid=None, spending_index_n=None):
+                   output_n=None, encoding=None, spending_txid=None, spending_index_n=None, strict=True):
         """
         Add an output to this transaction
         
@@ -2284,6 +2304,8 @@ class Transaction(object):
         :type spending_txid: str
         :param spending_index_n: Index number of input spending this transaction output
         :type spending_index_n: int
+        :param strict: Raise exception when output is malformed or incomplete
+        :type strict: bool
 
         :return int: Transaction output number (output_n)
         """
@@ -2299,7 +2321,7 @@ class Transaction(object):
         self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    encoding=encoding, spending_txid=spending_txid, spending_index_n=spending_index_n,
-                                   network=self.network.name))
+                                   strict=strict, network=self.network.name))
         return output_n
 
     def merge_transaction(self, transaction):

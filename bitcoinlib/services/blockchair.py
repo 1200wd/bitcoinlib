@@ -136,12 +136,12 @@ class BlockChairClient(BaseClient):
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=ti['spending_signature_hex'],
                             witnesses=witnesses, index_n=index_n, value=ti['value'],
-                            address=address, witness_type=witness_type, sequence=ti['spending_sequence'])
+                            address=address, witness_type=witness_type, sequence=ti['spending_sequence'], strict=False)
             else:
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=ti['spending_signature_hex'], index_n=index_n, value=ti['value'],
                             address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'],
-                            sequence=ti['spending_sequence'])
+                            sequence=ti['spending_sequence'], strict=False)
             index_n += 1
         for to in res['data'][tx_id]['outputs']:
             try:
@@ -151,7 +151,7 @@ class BlockChairClient(BaseClient):
                 addr = ''
             t.add_output(value=to['value'], address=addr, lock_script=to['script_hex'],
                          spent=to['is_spent'], output_n=to['index'], spending_txid=to['spending_transaction_hash'],
-                         spending_index_n=to['spending_index'])
+                         spending_index_n=to['spending_index'], strict=False)
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):

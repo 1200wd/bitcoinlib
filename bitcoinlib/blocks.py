@@ -181,7 +181,7 @@ class Block:
         while parse_transactions and txs_data and txs_data.tell() < txs_data_size:
             if limit != 0 and len(transactions) >= limit:
                 break
-            t = Transaction.parse_bytesio(txs_data)
+            t = Transaction.parse_bytesio(txs_data, strict=False)
             transactions.append(t)
             # t = transaction_deserialize(txs_data, network=network, check_size=False)
             # transactions.append(t)
@@ -211,7 +211,7 @@ class Block:
         """
         n = 0
         while self.txs_data and (limit == 0 or n < limit) and len(self.transactions) < self.tx_count:
-            t = Transaction.parse_bytesio(self.txs_data, network=self.network)  # , check_size=False
+            t = Transaction.parse_bytesio(self.txs_data, strict=False, network=self.network)  # , check_size=False
             self.transactions.append(t)
             n += 1
 

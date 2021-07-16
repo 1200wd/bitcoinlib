@@ -721,10 +721,11 @@ class Cache(object):
                 if n.ref_txid == b'\00' * 32:
                     t.coinbase = True
                 t.add_input(n.ref_txid.hex(), n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses, strict=False)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
-                             spending_txid=None if not n.ref_txid else n.ref_txid.hex(), spending_index_n=n.ref_index_n)
+                             spending_txid=None if not n.ref_txid else n.ref_txid.hex(),
+                             spending_index_n=n.ref_index_n, strict=False)
 
         t.update_totals()
         t.size = len(t.raw())

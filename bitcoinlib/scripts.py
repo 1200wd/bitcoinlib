@@ -230,7 +230,7 @@ class Script(object):
                         self._blueprint.append('data-%d' % len(c))
 
     @classmethod
-    def parse(cls, script, message=None, tx_data=None, strict=False, _level=0):
+    def parse(cls, script, message=None, tx_data=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -243,7 +243,7 @@ class Script(object):
         :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
         multisignature scripts and 'blockcount' for time locked scripts
         :type tx_data: dict
-        :param strict: Raise exception when script is malformed or incomplete
+        :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
         :type _level: int
@@ -257,7 +257,7 @@ class Script(object):
         return cls.parse_bytesio(script, message, tx_data, strict, _level)
 
     @classmethod
-    def parse_bytesio(cls, script, message=None, tx_data=None, strict=False, _level=0):
+    def parse_bytesio(cls, script, message=None, tx_data=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -268,7 +268,7 @@ class Script(object):
         :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
         multisignature scripts and 'blockcount' for time locked scripts
         :type tx_data: dict
-        :param strict: Raise exception when script is malformed or incomplete
+        :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
         :type _level: int
@@ -377,7 +377,7 @@ class Script(object):
         return s
 
     @classmethod
-    def parse_hex(cls, script, message=None, tx_data=None, strict=False, _level=0):
+    def parse_hex(cls, script, message=None, tx_data=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -390,7 +390,7 @@ class Script(object):
         :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
         multisignature scripts and 'blockcount' for time locked scripts
         :type tx_data: dict
-        :param strict: Raise exception when script is malformed or incomplete
+        :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
         :type _level: int
@@ -400,7 +400,7 @@ class Script(object):
         return cls.parse_bytesio(BytesIO(bytes.fromhex(script)), message, tx_data, strict, _level)
 
     @classmethod
-    def parse_bytes(cls, script, message=None, tx_data=None, strict=False, _level=0):
+    def parse_bytes(cls, script, message=None, tx_data=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 

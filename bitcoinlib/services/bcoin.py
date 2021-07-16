@@ -50,7 +50,7 @@ class BcoinClient(BaseClient):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
-        t = Transaction.parse_hex(tx['hex'])
+        t = Transaction.parse_hex(tx['hex'], strict=False)
         if not t.txid == tx['hash']:
             raise ClientError('Received transaction has different txid')
         t.locktime = tx['locktime']
@@ -157,7 +157,7 @@ class BcoinClient(BaseClient):
         res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
         txid = ''
         if 'success' in res and res['success']:
-            t = Transaction.parse_hex(rawtx)
+            t = Transaction.parse_hex(rawtx, strict=False)
             txid = t.txid
         return {
             'txid': txid,

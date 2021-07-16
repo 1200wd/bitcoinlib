@@ -42,6 +42,11 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.rb629999 = pickle.load(pickle_in)
         pickle_in.close()
 
+        filename = os.path.join(os.path.dirname(__file__), "block625007.pickle")
+        pickle_in = open(filename, "rb")
+        self.rb625007 = pickle.load(pickle_in)
+        pickle_in.close()
+
     def test_blocks_parse_genesis(self):
         raw_block = '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3' \
                     'e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c010100000001000000000000000000' \
@@ -168,6 +173,11 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.transactions[0].txid, 'aed3754889f65dff83504fd0a8b78e1b69fc22c5396c67df23b0e607bf4e0d67')
         self.assertEqual(b.transactions[9].txid, '868804b3c7121520d4276cb80608241c418cb4c11cfa29e14ea05dd1954a451f')
         self.assertEqual(len(b.transactions), 100)
+
+    def test_block_parse_block_625007_with_unrecognised_scripts(self):
+        b = Block.from_raw(self.rb625007, parse_transactions=True, limit=9999)
+        self.assertEqual(b.block_hash.hex(), '000000000000000000007b2561b9d69cccbb06df8faed054432f63b96ee7d3dc')
+        self.assertEqual(len(b.transactions), 3083)
 
     def test_block_incomplete(self):
         # block_hash, version, prev_block, merkle_root, time, bits, nonce
