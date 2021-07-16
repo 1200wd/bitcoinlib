@@ -19,6 +19,7 @@
 #
 
 from io import BytesIO
+from functools import singledispatchmethod, wraps
 from bitcoinlib.encoding import *
 from bitcoinlib.main import *
 from bitcoinlib.config.opcodes import *
@@ -230,14 +231,14 @@ class Script(object):
                         self._blueprint.append('data-%d' % len(c))
 
     @classmethod
-    def parse_hex(cls, script, message=None, tx_data=None, strict=False):
+    def parse(cls, script, message=None, tx_data=None, strict=False, _level=0):
         """
-        Parse hexadecimal script and return Script object. Extracts script commands, keys, signatures and other data.
+        Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
-        Wrapped for the parse() method.
+        Wrapper for the :func:`parse_bytesio` method. Convert hexadecimal string or bytes script to BytesIO.
 
-        :param script: Raw script to parse
-        :type script: BytesIO, bytes
+        :param script: Raw script to parse in bytes, BytesIO or hexadecimal string format
+        :type script: BytesIO, bytes, str
         :param message: Signed mesage to verify, normally a transaction hash
         :type message: bytes
         :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
@@ -245,19 +246,24 @@ class Script(object):
         :type tx_data: dict
         :param strict: Raise exception when script is malformed or incomplete
         :type strict: bool
+        :param _level: Internal argument used to avoid recursive depth
+        :type _level: int
 
         :return Script:
         """
-        script_bytes = bytes.fromhex(script)
-        return cls.parse(script_bytes, message, tx_data, strict)
+        if isinstance(script, bytes):
+            script = BytesIO(script)
+        elif isinstance(script, str):
+            script = BytesIO(bytes.fromhex(script))
+        return cls.parse_bytesio(script, message, tx_data, strict, _level)
 
     @classmethod
-    def parse(cls, script, message=None, tx_data=None, strict=False, _level=0):
+    def parse_bytesio(cls, script, message=None, tx_data=None, strict=False, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
-        :param script: Raw script to parse
-        :type script: BytesIO, bytes
+        :param script: Raw script to parse in bytes, BytesIO or hexadecimal string format
+        :type script: BytesIO
         :param message: Signed mesage to verify, normally a transaction hash
         :type message: bytes
         :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
@@ -278,9 +284,6 @@ class Script(object):
         sigs_required = None
         # hash_type = SIGHASH_ALL  # todo: check
         hash_type = None
-
-        if not isinstance(script, BytesIO):
-            script = BytesIO(script)
 
         while script:
             chb = script.read(1)
@@ -373,6 +376,52 @@ class Script(object):
         s.sigs_required = sigs_required if sigs_required else s.sigs_required
 
         return s
+
+    @classmethod
+    def parse_hex(cls, script, message=None, tx_data=None, strict=False, _level=0):
+        """
+        Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
+
+        Wrapper for the :func:`parse_bytesio` method. Convert hexadecimal string script to BytesIO.
+
+        :param script: Raw script to parse in hexadecimal string format
+        :type script: str
+        :param message: Signed mesage to verify, normally a transaction hash
+        :type message: bytes
+        :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
+        multisignature scripts and 'blockcount' for time locked scripts
+        :type tx_data: dict
+        :param strict: Raise exception when script is malformed or incomplete
+        :type strict: bool
+        :param _level: Internal argument used to avoid recursive depth
+        :type _level: int
+
+        :return Script:
+        """
+        return cls.parse_bytesio(BytesIO(bytes.fromhex(script)), message, tx_data, strict, _level)
+
+    @classmethod
+    def parse_bytes(cls, script, message=None, tx_data=None, strict=False, _level=0):
+        """
+        Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
+
+        Wrapper for the :func:`parse_bytesio` method. Convert bytes script to BytesIO.
+
+        :param script: Raw script to parse in bytes format
+        :type script: bytes
+        :param message: Signed mesage to verify, normally a transaction hash
+        :type message: bytes
+        :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
+        multisignature scripts and 'blockcount' for time locked scripts
+        :type tx_data: dict
+        :param strict: Raise exception when script is malformed or incomplete
+        :type strict: bool
+        :param _level: Internal argument used to avoid recursive depth
+        :type _level: int
+
+        :return Script:
+        """
+        return cls.parse_bytesio(BytesIO(script), message, tx_data, strict, _level)
 
     def __str__(self):
         s_items = []

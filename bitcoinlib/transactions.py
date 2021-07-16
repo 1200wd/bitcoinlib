@@ -1297,29 +1297,31 @@ class Transaction(object):
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
     @classmethod
-    def parse_hex(cls, rawtx, network=DEFAULT_NETWORK):
-        """
-        Parse a raw hexadecimal transaction and create a Transaction object. Wrapper for the :func:`parse` method
-
-        :param rawtx: Raw transaction hexadecimal string
-        :type rawtx: str
-        :param network: Network, leave empty for default network
-        :type network: str, Network
-
-        :return Transaction:
-        """
-
-        raw_bytes = bytes.fromhex(rawtx)
-        rawtx = BytesIO(raw_bytes)
-        return cls.parse(rawtx, network)
-
-    @classmethod
     def parse(cls, rawtx, network=DEFAULT_NETWORK):
         """
         Parse a raw transaction and create a Transaction object
 
         :param rawtx: Raw transaction string
-        :type rawtx: BytesIO, bytes
+        :type rawtx: BytesIO, bytes, str
+        :param network: Network, leave empty for default network
+        :type network: str, Network
+
+        :return Transaction:
+        """
+        if isinstance(rawtx, bytes):
+            rawtx = BytesIO(rawtx)
+        elif isinstance(rawtx, str):
+            rawtx = BytesIO(bytes.fromhex(rawtx))
+
+        return cls.parse_bytesio(rawtx, network)
+
+    @classmethod
+    def parse_bytesio(cls, rawtx, network=DEFAULT_NETWORK):
+        """
+        Parse a raw transaction and create a Transaction object
+
+        :param rawtx: Raw transaction string
+        :type rawtx: BytesIO
         :param network: Network, leave empty for default network
         :type network: str, Network
 
@@ -1332,16 +1334,12 @@ class Transaction(object):
         if not isinstance(network, Network):
             cls.network = Network(network)
         raw_bytes = b''
-        pos_start = 0
-        if isinstance(rawtx, bytes):
-            raw_bytes = rawtx
-            rawtx = BytesIO(rawtx)
-        else:  # Assume BytesIO object
-            try:
-                pos_start = rawtx.tell()
-            except AttributeError:
-                raise TransactionError("Provide raw transaction as bytes or BytesIO. Use parse_hex to parse "
-                                       "hexadecimal strings")
+
+        try:
+            pos_start = rawtx.tell()
+        except AttributeError:
+            raise TransactionError("Provide raw transaction as BytesIO. Use parse, parse_bytes, parse_hex to parse "
+                                   "other data types")
 
         version = rawtx.read(4)[::-1]
         if rawtx.read(1) == b'\0':
@@ -1407,6 +1405,38 @@ class Transaction(object):
 
         return Transaction(inputs, outputs, locktime, version, network, size=raw_len, output_total=output_total,
                            coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes)
+
+    @classmethod
+    def parse_hex(cls, rawtx, network=DEFAULT_NETWORK):
+        """
+        Parse a raw hexadecimal transaction and create a Transaction object. Wrapper for the :func:`parse_bytesio`
+        method
+
+        :param rawtx: Raw transaction hexadecimal string
+        :type rawtx: str
+        :param network: Network, leave empty for default network
+        :type network: str, Network
+
+        :return Transaction:
+        """
+
+        return cls.parse(BytesIO(bytes.fromhex(rawtx)), network)
+
+    @classmethod
+    def parse_bytes(cls, rawtx, network=DEFAULT_NETWORK):
+        """
+        Parse a raw bytes transaction and create a Transaction object.  Wrapper for the :func:`parse_bytesio`
+        method
+
+        :param rawtx: Raw transaction hexadecimal string
+        :type rawtx: bytes
+        :param network: Network, leave empty for default network
+        :type network: str, Network
+
+        :return Transaction:
+        """
+
+        return cls.parse(BytesIO(rawtx), network)
 
     @staticmethod
     def load(txid=None, filename=None):

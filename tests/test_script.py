@@ -485,25 +485,25 @@ class TestStack(unittest.TestCase):
 class TestScriptTypes(unittest.TestCase):
 
     def test_script_type_p2pkh(self):
-        s = Script.parse(bytes.fromhex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac'))
+        s = Script.parse_hex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual(['p2pkh'], s.script_types)
 
     def test_script_type_p2pkh_2(self):
-        s = Script.parse(bytes.fromhex('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac'))
+        s = Script.parse_hex('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')
         self.assertEqual(['p2pkh'], s.script_types)
 
     def test_script_type_p2sh(self):
-        s = Script.parse(bytes.fromhex('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487'))
+        s = Script.parse_bytes(bytes.fromhex('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487'))
         self.assertEqual(['p2sh'], s.script_types)
 
     def test_script_type_nulldata(self):
-        s = Script.parse(bytes.fromhex('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'))
+        s = Script.parse_bytes(bytes.fromhex('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'))
         self.assertEqual(['nulldata'], s.script_types)
         self.assertEqual('985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
                          s.commands[1].hex())
 
     def test_script_type_nulldata_2(self):
-        s = Script.parse(bytes.fromhex('6a'))
+        s = Script.parse_bytes(bytes.fromhex('6a'))
         self.assertEqual(['nulldata_2'], s.script_types)
         self.assertEqual([106], s.commands)
 
@@ -532,7 +532,7 @@ class TestScriptTypes(unittest.TestCase):
         self.assertRaisesRegexp(ScriptError, '3 keys found but 2 keys expected',
                                 Script.parse, scr)
         self.assertRaisesRegexp(ScriptError, 'Number of signatures required \(3\) is higher then number of keys \(2\)',
-                                Script.parse_hex,
+                                Script.parse,
                                 '532102d9d64770e0510c650cfaa0c05ba34f6faa35a18defcf9f2d493c4c225d93fbf221020c39c418c2'
                                 '38ba876d09c4529bdafb2a1295c57ece923997ab693bf0a84189b852ae')
 
@@ -579,7 +579,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
             '19d344e05b9c93e38e88df1fc46abb6194506c50ce1012103e481f20561573cfd800e64efda61405917cb29e4bd20bed168c5'
             '2b674937f535')
         script = unlock_script + lock_script
-        s = Script.parse(script)
+        s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, ['signature', 'key', 118, 169, 'data-20', 136, 172])
         self.assertEqual(s.script_types, ['sig_pubkey', 'p2pkh'])
         self.assertEqual(str(s), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
@@ -601,7 +601,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
             '5753ae')
 
         script = unlock_script + lock_script
-        s = Script.parse(script)
+        s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, [0, 'signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 169,
                                        'data-20', 135])
         self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
@@ -650,7 +650,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
             '7524caf7c067c5495e2102ce51833ecc7751a4a48062f182b08c6bd641a0866a7ce4d2fdbdc7b30e76ba8e5fae')
 
         script = unlock_script + lock_script
-        s = Script.parse(script)
+        s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, [0, 'signature', 'signature', 'signature', 'signature', 'signature',
                                        'signature', 'signature', 'signature', 88, 'key', 'key', 'key', 'key',
                                        'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key',
@@ -673,7 +673,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
             '7cce8f1b43dd4d162224b80b0cab38989ebf485401')) + varstr(
             bytes.fromhex('02f9009565c28990216c5d09ea8842b9b0e668346695f9aa275a8ae8d5e73fdca3'))
         script = witnesses + lock_script
-        s = Script.parse(script)
+        s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, ['signature', 'key', 118, 169, 'data-20', 136, 172])
         self.assertEqual(s.script_types, ['sig_pubkey', 'p2pkh'])
         self.assertEqual(str(s), "signature key OP_DUP OP_HASH160 data-20 OP_EQUALVERIFY OP_CHECKSIG")
@@ -696,7 +696,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
                         '3cebd970d91261896cb7ade4d198d16112651ac6833083b49e01')) + redeemscript
 
         script = witnesses + lock_script
-        s = Script.parse(script)
+        s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, ['signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 168, 'data-32', 135])
         self.assertEqual(s.script_types, ['signature', 'multisig', 'unknown'])
         self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
@@ -710,7 +710,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
 
     def test_script_verify_transaction_output_return(self):
         script = bytes.fromhex('6a26062c74e4b802d60ffdd1daa37b848e39a2b0ecb2de72c6ca24d71b87813b5e056cb7f1e8c8b0')
-        s = Script.parse(script)
+        s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, [106, 'data-38'])
         self.assertEqual(s.script_types, ['nulldata'])
         self.assertEqual(str(s), "OP_RETURN data-38")
@@ -718,8 +718,8 @@ class TestScript(unittest.TestCase, CustomAssertions):
 
     def test_script_add(self):
         # Verify txid 6efe4f943b7898c4308c67b47bac57551ff41977edc254eafb0436467632450f, input 0
-        lock_script = Script.parse(bytes.fromhex('76a914f9cc73824051cc82d64a716c836c54467a21e22c88ac'))
-        unlock_script = Script.parse(bytes.fromhex(
+        lock_script = Script.parse_bytes(bytes.fromhex('76a914f9cc73824051cc82d64a716c836c54467a21e22c88ac'))
+        unlock_script = Script.parse_bytes(bytes.fromhex(
             '483045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437df1ea8f98'
             '19d344e05b9c93e38e88df1fc46abb6194506c50ce1012103e481f20561573cfd800e64efda61405917cb29e4bd20bed168c5'
             '2b674937f535'))
@@ -762,7 +762,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         spk = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5' \
               'b412bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe6' \
               '1385aa7446'
-        s = Script.parse_hex(spk)
+        s = Script.parse(spk)
         self.assertEqual(s.script_types, ['sig_pubkey'])
         self.assertEqual(
             s.signatures[0].as_der_encoded().hex(),
@@ -814,5 +814,5 @@ class TestScript(unittest.TestCase, CustomAssertions):
     def test_script_different_hashtype(self):
         scr = '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a' \
               '715cf7c938e238afde90207e9d103dd9018e12cb7180e03'
-        s = Script.parse_hex(scr)
+        s = Script.parse(scr)
         self.assertEqual(s.signatures[0].hash_type, 3)
