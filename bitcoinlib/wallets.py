@@ -3775,8 +3775,8 @@ class Wallet(object):
         if network is None:
             network = self.network.name
         if isinstance(rawtx, str):
-            rawtx = bytes.fromhex(str)
-        t_import = Transaction.parse(rawtx, network=network)
+            rawtx = bytes.fromhex(rawtx)
+        t_import = Transaction.parse_bytes(rawtx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, locktime=t_import.locktime,
                                      random_output_order=False)
         rt.version_int = t_import.version_int

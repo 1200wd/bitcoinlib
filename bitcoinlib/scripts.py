@@ -19,7 +19,6 @@
 #
 
 from io import BytesIO
-from functools import singledispatchmethod, wraps
 from bitcoinlib.encoding import *
 from bitcoinlib.main import *
 from bitcoinlib.config.opcodes import *
@@ -336,7 +335,7 @@ class Script(object):
                         if _level >= 1:
                             blueprint.append('data-%d' % len(data))
                         else:
-                            s2 = Script.parse(data, _level=_level+1)
+                            s2 = Script.parse_bytes(data, _level=_level+1)
                             commands.pop()
                             commands += s2.commands
                             blueprint += s2.blueprint

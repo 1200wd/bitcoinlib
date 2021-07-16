@@ -780,7 +780,7 @@ class Input(object):
 
         # If unlocking script is specified extract keys, signatures, type from script
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
-            self.script = Script.parse(self.unlocking_script)
+            self.script = Script.parse_bytes(self.unlocking_script)
             self.keys = self.script.keys
             self.signatures = self.script.signatures
             sigs_required = self.script.sigs_required
@@ -796,7 +796,7 @@ class Input(object):
                 self.script_type = 'p2sh_p2wsh'
                 self.witness_type = 'p2sh-segwit'
         if self.unlocking_script_unsigned and not self.signatures:
-            ls = Script.parse(self.unlocking_script_unsigned)
+            ls = Script.parse_bytes(self.unlocking_script_unsigned)
             self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash
             if ls.script_types[0] in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
@@ -1155,7 +1155,7 @@ class Output(object):
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
-        self.script = Script.parse(self.lock_script)
+        self.script = Script.parse_bytes(self.lock_script)
 
         if self.address_obj:
             self.script_type = self.address_obj.script_type if script_type is None else script_type
@@ -1377,7 +1377,7 @@ class Transaction(object):
                     item_size = read_varbyteint(rawtx)
                     witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
-                    s = Script.parse(varstr(witness))
+                    s = Script.parse_bytes(varstr(witness))
                     script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
