@@ -1900,6 +1900,45 @@ class Signature(object):
     
     """
 
+    @classmethod
+    def parse(cls, signature, public_key=None):
+        if isinstance(signature, bytes):
+            return cls.parse_bytes(signature, public_key)
+        elif isinstance(signature, str):
+            return cls.parse_hex(signature, public_key)
+
+    @classmethod
+    def parse_hex(cls, signature, public_key=None):
+        return cls.parse_bytes(bytes.fromhex(signature), public_key)
+
+    @staticmethod
+    def parse_bytes(signature, public_key=None):
+        """
+        Create a signature from signature string with r and s part. Signature length must be 64 bytes or 128
+        character hexstring
+
+        :param signature: Signature string
+        :type signature: bytes
+        :param public_key: Public key as HDKey or Key object or any other string accepted by HDKey object
+        :type public_key: HDKey, Key, str, hexstring, bytes
+
+        :return Signature:
+        """
+
+        der_signature = ''
+        hash_type = SIGHASH_ALL
+        if len(signature) > 64 and signature.startswith(b'\x30'):
+            der_signature = signature[:-1]
+            hash_type = int.from_bytes(signature[-1:], 'big')
+            signature = convert_der_sig(signature[:-1], as_hex=False)
+        if len(signature) != 64:
+            raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
+        r = int.from_bytes(signature[:32], 'big')
+        s = int.from_bytes(signature[32:], 'big')
+        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
+                         hash_type=hash_type)
+
+    @deprecated
     @staticmethod
     def from_str(signature, public_key=None):
         """
@@ -2162,7 +2201,7 @@ class Signature(object):
         >>> pub_key = HDKey(k).public()
         >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
         >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
-        >>> sig = Signature.from_str(sig)
+        >>> sig = Signature.parse_hex(sig)
         >>> sig.verify(txid, pub_key)
         True
 
@@ -2267,7 +2306,7 @@ def verify(txid, signature, public_key=None):
     if not isinstance(signature, Signature):
         if not public_key:
             raise BKeyError("No public key provided, cannot verify")
-        signature = Signature.from_str(signature, public_key=public_key)
+        signature = Signature.parse(signature, public_key=public_key)
     return signature.verify(txid, public_key)
 
 

@@ -838,7 +838,7 @@ class Input(object):
         for sig in signatures:
             if not isinstance(sig, Signature):
                 try:
-                    sig = Signature.from_str(sig)
+                    sig = Signature.parse(sig)
                 except Exception as e:
                     _logger.error("Could not parse signature %s in Input. Error: %s" % (to_hexstring(sig), e))
                     continue
@@ -952,7 +952,7 @@ class Input(object):
                 if self.witnesses and not self.signatures and not self.keys and \
                         self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 \
                         and b'\0' not in self.witnesses:
-                    self.signatures = [Signature.from_str(self.witnesses[0])]
+                    self.signatures = [Signature.parse_bytes(self.witnesses[0])]
                     self.keys = [Key(self.witnesses[1], network=self.network)]
                 else:
                     return

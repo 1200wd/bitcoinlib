@@ -324,7 +324,7 @@ class Script(object):
                 data_type = get_data_type(data)
                 commands.append(data)
                 if data_type == 'signature':
-                    sig = Signature.from_str(data)
+                    sig = Signature.parse_bytes(data)
                     signatures.append(sig)
                     hash_type = sig.hash_type
                     blueprint.append('signature')
@@ -913,7 +913,7 @@ class Stack(list):
     def op_checksig(self, message, _=None):
         public_key = self.pop()
         signature = self.pop()
-        signature = Signature.from_str(signature, public_key=public_key)
+        signature = Signature.parse_bytes(signature, public_key=public_key)
         if signature.verify(message, public_key):
             self.append(b'\1')
         else:
@@ -937,7 +937,7 @@ class Stack(list):
             self.pop()
         sigcount = 0
         for pubkey in pubkeys:
-            s = Signature.from_str(signatures[sigcount])
+            s = Signature.parse_bytes(signatures[sigcount])
             if s.verify(message, pubkey):
                 sigcount += 1
                 if sigcount >= len(signatures):
