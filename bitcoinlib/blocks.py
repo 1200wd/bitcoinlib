@@ -127,6 +127,143 @@ class Block:
         return "<Block(%s, %s, transactions: %s)>" % (self.block_hash.hex(), self.height, self.tx_count)
 
     @classmethod
+    def parse(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
+        """
+        Create Block object from raw serialized block in bytes or BytesIO format. Wrapper for :func:`parse_bytesio`
+
+        Get genesis block:
+
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(0)
+        >>> b.block_hash.hex()
+        '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'
+
+        :param raw: Raw serialize block
+        :type raw: BytesIO, bytes
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :type block_hash: bytes
+        :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
+        :type height: int
+        :param parse_transactions: Indicate if transactions in raw block need to be parsed and converted to Transaction objects. Default is False
+        :type parse_transactions: bool
+        :param limit: Maximum number of transactions to parse. Default is 0: parse all transactions. Only used if parse_transaction is set to True
+        :type limit: int
+        :param network: Name of network
+        :type network: str
+
+        :return Block:
+        """
+
+        if isinstance(raw, bytes):
+            return cls.parse_bytesio(BytesIO(raw), block_hash, height, parse_transactions, limit, network)
+        else:
+            return cls.parse_bytesio(raw, block_hash, height, parse_transactions, limit, network)
+
+    @classmethod
+    def parse_bytes(cls, raw_bytes, block_hash=None, height=None, parse_transactions=False, limit=0,
+                    network=DEFAULT_NETWORK):
+        """
+        Create Block object from raw serialized block in bytes or BytesIO format. Wrapper for :func:`parse_bytesio`
+
+        Get genesis block:
+
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(0)
+        >>> b.block_hash.hex()
+        '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'
+
+        :param raw_bytes: Raw serialize block
+        :type raw_bytes: bytes
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :type block_hash: bytes
+        :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
+        :type height: int
+        :param parse_transactions: Indicate if transactions in raw block need to be parsed and converted to Transaction objects. Default is False
+        :type parse_transactions: bool
+        :param limit: Maximum number of transactions to parse. Default is 0: parse all transactions. Only used if parse_transaction is set to True
+        :type limit: int
+        :param network: Name of network
+        :type network: str
+
+        :return Block:
+        """
+
+        raw_bytesio = BytesIO(raw_bytes)
+        return cls.parse_bytesio(raw_bytesio, block_hash, height, parse_transactions, limit, network)
+
+    @classmethod
+    def parse_bytesio(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0,
+                      network=DEFAULT_NETWORK):
+        """
+        Create Block object from raw serialized block in BytesIO format
+
+        Get genesis block:
+
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(0)
+        >>> b.block_hash.hex()
+        '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'
+
+        :param raw: Raw serialize block
+        :type raw: BytesIO
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :type block_hash: bytes
+        :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
+        :type height: int
+        :param parse_transactions: Indicate if transactions in raw block need to be parsed and converted to Transaction objects. Default is False
+        :type parse_transactions: bool
+        :param limit: Maximum number of transactions to parse. Default is 0: parse all transactions. Only used if parse_transaction is set to True
+        :type limit: int
+        :param network: Name of network
+        :type network: str
+
+        :return Block:
+        """
+        block_header = raw.read(80)
+        block_hash_calc = double_sha256(block_header)[::-1]
+        if not block_hash:
+            block_hash = block_hash_calc
+        elif block_hash != block_hash_calc:
+            raise ValueError("Provided block hash does not correspond to calculated block hash %s" %
+                             block_hash_calc.hex())
+
+        raw.seek(0)
+        version = raw.read(4)[::-1]
+        prev_block = raw.read(32)[::-1]
+        merkle_root = raw.read(32)[::-1]
+        time = raw.read(4)[::-1]
+        bits = raw.read(4)[::-1]
+        nonce = raw.read(4)[::-1]
+        tx_count = read_varbyteint(raw)
+        tx_start_pos = raw.tell()
+        txs_data_size = raw.seek(0, 2)
+        raw.seek(tx_start_pos)
+        transactions = []
+
+        while parse_transactions and raw.tell() < txs_data_size:
+            if limit != 0 and len(transactions) >= limit:
+                break
+            t = Transaction.parse_bytesio(raw, strict=False)
+            transactions.append(t)
+            # TODO: verify transactions, need input value from previous txs
+            # if verify and not t.verify():
+            #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))
+
+        if parse_transactions and limit == 0 and tx_count != len(transactions):
+            raise ValueError("Number of found transactions %d is not equal to expected number %d" %
+                             (len(transactions), tx_count))
+
+        block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, height,
+                    network=network)
+        block.txs_data = raw
+        block.tx_count = tx_count
+        return block
+
+    @classmethod
+    @deprecated
     def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
         """
         Create Block object from raw serialized block in bytes.
