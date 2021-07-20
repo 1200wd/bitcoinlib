@@ -1099,11 +1099,7 @@ class Key(object):
         :return bytes:
         """
         if not self._hash160:
-            if self.compressed:
-                pb = self.public_byte
-            else:
-                pb = self.public_uncompressed_byte
-            self._hash160 = hash160(pb)
+            self._hash160 = hash160(self.public_byte if self.compressed else self.public_uncompressed_byte)
         return self._hash160
 
     @property

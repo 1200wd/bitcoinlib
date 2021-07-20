@@ -306,7 +306,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(res[0].txid, '8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
 
     def test_service_gettransactions_after_txid_segwit(self):
-        res = ServiceTest(timeout=TIMEOUT_TEST).\
+        res = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['blockcypher']).\
             gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
                             after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
         tx_ids = [

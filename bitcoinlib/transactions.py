@@ -774,14 +774,15 @@ class Input(object):
         self.valid = None
         self.key_path = key_path
         self.witnesses = []
-        for w in witnesses if witnesses else []:
-            self.witnesses.append(bytes.fromhex(w) if isinstance(w, str) else w)
-        self.witnesses = witnesses if witnesses else []
+        # for w in witnesses if witnesses else []:
+        #     self.witnesses.append(bytes.fromhex(w) if isinstance(w, str) else w)
+        # self.witnesses = witnesses if witnesses else []
+        self.witnesses = [] if not witnesses else [bytes.fromhex(w) if isinstance(w, str) else w for w in witnesses]
         self.script_code = b''
-        self.script = None
+        self.script = script
 
         # If unlocking script is specified extract keys, signatures, type from script
-        if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
+        if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys) and not script:
             self.script = Script.parse_bytes(self.unlocking_script)
             self.keys = self.script.keys
             self.signatures = self.script.signatures
@@ -821,7 +822,7 @@ class Input(object):
 
         for key in keys:
             if not isinstance(key, Key):
-                kobj = Key(key, network=network, strict=False)
+                kobj = Key(key, network=network, strict=strict)
             else:
                 kobj = key
             if kobj not in self.keys:
@@ -2251,7 +2252,7 @@ class Transaction(object):
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
-        :type witnesses: list of (bytes, str)
+        :type witnesses: list of bytes, list of str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
         :type encoding: str
         :param strict: Raise exception when input is malformed or incomplete
