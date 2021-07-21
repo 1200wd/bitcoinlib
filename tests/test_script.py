@@ -816,3 +816,12 @@ class TestScript(unittest.TestCase, CustomAssertions):
               '715cf7c938e238afde90207e9d103dd9018e12cb7180e03'
         s = Script.parse(scr)
         self.assertEqual(s.signatures[0].hash_type, 3)
+
+
+class TestScriptMPInumbers(unittest.TestCase):
+
+    def test_encode_decode_numbers(self):
+        for i in range(-100000, 100000):
+            bn = encode_num(i)
+            n = decode_num(bn)
+            self.assertEqual(n, i, "Verschil bij %d" % i)

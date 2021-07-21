@@ -1007,38 +1007,48 @@ class Stack(list):
 
 
 def encode_num(num):
+    """
+    Encode number as byte used in Script language. Bitcoin specific little endian format with sign for negative
+    integers.
+
+    :param num: number to represent
+    :type num: int
+
+    :return bytes:
+    """
     if num == 0:
         return b''
     abs_num = abs(num)
     negative = num < 0
-    result = bytearray()
-    while abs_num:
-        result.append(abs_num & 0xff)
-        abs_num >>= 8
-    if result[-1] & 0x80:
+    length = (num.bit_length() + 7) // 8
+    encoded = abs_num.to_bytes(length, byteorder='little')
+    if encoded[-1] & 0x80:
         if negative:
-            result.append(0x80)
+            encoded += b'\x80'
         else:
-            result.append(0)
+            encoded += b'\0'
     elif negative:
-        result[-1] |= 0x80
-    return bytes(result)
+        encoded = encoded[:-1] + (encoded[-1] + 0x80).to_bytes(1, 'big')
+    return encoded
 
 
-def decode_num(element):
-    if element == b'':
+def decode_num(encoded):
+    """
+    Decode byte representation of number used in Script language to integer.
+
+    :param encoded: Number as bytes
+    :type encoded: bytes
+
+    :return int:
+    """
+    if encoded == b'':
         return 0
-    big_endian = element[::-1]
-    if big_endian[0] & 0x80:
+    negative = False
+    if encoded[-1] & 0x80:
         negative = True
-        result = big_endian[0] & 0x7f
-    else:
-        negative = False
-        result = big_endian[0]
-    for c in big_endian[1:]:
-        result <<= 8
-        result += c
+    element = encoded[:-1] + (encoded[-1] & 0x7f).to_bytes(1, 'big')
+    num = int.from_bytes(element, 'little')
     if negative:
-        return -result
+        return -num
     else:
-        return result
+        return num
