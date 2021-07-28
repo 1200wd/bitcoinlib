@@ -199,7 +199,7 @@ class Script(object):
         self.keys = keys if keys else []
         self.signatures = signatures if signatures else []
         self._blueprint = blueprint if blueprint else []
-        self.tx_data = tx_data
+        self.tx_data = {} if not tx_data else tx_data
         self.sigs_required = sigs_required if sigs_required else len(self.keys) if len(self.keys) else 1
         self.redeemscript = redeemscript
         self.public_hash = public_hash
@@ -297,6 +297,8 @@ class Script(object):
         sigs_required = None
         # hash_type = SIGHASH_ALL  # todo: check
         hash_type = None
+        if not tx_data:
+            tx_data = {}
 
         while script:
             chb = script.read(1)
@@ -386,6 +388,9 @@ class Script(object):
             elif st == 'p2pkh' and len(s.commands) > 2:
                 s.public_hash = s.commands[2]
         s.redeemscript = redeemscript if redeemscript else s.redeemscript
+        if s.redeemscript and 'redeemscript' not in s.tx_data:
+            s.tx_data['redeemscript'] = s.redeemscript
+
         s.sigs_required = sigs_required if sigs_required else s.sigs_required
 
         return s
@@ -457,6 +462,9 @@ class Script(object):
         self.script_types = _get_script_types(self._blueprint)
         if other.tx_data and not self.tx_data:
             self.tx_data = other.tx_data
+        if other.redeemscript and not self.redeemscript:
+            self.redeemscript = other.redeemscript
+
         return self
 
     def __bool__(self):

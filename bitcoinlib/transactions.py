@@ -1437,7 +1437,7 @@ class Transaction(object):
         :return Transaction:
         """
 
-        return cls.parse(BytesIO(bytes.fromhex(rawtx)), strict, network)
+        return cls.parse_bytesio(BytesIO(bytes.fromhex(rawtx)), strict, network)
 
     @classmethod
     def parse_bytes(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
@@ -1621,6 +1621,9 @@ class Transaction(object):
         t = deepcopy(self)
         t.merge_transaction(other)
         return t
+
+    def __hash__(self):
+        return self.txid
 
     def __eq__(self, other):
         """

@@ -595,10 +595,6 @@ class TestScript(unittest.TestCase, CustomAssertions):
             '7f0129564cb51c0a38022027ba0c114bcf867ea569a55d9eb0929c148b7fdf20f176fd10944b4e0fe7a8d9014c695221036141'
             '01c3dfc98f6a7b562cd9264cc6e0d8d9597f59feea666d4c7605493b928b2102386823b976815e4f6d7279b7b4a2113c7d9e07'
             '96fa7b1ac43caa7d464a1a06db2102e7ae0137cab0a11b49caeae853d06c9499e79029670a2d649cc2e9e58b99dc5753ae')
-        redeemscript = bytes.fromhex(
-            '522103614101c3dfc98f6a7b562cd9264cc6e0d8d9597f59feea666d4c7605493b928b2102386823b976815e4f6d7279b7b4a2'
-            '113c7d9e0796fa7b1ac43caa7d464a1a06db2102e7ae0137cab0a11b49caeae853d06c9499e79029670a2d649cc2e9e58b99dc'
-            '5753ae')
 
         script = unlock_script + lock_script
         s = Script.parse_bytes(script)
@@ -608,8 +604,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertEqual(str(s), "OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_HASH160 "
                                  "data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('5a805853bf82bcdd865deb09c73ccdd61d2331ac19d8c2911f17c7d954aec059')
-        data = {'redeemscript': redeemscript}
-        self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
+        self.assertTrue(s.evaluate(message=transaction_hash))
 
     def test_script_verify_transaction_input_p2sh_multisig_huge(self):
         # Verify txid d0244d87cb38b01a7b4591c2d8001569011ce949b12a0779807e283764c559a3, input 0
@@ -660,8 +655,8 @@ class TestScript(unittest.TestCase, CustomAssertions):
                                  "signature OP_8 key key key key key key key key key key key key key key key OP_15 "
                                  "OP_CHECKMULTISIG OP_HASH160 data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('8d190df3d02369999cad3eb222ac18b3315ff2bdc449b8fb30eb14db45730fe3')
-        data = {'redeemscript': redeemscript}
-        self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
+        self.assertEqual(s.redeemscript, redeemscript)
+        self.assertTrue(s.evaluate(message=transaction_hash))
 
     def test_script_verify_transaction_input_p2wpkh(self):
         # Verify txid 75a918220a54d31cf43ce93e6d62bc0c642932cfabab0cb73c8b99b0a2b015c2, input 0
