@@ -41,7 +41,7 @@ install_requires = [
       'fastecdsa==2.1.5;platform_system!="Windows"',
       'ecdsa==0.16;platform_system=="Windows"',
       'pyaes==1.6.1',
-      'scrypt==0.8.17',
+      'scrypt==0.8.18',
       'SQLAlchemy==1.3.22',
       'numpy==1.19.5',
 ]
