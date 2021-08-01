@@ -744,6 +744,10 @@ class TestScript(unittest.TestCase, CustomAssertions):
         key3 = bytes.fromhex('0221b302fb92b25f171f1cd57bd22e60a1d2956f5831df17d94b3e9c3490aad598')
         redeemscript = Script([op.op_2, key1, key2, key3, op.op_3, op.op_checkmultisig])
         script_hash = bytes.fromhex('b0fcc0caed77aeba9786f39920151162dfaf90e679aafab7a71e9b978e7d3f39')
+        self.assertEqual(redeemscript.raw.hex(),
+                         '522102cd9107f8f1505ffd779bb7d8596ee686afc116e340f01b435871a038922255eb210297faa15d33e14e80c'
+                         'a8a8616030b677941245fea12c4ef2ca28b14bd35ed42e1210221b302fb92b25f171f1cd57bd22e60a1d2956f58'
+                         '31df17d94b3e9c3490aad59853ae')
 
         transaction_hash = b'\xc9u\x9d*]\xc8*\xf2\xb9-\xb5z\x02\x96\xc7\xce\x88e\xdd$\x8dO{M\x8e\x92ge\xc1g\x8f\x84'
         script = Script([op.op_0, sig1, sig2]) + Script(redeemscript.commands) + \
@@ -771,7 +775,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         script = b'\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
         s1 = Script.parse(script_size_byte)
         s2 = Script.parse(script)
-        s1.raw = s2.raw
+        s1._raw = s2.raw
         self.assertDictEqualExt(s1.__dict__, s2.__dict__)
 
     def test_script_parse_redeemscript(self):

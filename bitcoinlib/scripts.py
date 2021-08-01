@@ -191,7 +191,7 @@ class Script(object):
         :type hash_type: int
         """
         self.commands = commands if commands else []
-        self.raw = b''
+        self._raw = b''
         self.stack = []
         self.message = message
         self.script_types = script_types if script_types else []
@@ -368,7 +368,7 @@ class Script(object):
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data,
                 hash_type=hash_type)
         script.seek(0)
-        s.raw = script.read()
+        s._raw = script.read()
 
         s.script_types = _get_script_types(blueprint)
 
@@ -452,7 +452,7 @@ class Script(object):
 
     def __add__(self, other):
         self.commands += other.commands
-        self.raw += other.raw
+        self._raw += other.raw
         if other.message and not self.message:
             self.message = other.message
         self.is_locking = None
@@ -464,16 +464,24 @@ class Script(object):
             self.tx_data = other.tx_data
         if other.redeemscript and not self.redeemscript:
             self.redeemscript = other.redeemscript
-
         return self
 
     def __bool__(self):
         return bool(self.commands)
 
+    def __hash__(self):
+        return hash160(self.raw)
+
     @property
     def blueprint(self):
         # TODO: create blueprint from commands if empty
         return self._blueprint
+
+    @property
+    def raw(self):
+        if not self._raw:
+            self._raw = self.serialize()
+        return self._raw
 
     def serialize(self):
         """
@@ -487,7 +495,7 @@ class Script(object):
                 raw += bytes([cmd])
             else:
                 raw += data_pack(cmd)
-        self.raw = raw
+        self._raw = raw
         return raw
 
     def serialize_list(self):
