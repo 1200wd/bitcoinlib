@@ -41,4 +41,6 @@ class CoinfeesClient(BaseClient):
             return res['fastestFee'] * 1024
         elif blocks <= 2:
             return res['halfHourFee'] * 1024
+        elif blocks > 3:
+            return res['HourFee'] * 1024
         return res['hourFee'] * 1024
