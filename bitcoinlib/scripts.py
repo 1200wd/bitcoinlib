@@ -976,27 +976,43 @@ class Stack(list):
 
     def op_checklocktimeverify(self, _, data):
         if not data or 'sequence' not in data:
-            _logger.warning("Missing 'sequence' value in Script data parameter for operation check lock time verify.")
+            _logger.warning("Missing 'sequence' value in Script data parameter for operation check locktime verify.")
+        if not data or 'locktime' not in data:
+            _logger.warning("Missing 'locktime' value in Script data parameter for operation check locktime verify.")
         if data and data['sequence'] == 0xffffffff:
             return False
 
-        locktime = int.from_bytes(self[-1], 'little')
-        if locktime < 0:
+        item = decode_num(self[-1])
+        if item < 0:
             return False
+        if item < 500000000 < data['locktime'] or item > 500000000 > data['locktime']:
+            return False
+        # if locktime > 50000000:
+        #     if int(datetime.now().timestamp()) < locktime:
+        #         return False
+        # else:
+        #     if 'blockcount' not in data:
+        #         _logger.warning(
+        #             "Missing 'blockcount' value in Script data parameter for operation check locktime verify.")
+        #         return False
+        #     if data['blockcount'] < locktime:
+        #         return False
+        # return True
 
-        if locktime > 50000000:
-            if int(datetime.now().timestamp()) < locktime:
-                return False
-        else:
-            if 'blockcount' not in data:
-                _logger.warning(
-                    "Missing 'blockcount' value in Script data parameter for operation check lock time verify.")
-                return False
-            if data['blockcount'] < locktime:
-                return False
+    def op_checksequenceverify(self, _, data):
+        if not data or 'sequence' not in data:
+            _logger.warning("Missing 'sequence' value in Script data parameter for operation check sequence verify.")
+            return False
+        if 'version' not in data:
+            _logger.warning("Missing 'version' value in Script data parameter for operation check sequence verify.")
+            # TODO return False
+        if data['sequence'] == 0xffffffff:
+            return False
+        # TODO
+        # if data['version'] != 2:
+        #     return False
+
         return True
-
-    # # 'op_checksequenceverify':
 
     def op_nop4(self):
         return True
