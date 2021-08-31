@@ -464,6 +464,27 @@ class TestStack(unittest.TestCase):
         for n in [None, 1] + list(range(4, 11)):
             self.assertTrue(getattr(Stack(), 'op_nop%s' % (str(n) if n else ''))())
 
+    # TODO: Add
+    # def test_op_checklocktimeverify(self):
+        # cur_timestamp = int(datetime.now().timestamp())
+        # st = Stack([encode_num(500)])
+        # self.assertTrue(st.op_checklocktimeverify(tx_locktime=1000, sequence=1))
+        # self.assertFalse(st.op_checklocktimeverify(tx_locktime=1000, sequence=0xffffffff))
+        # self.assertFalse(st.op_checklocktimeverify(tx_locktime=499, sequence=1))
+        # self.assertTrue(st.op_checklocktimeverify(tx_locktime=500, sequence=1))
+        # self.assertFalse(st.op_checklocktimeverify(tx_locktime=cur_timestamp, sequence=1))
+        #
+        # st = Stack([encode_num(cur_timestamp-100)])
+        # self.assertTrue(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=cur_timestamp))
+        # self.assertFalse(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=660600))
+        #
+        # cur_timestamp = int(datetime.now().timestamp())
+        # st = Stack([encode_num(cur_timestamp+100)])
+        # self.assertFalse(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=cur_timestamp))
+
+    # TODO: Add
+    # def test_op_checksequenceverify(self):
+
     def test_op_if(self):
         s = Script([op.op_5, op.op_1, op.op_if, op.op_2, op.op_else, op.op_5, op.op_endif, op.op_add, op.op_1])
         self.assertTrue(s.evaluate())

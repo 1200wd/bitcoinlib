@@ -881,50 +881,6 @@ class Input(object):
         return Input(prev_txid=prev_hash, output_n=output_n, unlocking_script=unlocking_script,
                      witness_type=inp_type, sequence=sequence_number, index_n=index_n, strict=strict, network=network)
 
-    def set_locktime_relative_blocks(self, blocks):
-        """
-        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
-
-        Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
-
-        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
-
-        :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
-        :type blocks: int
-
-        :return None:
-        """
-        if blocks == 0 or blocks == 0xffffffff:
-            self.sequence = 0xffffffff
-            return
-        if blocks > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = blocks
-        self.signatures = []
-
-    def set_locktime_relative_time(self, seconds):
-        """
-        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
-
-        Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
-
-        Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
-
-        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
-
-        :param seconds: Number of seconds since the related previous transaction output has been confirmed.
-        :return:
-        """
-        if seconds == 0 or seconds == 0xffffffff:
-            self.sequence = 0xffffffff
-            return
-        if seconds < 512:
-            seconds = 512
-        if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
-        self.signatures = []
-
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
         Method to update Input scripts.
@@ -1244,6 +1200,63 @@ class Output(object):
         lock_script_size = read_varbyteint(raw)
         lock_script = raw.read(lock_script_size)
         return Output(value=value, lock_script=lock_script, output_n=output_n, strict=strict, network=network)
+
+    # TODO: Write and rewrite locktime methods
+    # def set_locktime - CLTV (BIP65)
+    # def set_locktime_blocks
+    # def set_locktime_time
+
+    def set_locktime_relative(self, locktime):
+        """
+        Relative timelocks with CHECKSEQUENCEVERIFY (CSV) as defined in BIP112
+        :param locktime:
+        :return:
+        """
+        pass
+
+    def set_locktime_relative_blocks(self, blocks):
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
+
+        Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
+        :type blocks: int
+
+        :return None:
+        """
+        # if blocks == 0 or blocks == 0xffffffff:
+        #     self.sequence = 0xffffffff
+        #     return
+        # if blocks > SEQUENCE_LOCKTIME_MASK:
+        #     raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        # self.sequence = blocks
+        # self.signatures = []
+
+    def set_locktime_relative_time(self, seconds):
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
+
+        Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
+
+        Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param seconds: Number of seconds since the related previous transaction output has been confirmed.
+        :return:
+        """
+        # if seconds == 0 or seconds == 0xffffffff:
+        #     self.sequence = 0xffffffff
+        #     return
+        # if seconds < 512:
+        #     seconds = 512
+        # if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
+        #     raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        # self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+        # self.signatures = []
 
     def as_dict(self):
         """
@@ -1768,7 +1781,7 @@ class Transaction(object):
         :param input_index_n: Index number of input for nSequence locktime
         :type input_index_n: int
 
-        :return None:
+        :return:
         """
         if blocks == 0 or blocks == 0xffffffff:
             self.inputs[input_index_n].sequence = 0xffffffff

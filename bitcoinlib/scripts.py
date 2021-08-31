@@ -545,13 +545,20 @@ class Script(object):
                     if not method(commands):
                         return False
                 else:
-                    method = opcodenames[command].lower()
-                    if method not in dir(self.stack):
-                        raise ScriptError("Method %s not found" % method)
+                    method_name = opcodenames[command].lower()
+                    if method_name not in dir(self.stack):
+                        raise ScriptError("Method %s not found" % method_name)
                     try:
-                        method = getattr(self.stack, method)
-                        if method.__code__.co_argcount > 1:
+                        method = getattr(self.stack, method_name)
+                        if method_name == 'op_checksig' or method_name == 'op_checksigverify':
+                            res = method(self.message)
+                        elif method_name == 'op_checkmultisig' or method_name == 'op_checkmultisigverify':
                             res = method(self.message, self.tx_data)
+                        elif method_name == 'op_checklocktimeverify':
+                            res = self.stack.op_checklocktimeverify(
+                                self.tx_data['sequence'], self.tx_data.get('locktime'))
+                        elif method_name == 'op_checksequenceverify':
+                            res = self.stack.op_checksequenceverify(self.tx_data['sequence'], self.tx_data['version'])
                         else:
                             res = method()
                         if res is False:
@@ -924,8 +931,6 @@ class Stack(list):
         self.op_sha256()
         return True
 
-    # 'op_codeseparator':  not implemented, mostly unused
-
     def op_checksig(self, message, _=None):
         public_key = self.pop()
         signature = self.pop()
@@ -974,45 +979,59 @@ class Stack(list):
     def op_nop1(self):
         return True
 
-    def op_checklocktimeverify(self, _, data):
-        if not data or 'sequence' not in data:
-            _logger.warning("Missing 'sequence' value in Script data parameter for operation check locktime verify.")
-        if not data or 'locktime' not in data:
-            _logger.warning("Missing 'locktime' value in Script data parameter for operation check locktime verify.")
-        if data and data['sequence'] == 0xffffffff:
-            return False
+    def op_checklocktimeverify(self, sequence, tx_locktime):
+        """
+        Implements CHECKLOCKTIMEVERIFY opcode (CLTV) as defined in BIP65.
 
-        item = decode_num(self[-1])
-        if item < 0:
+        CLTV is an absolute timelock and is added to an output locking script. It locks an output until a certain
+        time or block.
+
+        :param sequence: Sequence value from the transaction. Must be 0xffffffff to be valid
+        :type sequence: int
+        :param tx_locktime: The nLocktime value from the transaction in blocks or as Median Time Past timestamp
+        :type tx_locktime: int
+
+        :return bool:
+        """
+        # TODO: Check, add to Script/Transaction and add unittests
+        if not tx_locktime:
             return False
-        if item < 500000000 < data['locktime'] or item > 500000000 > data['locktime']:
+        if sequence == 0xffffffff:
             return False
-        # if locktime > 50000000:
-        #     if int(datetime.now().timestamp()) < locktime:
-        #         return False
-        # else:
-        #     if 'blockcount' not in data:
-        #         _logger.warning(
-        #             "Missing 'blockcount' value in Script data parameter for operation check locktime verify.")
-        #         return False
-        #     if data['blockcount'] < locktime:
+        locktime = decode_num(self[-1])
+        if locktime < 0:
+            return False
+        if locktime < 50000000 < tx_locktime or locktime > 50000000 > tx_locktime:
+            return False
+        if tx_locktime < locktime:
+            return False
+        return True
+
+    def op_checksequenceverify(self, sequence, version):
+        """
+        Implements CHECKSEQUENCEVERIFY opcode (CSV) as defined in BIP112
+
+        CSV is a relative timelock and is added to an output locking script. It locks an output for a certain number
+        of blocks or time.
+
+        :param sequence: Sequence value from the transaction
+        :type sequence: int
+        :param version: Transaction verion. Must be 2 or higher
+        :type version: int
+
+        :return bool:
+        """
+        # TODO: Implement
+        # if sequence == 0xffffffff:
+        #     return False
+        # locktime = decode_num(self[-1])
+        # if locktime < 0:
+        #     return False
+        # if locktime != 0xffffffff:
+        #     if version < 2:
         #         return False
         # return True
-
-    def op_checksequenceverify(self, _, data):
-        if not data or 'sequence' not in data:
-            _logger.warning("Missing 'sequence' value in Script data parameter for operation check sequence verify.")
-            return False
-        if 'version' not in data:
-            _logger.warning("Missing 'version' value in Script data parameter for operation check sequence verify.")
-            # TODO return False
-        if data['sequence'] == 0xffffffff:
-            return False
-        # TODO
-        # if data['version'] != 2:
-        #     return False
-
-        return True
+        return NotImplementedError
 
     def op_nop4(self):
         return True
