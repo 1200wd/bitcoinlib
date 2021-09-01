@@ -164,6 +164,18 @@ class Script(object):
         """
         Create a Script object with specified parameters. Use parse() method to create a Script from raw hex
 
+        >>> s = Script([op.op_2, op.op_4, op.op_add])
+        >>> s
+        <Script([op.op_2, op.op_4, op.op_add])>
+        >>> s.blueprint
+        [82, 84, 147]
+        >>> s.evaluate()
+        True
+
+        Stack is empty now, because evaluate pops last item from stack and check if is non-zero
+        >>> s.stack
+        []
+
         :param commands: List of script language commands
         :type commands: list
         :param message: Signed message to verify, normally a transaction hash. Used to validate script
@@ -249,6 +261,9 @@ class Script(object):
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
         Wrapper for the :func:`parse_bytesio` method. Convert hexadecimal string or bytes script to BytesIO.
+
+        >>> Script.parse('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+        <Script([op.op_dup, op.op_hash160, data-20, op.op_equalverify, op.op_checksig])>
 
         :param script: Raw script to parse in bytes, BytesIO or hexadecimal string format
         :type script: BytesIO, bytes, str
@@ -402,6 +417,9 @@ class Script(object):
 
         Wrapper for the :func:`parse_bytesio` method. Convert hexadecimal string script to BytesIO.
 
+        >>> Script.parse_hex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+        <Script([op.op_dup, op.op_hash160, data-20, op.op_equalverify, op.op_checksig])>
+
         :param script: Raw script to parse in hexadecimal string format
         :type script: str
         :param message: Signed message to verify, normally a transaction hash
@@ -440,6 +458,15 @@ class Script(object):
         :return Script:
         """
         return cls.parse_bytesio(BytesIO(script), message, tx_data, strict, _level)
+
+    def __repr__(self):
+        s_items = []
+        for command in self.blueprint:
+            if isinstance(command, int):
+                s_items.append('op.' + opcodenames.get(command, 'unknown-op-%s' % command).lower())
+            else:
+                s_items.append(command)
+        return '<Script([' + ', '.join(s_items) + '])>'
 
     def __str__(self):
         s_items = []
@@ -487,6 +514,10 @@ class Script(object):
         """
         Serialize script. Return all commands and data as bytes
 
+        >>> s = Script.parse_hex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+        >>> s.serialize().hex()
+        '76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac'
+
         :return bytes:
         """
         raw = b''
@@ -502,6 +533,10 @@ class Script(object):
         """
         Serialize script and return commands and data as list
 
+        >>> s = Script.parse_hex('76a9')
+        >>> s.serialize_list()
+        [b'v', b'\\xa9']
+
         :return list of bytes:
         """
         clist = []
@@ -515,6 +550,21 @@ class Script(object):
     def evaluate(self, message=None, tx_data=None):
         """
         Evaluate script, run all commands and check if it is valid
+
+        >>> s = Script([op.op_2, op.op_4, op.op_add])
+        >>> s
+        <Script([op.op_2, op.op_4, op.op_add])>
+        >>> s.blueprint
+        [82, 84, 147]
+        >>> s.evaluate()
+        True
+
+        >>> lock_script = bytes.fromhex('76a914f9cc73824051cc82d64a716c836c54467a21e22c88ac')
+        >>> unlock_script = bytes.fromhex('483045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437df1ea8f9819d344e05b9c93e38e88df1fc46abb6194506c50ce1012103e481f20561573cfd800e64efda61405917cb29e4bd20bed168c52b674937f535')
+        >>> s = Script.parse_bytes(unlock_script + lock_script)
+        >>> transaction_hash = bytes.fromhex('12824db63e7856d00ee5e109fd1c26ac8a6a015858c26f4b336274f6b52da1c3')
+        >>> s.evaluate(message=transaction_hash)
+        True
 
         :param message: Signed message to verify, normally a transaction hash. Leave empty to use Script.message. If
         supplied Script.message will be ignored.
@@ -578,16 +628,49 @@ class Script(object):
 
 
 class Stack(list):
+    """
+    The Stack object is a child of the Python list object with extra operational (OP) methods. The operations as
+    used in the Script language can be used to manipulate the stack / list.
+
+    For documentation of the op-methods you could check https://en.bitcoin.it/wiki/Script
+    """
 
     @classmethod
     def from_ints(cls, list_ints):
+        """
+        Create a Stack item with a list of integers.
+
+        >>> Stack.from_ints([1, 2])
+        [b'\\x01', b'\\x02']
+
+        :param list_ints:
+        :return:
+        """
         return Stack([encode_num(n) for n in list_ints])
 
     def as_ints(self):
+        """
+        Return the Stack as list of integers
+
+        >>> st = Stack.from_ints([1, 2])
+        >>> st.as_ints()
+        [1, 2]
+
+        :return list of int:
+        """
         # TODO: What to do with data/hashes?
         return Stack([decode_num(x) for x in self])
 
     def pop_as_number(self):
+        """
+        Pop the latest item from the list and decode as number
+
+        >>> st = Stack.from_ints([1, 2])
+        >>> st.pop_as_number()
+        2
+
+        :return int:
+        """
         return decode_num(self.pop())
 
     def is_arithmetic(self, items=1):
@@ -1062,6 +1145,15 @@ def encode_num(num):
     Encode number as byte used in Script language. Bitcoin specific little endian format with sign for negative
     integers.
 
+    >>> encode_num(0)
+    b''
+    >>> encode_num(1)
+    b'\\x01'
+    >>> encode_num(1000)
+    b'\\xe8\\x03'
+    >>> encode_num(1000000)
+    b'@B\\x0f'
+
     :param num: number to represent
     :type num: int
 
@@ -1086,6 +1178,11 @@ def encode_num(num):
 def decode_num(encoded):
     """
     Decode byte representation of number used in Script language to integer.
+
+    >>> decode_num(b'')
+    0
+    >>> decode_num(b'@B\\x0f')
+    1000000
 
     :param encoded: Number as bytes
     :type encoded: bytes

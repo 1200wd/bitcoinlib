@@ -318,7 +318,18 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "chainso.litecoin.testnet": {
+  "chainso.testnet": {
+    "provider": "chainso",
+    "network": "testnet",
+    "client_class": "ChainSo",
+    "provider_coin_id": "BTCTEST",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "chainso.litecoin.testnet": {
     "provider": "chainso",
     "network": "litecoin_testnet",
     "client_class": "ChainSo",
