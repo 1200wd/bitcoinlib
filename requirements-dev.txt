@@ -11,3 +11,4 @@ mysqlclient>=2.0.3
 parameterized>=0.8.1
 sphinx_rtd_theme>=0.5.1
 numpy==1.20.1
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
