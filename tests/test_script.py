@@ -751,6 +751,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertEqual(str(script), 'OP_2 OP_5 OP_SUB OP_1')
         self.assertEqual(repr(script), '<Script([op.op_2, op.op_5, op.op_sub, op.op_1])>')
         self.assertEqual(script.serialize().hex(), '52559451')
+        self.assertEqual(script.serialize_list(), [b'R', b'U', b'\x94', b'Q'])
         self.assertTrue(script.evaluate())
         self.assertEqual(script.stack, [b'\3'])
 
@@ -838,6 +839,43 @@ class TestScript(unittest.TestCase, CustomAssertions):
         s = Script.parse(scr)
         self.assertEqual(s.signatures[0].hash_type, 3)
 
+    def test_script_large_redeemscript_packing(self):
+        redeemscript_str = 'OP_15 key key key key key key key key key key key key key key key OP_15 OP_CHECKMULTISIG'
+        redeemscript = '5f2103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb5204' \
+                       '1cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c' \
+                       '2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d521' \
+                       '03938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab' \
+                       '7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823' \
+                       'ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d5210393' \
+                       '8f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8a' \
+                       'c2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e' \
+                       '249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49' \
+                       'f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b2' \
+                       '41feec7ff00c2823ee6e249425a2df18d52103938f49f584ecdb52041cab7e8ac2b241feec7ff00c2823ee6e2494' \
+                       '25a2df18d55fae'
+
+        s = Script.parse_hex(redeemscript)
+        self.assertEqual((str(s)), redeemscript_str)
+
+        redeemscript2 = data_pack(bytes.fromhex(redeemscript))
+        s = Script.parse_bytes(redeemscript2)
+        self.assertEqual((str(s)), redeemscript_str)
+
+        redeemscript_size = '4d0102' + redeemscript
+        s = Script.parse_hex(redeemscript_size)
+        self.assertEqual((str(s)), redeemscript_str)
+
+        redeemscript_size = '4dff01' + redeemscript
+        s = Script.parse_hex(redeemscript_size)
+        self.assertEqual((str(s)), redeemscript_str)
+
+        redeemscript_error = '4d0101' + redeemscript
+        self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,
+                               redeemscript_error)
+
+        redeemscript_error = '4d0202' + redeemscript
+        self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,
+                               redeemscript_error)
 
 class TestScriptMPInumbers(unittest.TestCase):
 

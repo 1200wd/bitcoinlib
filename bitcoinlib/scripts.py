@@ -325,7 +325,7 @@ class Script(object):
             if 1 <= ch <= 75:  # Data`
                 data_length = ch
             elif ch == op.op_pushdata1:
-                data_length = int.from_bytes(script.read(1), 'big')
+                data_length = int.from_bytes(script.read(1), 'little')
             elif ch == op.op_pushdata2:
                 data_length = int.from_bytes(script.read(2), 'little')
             if data_length:
