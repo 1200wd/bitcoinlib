@@ -1057,7 +1057,7 @@ class Stack(list):
         return True
 
     def op_checkmultisigverify(self, message, data=None):
-        return self.op_checkmultisig(message, data) and  self.op_verify()
+        return self.op_checkmultisig(message, data) and self.op_verify()
 
     def op_nop1(self):
         return True

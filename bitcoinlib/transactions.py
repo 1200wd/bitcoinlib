@@ -421,10 +421,6 @@ def script_to_string(script, name_data=False):
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
     
-    >>> script = '76a914c7402ab295a0eb8897ff5b8fbd5276c2d9d2340b88ac'
-    >>> script_to_string(script)
-    'OP_DUP OP_HASH160 hash-20 OP_EQUALVERIFY OP_CHECKSIG'
-
     :param script: A locking or unlocking script
     :type script: bytes, str
     :param name_data: Replace signatures and keys strings with name
@@ -890,8 +886,6 @@ class Input(object):
 
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param strict: Raise exception when input is malformed, incomplete or not understood
-        :type strict: bool
 
         :return bool: Always returns True when method is completed
         """

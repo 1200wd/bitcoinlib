@@ -466,10 +466,6 @@ class Address(object):
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
 
-        >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
-        >>> addr.as_dict()
-        {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
-
         :param address: Address to import
         :type address: str
         :param compressed: Is key compressed or not, default is None
@@ -498,7 +494,7 @@ class Address(object):
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
 
-        >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
+        >>> addr = Address.parse('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
         >>> addr.as_dict()
         {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
 
@@ -1892,7 +1888,7 @@ class Signature(object):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba'
+    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba01'
     
     """
 
@@ -1949,19 +1945,8 @@ class Signature(object):
         :return Signature: 
         """
 
-        der_signature = ''
         signature = to_bytes(signature)
-        hash_type = SIGHASH_ALL
-        if len(signature) > 64 and signature.startswith(b'\x30'):
-            der_signature = signature[:-1]
-            hash_type = int.from_bytes(signature[-1:], 'big')
-            signature = convert_der_sig(signature[:-1], as_hex=False)
-        if len(signature) != 64:
-            raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
-        r = int.from_bytes(signature[:32], 'big')
-        s = int.from_bytes(signature[32:], 'big')
-        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
-                         hash_type=hash_type)
+        return Signature(signature, public_key)
 
     @staticmethod
     def create(txid, private, use_rfc6979=True, k=None):
@@ -2262,7 +2247,7 @@ def sign(txid, private, use_rfc6979=True, k=None):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a1'
+    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a101'
 
     :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
     :type txid: bytes, str
