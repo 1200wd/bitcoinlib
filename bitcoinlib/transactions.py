@@ -788,6 +788,7 @@ class Input(object):
                 self.script_type = self.script.script_types[0]
             elif self.script.script_types == ['signature_multisig', 'multisig']:
                 self.script_type = 'p2sh_multisig'
+            # TODO: Check if this if is necessary
             if 'p2wpkh' in self.script.script_types:
                 self.script_type = 'p2sh_p2wpkh'
                 self.witness_type = 'p2sh-segwit'

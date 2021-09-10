@@ -714,7 +714,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         script = witnesses + lock_script
         s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, ['signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 168, 'data-32', 135])
-        self.assertEqual(s.script_types, ['signature', 'multisig', 'unknown'])
+        self.assertEqual(s.script_types, ['unknown'])
         self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
         transaction_hash = bytes.fromhex('43f0f6dfb58acc8ed05f5afc224c2f6c50523230bfcba5e5fd91d345e8a159ab')
         data = {'redeemscript': redeemscript}

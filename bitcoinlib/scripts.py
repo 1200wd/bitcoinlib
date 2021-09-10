@@ -386,6 +386,8 @@ class Script(object):
         s._raw = script.read()
 
         s.script_types = _get_script_types(blueprint)
+        if 'unknown' in s.script_types:
+            s.script_types = ['unknown']
 
         # Extract extra information from script data
         for st in s.script_types[:1]:
