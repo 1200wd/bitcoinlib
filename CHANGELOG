@@ -1,3 +1,11 @@
+RELEASE 0.6.0 - Scripts
+=======================
+* Add Script class to parse, create and validate scripts
+* Add Stack class and methods for script language
+* Use Script class in Transaction, Input, Output, Block and Wallet
+* Remove old service providers and fix provider various issues
+* Use standardised method names: hex, parse, parse_hex, etc in all classes
+
 RELEASE 0.5.3 - Bugfixes March 2021
 ===================================
 * Issues with unconfirmed transactions
