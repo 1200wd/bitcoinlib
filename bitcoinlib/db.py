@@ -80,8 +80,8 @@ class Db:
         #
         version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
         if version_db[:3] == '0.4' and BITCOINLIB_VERSION[:3] == '0.5':
-            raise ValueError("Old database version found (<0.4.19). Cannot to 0.5 version database automatically, "
-                             "use db_update tool to update")
+            raise ValueError("Old database version found (<0.4.19). Can not connect to 0.5 version database "
+                             "automatically, use db_update tool to update")
         try:
             if BITCOINLIB_VERSION != version_db:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "

@@ -106,7 +106,7 @@ class BaseClient(object):
 
     def _address_convert(self, address):
         if not isinstance(address, Address):
-            return Address.import_address(address, network_overrides=self.network_overrides, network=self.network.name)
+            return Address.parse(address, network_overrides=self.network_overrides, network=self.network.name)
 
     def _addresslist_convert(self, addresslist):
         addresslistconv = []

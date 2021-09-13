@@ -37,9 +37,9 @@ if USE_FASTECDSA:
     from fastecdsa import point as fastecdsa_point
 else:
     import ecdsa
+
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
-
 
 _logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class BKeyError(Exception):
     Handle Key class Exceptions
 
     """
+
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
@@ -71,11 +72,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes
     :param network: Optional network. Method raises BKeyError if keys belongs to another network
-    :type network: str
+    :type network: str, None
     :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
-    :type kf_networks: list
+    :type kf_networks: list, None
     :param default_network: Specify different default network, leave empty for default (bitcoin)
-    :type default_network: str
+    :type default_network: str, None
     
     :return str: Network name
     """
@@ -163,7 +164,7 @@ def get_key_format(key, is_private=None):
         key_format = 'hex'
         if is_private is None:
             is_private = True
-    elif len(key) == 66 and key[-2:] in ['01'] and not(is_private is False):
+    elif len(key) == 66 and key[-2:] in ['01'] and not (is_private is False):
         key_format = 'hex_compressed'
         is_private = True
     elif len(key) == 58 and key[:2] == '6P':
@@ -458,13 +459,42 @@ class Address(object):
     """
 
     @classmethod
+    @deprecated
     def import_address(cls, address, compressed=None, encoding=None, depth=None, change=None,
                        address_index=None, network=None, network_overrides=None):
         """
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
 
-        >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
+        :param address: Address to import
+        :type address: str
+        :param compressed: Is key compressed or not, default is None
+        :type compressed: bool
+        :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
+        :type encoding: str
+        :param depth: Level of depth in BIP32 key path
+        :type depth: int
+        :param change: Use 0 for normal address/key, and 1 for change address (for returned/change payments)
+        :type change: int
+        :param address_index: Index of address. Used in BIP32 key paths
+        :type address_index: int
+        :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
+        :type network: str
+        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
+        :type network_overrides: dict
+
+        :return Address:
+        """
+        return cls.parse(address, compressed, encoding, depth, change, address_index, network, network_overrides)
+
+    @classmethod
+    def parse(cls, address, compressed=None, encoding=None, depth=None, change=None,
+              address_index=None, network=None, network_overrides=None):
+        """
+        Import an address to the Address class. Specify network if available, otherwise it will be
+        derived form the address.
+
+        >>> addr = Address.parse('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
         >>> addr.as_dict()
         {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
 
@@ -495,19 +525,9 @@ class Address(object):
         if network is None:
             network = addr_dict['network']
         script_type = addr_dict['script_type']
-        return Address(hashed_data=public_key_hash_bytes,  prefix=prefix, script_type=script_type,
+        return Address(hashed_data=public_key_hash_bytes, prefix=prefix, script_type=script_type,
                        compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
                        address_index=address_index, network=network, network_overrides=network_overrides)
-
-    # FIXME: Circulair import, use separate Script object
-    # @classmethod
-    # def from_script(cls, script, witness_type='legacy', encoding=None):
-    #     us_dict = script_deserialize(script)
-    #     if witness_type == 'segwit' and not encoding:
-    #         encoding = 'bech32'
-    #     elif not encoding:
-    #         encoding = 'legacy'
-    #     cls(hashed_data=us_dict['hashes'][0], script_type=us_dict['script_type'], encoding=encoding)
 
     def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
                  compressed=None, encoding=None, witness_type=None, depth=None, change=None,
@@ -567,7 +587,7 @@ class Address(object):
         self.redeemscript = b''
         if not self.hash_bytes:
             if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig']) or \
-                            self.script_type in ['p2wsh', 'p2sh_p2wsh']:
+                    self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hash160(self.data_bytes)
@@ -581,7 +601,7 @@ class Address(object):
                 self.hash_bytes = hash160(self.redeemscript)
             if self.prefix is None:
                 if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \
-                                self.witness_type == 'p2sh-segwit':
+                        self.witness_type == 'p2sh-segwit':
                     self.prefix = self.network.prefix_address_p2sh
                 else:
                     self.prefix = self.network.prefix_address
@@ -625,8 +645,8 @@ class Address(object):
         :return dict:
         """
         addr_dict = deepcopy(self.__dict__)
-        del(addr_dict['data_bytes'])
-        del(addr_dict['hash_bytes'])
+        del (addr_dict['data_bytes'])
+        del (addr_dict['hash_bytes'])
         if isinstance(addr_dict['network'], Network):
             addr_dict['network'] = addr_dict['network'].name
         addr_dict['redeemscript'] = addr_dict['redeemscript'].hex()
@@ -662,7 +682,7 @@ class Key(object):
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, network=None, compressed=True, password='', is_private=None):
+    def __init__(self, import_key=None, network=None, compressed=True, password='', is_private=None, strict=True):
         """
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc. If import_key is empty a new
         private key will be generated.
@@ -693,6 +713,8 @@ class Key(object):
         :type password: str
         :param is_private: Specify if imported key is private or public. Default is None: derive from provided key
         :type is_private: bool
+        :param strict: Raise BKeyError if key is invalid. Default is True. Set to False if you're parsing blockchain transactions, as some may contain invalid keys, but the transaction is/was still valid.
+        :type strict: bool
 
         :return: Key object
         """
@@ -711,6 +733,9 @@ class Key(object):
         self.secret = None
         self.compressed = compressed
         self._hash160 = None
+        self.key_format = None
+        self.is_private = None
+
         if not import_key:
             import_key = random.SystemRandom().randint(1, secp256k1_n - 1)
             self.key_format = 'decimal'
@@ -718,27 +743,35 @@ class Key(object):
             assert is_private is True or is_private is None
             self.is_private = True  # Ignore provided attribute
         else:
-            kf = get_key_format(import_key)
-            if kf['format'] == 'address':
-                raise BKeyError("Can not create Key object from address")
-            self.key_format = kf["format"]
-            networks_extracted = kf["networks"]
-            self.is_private = is_private
-            if is_private is None:
-                if kf['is_private']:
-                    self.is_private = True
-                elif kf['is_private'] is None:
-                    raise BKeyError("Could not determine if key is private or public")
+            try:
+                kf = get_key_format(import_key)
+            except BKeyError:
+                if strict:
+                    raise BKeyError("Unrecognised key format")
                 else:
-                    self.is_private = False
-        network_name = None
+                    networks_extracted = []
+            else:
+                if kf['format'] == 'address':
+                    raise BKeyError("Can not create Key object from address")
+                self.key_format = kf["format"]
+                networks_extracted = kf["networks"]
+                self.is_private = is_private
+                if is_private is None:
+                    if kf['is_private']:
+                        self.is_private = True
+                    elif kf['is_private'] is None:
+                        raise BKeyError("Could not determine if key is private or public")
+                    else:
+                        self.is_private = False
+
         if network is not None:
             self.network = network
             if not isinstance(network, Network):
                 self.network = Network(network)
-            network_name = self.network.name
-        network = check_network_and_key(import_key, network_name, networks_extracted)
-        self.network = Network(network)
+        elif networks_extracted:
+            self.network = Network(check_network_and_key(import_key, None, networks_extracted))
+        else:
+            self.network = Network(DEFAULT_NETWORK)
 
         if self.key_format == "wif_protected":
             import_key, self.compressed = self._bip38_decrypt(import_key, password, network)
@@ -870,18 +903,33 @@ class Key(object):
         return "<Key(public_hex=%s, network=%s)>" % (self.public_hex, self.network.name)
 
     def __str__(self):
-        if self.is_private:
-            return self.private_hex
-        else:
-            return self.public_hex
+        return self.public_hex
+
+    def __bytes__(self):
+        return self.public_byte
+
+    def __add__(self, other):
+        return self.public_byte + other
+
+    def __radd__(self, other):
+        return other + self.public_byte
+
+    def __len__(self):
+        return len(self.public_byte)
 
     def __eq__(self, other):
-        if other is None:
+        if other is None or not isinstance(other, Key):
             return False
         if self.is_private and other.is_private:
             return self.private_hex == other.private_hex
         else:
             return self.public_hex == other.public_hex
+
+    def __hash__(self):
+        if self.is_private:
+            return hash(self.private_byte)
+        else:
+            return hash(self.public_byte)
 
     def __int__(self):
         if self.is_private:
@@ -900,6 +948,9 @@ class Key(object):
         if not self._y and self.y_hex:
             self._y = int(self.y_hex, 16)
         return self._y
+
+    def hex(self):
+        return self.public_hex
 
     def as_dict(self, include_private=False):
         """
@@ -1044,11 +1095,7 @@ class Key(object):
         :return bytes:
         """
         if not self._hash160:
-            if self.compressed:
-                pb = self.public_byte
-            else:
-                pb = self.public_uncompressed_byte
-            self._hash160 = hash160(pb)
+            self._hash160 = hash160(self.public_byte if self.compressed else self.public_uncompressed_byte)
         return self._hash160
 
     @property
@@ -1092,7 +1139,7 @@ class Key(object):
             raise BKeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if self._address_obj and script_type is None:
             script_type = self._address_obj.script_type
-        if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
+        if not (self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
             self._address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
                                         encoding=encoding, compressed=compressed)
         return self._address_obj.address
@@ -1509,9 +1556,9 @@ class HDKey(Key):
         if child_index:
             self.child_index = child_index
         raw = prefix + self.depth.to_bytes(1, 'big') + self.parent_fingerprint + \
-            self.child_index.to_bytes(4, 'big') + self.chain + typebyte + rkey
+              self.child_index.to_bytes(4, 'big') + self.chain + typebyte + rkey
         chk = double_sha256(raw)[:4]
-        ret = raw+chk
+        ret = raw + chk
         return change_base(ret, 256, 58, 111)
 
     def wif_key(self, prefix=None):
@@ -1754,7 +1801,7 @@ class HDKey(Key):
             raise BKeyError("Key cannot be zero. Try another index number.")
         newkey = int.to_bytes(newkey, 32, 'big')
 
-        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
+        return HDKey(key=newkey, chain=chain, depth=self.depth + 1, parent_fingerprint=self.fingerprint,
                      child_index=index, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
@@ -1809,7 +1856,7 @@ class HDKey(Key):
             prefix = '02'
         xhex = change_base(ki_x, 10, 16, 64)
         secret = bytes.fromhex(prefix + xhex)
-        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
+        return HDKey(key=secret, chain=chain, depth=self.depth + 1, parent_fingerprint=self.fingerprint,
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
@@ -1841,10 +1888,49 @@ class Signature(object):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba'
+    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba01'
     
     """
 
+    @classmethod
+    def parse(cls, signature, public_key=None):
+        if isinstance(signature, bytes):
+            return cls.parse_bytes(signature, public_key)
+        elif isinstance(signature, str):
+            return cls.parse_hex(signature, public_key)
+
+    @classmethod
+    def parse_hex(cls, signature, public_key=None):
+        return cls.parse_bytes(bytes.fromhex(signature), public_key)
+
+    @staticmethod
+    def parse_bytes(signature, public_key=None):
+        """
+        Create a signature from signature string with r and s part. Signature length must be 64 bytes or 128
+        character hexstring
+
+        :param signature: Signature string
+        :type signature: bytes
+        :param public_key: Public key as HDKey or Key object or any other string accepted by HDKey object
+        :type public_key: HDKey, Key, str, hexstring, bytes
+
+        :return Signature:
+        """
+
+        der_signature = ''
+        hash_type = SIGHASH_ALL
+        if len(signature) > 64 and signature.startswith(b'\x30'):
+            der_signature = signature[:-1]
+            hash_type = int.from_bytes(signature[-1:], 'big')
+            signature = convert_der_sig(signature[:-1], as_hex=False)
+        if len(signature) != 64:
+            raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
+        r = int.from_bytes(signature[:32], 'big')
+        s = int.from_bytes(signature[32:], 'big')
+        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
+                         hash_type=hash_type)
+
+    @deprecated
     @staticmethod
     def from_str(signature, public_key=None):
         """
@@ -1859,19 +1945,8 @@ class Signature(object):
         :return Signature: 
         """
 
-        der_signature = ''
         signature = to_bytes(signature)
-        hash_type = SIGHASH_ALL
-        if len(signature) > 64 and signature.startswith(b'\x30'):
-            der_signature = signature[:-1]
-            hash_type = int.from_bytes(signature[-1:], 'big')
-            signature = convert_der_sig(signature[:-1], as_hex=False)
-        if len(signature) != 64:
-            raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
-        r = int.from_bytes(signature[:32], 'big')
-        s = int.from_bytes(signature[32:], 'big')
-        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
-                         hash_type=hash_type)
+        return Signature(signature, public_key)
 
     @staticmethod
     def create(txid, private, use_rfc6979=True, k=None):
@@ -1985,7 +2060,6 @@ class Signature(object):
         self._txid = None
         self.txid = txid
         self.secret = None if not secret else int(secret)
-        self._der_encoded = to_bytes(der_signature)
         if isinstance(signature, bytes):
             self._signature = signature
             signature = signature.hex()
@@ -1997,11 +2071,32 @@ class Signature(object):
         self.public_key = public_key
         self.k = k
         self.hash_type = hash_type
+        self.hash_type_byte = self.hash_type.to_bytes(1, 'big')
+        self.der_signature = der_signature
+        if not der_signature:
+            self.der_signature = der_encode_sig(self.r, self.s)
+
+        self._der_encoded = to_bytes(der_signature) + self.hash_type_byte
 
     def __repr__(self):
         der_sig = '' if not self._der_encoded else self._der_encoded.hex()
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
                (self.r, self.s, self.hex(), der_sig)
+
+    def __str__(self):
+        return self.as_der_encoded(as_hex=True)
+
+    def __bytes__(self):
+        return self.as_der_encoded()
+
+    def __add__(self, other):
+        return self.as_der_encoded() + other
+
+    def __radd__(self, other):
+        return other + self.as_der_encoded()
+
+    def __len__(self):
+        return len(self.as_der_encoded())
 
     @property
     def txid(self):
@@ -2060,18 +2155,24 @@ class Signature(object):
             self._signature = self.r.to_bytes(32, 'big') + self.s.to_bytes(32, 'big')
         return self._signature
 
-    def as_der_encoded(self, as_hex=False):
+    def as_der_encoded(self, as_hex=False, include_hash_type=True):
         """
         Get DER encoded signature
 
         :param as_hex: Output as hexstring
         :type as_hex: bool
+        :param include_hash_type: Include hash_type byte at end of signatures as used in raw scripts. Default is True
+        :type include_hash_type: bool
 
         :return bytes: 
         """
-        if not self._der_encoded:
-            self._der_encoded = der_encode_sig(self.r, self.s)
-        return self._der_encoded.hex() if as_hex else self._der_encoded
+        if not self._der_encoded or len(self._der_encoded) < 2:
+            self._der_encoded = der_encode_sig(self.r, self.s) + self.hash_type_byte
+
+        if include_hash_type:
+            return self._der_encoded.hex() if as_hex else self._der_encoded
+        else:
+            return der_encode_sig(self.r, self.s).hex() if as_hex else der_encode_sig(self.r, self.s)
 
     def verify(self, txid=None, public_key=None):
         """
@@ -2081,7 +2182,7 @@ class Signature(object):
         >>> pub_key = HDKey(k).public()
         >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
         >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
-        >>> sig = Signature.from_str(sig)
+        >>> sig = Signature.parse_hex(sig)
         >>> sig.verify(txid, pub_key)
         True
 
@@ -2146,7 +2247,7 @@ def sign(txid, private, use_rfc6979=True, k=None):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a1'
+    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a101'
 
     :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
     :type txid: bytes, str
@@ -2186,7 +2287,7 @@ def verify(txid, signature, public_key=None):
     if not isinstance(signature, Signature):
         if not public_key:
             raise BKeyError("No public key provided, cannot verify")
-        signature = Signature.from_str(signature, public_key=public_key)
+        signature = Signature.parse(signature, public_key=public_key)
     return signature.verify(txid, public_key)
 
 

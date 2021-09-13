@@ -77,7 +77,7 @@ class LitecoreIOClient(BaseClient):
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'],
                          spending_txid=None if not to['spentTxId'] else to['spentTxId'],
-                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
+                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'], strict=False)
         return t
 
     def getbalance(self, addresslist):
@@ -177,7 +177,7 @@ class LitecoreIOClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'pages': None if not limit else int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
             'limit': limit
         }
         return block

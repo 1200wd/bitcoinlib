@@ -38,7 +38,7 @@ class LitecoinBlockexplorerClient(BaseClient):
     def compose_request(self, category, data, cmd='', variables=None, method='get', offset=0):
         url_path = category
         if data:
-            url_path += '/' + data + '/' + cmd
+            url_path += '/' + data + ('' if not cmd else '/' + cmd)
         if variables is None:
             variables = {}
         variables.update({'from': offset, 'to': offset+REQUEST_LIMIT})
@@ -57,11 +57,11 @@ class LitecoinBlockexplorerClient(BaseClient):
         txdate = None
         if 'blocktime' in tx:
             txdate = datetime.utcfromtimestamp(tx['blocktime'])
-        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees,
+        t = Transaction(locktime=tx.get('locktime'), version=tx['version'], network=self.network, fee=fees,
                         txid=tx['txid'], date=txdate,
                         confirmations=tx['confirmations'], block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
-                        output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['rawtx']) // 2)
+                        output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['hex']) // 2)
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_txid=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
@@ -71,7 +71,8 @@ class LitecoinBlockexplorerClient(BaseClient):
                 us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=us,
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
-                            double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
+                            double_spend=False if ti.get('doubleSpentTxID') is None else ti['doubleSpentTxID'],
+                            strict=False)
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
             # t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
@@ -80,20 +81,20 @@ class LitecoinBlockexplorerClient(BaseClient):
             #              spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
             # FIXME: Found many wrong spending results
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-                         spent=None, output_n=to['n'])
+                         spent=None, output_n=to['n'], strict=False)
         return t
 
     def getbalance(self, addresslist):
         balance = 0
         addresslist = self._addresslist_convert(addresslist)
         for a in addresslist:
-            res = self.compose_request('addr', a.address, 'balance')
-            balance += res
+            res = self.compose_request('address', a.address)
+            balance += int(float(res['balance']) / self.network.denominator)
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
-        res = self.compose_request('addrs', address.address, 'utxo')
+        res = self.compose_request('utxo', address.address)
         txs = []
         for tx in res:
             if tx['txid'] == after_txid:
@@ -117,31 +118,34 @@ class LitecoinBlockexplorerClient(BaseClient):
         tx = self.compose_request('tx', tx_id)
         return self._convert_to_transaction(tx)
 
-    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        address = self._address_convert(address)
-        res = self.compose_request('addrs', address.address, 'txs')
-        txs = []
-        txs_dict = res['items'][::-1]
-        if after_txid:
-            txs_dict = txs_dict[[t['txid'] for t in txs_dict].index(after_txid) + 1:]
-        for tx in txs_dict[:limit]:
-            if tx['txid'] == after_txid:
-                break
-            txs.append(self._convert_to_transaction(tx))
-        return txs
+    # FIXME: Not available anymore
+    # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    #     address = self._address_convert(address)
+    #     res = self.compose_request('addrs', address.address, 'txs')
+    #     txs = []
+    #     txs_dict = res['items'][::-1]
+    #     if after_txid:
+    #         txs_dict = txs_dict[[t['txid'] for t in txs_dict].index(after_txid) + 1:]
+    #     for tx in txs_dict[:limit]:
+    #         if tx['txid'] == after_txid:
+    #             break
+    #         txs.append(self._convert_to_transaction(tx))
+    #     return txs
 
     def getrawtransaction(self, tx_id):
-        res = self.compose_request('rawtx', tx_id)
-        return res['rawtx']
+        res = self.compose_request('tx', tx_id)
+        return res['hex']
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('tx', 'send', variables={'rawtx': rawtx}, method='post')
+        res = self.compose_request('sendtx', data={'hex': rawtx}, method='post')
         return {
             'txid': res['txid'],
             'response_dict': res
         }
 
-    # def estimatefee
+    def estimatefee(self, blocks):
+        res = self.compose_request('estimatefee', str(blocks))
+        return int(float(res['result']) / self.network.denominator)
 
     def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
@@ -178,7 +182,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'pages': None if not limit else int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
             'limit': limit
         }
         return block
