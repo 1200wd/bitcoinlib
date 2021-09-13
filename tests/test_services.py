@@ -1035,9 +1035,10 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
 
         for cache_db in DATABASES_CACHE:
-            print(cache_db)
-            srv = ServiceTest(cache_uri=cache_db,
-                              exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
+            srv = ServiceTest(cache_uri=cache_db, exclude_providers=['chainso', 'blockchair', 'bitcoind'])
+            # Those
+            # providers
+            # return incomplete results
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
             print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
             check_block_128594(b)

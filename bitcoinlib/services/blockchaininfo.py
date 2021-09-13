@@ -82,7 +82,7 @@ class BlockchainInfoClient(BaseClient):
         input_total = 0
         for n, i in enumerate(t.inputs):
             if 'prev_out' in tx['inputs'][n]:
-                i.value = tx['inputs'][n]['prev_out']['value']
+                i.value = 0 if not tx['inputs'][n]['prev_out'] else tx['inputs'][n]['prev_out']['value']
                 input_total += i.value
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
