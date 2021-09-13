@@ -85,9 +85,9 @@ class BlocksmurferClient(BaseClient):
             if not block_count:
                 block_count = self.blockcount()
             confirmations = block_count - block_height
+        tx_date = None if not tx['date'] else datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=tx['size'], txid=tx['txid'],
-                        date=datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S"), input_total=tx['input_total'],
+                        fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, input_total = tx['input_total'],
                         output_total=tx['output_total'], confirmations=confirmations, block_height=block_height,
                         status=tx['status'], coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
                         witness_type=tx['witness_type'])
