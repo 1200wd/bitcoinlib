@@ -43,7 +43,7 @@ install_requires = [
       'pyaes==1.6.1',
       'scrypt==0.8.18',
       'SQLAlchemy==1.4.23',
-      'numpy==1.21.2',
+      'numpy==1.20.3',
 ]
 
 kwargs['install_requires'] = install_requires
@@ -68,6 +68,7 @@ setup(
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
             'Topic :: Software Development :: Libraries :: Python Modules',
             'Topic :: Security :: Cryptography',
             'Topic :: Office/Business :: Financial :: Accounting',
