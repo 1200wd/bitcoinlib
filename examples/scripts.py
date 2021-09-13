@@ -92,3 +92,41 @@ redeemscript = Script(keys=keylist, sigs_required=2, script_types=['multisig'])
 print("Redeemscript hex: %s" % redeemscript.serialize().hex())
 print("Redeemscript: %s" % redeemscript)
 
+
+#
+# Deserialize input and output transaction scripts
+#
+
+print("\n=== Determine Script Types ===")
+script = '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
+s = Script.parse_hex(script)
+print("\np2pkh: %s" % s.script_types[0])
+print(s)
+
+script = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b41' \
+         '2bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa' \
+         '7446'
+s = Script.parse_hex(script)
+print("\nsig_pubkey: %s" % s.script_types[0])
+print(s)
+
+script = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
+s = Script.parse_hex(script)
+print("\nnulldata: %s" % s.script_types[0])
+print(s)
+
+script = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
+         'fe3695e758c19f46ce604e174dac315e685a52ae'
+s = Script.parse_hex(script)
+print("\nmultisig: %s" % s.script_types[0])
+print(s)
+
+script = b"\x00\x14\xdc'M\xf8\x110Ke\xbd\x95\x1fq\xa3\x81\x0e\xc1\x91\x0b\xd7\x96"
+s = Script.parse(script)
+print("\np2wpkh: %s" % s.script_types[0])
+print(s)
+
+script = b'\x00 X|\x82_z\xb2\xdcV!\x0f\x92q\x15\x85\xed\x0cj\x84\x930]~\xa7\xb2\xd4\xb3a\x1e\\\xda\x85*'
+s = Script.parse(script)
+print("\np2wsh: %s" % s.script_types[0])
+print(s)

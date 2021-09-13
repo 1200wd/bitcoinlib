@@ -110,51 +110,6 @@ print("Transaction:")
 pprint(t.as_dict())
 print("Verified %s" % t.verify())
 
-#
-# Deserialize input and output transaction scripts
-#
-
-print("\n=== Determine Script Types ===")
-print("\n- p2pkh -")
-script = '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
-script_dict = script_deserialize(script)
-pprint(script_dict)
-
-print("\n- sig_pubkey -")
-script = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b41' \
-         '2bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa' \
-         '7446'
-script_dict = script_deserialize(script)
-pprint(script_dict)
-
-print("\n- nulldata -")
-script = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
-script_dict = script_deserialize(script)
-pprint(script_dict)
-
-print("\n- multisig -")
-script = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
-         'fe3695e758c19f46ce604e174dac315e685a52ae'
-script_dict = script_deserialize(script)
-pprint(script_dict)
-
-print("\n- p2sh_multisig -")
-script = '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e60b92a725372fb312d1affed1c26757c' \
-         'aa27092a1accfe75d2ad9d8bb1663d83dbd25141043edd7b9b267dfea77f2ca7602e4cc4f9114001391d2ecd5e740bd29a3407' \
-         '67a6c436440ab1fed4c731ef05e378230c16e3f4746ae221fa91fdc86296bf1a97164104a57c1e695dec5cc9bbfa17ab153301' \
-         '6d2b4306e09d6afbe7c8959367cf775a9c3f8003e7cd2b39f6d38ba0c8909a52afe11ccc06ddb31c098134d92be478095e53ae'
-script_dict = script_deserialize(script)
-pprint(script_dict)
-
-print("\n- p2wpkh -")
-script = b"\x00\x14\xdc'M\xf8\x110Ke\xbd\x95\x1fq\xa3\x81\x0e\xc1\x91\x0b\xd7\x96"
-script_dict = script_deserialize(script)
-pprint(script_dict)
-
-print("\n- p2wsh -")
-script = b'\x00 X|\x82_z\xb2\xdcV!\x0f\x92q\x15\x85\xed\x0cj\x84\x930]~\xa7\xb2\xd4\xb3a\x1e\\\xda\x85*'
-script_dict = script_deserialize(script)
-pprint(script_dict)
 
 #
 # Deserialize transactions
@@ -165,7 +120,7 @@ rawtx = '0100000001eccf7e3034189b851985d871f91384b8ee357cd47c3024736e5676eb2debb
         '3582895e102add2e189188b9ab3779b20ae9535f5444196b150489c022042b1db0a2a76a75985264c0eb967af849a22e2af79c3' \
         '8048457dbc6c3d97c3e801210250863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352ffffffff01605' \
         'af405000000001976a914097072524438d003d23a2f23edb65aae1bb3e46988ac00000000'
-pprint(Transaction.import_raw(rawtx).as_dict())
+pprint(Transaction.parse_hex(rawtx).as_dict())
 
 print("\nDeserialize Multisig Transaction")
 rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d9f300000000fdfd0000473044022026c' \
@@ -175,7 +130,7 @@ rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d
         '8a12658c75763feb3d8f3cf7be2236f231cd157e932103c0007ae565abf62a9005801b0dad123e307ab3826b7ad7511f113db9c' \
         '8bae26a2102d132eab76542dfaae8e824ec553f20a8f11c10960203cd581428f66e2b4a98f853aeffffffff01a0860100000000' \
         '001976a91413d215d212cd5188ae02c5635faabdc4d7d4ec9188ac00000000'
-pprint(Transaction.import_raw(rawtx).as_dict())
+pprint(Transaction.parse_hex(rawtx).as_dict())
 
 print("\nDeserialize SegWit Transaction")
 rawtx = "01000000000102d6ff09fefa22fabd07306d9185da3cdefbed208d949fdc9985a164dd2ddde097000000006a4730440220385bd" \
@@ -186,7 +141,7 @@ rawtx = "01000000000102d6ff09fefa22fabd07306d9185da3cdefbed208d949fdc9985a164dd2
         "36d88ac000247304402201f835e46c76a6701dd80ba925447863d1a31ff3367083459b146564059770aab022072808730fd04d3" \
         "a7613abbe0403c36cd4e7e75ec6f7eed4faa66d1970eb6af3a0121028229ee1a1016847930d5baf8e5d017ad6ebe48167935969" \
         "021865abfa06837f500000000"
-t = Transaction.import_raw(rawtx)
+t = Transaction.parse_hex(rawtx)
 t.inputs[0].value = 2197812
 t.inputs[1].value = 2080188
 t.verify()

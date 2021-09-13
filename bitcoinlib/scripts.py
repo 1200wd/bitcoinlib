@@ -546,7 +546,7 @@ class Script(object):
             if isinstance(cmd, int):
                 clist.append(bytes([cmd]))
             else:
-                clist.append(cmd)
+                clist.append(bytes(cmd))
         return clist
 
     def evaluate(self, message=None, tx_data=None):
