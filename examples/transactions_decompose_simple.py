@@ -45,9 +45,9 @@ rt += '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
 rt += 'b7740f00'  # Locktime
 
 print("\nImport and deserialize raw transaction")
-t = Transaction.import_raw(rt)
+t = Transaction.parse_hex(rt)
 pprint(t.as_dict())
 output_script = t.outputs[0].lock_script
-print("\nOutput 1st Script Type: %s " % script_deserialize(output_script)['script_type'])
-print("Output 1st Script String: %s" % script_to_string(output_script))
+print("\nOutput 1st Script Type: %s " % Script.parse_bytes(output_script).script_types[0])
+print("Output 1st Script String: %s" % Script.parse_bytes(output_script))
 print("\nt.verified() ==> %s" % t.verify())

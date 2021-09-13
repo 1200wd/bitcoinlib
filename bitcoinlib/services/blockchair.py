@@ -126,20 +126,22 @@ class BlockChairClient(BaseClient):
 
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
-                witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
-                address = Address.import_address(ti['recipient'])
+                # witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
+                witnesses = ti['spending_witness'].split(",")
+                address = Address.parse(ti['recipient'])
                 if address.script_type == 'p2sh':
                     witness_type = 'p2sh-segwit'
                 else:
                     witness_type = 'segwit'
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
-                            unlocking_script=witnesses, index_n=index_n, value=ti['value'],
-                            address=address, witness_type=witness_type, sequence=ti['spending_sequence'])
+                            unlocking_script=ti['spending_signature_hex'],
+                            witnesses=witnesses, index_n=index_n, value=ti['value'],
+                            address=address, witness_type=witness_type, sequence=ti['spending_sequence'], strict=False)
             else:
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=ti['spending_signature_hex'], index_n=index_n, value=ti['value'],
                             address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'],
-                            sequence=ti['spending_sequence'])
+                            sequence=ti['spending_sequence'], strict=False)
             index_n += 1
         for to in res['data'][tx_id]['outputs']:
             try:
@@ -149,7 +151,7 @@ class BlockChairClient(BaseClient):
                 addr = ''
             t.add_output(value=to['value'], address=addr, lock_script=to['script_hex'],
                          spent=to['is_spent'], output_n=to['index'], spending_txid=to['spending_transaction_hash'],
-                         spending_index_n=to['spending_index'])
+                         spending_index_n=to['spending_index'], strict=False)
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -227,7 +229,7 @@ class BlockChairClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
+            'pages': None if not limit else int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
             'limit': limit
         }
         return block

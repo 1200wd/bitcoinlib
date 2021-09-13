@@ -315,6 +315,8 @@ def varbyteint_to_int(byteint):
     """
     if not isinstance(byteint, (bytes, list)):
         raise EncodingError("Byteint must be a list or defined as bytes")
+    if byteint == b'':
+        return 0
     ni = byteint[0]
     if ni < 253:
         return ni, 1
@@ -325,6 +327,21 @@ def varbyteint_to_int(byteint):
     else:  # integer of 8 bytes
         size = 8
     return int.from_bytes(byteint[1:1+size][::-1], 'big'), size + 1
+
+
+def read_varbyteint(s):
+    """
+    Read variable length integer from BytesIO stream. Wrapper for the varbyteint_to_int method
+
+    :param s: A binary stream
+    :type s: BytesIO
+
+    :return int:
+    """
+    pos = s.tell()
+    value, size = varbyteint_to_int(s.read(9))
+    s.seek(pos + size)
+    return value
 
 
 def int_to_varbyteint(inp):

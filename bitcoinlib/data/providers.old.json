@@ -21,6 +21,17 @@
     "denominator": 1,
     "network_overrides": null
   },
+  "blockcypher": {
+    "provider": "blockcypher",
+    "network": "bitcoin",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/btc/main/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
   "bitgo": {
     "provider": "bitgo",
     "network": "bitcoin",
@@ -49,6 +60,17 @@
     "client_class": "CoinfeesClient",
     "provider_coin_id": "",
     "url": "https://bitcoinfees.earn.com/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blockcypher.testnet": {
+    "provider": "blockcypher",
+    "network": "testnet",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/btc/test3/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,
@@ -257,7 +279,7 @@
     "network": "litecoin",
     "client_class": "LitecoinBlockexplorerClient",
     "provider_coin_id": "",
-    "url": "https://litecoinblockexplorer.net/api/v1/",
+    "url": "https://litecoinblockexplorer.net/api/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -268,7 +290,7 @@
     "network": "litecoin_legacy",
     "client_class": "LitecoinBlockexplorerClient",
     "provider_coin_id": "",
-    "url": "https://litecoinblockexplorer.net/api/v1/",
+    "url": "https://litecoinblockexplorer.net/api/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -318,22 +340,33 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "chainso.testnet": {
+    "chainso.litecoin.testnet": {
     "provider": "chainso",
-    "network": "testnet",
+    "network": "litecoin_testnet",
     "client_class": "ChainSo",
-    "provider_coin_id": "BTCTEST",
+    "provider_coin_id": "LTCTEST",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
-  "chainso.litecoin.testnet": {
+  "chainso": {
     "provider": "chainso",
-    "network": "litecoin_testnet",
+    "network": "bitcoin",
     "client_class": "ChainSo",
-    "provider_coin_id": "LTCTEST",
+    "provider_coin_id": "BTC",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 8,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "chainso.testnet": {
+    "provider": "chainso",
+    "network": "testnet",
+    "client_class": "ChainSo",
+    "provider_coin_id": "BTCTEST",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,

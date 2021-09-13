@@ -20,7 +20,7 @@
 
 import unittest
 
-from bitcoinlib.config.opcodes import opcode
+from bitcoinlib.config.opcodes import op
 from bitcoinlib.encoding import *
 from bitcoinlib.encoding import _bech32_polymod, _codestring_to_array
 
@@ -358,8 +358,7 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
 class TestEncodingConfig(unittest.TestCase):
 
     def test_config_opcodes(self):
-        self.assertEqual(opcode('OP_CHECKLOCKTIMEVERIFY'), b'\xb1')
-        self.assertEqual(opcode('OP_CHECKLOCKTIMEVERIFY', as_bytes=False), 177)
+        self.assertEqual(op.op_checklocktimeverify, 177)
 
 
 if __name__ == '__main__':

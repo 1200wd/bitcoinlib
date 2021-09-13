@@ -46,11 +46,17 @@ class BcoinClient(BaseClient):
             variables = {}
         return self.request(url_path, variables, method, secure=False)
 
-    def _parse_transaction(self, tx):
+    def _parse_transaction(self, tx, strict=True):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
-        t = Transaction.import_raw(tx['hex'])
+        t = Transaction.parse_hex(tx['hex'], strict=False)
+        if not t.txid == tx['hash']:
+            if strict:
+                raise ClientError('Received transaction has different txid')
+            else:
+                t.txid = tx['hash']
+                _logger.warning('Received transaction has different txid')
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
@@ -155,7 +161,7 @@ class BcoinClient(BaseClient):
         res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
         txid = ''
         if 'success' in res and res['success']:
-            t = Transaction.import_raw(rawtx)
+            t = Transaction.parse_hex(rawtx, strict=False)
             txid = t.txid
         return {
             'txid': txid,
@@ -195,9 +201,8 @@ class BcoinClient(BaseClient):
             tx['height'] = block['height']
             tx['block'] = block['hash']
             if parse_transactions:
-                t = self._parse_transaction(tx)
-                if t.txid != tx['hash']:
-                    raise ClientError("Could not parse tx %s. Different txid's" % (tx['hash']))
+                # FIXME: Parse all transactions as strict=True
+                t = self._parse_transaction(tx, strict=False)
                 parsed_txs.append(t)
             else:
                 parsed_txs.append(tx['hash'])
@@ -205,7 +210,7 @@ class BcoinClient(BaseClient):
         block['time'] = block['time']
         block['txs'] = parsed_txs
         block['page'] = page
-        block['pages'] = int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
+        block['pages'] = None if not limit else int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
         block['limit'] = limit
         block['prev_block'] = block.pop('prevBlock')
         block['merkle_root'] = block.pop('merkleRoot')

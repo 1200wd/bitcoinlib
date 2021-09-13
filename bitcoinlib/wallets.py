@@ -31,8 +31,8 @@ from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
 from bitcoinlib.values import Value, value_to_satoshi
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
-                                     serialize_multisig_redeemscript)
+from bitcoinlib.transactions import Input, Output, Transaction, get_unlocking_script_type
+from bitcoinlib.scripts import Script
 from sqlalchemy import func, or_
 
 _logger = logging.getLogger(__name__)
@@ -603,7 +603,9 @@ class WalletTransaction(Transaction):
         if hdwallet.witness_type in ['segwit', 'p2sh-segwit']:
             witness_type = 'segwit'
         Transaction.__init__(self, witness_type=witness_type, *args, **kwargs)
-        self.outgoing_tx = bool([i.address for i in self.inputs if i.address in hdwallet.addresslist()])
+        addresslist = hdwallet.addresslist()
+        self.outgoing_tx = bool([i.address for i in self.inputs if i.address in addresslist])
+        self.incoming_tx = bool([o.address for o in self.outputs if o.address in addresslist])
 
     def __repr__(self):
         return "<WalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -742,11 +744,9 @@ class WalletTransaction(Transaction):
         for ti in self.inputs:
             priv_key_list = []
             for (key_path, priv_key) in priv_key_list_arg:
-                if not key_path or key_path == ti.key_path:
+                if (not key_path or key_path == ti.key_path) and priv_key not in priv_key_list:
                     priv_key_list.append(priv_key)
-            for k in ti.keys:
-                if k.is_private:
-                    priv_key_list.append(k)
+            priv_key_list += [k for k in ti.keys if k.is_private]
             Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, fail_on_unknown_key,
                              replace_signatures)
         self.verify()
@@ -909,7 +909,7 @@ class WalletTransaction(Transaction):
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
-        :param skip_change: Do not include outputs to own wallet (default)
+        :param skip_change: Do not include outputs to own wallet (default). Please note: So if this is set to True, then an internal transfer is not exported.
         :type skip_change: boolean
 
         :return list of tuple:
@@ -917,12 +917,18 @@ class WalletTransaction(Transaction):
         mut_list = []
         wlt_addresslist = self.hdwallet.addresslist()
         input_addresslist = [i.address for i in self.inputs]
+        if self.txid == '9b2e0e6f3b21da8d4d8f64ce1bc281609dab71ef70f2ca550f66aef118e0b30e':
+            print(self.txid)
         if self.outgoing_tx:
             fee_per_output = self.fee / len(self.outputs)
             for o in self.outputs:
-                if o.address in wlt_addresslist and skip_change:
-                    continue
-                mut_list.append((self.date, self.txid, 'out', input_addresslist, o.address, -o.value, fee_per_output))
+                o_value = -o.value
+                if o.address in wlt_addresslist:
+                    if skip_change:
+                        continue
+                    elif self.incoming_tx:
+                        o_value = 0
+                mut_list.append((self.date, self.txid, 'out', input_addresslist, o.address, o_value, fee_per_output))
         else:
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
@@ -1191,7 +1197,7 @@ class Wallet(object):
                     except BKeyError:
                         try:
                             scheme = 'single'
-                            key = Address.import_address(key, encoding=encoding, network=network)
+                            key = Address.parse(key, encoding=encoding, network=network)
                         except Exception:
                             raise WalletError("Invalid key or address: %s" % key)
                     if network is None:
@@ -1633,7 +1639,11 @@ class Wallet(object):
         public_key_ids = [str(x.key_id) for x in public_keys]
 
         # Calculate redeemscript and address and add multisig key to database
-        redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
+        # redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
+
+        # todo: pass key object, reuse key objects
+        redeemscript = Script(script_types=['multisig'], keys=public_key_list,
+                              sigs_required=self.multisig_n_required).serialize()
         script_type = 'p2sh'
         if self.witness_type == 'p2sh-segwit':
             script_type = 'p2sh_p2wsh'
@@ -3211,7 +3221,7 @@ class Wallet(object):
             txs.append(self.transaction(tx[0].hex()))
         return txs
 
-    def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None):
+    def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None, skip_change=True):
         """
         Export wallets transactions as list of tuples with the following fields:
             (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative, fee)
@@ -3224,6 +3234,8 @@ class Wallet(object):
         :type include_new: bool
         :param key_id: Filter by key ID
         :type key_id: int, None
+        :param skip_change: Do not include change outputs. Default is True
+        :type skip_change: bool
 
         :return list of tuple:
         """
@@ -3231,7 +3243,7 @@ class Wallet(object):
         txs_tuples = []
         cumulative_value = 0
         for t in self.transactions(account_id, network, include_new, key_id):
-            te = t.export()
+            te = t.export(skip_change=skip_change)
 
             # When transaction is outgoing deduct fee from cumulative value
             if t.outgoing_tx:
@@ -3762,7 +3774,9 @@ class Wallet(object):
 
         if network is None:
             network = self.network.name
-        t_import = Transaction.import_raw(rawtx, network=network)
+        if isinstance(rawtx, str):
+            rawtx = bytes.fromhex(rawtx)
+        t_import = Transaction.parse_bytes(rawtx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, locktime=t_import.locktime,
                                      random_output_order=False)
         rt.version_int = t_import.version_int

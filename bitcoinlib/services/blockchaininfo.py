@@ -78,7 +78,7 @@ class BlockchainInfoClient(BaseClient):
     def gettransaction(self, txid, latest_block=None):
         tx = self.compose_request('rawtx', txid)
         rawtx = self.getrawtransaction(txid)
-        t = Transaction.import_raw(rawtx, self.network)
+        t = Transaction.parse_hex(rawtx, strict=False, network=self.network)
         input_total = 0
         for n, i in enumerate(t.inputs):
             if 'prev_out' in tx['inputs'][n]:
@@ -174,7 +174,7 @@ class BlockchainInfoClient(BaseClient):
             'txs': txs,
             'version': bd['ver'],
             'page': page,
-            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'pages': None if not limit else int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
             'limit': limit
         }
         return block

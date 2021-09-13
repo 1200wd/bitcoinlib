@@ -174,7 +174,7 @@ class BitcoindClient(BaseClient):
     #     return txs
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
-        t = Transaction.import_raw(tx['hex'], network=self.network)
+        t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
         t.confirmations = tx.get('confirmations')
         t.block_hash = tx.get('blockhash')
         t.status = 'unconfirmed'
@@ -255,7 +255,7 @@ class BitcoindClient(BaseClient):
                 # try:
                 tx['time'] = bd['time']
                 tx['blockhash'] = bd['hash']
-                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=True))
+                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
             # txs += [tx['hash'] for tx in bd['tx'][len(txs):]]

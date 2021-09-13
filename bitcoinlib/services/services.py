@@ -57,7 +57,7 @@ class Service(object):
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
                  max_errors=SERVICE_MAX_ERRORS):
         """
-        Open a service object for the specified network. By default the object connect to 1 service provider, but you
+        Create a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
@@ -513,7 +513,7 @@ class Service(object):
 
         :return Block:
         """
-        if not limit:
+        if limit is None:
             limit = 10 if parse_transactions else 99999
 
         block = self.cache.getblock(blockid)
@@ -524,7 +524,7 @@ class Service(object):
             if block.transactions:
                 self.results_cache_n = 1
             is_last_page = page*limit > block.tx_count
-        if not block or not len(block.transactions) or (not is_last_page and len(block.transactions) < limit) or \
+        if not block or (not len(block.transactions) and limit != 0) or (not is_last_page and len(block.transactions) < limit) or \
                 (is_last_page and ((page-1)*limit - block.tx_count + len(block.transactions)) < 0):
             self.results_cache_n = 0
             bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
@@ -720,11 +720,12 @@ class Cache(object):
                         witnesses.append(witness)
                 if n.ref_txid == b'\00' * 32:
                     t.coinbase = True
-                t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
+                t.add_input(n.ref_txid.hex(), n.ref_index_n, unlocking_script=n.script, address=n.address,
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses, strict=False)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
-                             spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
+                             spending_txid=None if not n.ref_txid else n.ref_txid.hex(),
+                             spending_index_n=n.ref_index_n, strict=False)
 
         t.update_totals()
         t.size = len(t.raw())
@@ -1028,8 +1029,7 @@ class Cache(object):
             witnesses = int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             new_node = DbCacheTransactionNode(txid=txid, address=i.address, index_n=i.index_n, value=i.value,
                                               is_input=True, ref_txid=i.prev_txid, ref_index_n=i.output_n_int,
-                                              script=i.unlocking_script, sequence=i.sequence,
-                                              witnesses=witnesses)
+                                              script=i.unlocking_script, sequence=i.sequence, witnesses=witnesses)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover

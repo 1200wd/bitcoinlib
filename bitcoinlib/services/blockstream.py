@@ -108,7 +108,7 @@ class BlockstreamClient(BaseClient):
         for ti in tx['vin']:
             if tx['vin'][0]['is_coinbase']:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
-                            unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'])
+                            unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'], strict=False)
             else:
                 witnesses = []
                 if 'witness' in ti:
@@ -117,7 +117,7 @@ class BlockstreamClient(BaseClient):
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address='' if 'scriptpubkey_address' not in ti['prevout']
                             else ti['prevout']['scriptpubkey_address'], sequence=ti['sequence'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses)
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=False)
             index_n += 1
         index_n = 0
         if len(tx['vout']) > 50:
@@ -129,7 +129,7 @@ class BlockstreamClient(BaseClient):
                 address = to['scriptpubkey_address']
             spent = self.isspent(t.txid, index_n)
             t.add_output(value=to['value'], address=address, lock_script=to['scriptpubkey'],
-                         output_n=index_n, spent=spent)
+                         output_n=index_n, spent=spent, strict=False)
             index_n += 1
         if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
@@ -235,7 +235,7 @@ class BlockstreamClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(bd['tx_count'] // limit) + (bd['tx_count'] % limit > 0),
+            'pages': None if not limit else int(bd['tx_count'] // limit) + (bd['tx_count'] % limit > 0),
             'limit': limit
         }
         return block

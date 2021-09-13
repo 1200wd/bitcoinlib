@@ -71,13 +71,14 @@ class InsightDashClient(BaseClient):
                 value = int(round(float(ti['value']) * self.units, 0))
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
-                            double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
+                            double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
+                            strict=False)
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'],
                          spending_txid=None if not to['spentTxId'] else to['spentTxId'],
-                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
+                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'], strict=False)
         return t
 
     def getbalance(self, addresslist):
@@ -175,7 +176,7 @@ class InsightDashClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'pages': None if not limit else int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
             'limit': limit
         }
         return block

@@ -74,15 +74,15 @@ class SmartbitClient(BaseClient):
                 unlocking_script = ti['script_sig']['hex']
                 witness_type = 'legacy'
                 if ti['witness'] and ti['witness'] != ['NULL']:
-                    address = Address.import_address(ti['addresses'][0])
+                    address = Address.parse(ti['addresses'][0])
                     if address.script_type == 'p2sh':
                         witness_type = 'p2sh-segwit'
                     else:
                         witness_type = 'segwit'
-                    unlocking_script = b"".join([varstr(bytes.fromhex(x)) for x in ti['witness']])
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
-                            witness_type=witness_type)
+                            witness_type=witness_type, witnesses=ti['witness'] if ti['witness'] != ['NULL'] else [],
+                            strict=False)
                 index_n += 1
 
         for to in tx['outputs']:
@@ -95,7 +95,7 @@ class SmartbitClient(BaseClient):
             if to['addresses']:
                 address = to['addresses'][0]
             t.add_output(value=to['value_int'], address=address, lock_script=to['script_pub_key']['hex'],
-                         spent=spent, output_n=to['n'], spending_txid=spending_txid)
+                         spent=spent, output_n=to['n'], spending_txid=spending_txid, strict=False)
         return t
 
     def getbalance(self, addresslist):
@@ -214,7 +214,7 @@ class SmartbitClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
+            'pages': None if not limit else int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
             'limit': limit
         }
         return block
