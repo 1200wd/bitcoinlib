@@ -217,6 +217,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
 
    Key <source/bitcoinlib.keys>
    Transaction <source/bitcoinlib.transactions>
+   Script <source/bitcoinlib.scripts>
    Wallet <source/bitcoinlib.wallets>
    Mnemonic <source/bitcoinlib.mnemonic>
    Network <source/bitcoinlib.networks>
