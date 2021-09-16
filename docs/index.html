@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.16: http://docutils.sourceforge.net/" />
+<title>index.rst</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger (goodger@python.org)
+:Id: $Id: html4css1.css 7952 2016-07-26 18:15:59Z milde $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See http://docutils.sf.net/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* used to remove borders from tables and images */
+.borderless, table.borderless td, table.borderless th {
+  border: 0 }
+
+table.borderless td, table.borderless th {
+  /* Override padding for "table.docutils td" with "! important".
+     The right padding separates the table cells. */
+  padding: 0 0.5em 0 0 ! important }
+
+.first {
+  /* Override more specific margin styles with "! important". */
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+.subscript {
+  vertical-align: sub;
+  font-size: smaller }
+
+.superscript {
+  vertical-align: super;
+  font-size: smaller }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+object[type="image/svg+xml"], object[type="application/x-shockwave-flash"] {
+  overflow: hidden;
+}
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title, .code .error {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin: 0 0 0.5em 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left, .figure.align-left, object.align-left, table.align-left {
+  clear: left ;
+  float: left ;
+  margin-right: 1em }
+
+img.align-right, .figure.align-right, object.align-right, table.align-right {
+  clear: right ;
+  float: right ;
+  margin-left: 1em }
+
+img.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+table.align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+  text-align: left }
+
+.align-center {
+  clear: both ;
+  text-align: center }
+
+.align-right {
+  text-align: right }
+
+/* reset inner alignment in figures */
+div.align-right {
+  text-align: inherit }
+
+/* div.align-center * { */
+/*   text-align: left } */
+
+.align-top    {
+  vertical-align: top }
+
+.align-middle {
+  vertical-align: middle }
+
+.align-bottom {
+  vertical-align: bottom }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font: inherit }
+
+pre.literal-block, pre.doctest-block, pre.math, pre.code {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+pre.code .ln { color: grey; } /* line numbers */
+pre.code, code { background-color: #eeeeee }
+pre.code .comment, code .comment { color: #5C6576 }
+pre.code .keyword, code .keyword { color: #3B0D06; font-weight: bold }
+pre.code .literal.string, code .literal.string { color: #0C5404 }
+pre.code .name.builtin, code .name.builtin { color: #352B84 }
+pre.code .deleted, code .deleted { background-color: #DEB0A1}
+pre.code .inserted, code .inserted { background-color: #A3D289}
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid 1px gray;
+  margin-left: 1px }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid 1px black;
+  margin-left: 1px }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+/* "booktabs" style (no vertical lines) */
+table.docutils.booktabs {
+  border: 0px;
+  border-top: 2px solid;
+  border-bottom: 2px solid;
+  border-collapse: collapse;
+}
+table.docutils.booktabs * {
+  border: 0px;
+}
+table.docutils.booktabs th {
+  border-bottom: thin solid;
+  text-align: left;
+}
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document">
+
+
+<!-- Bitcoinlib documentation master file, created by
+sphinx-quickstart on Sat Apr  8 10:06:16 2017.
+You can adapt this file completely to your liking, but it should at least
+contain the root `toctree` directive. -->
+<div class="section" id="welcome-to-bitcoinlib-s-documentation">
+<h1>Welcome to Bitcoinlib's documentation!</h1>
+<p>Bitcoin and other Crypto Currency Library for Python.</p>
+<p>Includes a fully functional wallet, with multi signature, multi currency and multiple accounts. Use this
+library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
+simple and straightforward Python code.</p>
+<p>You can use this library at a high level and create and manage wallets on the command line or at a low level
+and create your own custom made transactions, scripts, keys or wallets.</p>
+<p>The BitcoinLib connects to various service providers automatically to update wallets, transactions and
+blockchain information.</p>
+<div class="section" id="wallet">
+<h2>Wallet</h2>
+<p>This Bitcoin Library contains a wallet implementation using SQLAlchemy and SQLite3, MySQL or PostgreSQL to
+import, create and manage keys in a Hierarchical Deterministic way.</p>
+<p>Example: Create wallet and generate new address (key) to receive bitcoins</p>
+<pre class="code pycon literal-block">
+<span class="keyword namespace"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.wallets</span> <span class="keyword namespace">import</span> <span class="name">Wallet</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span> <span class="operator">=</span> <span class="name">Wallet</span><span class="operator">.</span><span class="name">create</span><span class="punctuation">(</span><span class="literal string single">'Wallet1'</span><span class="punctuation">)</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">key1</span> <span class="operator">=</span> <span class="name">w</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">()</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">key1</span><span class="operator">.</span><span class="name">address</span>
+<span class="generic output">'1Fo7STj6LdRhUuD1AiEsHpH65pXzraGJ9j'</span>
+</pre>
+<p>Now send a small transaction to your wallet and use the scan() method to update transactions and UTXO's</p>
+<pre class="code pycon literal-block">
+<span class="name"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span><span class="operator">.</span><span class="name">scan</span><span class="punctuation">()</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span><span class="operator">.</span><span class="name">info</span><span class="punctuation">()</span>  <span class="comment single"># Shows wallet information, keys, transactions and UTXO's</span>
+</pre>
+<p>When your wallet received a payment and has unspent transaction outputs, you can send bitcoins easily.
+If successful a transaction ID is returned</p>
+<pre class="code pycon literal-block">
+<span class="name"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="name">t</span> <span class="operator">=</span> <span class="name">w</span><span class="operator">.</span><span class="name">send_to</span><span class="punctuation">(</span><span class="literal string single">'1PWXhWvUH3bcDWn6Fdq3xhMRPfxRXTjAi1'</span><span class="punctuation">,</span> <span class="literal string single">'0.001 BTC'</span><span class="punctuation">)</span>
+<span class="generic output">'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
+</span><span class="name"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="name">t</span><span class="operator">.</span><span class="name">info</span>  <span class="comment single"># Shows transaction information and send results</span>
+</pre>
+</div>
+<div class="section" id="segregated-witness-wallet">
+<h2>Segregated Witness Wallet</h2>
+<p>Easily create and manage Segwit wallets. Both native Segwit with base32/bech32 addresses and P2SH nested Segwit
+wallets with traditional addresses are available.</p>
+<p>Create a native single key P2WPKH wallet:</p>
+<pre class="code pycon literal-block">
+<span class="keyword namespace"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.wallets</span> <span class="keyword namespace">import</span> <span class="name">Wallet</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span> <span class="operator">=</span> <span class="name">Wallet</span><span class="operator">.</span><span class="name">create</span><span class="punctuation">(</span><span class="literal string single">'segwit_p2wpkh'</span><span class="punctuation">,</span> <span class="name">witness_type</span><span class="operator">=</span><span class="literal string single">'segwit'</span><span class="punctuation">)</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">()</span><span class="operator">.</span><span class="name">address</span>
+<span class="generic output">bc1q84y2quplejutvu0h4gw9hy59fppu3thg0u2xz3</span>
+</pre>
+<p>Or create a P2SH nested single key P2SH_P2WPKH wallet:</p>
+<pre class="code pycon literal-block">
+<span class="keyword namespace"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.wallets</span> <span class="keyword namespace">import</span> <span class="name">Wallet</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span> <span class="operator">=</span> <span class="name">Wallet</span><span class="operator">.</span><span class="name">create</span><span class="punctuation">(</span><span class="literal string single">'segwit_p2sh_p2wpkh'</span><span class="punctuation">,</span> <span class="name">witness_type</span><span class="operator">=</span><span class="literal string single">'p2sh-segwit'</span><span class="punctuation">)</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">w</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">()</span><span class="operator">.</span><span class="name">address</span>
+<span class="generic output">36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp</span>
+</pre>
+</div>
+<div class="section" id="wallet-from-passphrase-with-accounts-and-multiple-currencies">
+<h2>Wallet from passphrase with accounts and multiple currencies</h2>
+<p>The following code creates a wallet with two bitcoin and one litecoin account from a Mnemonic passphrase.
+The complete wallet can be recovered from the passphrase which is the masterkey.</p>
+<pre class="code python literal-block">
+<span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.wallets</span> <span class="keyword namespace">import</span> <span class="name">Wallet</span><span class="punctuation">,</span> <span class="name">wallet_delete</span>
+<span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.mnemonic</span> <span class="keyword namespace">import</span> <span class="name">Mnemonic</span>
+
+<span class="name">passphrase</span> <span class="operator">=</span> <span class="name">Mnemonic</span><span class="punctuation">()</span><span class="operator">.</span><span class="name">generate</span><span class="punctuation">()</span>
+<span class="name builtin">print</span><span class="punctuation">(</span><span class="name">passphrase</span><span class="punctuation">)</span>
+<span class="name">w</span> <span class="operator">=</span> <span class="name">Wallet</span><span class="operator">.</span><span class="name">create</span><span class="punctuation">(</span><span class="literal string double">&quot;Wallet2&quot;</span><span class="punctuation">,</span> <span class="name">keys</span><span class="operator">=</span><span class="name">passphrase</span><span class="punctuation">,</span> <span class="name">network</span><span class="operator">=</span><span class="literal string single">'bitcoin'</span><span class="punctuation">)</span>
+<span class="name">account_btc2</span> <span class="operator">=</span> <span class="name">w</span><span class="operator">.</span><span class="name">new_account</span><span class="punctuation">(</span><span class="literal string single">'Account BTC 2'</span><span class="punctuation">)</span>
+<span class="name">account_ltc1</span> <span class="operator">=</span> <span class="name">w</span><span class="operator">.</span><span class="name">new_account</span><span class="punctuation">(</span><span class="literal string single">'Account LTC'</span><span class="punctuation">,</span> <span class="name">network</span><span class="operator">=</span><span class="literal string single">'litecoin'</span><span class="punctuation">)</span>
+<span class="name">w</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">()</span>
+<span class="name">w</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">(</span><span class="name">account_btc2</span><span class="operator">.</span><span class="name">account_id</span><span class="punctuation">)</span>
+<span class="name">w</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">(</span><span class="name">account_ltc1</span><span class="operator">.</span><span class="name">account_id</span><span class="punctuation">)</span>
+<span class="name">w</span><span class="operator">.</span><span class="name">info</span><span class="punctuation">()</span>
+</pre>
+</div>
+<div class="section" id="multi-signature-wallets">
+<h2>Multi Signature Wallets</h2>
+<p>Create a Multisig wallet with 2 cosigners which both need to sign a transaction.</p>
+<pre class="code python literal-block">
+<span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.wallets</span> <span class="keyword namespace">import</span> <span class="name">Wallet</span>
+<span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.keys</span> <span class="keyword namespace">import</span> <span class="name">HDKey</span>
+
+<span class="name">NETWORK</span> <span class="operator">=</span> <span class="literal string single">'testnet'</span>
+<span class="name">k1</span> <span class="operator">=</span> <span class="name">HDKey</span><span class="punctuation">(</span><span class="literal string single">'tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'</span>
+           <span class="literal string single">'5zNYeiX8'</span><span class="punctuation">,</span> <span class="name">network</span><span class="operator">=</span><span class="name">NETWORK</span><span class="punctuation">)</span>
+<span class="name">k2</span> <span class="operator">=</span> <span class="name">HDKey</span><span class="punctuation">(</span><span class="literal string single">'tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'</span>
+           <span class="literal string single">'MeQHdWDp'</span><span class="punctuation">,</span> <span class="name">network</span><span class="operator">=</span><span class="name">NETWORK</span><span class="punctuation">)</span>
+<span class="name">w1</span> <span class="operator">=</span> <span class="name">Wallet</span><span class="operator">.</span><span class="name">create</span><span class="punctuation">(</span><span class="literal string single">'multisig_2of2_cosigner1'</span><span class="punctuation">,</span> <span class="name">sigs_required</span><span class="operator">=</span><span class="literal number integer">2</span><span class="punctuation">,</span>
+                     <span class="name">keys</span><span class="operator">=</span><span class="punctuation">[</span><span class="name">k1</span><span class="punctuation">,</span> <span class="name">k2</span><span class="operator">.</span><span class="name">public_master</span><span class="punctuation">(</span><span class="name">multisig</span><span class="operator">=</span><span class="keyword constant">True</span><span class="punctuation">)],</span> <span class="name">network</span><span class="operator">=</span><span class="name">NETWORK</span><span class="punctuation">)</span>
+<span class="name">w2</span> <span class="operator">=</span> <span class="name">Wallet</span><span class="operator">.</span><span class="name">create</span><span class="punctuation">(</span><span class="literal string single">'multisig_2of2_cosigner2'</span><span class="punctuation">,</span>  <span class="name">sigs_required</span><span class="operator">=</span><span class="literal number integer">2</span><span class="punctuation">,</span>
+                     <span class="name">keys</span><span class="operator">=</span><span class="punctuation">[</span><span class="name">k1</span><span class="operator">.</span><span class="name">public_master</span><span class="punctuation">(</span><span class="name">multisig</span><span class="operator">=</span><span class="keyword constant">True</span><span class="punctuation">),</span> <span class="name">k2</span><span class="punctuation">],</span> <span class="name">network</span><span class="operator">=</span><span class="name">NETWORK</span><span class="punctuation">)</span>
+<span class="name builtin">print</span><span class="punctuation">(</span><span class="literal string double">&quot;Deposit testnet bitcoin to this address to create transaction: &quot;</span><span class="punctuation">,</span> <span class="name">w1</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">()</span><span class="operator">.</span><span class="name">address</span><span class="punctuation">)</span>
+</pre>
+<p>Create a transaction in the first wallet</p>
+<pre class="code python literal-block">
+<span class="name">w1</span><span class="operator">.</span><span class="name">utxos_update</span><span class="punctuation">()</span>
+<span class="name">t</span> <span class="operator">=</span> <span class="name">w1</span><span class="operator">.</span><span class="name">sweep</span><span class="punctuation">(</span><span class="literal string single">'mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf'</span><span class="punctuation">,</span> <span class="name">min_confirms</span><span class="operator">=</span><span class="literal number integer">0</span><span class="punctuation">)</span>
+<span class="name">t</span><span class="operator">.</span><span class="name">info</span><span class="punctuation">()</span>
+</pre>
+<p>And then import the transaction in the second wallet, sign it and push it to the network</p>
+<pre class="code python literal-block">
+<span class="name">w2</span><span class="operator">.</span><span class="name">get_key</span><span class="punctuation">()</span>
+<span class="name">t2</span> <span class="operator">=</span> <span class="name">w2</span><span class="operator">.</span><span class="name">transaction_import</span><span class="punctuation">(</span><span class="name">t</span><span class="punctuation">)</span>
+<span class="name">t2</span><span class="operator">.</span><span class="name">sign</span><span class="punctuation">()</span>
+<span class="name">t2</span><span class="operator">.</span><span class="name">send</span><span class="punctuation">()</span>
+<span class="name">t2</span><span class="operator">.</span><span class="name">info</span><span class="punctuation">()</span>
+</pre>
+</div>
+<div class="section" id="command-line-tool">
+<h2>Command Line Tool</h2>
+<p>With the command line tool you can create and manage wallet without any Python programming.</p>
+<p>To create a new Bitcoin wallet</p>
+<pre class="code bash literal-block">
+$ clw newwallet
+Command Line Wallet <span class="keyword">for</span> BitcoinLib
+
+Wallet newwallet does not exist, create new wallet <span class="operator">[</span>yN<span class="operator">]</span>? y
+
+CREATE wallet <span class="literal string single">'newwallet'</span> <span class="operator">(</span>bitcoin network<span class="operator">)</span>
+
+Your mnemonic private key sentence is: force humble chair kiss season ready elbow cool awake divorce famous tunnel
+
+Please write down on paper and backup. With this key you can restore your wallet and all keys
+</pre>
+<p>You can use the command line wallet 'clw' to create simple or multisig wallets for various networks,
+manage public and private keys and managing transactions.</p>
+<p>For the full command line wallet documentation please read</p>
+<p><a class="reference external" href="http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.command-line-wallet.html">http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.command-line-wallet.html</a></p>
+</div>
+<div class="section" id="service-providers">
+<h2>Service providers</h2>
+<p>Communicates with pools of bitcoin service providers to retreive transaction, address, blockchain information.
+To push a transaction to the network. To determine optimal service fee for a transaction. Or to update your
+wallet's balance.</p>
+<p>Example: Get estimated transactionfee in Sathosis per Kb for confirmation within 5 blocks</p>
+<pre class="code pycon literal-block">
+<span class="keyword namespace"></span><span class="generic prompt">&gt;&gt;&gt; </span><span class="keyword namespace">from</span> <span class="name namespace">bitcoinlib.services.services</span> <span class="keyword namespace">import</span> <span class="name">Service</span>
+<span class="generic prompt">&gt;&gt;&gt; </span><span class="name">Service</span><span class="punctuation">()</span><span class="operator">.</span><span class="name">estimatefee</span><span class="punctuation">(</span><span class="literal number integer">5</span><span class="punctuation">)</span>
+<span class="generic output">138964</span>
+</pre>
+</div>
+<div class="section" id="other-databases">
+<h2>Other Databases</h2>
+<p>Bitcoinlib uses the SQLite database by default but other databases are supported as well.
+See <a class="reference external" href="http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html">http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html</a> for instructions on how to use
+MySQL or PostgreSQL.</p>
+</div>
+<div class="section" id="more-examples">
+<h2>More examples</h2>
+<p>For more examples see <a class="reference external" href="https://github.com/1200wd/bitcoinlib/tree/master/examples">https://github.com/1200wd/bitcoinlib/tree/master/examples</a></p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/home/lennart/code/bitcoinlib/docs/index.rst</tt>, line 200)</p>
+<p>Unknown directive type &quot;toctree&quot;.</p>
+<pre class="literal-block">
+.. toctree::
+   :caption: Manuals
+   :maxdepth: 4
+
+   Installation and Settings &lt;source/_static/manuals.install&gt;
+   source/_static/manuals.command-line-wallet
+   Add Service Provider &lt;source/_static/manuals.add-provider&gt;
+   Bitcoind Node &lt;source/_static/manuals.setup-bitcoind-connection&gt;
+   Databases &lt;source/_static/manuals.databases&gt;
+   Encrypted Database &lt;source/_static/manuals.sqlcipher&gt;
+   Security &amp; Privacy &lt;source/_static/manuals.security&gt;
+   source/_static/manuals.caching
+
+
+</pre>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/home/lennart/code/bitcoinlib/docs/index.rst</tt>, line 214)</p>
+<p>Unknown directive type &quot;toctree&quot;.</p>
+<pre class="literal-block">
+.. toctree::
+   :caption: Classes
+   :maxdepth: 1
+
+   Key &lt;source/bitcoinlib.keys&gt;
+   Transaction &lt;source/bitcoinlib.transactions&gt;
+   Script &lt;source/bitcoinlib.scripts&gt;
+   Wallet &lt;source/bitcoinlib.wallets&gt;
+   Mnemonic &lt;source/bitcoinlib.mnemonic&gt;
+   Network &lt;source/bitcoinlib.networks&gt;
+   Block &lt;source/bitcoinlib.blocks&gt;
+   Value &lt;source/bitcoinlib.values&gt;
+   Service &lt;source/bitcoinlib.services.services&gt;
+   Service providers &lt;source/bitcoinlib.services&gt;
+   Config &lt;source/bitcoinlib.config&gt;
+   Database &lt;source/bitcoinlib.db&gt;
+   Cache &lt;source/bitcoinlib.db_cache&gt;
+
+</pre>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/home/lennart/code/bitcoinlib/docs/index.rst</tt>, line 232)</p>
+<p>Unknown directive type &quot;toctree&quot;.</p>
+<pre class="literal-block">
+.. toctree::
+   :caption: Reference
+   :maxdepth: 1
+
+   source/_static/classes-overview
+   Modules &lt;source/modules&gt;
+   Encoding &lt;source/bitcoinlib.encoding&gt;
+   Tools &lt;source/bitcoinlib.tools&gt;
+   source/_static/script-types-overview
+
+
+</pre>
+</div>
+</div>
+<div class="section" id="disclaimer">
+<h2>Disclaimer</h2>
+<p>This library is still in development, please use at your own risk and test sufficiently before using it in a
+production environment.</p>
+</div>
+<div class="section" id="schematic-overview">
+<h2>Schematic overview</h2>
+<img alt="_static/classes-overview.jpg" src="_static/classes-overview.jpg" />
+<img alt="_static/classes-overview-detailed.jpg" src="_static/classes-overview-detailed.jpg" />
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables</h1>
+<ul>
+<li><p class="first"><a href="#id1"><span class="problematic" id="id2">:ref:`genindex`</span></a></p>
+<div class="system-message" id="id1">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/home/lennart/code/bitcoinlib/docs/index.rst</tt>, line 260); <em><a href="#id2">backlink</a></em></p>
+<p>Unknown interpreted text role &quot;ref&quot;.</p>
+</div>
+</li>
+<li><p class="first"><a href="#id3"><span class="problematic" id="id4">:ref:`modindex`</span></a></p>
+<div class="system-message" id="id3">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/home/lennart/code/bitcoinlib/docs/index.rst</tt>, line 261); <em><a href="#id4">backlink</a></em></p>
+<p>Unknown interpreted text role &quot;ref&quot;.</p>
+</div>
+</li>
+<li><p class="first"><a href="#id5"><span class="problematic" id="id6">:ref:`search`</span></a></p>
+<div class="system-message" id="id5">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/home/lennart/code/bitcoinlib/docs/index.rst</tt>, line 262); <em><a href="#id6">backlink</a></em></p>
+<p>Unknown interpreted text role &quot;ref&quot;.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</body>
+</html>
