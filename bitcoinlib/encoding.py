@@ -889,12 +889,12 @@ class Quantity:
         # Metric prefixes according to BIPM, the International System of Units (SI) in 10**3 steps
         self.prefix_list = list('yzafpnμm1kMGTPEZY')
         self.base = self.prefix_list.index('1')
-        assert value > 0
+        assert value >= 0
 
         self.absolute = value
         self.units = units
         self.precision = precision
-        while (value < 1 or value > 1000) and 0 < self.base < len(self.prefix_list)-1:
+        while value != 0 and (value < 1 or value > 1000) and 0 < self.base < len(self.prefix_list)-1:
             if value > 1000:
                 self.base += 1
                 value /= 1000.0
@@ -905,4 +905,7 @@ class Quantity:
 
     def __str__(self):
         # > Python 3.6: return f"{self.value:4.{self.precision}f} {self.prefix_list[self.base]}{self.units}"
-        return '%4.*f %s%s' % (self.precision, self.value, self.prefix_list[self.base], self.units)
+        prefix = self.prefix_list[self.base]
+        if prefix == '1':
+            prefix = ''
+        return ('%4.*f %s%s' % (self.precision, self.value, prefix, self.units)).strip()
