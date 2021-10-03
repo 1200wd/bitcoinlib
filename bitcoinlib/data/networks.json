@@ -37,7 +37,7 @@
     "description": "Bitcoin",
     "currency_name": "bitcoin",
     "currency_name_plural": "bitcoins",
-    "currency_symbol": "฿",
+    "currency_symbol": "₿",
     "currency_code": "BTC",
     "prefix_address": "00",
     "prefix_address_p2sh": "05",
