@@ -965,7 +965,7 @@ class WalletTransaction(Transaction):
         """
         Delete this transaction from database.
 
-        WARNING: Results in incomplete wallets, transactions will NOT be automatically downloaded again when scanning or updating wallet. In nomal situations only use to remove old unconfirmed transactions
+        WARNING: Results in incomplete wallets, transactions will NOT be automatically downloaded again when scanning or updating wallet. In normal situations only used to remove old unconfirmed transactions
 
         :return int: Number of deleted transactions
         """
