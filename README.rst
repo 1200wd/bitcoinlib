@@ -3,7 +3,7 @@ Python Bitcoin Library
 
 Bitcoin, Litecoin and Dash Crypto Currency Library for Python.
 
-Includes a fully functional wallet, with multi signature, multi currency and multiple accounts.
+Includes a fully functional wallet with multi-signature, multi-currency and multiple accounts.
 You this library at a high level and create and manage wallets for the command line or at a low level
 and create your own custom made transactions, keys or wallets.
 
