@@ -80,7 +80,7 @@ If successful a transaction ID is returned
 Wallet from passphrase with accounts and multiple currencies
 ------------------------------------------------------------
 
-The following code creates a wallet with two bitcoin and one Litecoin account from a Mnemonic passphrase.
+The following code creates a wallet with two Bitcoin and one Litecoin account from a Mnemonic passphrase.
 The complete wallet can be recovered from the passphrase, which is the masterkey.
 
 .. code-block:: python
