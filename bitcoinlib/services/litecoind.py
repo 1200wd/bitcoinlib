@@ -81,13 +81,7 @@ class LitecoindClient(BaseClient):
                     break
         else:
             cfn = Path(BCL_DATA_DIR, 'config', configfile)
-        if not cfn or not cfn.is_file():
-            raise ConfigError(
-                "Config file %s not found. Please install Litecoin client and specify a path to config "
-                "file if path is not default. Or place a config file in .bitcoinlib/litecoin.conf to "
-                "reference to an external server." % cfn)
-        else:
-            cfn = Path(BCL_DATA_DIR, 'config', configfile)
+
         if not cfn or not cfn.is_file():
             raise ConfigError("Config file %s not found. Please install Litecoin client and specify a path to config "
                               "file if path is not default. Or place a config file in .bitcoinlib/litecoin.conf to "
