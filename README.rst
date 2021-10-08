@@ -3,7 +3,7 @@ Python Bitcoin Library
 
 Bitcoin, Litecoin and Dash Crypto Currency Library for Python.
 
-Includes a fully functional wallet, with multi signature, multi currency and multiple accounts.
+Includes a fully functional wallet with multi-signature, multi-currency and multiple accounts.
 You this library at a high level and create and manage wallets for the command line or at a low level
 and create your own custom made transactions, keys or wallets.
 
@@ -80,8 +80,8 @@ If successful a transaction ID is returned
 Wallet from passphrase with accounts and multiple currencies
 ------------------------------------------------------------
 
-The following code creates a wallet with two bitcoin and one litecoin account from a Mnemonic passphrase.
-The complete wallet can be recovered from the passphrase which is the masterkey.
+The following code creates a wallet with two bitcoin and one Litecoin account from a Mnemonic passphrase.
+The complete wallet can be recovered from the passphrase, which is the masterkey.
 
 .. code-block:: python
 
@@ -99,7 +99,7 @@ The complete wallet can be recovered from the passphrase which is the masterkey.
     w.info()
 
 
-Multi Signature Wallets
+Multi-Signature Wallets
 -----------------------
 
 Create a Multisig wallet with 2 cosigners which both need to sign a transaction.
@@ -167,7 +167,7 @@ Or create a P2SH nested single key P2SH_P2WPKH wallet:
 Command Line Tool
 -----------------
 
-With the command line tool you can create and manage wallet without any Python programming.
+With the command line tool you can create and manage a wallet without any Python programming.
 
 To create a new Bitcoin wallet
 
@@ -197,7 +197,7 @@ Mnemonic key generation
 -----------------------
 
 Allows you to use easy to remember passphrases consisting of a number of words to store private keys (BIP0039).
-You can password protect this passphrase (BIP0038), and use the HD Wallet structure to generate a almost infinite 
+You can password protect this passphrase (BIP0038), and use the HD Wallet structure to generate an almost infinite 
 number of new private keys and bitcoin addresses (BIP0043 and BIP0044).
 
 Example: Generate a list of words passphrase and derive a private key seed
@@ -215,11 +215,11 @@ Example: Generate a list of words passphrase and derive a private key seed
 
 Service providers
 -----------------
-Communicates with pools of bitcoin service providers to retreive transaction, address, blockchain information. 
+Communicates with pools of bitcoin service providers to retrieve transaction, address, blockchain information. 
 Can be used to push a transaction to the network, determine optimal service fee for a transaction or to update your
 wallet's balance.
 
-When working with wallets connections to service providers are automatically managed so you don't have to worry
+When working with wallets, connections to service providers are automatically managed, so you don't have to worry
 about them. You can however easily use the Service object directly.
 
 Example: Get estimated transaction fee in Sathosis per Kb for confirmation within 5 blocks
@@ -234,7 +234,7 @@ Example: Get estimated transaction fee in Sathosis per Kb for confirmation withi
 Other Databases
 ---------------
 
-Bitcoinlib uses the SQLite database by default but other databases are supported as well.
+Bitcoinlib uses the SQLite database by default, but other databases are supported as well.
 See http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for instructions on how to use
 MySQL or PostgreSQL.
 
@@ -324,7 +324,7 @@ Then clone the repository and install dependencies:
 Troubleshooting
 ---------------
 
-When you experience issues with the scrypt package when installing you can try to solve this by removing and reinstall
+When you experience issues with the scrypt package when installing, you can try to solve this by removing and reinstall
 scrypt:
 
 .. code-block:: bash
@@ -342,7 +342,7 @@ It works but it is slow when using BIP38 password protected keys.
 
     $ pip install pyscrypt
 
-If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+If you run into issues, do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
 
 Update library

@@ -295,7 +295,7 @@ class Value:
         '2.10000000 GBTC'
 
         >>> Value('1.5 BTC').str(currency_repr='symbol')
-        '1.50000000 ฿'
+        '1.50000000 ₿'
 
         >>> Value('1.5 BTC').str(currency_repr='name')
         '1.50000000 bitcoins'
@@ -304,7 +304,7 @@ class Value:
         :type denominator: int, float, str
         :param decimals: Number of decimals to use
         :type decimals: float
-        :param currency_repr: Representation of currency. I.e. code: BTC, name: bitcoins, symbol: ฿
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: bitcoins, symbol: ₿
         :type currency_repr: str
 
         :return str:
@@ -359,7 +359,7 @@ class Value:
 
         :param decimals: Number of decimals to use
         :type decimals: float
-        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ฿
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ₿
         :type currency_repr: str
         :return str:
         """
@@ -377,7 +377,7 @@ class Value:
 
         :param decimals: Number of decimals to use
         :type decimals: float
-        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ฿
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ₿
         :type currency_repr: str
         :return str:
         """
