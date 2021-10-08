@@ -255,7 +255,7 @@ class BitcoindClient(BaseClient):
                 # try:
                 tx['time'] = bd['time']
                 tx['blockhash'] = bd['hash']
-                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
+                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=True))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
             # txs += [tx['hash'] for tx in bd['tx'][len(txs):]]
