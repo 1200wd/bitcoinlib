@@ -6,15 +6,15 @@ matrix:
       env:
         - BCL_CONFIG_FILE=config.ini.unittest
     # Test ecdsa and pyscrypt for systems where fastecdsa and/or scrypt are not available
-    - python: 3.7
-      dist: bionic
-      env:
-        - USING_MODULE_SCRYPT=False
-        - USE_FASTECDSA=False
-        - BCL_CONFIG_FILE=config.ini.unittest
-      before_script:
-        - pip install ecdsa
-        - pip install pyscrypt
+#    - python: 3.7
+#      dist: bionic
+#      env:
+#        - USING_MODULE_SCRYPT=False
+#        - USE_FASTECDSA=False
+#        - BCL_CONFIG_FILE=config.ini.unittest
+#      before_script:
+#        - pip install ecdsa
+#        - pip install pyscrypt
     # Enable 3.8 without globally enabling sudo and dist: xenial for other build jobs
     - python: 3.8
       dist: xenial
