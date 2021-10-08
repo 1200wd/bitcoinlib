@@ -219,7 +219,7 @@ Communicates with pools of bitcoin service providers to retreive transaction, ad
 Can be used to push a transaction to the network, determine optimal service fee for a transaction or to update your
 wallet's balance.
 
-When working with wallets connections to service providers are automatically managed so you don't have to worry
+When working with wallets, connections to service providers are automatically managed, so you don't have to worry
 about them. You can however easily use the Service object directly.
 
 Example: Get estimated transaction fee in Sathosis per Kb for confirmation within 5 blocks
@@ -234,7 +234,7 @@ Example: Get estimated transaction fee in Sathosis per Kb for confirmation withi
 Other Databases
 ---------------
 
-Bitcoinlib uses the SQLite database by default but other databases are supported as well.
+Bitcoinlib uses the SQLite database by default, but other databases are supported as well.
 See http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for instructions on how to use
 MySQL or PostgreSQL.
 
@@ -324,7 +324,7 @@ Then clone the repository and install dependencies:
 Troubleshooting
 ---------------
 
-When you experience issues with the scrypt package when installing you can try to solve this by removing and reinstall
+When you experience issues with the scrypt package when installing, you can try to solve this by removing and reinstall
 scrypt:
 
 .. code-block:: bash
@@ -342,7 +342,7 @@ It works but it is slow when using BIP38 password protected keys.
 
     $ pip install pyscrypt
 
-If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+If you run into issues, do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
 
 Update library
