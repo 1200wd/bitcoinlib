@@ -889,18 +889,17 @@ class TestServiceCache(unittest.TestCase):
         except Exception:
             pass
 
-        con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cur = con.cursor()
         try:
+            con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
+            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            cur = con.cursor()
             cur.execute(sql.SQL("CREATE DATABASE {}").format(
                 sql.Identifier('bitcoinlibcache.unittest'))
             )
-        except Exception:
-            pass
-        finally:
             cur.close()
             con.close()
+        except Exception:
+            pass
 
     def test_service_cache_transactions(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
