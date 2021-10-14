@@ -38,7 +38,12 @@ from bitcoinlib.main import *
 
 
 _logger = logging.getLogger(__name__)
-_logger.info("Default Cache Database %s" % DEFAULT_DATABASE_CACHE)
+try:
+    dbcacheurl_obj = urlparse(DEFAULT_DATABASE_CACHE)
+    dbcacheurl_obj.netloc.replace(dbcacheurl_obj.password, 'xxx')
+    _logger.info("Default Cache Database %s" % dbcacheurl_obj)
+except:
+    _logger.warning("Default Cache Database: unable to parse URL")
 Base = declarative_base()
 
 
