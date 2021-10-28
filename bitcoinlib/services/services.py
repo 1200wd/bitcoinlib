@@ -729,6 +729,7 @@ class Cache(object):
 
         t.update_totals()
         t.size = len(t.raw())
+        t.calc_weight_units()
         _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
