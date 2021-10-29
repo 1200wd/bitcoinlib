@@ -986,8 +986,7 @@ class TestServiceCache(unittest.TestCase):
     # FIXME: Fails with some providers, needs testing
     def test_service_cache_transaction_segwit_database(self):
         for db_uri in DATABASES_CACHE:
-            srv = ServiceTest(cache_uri=db_uri, network='bitcoin',
-                              exclude_providers=['blocksmurfer'])
+            srv = ServiceTest(cache_uri=db_uri, network='bitcoin', exclude_providers=['blocksmurfer'])
             rawtx \
                 = "020000000001012d83146744d37b0aa13b609a206206860d550e911882c89afabc3abaeebc5f7d0100000000ffffffff01" \
                   "cb2500000000000017a914da4540e3b144eb0c6d3be573fba0ffab3887c6138702473044022067be0a16037511c15b310b" \
