@@ -43,17 +43,6 @@
     "denominator": 1,
     "network_overrides": null
   },
-  "coinfees": {
-    "provider": "coinfees",
-    "network": "bitcoin",
-    "client_class": "CoinfeesClient",
-    "provider_coin_id": "",
-    "url": "https://bitcoinfees.earn.com/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 1,
-    "network_overrides": null
-  },
   "blockcypher.litecoin": {
     "provider": "blockcypher",
     "network": "litecoin",
