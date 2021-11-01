@@ -1,3 +1,10 @@
+RELEASE 0.6.2 - Bugfixes October 2021
+=====================================
+* Fix logging issues
+* Add Bitflyer client
+* Remove Coinfees client
+* Fix various provider and service request issues
+
 RELEASE 0.6.1 - Minor bug fixes
 ===============================
 * Issues with bcoin, litcoind, bitcoind provider
