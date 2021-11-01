@@ -526,7 +526,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'block_height': 500834,
             'coinbase': True,
             'date': datetime(2017, 12, 24, 13, 16, 30),
-            'flag': b'\1',
+            'flag': 1,
             'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
             'input_total': 0,
             'inputs': [
@@ -564,7 +564,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'status': 'confirmed',
             'version': 1
         }
-        srv = ServiceTest(network='bitcoin', min_providers=3, providers=['blocksmurfer'])
+        srv = ServiceTest(network='bitcoin', min_providers=3)
 
         # Get transactions by hash
         srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')

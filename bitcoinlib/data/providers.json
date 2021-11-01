@@ -301,7 +301,7 @@
     "network": "bitcoin",
     "client_class": "BlocksmurferClient",
     "provider_coin_id": "",
-    "url": "http://api.blocksmurfer.io/api/v1/btc/",
+    "url": "https://api.blocksmurfer.io/api/v1/btc/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
