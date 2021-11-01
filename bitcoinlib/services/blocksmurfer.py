@@ -157,7 +157,7 @@ class BlocksmurferClient(BaseClient):
                 return [t.txid]
         # else:
             # return self.compose_request('mempool', 'txids')
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         variables = {'parse_transactions': parse_transactions, 'page': page, 'limit': limit}

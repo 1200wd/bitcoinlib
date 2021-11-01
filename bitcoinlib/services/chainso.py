@@ -152,7 +152,7 @@ class ChainSo(BaseClient):
         res = self.compose_request('is_tx_confirmed', txid)
         if res['status'] == 'success' and res['data']['confirmations'] == 0:
             return [txid]
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if limit > 5:

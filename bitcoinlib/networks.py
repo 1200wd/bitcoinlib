@@ -72,16 +72,16 @@ def network_values_for(field):
     Return all prefixes for field, i.e.: prefix_wif, prefix_address_p2sh, etc
 
     >>> network_values_for('prefix_wif')
-    [b'\\x99', b'\\x80', b'\\xef', b'\\xb0', b'\\xb0', b'\\xef', b'\\xcc', b'\\xef', b'\\x9e', b'\\xf1']
+    [b'\\x99', b'\\x80', b'\\xef', b'\\xb0', b'\\xcc', b'\\x9e', b'\\xf1']
     >>> network_values_for('prefix_address_p2sh')
-    [b'\\x95', b'\\x05', b'\\xc4', b'2', b'\\x05', b':', b'\\x10', b'\\x13', b'\\x16', b'\\xc4']
+    [b'\\x95', b'\\x05', b'\\xc4', b'2', b':', b'\\x10', b'\\x13', b'\\x16']
 
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
 
     :return str: 
     """
-    return [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
+    return list(dict.fromkeys([_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]))
 
 
 def network_by_value(field, value):
@@ -157,7 +157,7 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     Can return multiple items if no network is specified:
 
     >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
-    ['bitcoin', 'dash', 'dogecoin']
+    ['bitcoin', 'regtest', 'dash', 'dogecoin']
 
     :param wif: WIF string or prefix as hexadecimal string
     :type wif: str

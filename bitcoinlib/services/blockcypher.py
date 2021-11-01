@@ -56,38 +56,39 @@ class BlockCypher(BaseClient):
             balance += float(rec['final_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        address = self._address_convert(address)
-        res = self.compose_request('addrs', address.address, variables={'unspentOnly': 1, 'limit': 2000})
-        transactions = []
-        if not isinstance(res, list):
-            res = [res]
-        for a in res:
-            txrefs = a.setdefault('txrefs', []) + a.get('unconfirmed_txrefs', [])
-            if len(txrefs) > 500:
-                _logger.warning("BlockCypher: Large number of transactions for address %s, "
-                                "Transaction list may be incomplete" % address)
-            for tx in txrefs:
-                if tx['tx_hash'] == after_txid:
-                    break
-                tdate = None
-                if 'confirmed' in tx:
-                    try:
-                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
-                    except ValueError:
-                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                transactions.append({
-                    'address': address.address_orig,
-                    'txid': tx['tx_hash'],
-                    'confirmations': tx['confirmations'],
-                    'output_n': tx['tx_output_n'],
-                    'index': 0,
-                    'value': int(round(tx['value'] * self.units, 0)),
-                    'script': '',
-                    'block_height': None,
-                    'date': tdate
-                })
-        return transactions[::-1][:limit]
+    # Disabled: Invalid results for https://api.blockcypher.com/v1/ltc/main/addrs/LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG?unspentOnly=1&limit=2000
+    # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    #     address = self._address_convert(address)
+    #     res = self.compose_request('addrs', address.address, variables={'unspentOnly': 1, 'limit': 2000})
+    #     transactions = []
+    #     if not isinstance(res, list):
+    #         res = [res]
+    #     for a in res:
+    #         txrefs = a.setdefault('txrefs', []) + a.get('unconfirmed_txrefs', [])
+    #         if len(txrefs) > 500:
+    #             _logger.warning("BlockCypher: Large number of transactions for address %s, "
+    #                             "Transaction list may be incomplete" % address)
+    #         for tx in txrefs:
+    #             if tx['tx_hash'] == after_txid:
+    #                 break
+    #             tdate = None
+    #             if 'confirmed' in tx:
+    #                 try:
+    #                     tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+    #                 except ValueError:
+    #                     tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
+    #             transactions.append({
+    #                 'address': address.address_orig,
+    #                 'txid': tx['tx_hash'],
+    #                 'confirmations': tx['confirmations'],
+    #                 'output_n': tx['tx_output_n'],
+    #                 'index': 0,
+    #                 'value': int(round(tx['value'] * self.units, 0)),
+    #                 'script': '',
+    #                 'block_height': None,
+    #                 'date': tdate
+    #             })
+    #     return transactions[::-1][:limit]
 
     def gettransaction(self, txid):
         tx = self.compose_request('txs', txid, variables={'includeHex': 'true'})
@@ -174,6 +175,8 @@ class BlockCypher(BaseClient):
             tx = self.compose_request('txs', txid)
             if tx['confirmations'] == 0:
                 return [tx['hash']]
+            else:
+                return []
         return False
 
     def getblock(self, blockid, parse_transactions, page, limit):

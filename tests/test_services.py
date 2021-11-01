@@ -152,12 +152,15 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_address_conversion(self):
         srv = ServiceTest(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
-        srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
-        exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
-        for r in srv.results:
-            if r not in exp_dict:
-                print("WARNING: Provider %s not found in results" % r)
-            self.assertEqual(srv.results[r], exp_dict[r])
+        try:
+            srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
+            exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
+            for r in srv.results:
+                if r not in exp_dict:
+                    print("WARNING: Provider %s not found in results" % r)
+                self.assertEqual(srv.results[r], exp_dict[r])
+        except ServiceError:
+            self.skipTest("No response from service providers")
 
     def test_service_get_utxos(self):
         expected_dict = {
@@ -523,7 +526,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'block_height': 500834,
             'coinbase': True,
             'date': datetime(2017, 12, 24, 13, 16, 30),
-            'flag': b'\1',
+            'flag': 1,
             'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
             'input_total': 0,
             'inputs': [
@@ -561,7 +564,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'status': 'confirmed',
             'version': 1
         }
-        srv = ServiceTest(network='bitcoin', min_providers=3, providers=['blocksmurfer'])
+        srv = ServiceTest(network='bitcoin', min_providers=3)
 
         # Get transactions by hash
         srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
@@ -983,11 +986,9 @@ class TestServiceCache(unittest.TestCase):
             srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
             self.assertGreaterEqual(srv.results_cache_n, 1)
 
-    # FIXME: Fails with some providers, needs testing
     def test_service_cache_transaction_segwit_database(self):
         for db_uri in DATABASES_CACHE:
-            srv = ServiceTest(cache_uri=db_uri, network='bitcoin',
-                              exclude_providers=['blocksmurfer'])
+            srv = ServiceTest(cache_uri=db_uri, network='bitcoin')
             rawtx \
                 = "020000000001012d83146744d37b0aa13b609a206206860d550e911882c89afabc3abaeebc5f7d0100000000ffffffff01" \
                   "cb2500000000000017a914da4540e3b144eb0c6d3be573fba0ffab3887c6138702473044022067be0a16037511c15b310b" \

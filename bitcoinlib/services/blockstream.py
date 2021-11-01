@@ -197,6 +197,8 @@ class BlockstreamClient(BaseClient):
             t = self.gettransaction(txid)
             if t and not t.confirmations:
                 return [t.txid]
+            else:
+                return []
         else:
             return self.compose_request('mempool', 'txids')
         return False

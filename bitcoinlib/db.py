@@ -87,7 +87,6 @@ class Db:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
                                 "Let's try to update database." % (version_db, BITCOINLIB_VERSION))
                 db_update(self, version_db, BITCOINLIB_VERSION)
-
         except Exception as e:
             _logger.warning("Error when verifying version or updating database: %s" % e)
 
