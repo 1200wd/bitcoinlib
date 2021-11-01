@@ -728,7 +728,7 @@ class WalletTransaction(Transaction):
         """
         priv_key_list_arg = []
         if keys:
-            key_paths = list(set([ti.key_path for ti in self.inputs if ti.key_path[0] == 'm']))
+            key_paths = list(dict.fromkeys([ti.key_path for ti in self.inputs if ti.key_path[0] == 'm']))
             if not isinstance(keys, list):
                 keys = [keys]
             for priv_key in keys:
@@ -2482,7 +2482,7 @@ class Wallet(object):
             accounts = [wk.account_id for wk in self.keys_accounts(network=network)]
         if not accounts:
             accounts = [self.default_account_id]
-        return list(set(accounts))
+        return list(dict.fromkeys(accounts))
 
     def networks(self, as_dict=False):
         """
@@ -2506,7 +2506,7 @@ class Wallet(object):
                 nw_list.append(Network(wk.network_name))
 
         networks = []
-        nw_list = list(set(nw_list))
+        nw_list = list(dict.fromkeys(nw_list))
         for nw in nw_list:
             if as_dict:
                 nw = nw.__dict__
@@ -2994,7 +2994,7 @@ class Wallet(object):
         """
         if not isinstance(txids, list):
             txids = [txids]
-        txids = list(set(txids))
+        txids = list(dict.fromkeys(txids))
 
         txs = []
         srv = Service(network=self.network.name, providers=self.providers, cache_uri=self.db_cache_uri)

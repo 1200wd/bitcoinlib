@@ -1559,7 +1559,7 @@ class Transaction(object):
             if not input_total:
                 input_total = sum([i.value for i in inputs])
         id_list = [i.index_n for i in self.inputs]
-        if list(set(id_list)) != id_list:
+        if list(dict.fromkeys(id_list)) != id_list:
             _logger.info("Identical transaction indexes (tid) found in inputs, please specify unique index. "
                          "Indexes will be automatically recreated")
             index_n = 0
