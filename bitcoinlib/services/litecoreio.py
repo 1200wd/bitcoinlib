@@ -148,7 +148,7 @@ class LitecoreIOClient(BaseClient):
         res = self.compose_request('tx', txid)
         if res['confirmations'] == 0:
             return res['txid']
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if isinstance(blockid, int):
