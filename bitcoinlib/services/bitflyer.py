@@ -72,7 +72,6 @@ class BitflyerClient(BaseClient):
     #     t.update_totals()
     #     return t
 
-
     # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
 
     # def getrawtransaction(self, txid):
@@ -85,10 +84,9 @@ class BitflyerClient(BaseClient):
         res = self.compose_request('block', 'latest')
         return res['height']
 
-    #def mempool(self, txid):
+    # def mempool(self, txid):
 
-    def getblock(self, blockid, parse_transactions, page, limit):
-        pass
+    # def getblock(self, blockid, parse_transactions, page, limit):
 
     # def getrawblock(self, blockid):
 
