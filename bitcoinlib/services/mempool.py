@@ -88,15 +88,16 @@ class MempoolClient(BaseClient):
                 utxos = []
         return utxos[:limit]
 
-    def _parse_transaction(self, tx, blockcount=None):
+    def _parse_transaction(self, tx):
         block_height = None if 'block_height' not in tx['status'] else tx['status']['block_height']
         confirmations = 0
         tx_date = None
         status = 'unconfirmed'
         if tx['status']['confirmed']:
             if block_height:
-                if not blockcount:
-                    block_count = self.blockcount()
+                blockcount = self.latest_block
+                if not self.latest_block:
+                    blockcount = self.blockcount()
                 confirmations = blockcount - block_height + 1
             tx_date = datetime.utcfromtimestamp(tx['status']['block_time'])
             status = 'confirmed'
@@ -123,12 +124,11 @@ class MempoolClient(BaseClient):
         t.update_totals()
         return t
 
-    def gettransaction(self, txid, blockcount=None):
+    def gettransaction(self, txid):
         tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx, blockcount)
+        return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        blockcount = self.blockcount()
         prtxs = []
         before_txid = ''
         while True:
@@ -142,7 +142,7 @@ class MempoolClient(BaseClient):
                 break
         txs = []
         for tx in prtxs[::-1]:
-            t = self._parse_transaction(tx, blockcount)
+            t = self._parse_transaction(tx)
             if t:
                 txs.append(t)
             if t.txid == after_txid:
