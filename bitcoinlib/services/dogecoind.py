@@ -215,7 +215,7 @@ class DogecoindClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return False
+        return []
 
     def getinfo(self):
         info = self.proxy.getmininginfo()

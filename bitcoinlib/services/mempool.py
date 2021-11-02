@@ -37,12 +37,15 @@ class MempoolClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, function, data='', parameter='', variables=None, post_data='', method='get'):
+    def compose_request(self, function, data='', parameter='', parameter2='', variables=None, post_data='',
+                        method='get'):
         url_path = function
         if data:
             url_path += '/' + data
         if parameter:
             url_path += '/' + parameter
+        if parameter2:
+            url_path += '/' + parameter2
         if variables is None:
             variables = {}
         if self.api_key:
@@ -50,50 +53,179 @@ class MempoolClient(BaseClient):
         return self.request(url_path, variables, method, post_data=post_data)
 
     def getbalance(self, addresslist):
-        pass
+        balance = 0
+        for address in addresslist:
+            res = self.compose_request('address', address)
+            balance += res['chain_stats']['funded_txo_sum'] - res['chain_stats']['spent_txo_sum']
+        return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        pass
+        blockcount = self.blockcount()
+        res = self.compose_request('address', address, 'utxo')
+        utxos = []
+        # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
+        res = sorted(res, key=lambda k: 0 if 'block_height' not in k['status'] else k['status']['block_height'])
+        for a in res:
+            confirmations = 0
+            block_height = None
+            if 'block_height' in a['status']:
+                block_height = a['status']['block_height']
+                confirmations = blockcount - block_height
+            utxos.append({
+                'address': address,
+                'txid': a['txid'],
+                'confirmations': confirmations,
+                'output_n': a['vout'],
+                'input_n': 0,
+                'block_height': block_height,
+                'fee': None,
+                'size': 0,
+                'value': a['value'],
+                'script': '',
+                'date': None if 'block_time' not in a['status'] else datetime.utcfromtimestamp(a['status']['block_time'])
+            })
+            if a['txid'] == after_txid:
+                utxos = []
+        return utxos[:limit]
+
+    def _parse_transaction(self, tx, blockcount=None):
+        block_height = None if 'block_height' not in tx['status'] else tx['status']['block_height']
+        confirmations = 0
+        tx_date = None
+        status = 'unconfirmed'
+        if tx['status']['confirmed']:
+            if block_height:
+                if not blockcount:
+                    block_count = self.blockcount()
+                confirmations = blockcount - block_height + 1
+            tx_date = datetime.utcfromtimestamp(tx['status']['block_time'])
+            status = 'confirmed'
+
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, block_height=block_height,
+                        fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, confirmations=confirmations,
+                        status=status, coinbase=tx['vin'][0]['is_coinbase'])
+        for ti in tx['vin']:
+            if ti['is_coinbase']:
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptsig'], value=0,
+                            sequence=ti['sequence'], strict=False)
+            else:
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'],
+                            unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
+                            address=ti['prevout']['scriptpubkey_address'],
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], sequence=ti['sequence'],
+                            witnesses=None if 'witness' not in ti else [bytes.fromhex(w) for w in ti['witness']],
+                            strict=False)
+        for to in tx['vout']:
+            t.add_output(value=to['value'], address=to.get('scriptpubkey_address'), spent=None,
+                         lock_script=to['scriptpubkey'], strict=False)
+        if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
+            t.witness_type = 'segwit'
+        t.update_totals()
+        return t
 
     def gettransaction(self, txid, blockcount=None):
-        pass
+        tx = self.compose_request('tx', txid)
+        return self._parse_transaction(tx, blockcount)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        pass
+        blockcount = self.blockcount()
+        prtxs = []
+        before_txid = ''
+        while True:
+            txs = self.compose_request('address', address, 'txs/chain', before_txid)
+            prtxs += txs
+            if len(txs) == 25:
+                before_txid = txs[-1:][0]['txid']
+            else:
+                break
+            if len(prtxs) > limit:
+                break
+        txs = []
+        for tx in prtxs[::-1]:
+            t = self._parse_transaction(tx, blockcount)
+            if t:
+                txs.append(t)
+            if t.txid == after_txid:
+                txs = []
+            if len(txs) > limit:
+                break
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid, 'hex')
 
     def sendrawtransaction(self, rawtx):
-        pass
+        return self.compose_request('tx', post_data=rawtx, method='post')
 
     def estimatefee(self, blocks):
         estimates = self.compose_request('fees', 'recommended')
-        #{'fastestFee': 3, 'halfHourFee': 3, 'hourFee': 3, 'minimumFee': 1}
         if blocks < 2:
-            return estimates['fastestFee']
+            return estimates['fastestFee'] * 1024
         elif blocks < 4:
-            return estimates['halfHourFee']
+            return estimates['halfHourFee'] * 1024
         if blocks < 7:
-            return estimates['hourFee']
+            return estimates['hourFee'] * 1024
         else:
-            return estimates['minimumFee']
+            return estimates['minimumFee'] * 1024
 
     def blockcount(self):
-        res = self.compose_request(('blocks', 'tip', 'height'))
+        res = self.compose_request('blocks', 'tip', 'height')
         return res
 
-    def mempool(self, txid):
-        pass
+    def mempool(self, txid=''):
+        txids = self.compose_request('mempool', 'txids')
+        if not txid:
+            return txids
+        if txid in txids:
+            return [txid]
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
-        pass
+        if isinstance(blockid, int):
+            blockid = self.compose_request('block-height', str(blockid))
+        if (page == 1 and limit == 10) or limit > 25:
+            limit = 25
+        elif page > 1:
+            if limit % 25 != 0:
+                return False
+        bd = self.compose_request('block', blockid)
+        btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
+        if parse_transactions:
+            txs = []
+            blockcount = self.blockcount()
+            for tx in btxs[:limit]:
+                # try:
+                txs.append(self._parse_transaction(tx, blockcount=blockcount))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+        else:
+            txs = [tx['txid'] for tx in btxs]
+
+        block = {
+            'bits': bd['bits'],
+            'depth': None,
+            'block_hash': bd['id'],
+            'height': bd['height'],
+            'merkle_root': bd['merkle_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': bd['timestamp'],
+            'tx_count': bd['tx_count'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': None if not limit else int(bd['tx_count'] // limit) + (bd['tx_count'] % limit > 0),
+            'limit': limit
+        }
+        return block
 
     def getrawblock(self, blockid):
-        pass
+        if isinstance(blockid, int):
+            blockid = self.compose_request('block-height', str(blockid))
+        return self.compose_request('block', blockid, 'raw').hex()
 
     def isspent(self, txid, output_n):
-        pass
+        res = self.compose_request('tx', txid, 'outspend', output_n)
+        return 1 if res['spent'] else 0
 
-    def getinfo(self):
-        pass
+    # def getinfo(self):

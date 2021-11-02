@@ -146,7 +146,7 @@ class BlockchainInfoClient(BaseClient):
         else:
             txs = self.compose_request('unconfirmed-transactions', variables={'format': 'json'})
             return [tx['hash'] for tx in txs['txs']]
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         bd = self.compose_request('rawblock', str(blockid))

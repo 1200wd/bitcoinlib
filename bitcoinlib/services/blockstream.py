@@ -62,7 +62,6 @@ class BlockstreamClient(BaseClient):
         res = self.compose_request('address', address, 'utxo')
         blockcount = self.blockcount()
         utxos = []
-        # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
         res = sorted(res, key=lambda k: 0 if 'block_height' not in k['status'] else k['status']['block_height'])
         for a in res:
             confirmations = 0
@@ -199,7 +198,7 @@ class BlockstreamClient(BaseClient):
                 return [t.txid]
         else:
             return self.compose_request('mempool', 'txids')
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if isinstance(blockid, int):

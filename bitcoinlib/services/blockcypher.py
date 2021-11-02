@@ -174,7 +174,7 @@ class BlockCypher(BaseClient):
             tx = self.compose_request('txs', txid)
             if tx['confirmations'] == 0:
                 return [tx['hash']]
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if limit > 100:

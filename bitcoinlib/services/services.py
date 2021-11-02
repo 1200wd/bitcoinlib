@@ -311,6 +311,8 @@ class Service(object):
             if tx:
                 self.results_cache_n = 1
         if not tx:
+            # TODO: Pass blockcount
+            # tx = self._provider_execute('gettransaction', txid, self._blockcount)
             tx = self._provider_execute('gettransaction', txid)
             if len(self.results) and self.min_providers <= 1:
                 self.cache.store_transaction(tx)

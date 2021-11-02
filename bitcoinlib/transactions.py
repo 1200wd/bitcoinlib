@@ -895,6 +895,7 @@ class Input(object):
         unlock_script = b''
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh']:  # fixme: p2wpkh == p2sh_p2wpkh
             if not self.keys and not self.public_hash:
+            # if not self.keys:
                 # if self.unlocking_script_unsigned:
                 #     script_dict = script_deserialize(self.unlocking_script_unsigned)
                 #     if script_dict['script_type'] == 'p2pkh':
