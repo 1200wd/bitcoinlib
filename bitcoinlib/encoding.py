@@ -173,7 +173,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :param chars: Input string
     :type chars: any
     :param base_from: Base number or name from input. For example 2 for binary, 10 for decimal and 16 for hexadecimal
-    :type base_from: int
+    :type base_from: int, str
     :param base_to: Base number or name for output. For example 2 for binary, 10 for decimal and 16 for hexadecimal
     :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
@@ -504,12 +504,16 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
         raise EncodingError("Invalid bech32 string length")
     if prefix and prefix != bech[:pos]:
         raise EncodingError("Invalid bech32 address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
-    else:
-        hrp = bech[:pos]
+    hrp = bech[:pos]
     data = _codestring_to_array(bech[pos + 1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-    if not _bech32_polymod(hrp_expanded + data) == 1:
+    check = _bech32_polymod(hrp_expanded + data)
+    if not (check == 1 or check == BECH32M_CONST):
         raise EncodingError("Bech polymod check failed")
+    if data[0] == 0 and check != 1:
+        raise EncodingError("Invalid checksum (Bech32m instead of Bech32)")
+    if data[0] != 0 and check != BECH32M_CONST:
+        raise EncodingError("Invalid checksum (Bech32 instead of Bech32m)")
     data = data[:-6]
     decoded = bytes(convertbits(data[1:], 5, 8, pad=False))
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
@@ -525,6 +529,28 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     if as_hex:
         return (prefix + decoded).hex()
     return prefix + decoded
+
+
+def addr_bech32_checksum(bech):
+    """
+    Get bech32 checksum. Returns 1 for bech32 addresses and 0x2bc830a3 for bech32m addresses.
+    More info https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+
+    >>> addr_bech32_checksum('bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y')
+    734539939
+
+    :param bech: Bech32 address to convert
+    :type bech: str
+
+    :return bool: Bech32 checksum
+    """
+
+    bech = bech.lower()
+    pos = bech.rfind('1')
+    hrp = bech[:pos]
+    data = _codestring_to_array(bech[pos + 1:], 'bech32')
+    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+    return _bech32_polymod(hrp_expanded + data)
 
 
 def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
@@ -574,7 +600,7 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
     return change_base(addr256, 256, 58)
 
 
-def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
+def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', checksum_xor=1):
     """
     Encode public key hash as bech32 encoded (segwit) address
 
@@ -608,7 +634,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
 
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in prefix] + [0] + [ord(x) & 31 for x in prefix]
-    polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
+    polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ checksum_xor
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
     return prefix + separator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
