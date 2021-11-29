@@ -3456,8 +3456,11 @@ class Wallet(object):
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
-        if not network and output_arr and isinstance(output_arr[0][1], str):
-            network = Value(output_arr[0][1]).network.name
+        if not network and output_arr:
+            if isinstance(output_arr[0], Output):
+                network = output_arr[0].network.name
+            elif isinstance(output_arr[0][1], str):
+                network = Value(output_arr[0][1]).network.name
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         if input_arr and max_utxos and len(input_arr) > max_utxos:
