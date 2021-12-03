@@ -40,10 +40,9 @@ install_requires = [
       'requests==2.26.0',
       'fastecdsa==2.2.1;platform_system!="Windows"',
       'ecdsa==0.16;platform_system=="Windows"',
-      'pyaes==1.6.1',
       'scrypt==0.8.18',
       'SQLAlchemy==1.4.23',
-      'numpy==1.19.5',
+      'numpy==1.21.2'
 ]
 
 kwargs['install_requires'] = install_requires
