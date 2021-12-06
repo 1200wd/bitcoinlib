@@ -43,7 +43,8 @@ install_requires = [
       'pyaes==1.6.1',
       'scrypt==0.8.18',
       'SQLAlchemy==1.4.23',
-      'numpy==1.21.2'
+      'numpy==1.19.5;python_version<"3.8"'
+      'numpy==1.21.2;python_version>="3.8"'
 ]
 
 kwargs['install_requires'] = install_requires
