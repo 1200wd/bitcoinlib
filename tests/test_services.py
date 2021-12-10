@@ -19,7 +19,7 @@
 #
 
 import unittest
-from datetime import datetime
+import logging
 try:
     import mysql.connector
     from parameterized import parameterized_class
@@ -35,6 +35,7 @@ from bitcoinlib.services.services import *
 from bitcoinlib.encoding import to_hexstring
 from tests.test_custom import CustomAssertions
 
+_logger = logging.getLogger(__name__)
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
@@ -574,7 +575,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
 
         for provider in srv.results:
-            print("Comparing provider %s" % provider)
+            _logger.info("Comparing provider %s" % provider)
             for o in srv.results[provider].outputs:
                 if o.spending_txid == '':
                     o.spending_txid = None

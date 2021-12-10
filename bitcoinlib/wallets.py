@@ -437,8 +437,7 @@ class WalletKey(object):
             self._dbkey = wk
             self._hdkey_object = hdkey_object
             if hdkey_object and isinstance(hdkey_object, HDKey):
-                if not (not wk.public or wk.public == hdkey_object.public_byte):
-                    print(wk.public, hdkey_object.public_byte)
+                assert(not wk.public or wk.public == hdkey_object.public_byte)
                 assert(not wk.private or wk.private == hdkey_object.private_byte)
                 self._hdkey_object = hdkey_object
             self.key_id = key_id

@@ -117,7 +117,7 @@ class MempoolClient(BaseClient):
                             witnesses=None if 'witness' not in ti else [bytes.fromhex(w) for w in ti['witness']],
                             strict=False)
         for to in tx['vout']:
-            t.add_output(value=to['value'], address=to.get('scriptpubkey_address'), spent=None,
+            t.add_output(value=to['value'], address=to.get('scriptpubkey_address', ''), spent=None,
                          lock_script=to['scriptpubkey'], strict=False)
         if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
