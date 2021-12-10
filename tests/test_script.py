@@ -877,6 +877,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,
                                redeemscript_error)
 
+
 class TestScriptMPInumbers(unittest.TestCase):
 
     def test_encode_decode_numbers(self):

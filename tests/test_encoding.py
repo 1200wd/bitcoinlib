@@ -353,6 +353,8 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
         self.assertEqual(str(Quantity(121608561109507200000000000000000)), '121608561.110 Y')
         self.assertEqual(str(Quantity(1/1216085611095072000000000000000)), '0.000 y')
         self.assertEqual(str(Quantity(1/1216085611095072000000000000000, precision=10)), '0.0000008223 y')
+        self.assertEqual(str(Quantity(10, 'pound', precision=0)), '10 pound')
+        self.assertEqual(str(Quantity(0)), '0.000')
 
 
 class TestEncodingConfig(unittest.TestCase):

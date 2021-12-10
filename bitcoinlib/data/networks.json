@@ -98,6 +98,39 @@
     "fee_max": 2000000,
     "priority": 8
   },
+  "regtest":
+  {
+    "description": "Bitcoin regtest",
+    "currency_name": "regtest",
+    "currency_name_plural": "bitcoins",
+    "currency_symbol": "r฿",
+    "currency_code": "rBTC",
+    "prefix_address": "00",
+    "prefix_address_p2sh": "05",
+    "prefix_bech32": "bc",
+    "prefix_wif": "80",
+    "prefixes_wif": [
+      ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
+      ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
+      ["0488ADE4", "xprv", "private", false, "legacy",      "p2pkh"],
+      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"],
+      ["049D7CB2", "ypub", "public",  false, "p2sh-segwit", "p2sh_p2wpkh"],
+      ["0295B43F", "Ypub", "public",  true,  "p2sh-segwit", "p2sh_p2wsh"],
+      ["049D7878", "yprv", "private", false, "p2sh-segwit", "p2sh_p2wpkh"],
+      ["0295B005", "Yprv", "private", true,  "p2sh-segwit", "p2sh_p2wsh"],
+      ["04B24746", "zpub", "public",  false, "segwit",      "p2wpkh"],
+      ["02AA7ED3", "Zpub", "public",  true,  "segwit",      "p2wsh"],
+      ["04B2430C", "zprv", "private", false, "segwit",      "p2wpkh"],
+      ["02AA7A99", "Zprv", "private", true,  "segwit",      "p2wsh"]
+    ],
+    "bip44_cointype": 0,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": null,
+    "fee_min": 1024,
+    "fee_max": 1000000,
+    "priority": 0
+  },
   "litecoin":
   {
     "description": "Litecoin Network",
