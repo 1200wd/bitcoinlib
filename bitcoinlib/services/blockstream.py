@@ -120,7 +120,7 @@ class BlockstreamClient(BaseClient):
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=False)
             index_n += 1
         index_n = 0
-        if len(tx['vout']) > 50:
+        if len(tx['vout']) > 101:
             # Every output needs an extra query, stop execution if there are too many transaction outputs
             return False
         for to in tx['vout']:

@@ -115,6 +115,8 @@ def wallet_create_or_open(
     See Wallets class create method for option documentation
     """
     if wallet_exists(name, db_uri=db_uri):
+        if keys or owner or password or witness_type or key_path:
+            _logger.warning("Opening existing wallet, extra options are ignored")
         return Wallet(name, db_uri=db_uri)
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
@@ -434,6 +436,11 @@ class WalletKey(object):
         if wk:
             self._dbkey = wk
             self._hdkey_object = hdkey_object
+            if hdkey_object and isinstance(hdkey_object, HDKey):
+                if not (not wk.public or wk.public == hdkey_object.public_byte):
+                    print(wk.public, hdkey_object.public_byte)
+                assert(not wk.private or wk.private == hdkey_object.private_byte)
+                self._hdkey_object = hdkey_object
             self.key_id = key_id
             self._name = wk.name
             self.wallet_id = wk.wallet_id
@@ -503,7 +510,7 @@ class WalletKey(object):
             for kc in self._dbkey.multisig_children:
                 self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
         if self._hdkey_object is None and self.wif:
-            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
+            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name, compressed=self.compressed)
         return self._hdkey_object
 
     def balance(self, as_string=False):
@@ -549,7 +556,7 @@ class WalletKey(object):
             'network': self.network.name,
             'is_private': self.is_private,
             'name': self.name,
-            'key_public': self.key_public.hex(),
+            'key_public': '' if not self.key_public else self.key_public.hex(),
             'account_id':  self.account_id,
             'parent_id': self.parent_id,
             'depth': self.depth,
@@ -3456,8 +3463,11 @@ class Wallet(object):
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
-        if not network and output_arr and isinstance(output_arr[0][1], str):
-            network = Value(output_arr[0][1]).network.name
+        if not network and output_arr:
+            if isinstance(output_arr[0], Output):
+                network = output_arr[0].network.name
+            elif isinstance(output_arr[0][1], str):
+                network = Value(output_arr[0][1]).network.name
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         if input_arr and max_utxos and len(input_arr) > max_utxos:
