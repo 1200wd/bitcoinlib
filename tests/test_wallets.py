@@ -593,6 +593,13 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         wlt.utxos_update()
         self.assertIsNone(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY').error)
 
+    def test_wallet_create_invalid_key(self):
+        # Test for issue #206
+        key_correct = HDKey(witness_type='segwit', network='testnet')
+        key_invalid = HDKey(witness_type='segwit', network='testnet')
+        w = wallet_create_or_open('my-awesome-wallet55', keys=key_correct, witness_type='segwit', network='testnet')
+        self.assertRaisesRegexp(AssertionError, '', Wallet, 'my-awesome-wallet55', main_key_object=key_invalid)
+
     def test_wallet_single_key(self):
         wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test',
                                     db_uri=self.DATABASE_URI)
