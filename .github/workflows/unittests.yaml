@@ -14,17 +14,14 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
       - name: Install packages
         run: |
 #          sudo apt-get install -y postgresql postgresql-contrib
@@ -43,6 +40,4 @@ jobs:
         env:
           BCL_CONFIG_FILE: config.ini.unittest
           UNITTESTS_FULL_DATABASE_TEST: False
-          POSTGRES_HOST: postgres
-          POSTGRES_PORT: 5432
         run: coverage run --source=bitcoinlib -m unittest -v
