@@ -45,9 +45,13 @@ DATABASE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitco
 # DATABASE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
 DATABASES_CACHE = [
     DATABASEFILE_CACHE_UNITTESTS2,
-    DATABASE_CACHE_POSTGRESQL,
-    # DATABASE_CACHE_MYSQL
 ]
+if UNITTESTS_FULL_DATABASE_TEST:
+    DATABASES_CACHE += [
+        DATABASE_CACHE_POSTGRESQL,
+        # DATABASE_CACHE_MYSQL
+    ]
+
 TIMEOUT_TEST = 2
 
 

@@ -1,33 +1,27 @@
+
 name: Bitcoinlib Unittests
 
 on: [push]
 
 jobs:
-  container-job:
+  build:
+
+    strategy:
+      matrix:
+        python: [3.8, 3.9]
 
     runs-on: ubuntu-latest
-    container: node:10.18-jessie
-
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: 'x64'
       - name: Install packages
         run: |
-#          sudo apt-get install -y postgresql postgresql-contrib
+          sudo apt-get install -y postgresql postgresql-contrib
           sudo apt-get install -y mysql-server
           sudo service postgresql start
           sudo service mysql start
@@ -43,6 +37,4 @@ jobs:
         env:
           BCL_CONFIG_FILE: config.ini.unittest
           UNITTESTS_FULL_DATABASE_TEST: False
-          POSTGRES_HOST: postgres
-          POSTGRES_PORT: 5432
         run: coverage run --source=bitcoinlib -m unittest -v
