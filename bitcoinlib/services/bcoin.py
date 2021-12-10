@@ -185,7 +185,7 @@ class BcoinClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return False
+        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         block = self.compose_request('block', str(blockid))
@@ -217,7 +217,20 @@ class BcoinClient(BaseClient):
         block['block_hash'] = block.pop('hash')
         return block
 
-    # def getrawblock
+    def getrawblock(self, blockid):
+        try:
+            blockid = int(blockid)
+            data = {
+                "method": "getblockbyheight",
+                "params": [blockid, 0, 0]
+            }
+        except ValueError:
+            data = {
+                "method": "getblock",
+                "params": [blockid, 0, 0]
+            }
+        res = self.compose_request('', method='post', variables=data)
+        return res['result']
 
     def isspent(self, txid, index):
         try:

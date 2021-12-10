@@ -108,13 +108,13 @@ def get_key_format(key, is_private=None):
     This method does not validate if a key is valid.
 
     >>> get_key_format('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
-    {'format': 'wif_compressed', 'networks': ['bitcoin'], 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+    {'format': 'wif_compressed', 'networks': ['bitcoin', 'regtest'], 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
 
     >>> get_key_format('becc7ac3b383cd609bd644aa5f102a811bac49b6a34bbd8afe706e32a9ac5c5e')
     {'format': 'hex', 'networks': None, 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
 
     >>> get_key_format('Zpub6vZyhw1ShkEwNxtqfjk7jiwoEbZYMJdbWLHvEwo6Ns2fFc9rdQn3SerYFQXYxtZYbA8a1d83shW3g4WbsnVsymy2L8m7wpeApiuPxug3ARu')
-    {'format': 'hdkey_public', 'networks': ['bitcoin'], 'is_private': False, 'script_types': ['p2wsh'], 'witness_types': ['segwit'], 'multisig': [True]}
+    {'format': 'hdkey_public', 'networks': ['bitcoin', 'regtest'], 'is_private': False, 'script_types': ['p2wsh'], 'witness_types': ['segwit'], 'multisig': [True]}
 
     :param key: Any private or public key
     :type key: str, int, bytes
@@ -187,14 +187,14 @@ def get_key_format(key, is_private=None):
             else:
                 prefix_data = wif_prefix_search(key_hex[:8])
                 if prefix_data:
-                    networks = list(set([n['network'] for n in prefix_data]))
+                    networks = list(dict.fromkeys([n['network'] for n in prefix_data]))
                     if is_private is None and len(set([n['is_private'] for n in prefix_data])) > 1:
                         raise BKeyError("Cannot determine if key is private or public, please specify is_private "
                                         "attribute")
                     is_private = prefix_data[0]['is_private']
-                    script_types = list(set([n['script_type'] for n in prefix_data]))
-                    witness_types = list(set([n['witness_type'] for n in prefix_data]))
-                    multisig = list(set([n['multisig'] for n in prefix_data]))
+                    script_types = list(dict.fromkeys([n['script_type'] for n in prefix_data]))
+                    witness_types = list(dict.fromkeys([n['witness_type'] for n in prefix_data]))
+                    multisig = list(dict.fromkeys([n['multisig'] for n in prefix_data]))
                     key_format = 'hdkey_public'
                     if is_private:
                         key_format = 'hdkey_private'
@@ -241,7 +241,7 @@ def deserialize_address(address, encoding=None, network=None):
     If more networks and or script types are found you can find these in the 'networks' field.
 
     >>> deserialize_address('1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
-    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin']}
+    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest']}
 
     :param address: A base58 or bech32 encoded address
     :type address: str

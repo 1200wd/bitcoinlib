@@ -25,9 +25,8 @@ import bitcoinlib.services.dogecoind
 import bitcoinlib.services.litecoind
 import bitcoinlib.services.dashd
 import bitcoinlib.services.bitgo
-import bitcoinlib.services.coinfees
 import bitcoinlib.services.blockchaininfo
-#import bitcoinlib.services.blockcypher
+import bitcoinlib.services.blockcypher
 import bitcoinlib.services.cryptoid
 import bitcoinlib.services.litecoreio
 import bitcoinlib.services.blockchair
@@ -40,3 +39,4 @@ import bitcoinlib.services.blocksmurfer
 import bitcoinlib.services.chainso
 # import bitcoinlib.services.smartbit
 import bitcoinlib.services.mempool
+import bitcoinlib.services.bitflyer

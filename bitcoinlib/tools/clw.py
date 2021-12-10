@@ -196,7 +196,7 @@ def print_transaction(wt):
         'network': wt.network.name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
             'address': o.address, 'value': o.value
         } for o in wt.outputs], 'inputs': [{
-            'prev_hash': i.prev_hash.hex(), 'output_n': int.from_bytes(i.output_n, 'big'),
+            'prev_hash': i.prev_txid.hex(), 'output_n': int.from_bytes(i.output_n, 'big'),
             'address': i.address, 'signatures': [{
                 'signature': s.hex(), 'sig_der': s.as_der_encoded(as_hex=True),
                 'pub_key': s.public_key.public_hex,

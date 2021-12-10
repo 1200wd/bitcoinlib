@@ -24,7 +24,7 @@ import os
 import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
-version = '0.6.1'
+version = '0.6.2'
 
 # Get the long description from the relevant file
 readmetxt = ''
@@ -43,7 +43,8 @@ install_requires = [
       'pyaes==1.6.1',
       'scrypt==0.8.18',
       'SQLAlchemy==1.4.23',
-      'numpy==1.19.5',
+      'numpy==1.19.5;python_version<"3.8"',
+      'numpy==1.21.2;python_version>="3.8"'
 ]
 
 kwargs['install_requires'] = install_requires

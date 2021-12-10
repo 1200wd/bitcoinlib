@@ -17,12 +17,12 @@ matrix:
 #        - pip install pyscrypt
     # Enable 3.8 without globally enabling sudo and dist: xenial for other build jobs
     - python: 3.8
-      dist: xenial
+      dist: focal
       env:
         - UNITTESTS_FULL_DATABASE_TEST=True
         - BCL_CONFIG_FILE=config.ini.unittest
     - python: 3.9
-      dist: focal
+      dist: bionic
       env:
         - BCL_CONFIG_FILE=config.ini.unittest
     - os: windows

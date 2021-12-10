@@ -145,33 +145,34 @@ class BitcoindClient(BaseClient):
     # def getbalance
 
     # Missing block_height, input_n, date so not usable
-    # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-    #     txs = []
-    #
-    #     res = self.proxy.getaddressinfo(address)
-    #     if not (res['ismine'] or res['iswatchonly']):
-    #         raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
-    #                           "address to wallet." % address)
-    #
-    #     txs_list = self.proxy.listunspent(0, 99999999, [address])
-    #     for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
-    #         txs.append({
-    #             'address': t['address'],
-    #             'txid': t['txid'],
-    #             'confirmations': t['confirmations'],
-    #             'output_n': t['vout'],
-    #             'input_n': -1,
-    #             'block_height': None,
-    #             'fee': None,
-    #             'size': 0,
-    #             'value': int(t['amount'] * self.units),
-    #             'script': t['scriptPubKey'],
-    #             'date': None,
-    #         })
-    #         if t['txid'] == after_txid:
-    #             txs = []
-    #
-    #     return txs
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        assert(self.network == 'regtest')
+
+        txs = []
+        res = self.proxy.getaddressinfo(address)
+        if not (res['ismine'] or res['iswatchonly']):
+            raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
+                              "address to wallet." % address)
+
+        txs_list = self.proxy.listunspent(0, 99999999, [address])
+        for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
+            txs.append({
+                'address': t['address'],
+                'txid': t['txid'],
+                'confirmations': t['confirmations'],
+                'output_n': t['vout'],
+                'input_n': -1,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(t['amount'] * self.units),
+                'script': t['scriptPubKey'],
+                'date': None,
+            })
+            if t['txid'] == after_txid:
+                txs = []
+
+        return txs
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
@@ -208,7 +209,17 @@ class BitcoindClient(BaseClient):
         tx = self.proxy.getrawtransaction(txid, 1)
         return self._parse_transaction(tx)
 
-    # def gettransactions
+    # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    #     assert(self.network == 'regtest')
+    #
+    #     txs = []
+    #     res = self.proxy.getaddressinfo(address)
+    #     if not (res['ismine'] or res['iswatchonly']):
+    #         raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
+    #                           "address to wallet." % address)
+    #
+    #     txs_list = self.proxy.getreceivedbyaddress(address, 0)
+    #     return txs_list
 
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)
