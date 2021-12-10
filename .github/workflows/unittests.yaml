@@ -3,15 +3,15 @@ name: Bitcoinlib Unittests
 on: [push]
 
 jobs:
-  build:
+  container-job:
 
     runs-on: ubuntu-latest
+    container: node:10.18-jessie
 
     services:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_DB: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
         ports:
@@ -48,4 +48,6 @@ jobs:
         env:
           BCL_CONFIG_FILE: config.ini.unittest
           UNITTESTS_FULL_DATABASE_TEST: False
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
         run: coverage run --source=bitcoinlib -m unittest -v
