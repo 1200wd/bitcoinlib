@@ -7,12 +7,12 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
+#    services:
+#      postgres:
+#        image: postgres:latest
+#        env:
+#          POSTGRES_PASSWORD: postgres
+#          POSTGRES_USER: postgres
 
     steps:
       - uses: actions/checkout@v2
