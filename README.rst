@@ -10,10 +10,9 @@ and create your own custom made transactions, keys or wallets.
 The BitcoinLib connects to various service providers automatically to update wallets, transactions and
 blockchain information. It does currently not parse the blockchain itself.
 
-
-.. image:: https://travis-ci.com/1200wd/bitcoinlib.svg?branch=master
-    :target: https://travis-ci.com/1200wd/bitcoinlib
-    :alt: Travis
+.. image:: https://github.com/1200wd/bitcoinlib/actions/workflows/unittests.yaml/badge.svg
+    :target: https://github.com/1200wd/bitcoinlib/actions/workflows/unittests.yaml
+    :alt: Unittests
 .. image:: https://img.shields.io/pypi/v/bitcoinlib.svg
     :target: https://pypi.org/pypi/bitcoinlib/
     :alt: PyPi
