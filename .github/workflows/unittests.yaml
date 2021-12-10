@@ -3,10 +3,9 @@ name: Bitcoinlib Unittests
 on: [push]
 
 jobs:
-  container-job:
+  build:
 
     runs-on: ubuntu-latest
-    container: node:10.18-jessie
 
     services:
       postgres:
@@ -20,8 +19,8 @@ jobs:
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
-          architecture: 'x64'
+          python-version: 3.8
+          architecture: x64
       - name: Install packages
         run: |
 #          sudo apt-get install -y postgresql postgresql-contrib
