@@ -1,5 +1,5 @@
 
-name: Bitcoinlib Unittests
+name: Bitcoinlib Windows Unittests
 
 on: [push]
 
