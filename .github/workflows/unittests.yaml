@@ -1,3 +1,4 @@
+
 name: Bitcoinlib Unittests
 
 on: [push]
@@ -7,23 +8,16 @@ jobs:
 
     runs-on: ubuntu-latest
 
-#    services:
-#      postgres:
-#        image: postgres:latest
-#        env:
-#          POSTGRES_PASSWORD: postgres
-#          POSTGRES_USER: postgres
-
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
-          architecture: x64
+          python-version: '3.8'
+          architecture: 'x64'
       - name: Install packages
         run: |
-#          sudo apt-get install -y postgresql postgresql-contrib
+          sudo apt-get install -y postgresql postgresql-contrib
           sudo apt-get install -y mysql-server
           sudo service postgresql start
           sudo service mysql start
