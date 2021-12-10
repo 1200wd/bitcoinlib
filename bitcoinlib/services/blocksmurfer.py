@@ -110,9 +110,9 @@ class BlocksmurferClient(BaseClient):
         t.update_totals()
         return t
 
-    def gettransaction(self, txid):
+    def gettransaction(self, txid, block_count=None):
         tx = self.compose_request('transaction', txid)
-        return self._parse_transaction(tx)
+        return self._parse_transaction(tx, block_count)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         prtxs = []

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    BlockstreamClient client
-#    © 2019 November - 1200 Web Development <http://1200wd.com/>
+#    mempool.space client
+#    © 2021 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -25,19 +25,20 @@ from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import varstr
 
-PROVIDERNAME = 'blockstream'
+PROVIDERNAME = 'mempool'
 # Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
 # so transactions from these blocks are missing.
 
 _logger = logging.getLogger(__name__)
 
 
-class BlockstreamClient(BaseClient):
+class MempoolClient(BaseClient):
 
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, function, data='', parameter='', parameter2='', variables=None, post_data='', method='get'):
+    def compose_request(self, function, data='', parameter='', parameter2='', variables=None, post_data='',
+                        method='get'):
         url_path = function
         if data:
             url_path += '/' + data
@@ -54,14 +55,15 @@ class BlockstreamClient(BaseClient):
     def getbalance(self, addresslist):
         balance = 0
         for address in addresslist:
-            res = self.compose_request('address', data=address)
-            balance += (res['chain_stats']['funded_txo_sum'] - res['chain_stats']['spent_txo_sum'])
+            res = self.compose_request('address', address)
+            balance += res['chain_stats']['funded_txo_sum'] - res['chain_stats']['spent_txo_sum']
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        res = self.compose_request('address', address, 'utxo')
         blockcount = self.blockcount()
+        res = self.compose_request('address', address, 'utxo')
         utxos = []
+        # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
         res = sorted(res, key=lambda k: 0 if 'block_height' not in k['status'] else k['status']['block_height'])
         for a in res:
             confirmations = 0
@@ -86,79 +88,61 @@ class BlockstreamClient(BaseClient):
                 utxos = []
         return utxos[:limit]
 
-    def _parse_transaction(self, tx, blockcount=None):
-        if not blockcount:
-            blockcount = self.blockcount()
+    def _parse_transaction(self, tx):
+        block_height = None if 'block_height' not in tx['status'] else tx['status']['block_height']
         confirmations = 0
-        block_height = None
-        if 'block_height' in tx['status']:
-            block_height = tx['status']['block_height']
-            confirmations = blockcount - block_height
+        tx_date = None
         status = 'unconfirmed'
         if tx['status']['confirmed']:
+            if block_height:
+                blockcount = self.latest_block
+                if not self.latest_block:
+                    blockcount = self.blockcount()
+                confirmations = blockcount - block_height + 1
+            tx_date = datetime.utcfromtimestamp(tx['status']['block_time'])
             status = 'confirmed'
-        fee = None if 'fee' not in tx else tx['fee']
-        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fee, size=tx['size'], txid=tx['txid'],
-                        date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
-                        confirmations=confirmations, block_height=block_height, status=status,
-                        coinbase=tx['vin'][0]['is_coinbase'])
-        index_n = 0
+
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, block_height=block_height,
+                        fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, confirmations=confirmations,
+                        status=status, coinbase=tx['vin'][0]['is_coinbase'])
         for ti in tx['vin']:
-            if tx['vin'][0]['is_coinbase']:
-                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
-                            unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'], strict=False)
+            if ti['is_coinbase']:
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptsig'], value=0,
+                            sequence=ti['sequence'], strict=False)
             else:
-                witnesses = []
-                if 'witness' in ti:
-                    witnesses = [bytes.fromhex(w) for w in ti['witness']]
-                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'],
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
-                            address='' if 'scriptpubkey_address' not in ti['prevout']
-                            else ti['prevout']['scriptpubkey_address'], sequence=ti['sequence'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=False)
-            index_n += 1
-        index_n = 0
-        if len(tx['vout']) > 101:
-            # Every output needs an extra query, stop execution if there are too many transaction outputs
-            return False
+                            address=ti['prevout']['scriptpubkey_address'],
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], sequence=ti['sequence'],
+                            witnesses=None if 'witness' not in ti else [bytes.fromhex(w) for w in ti['witness']],
+                            strict=False)
         for to in tx['vout']:
-            address = ''
-            if 'scriptpubkey_address' in to:
-                address = to['scriptpubkey_address']
-            spent = self.isspent(t.txid, index_n)
-            t.add_output(value=to['value'], address=address, lock_script=to['scriptpubkey'],
-                         output_n=index_n, spent=spent, strict=False)
-            index_n += 1
+            t.add_output(value=to['value'], address=to.get('scriptpubkey_address'), spent=None,
+                         lock_script=to['scriptpubkey'], strict=False)
         if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
         t.update_totals()
-        t.size = tx['size']
         return t
 
-    def gettransaction(self, txid, blockcount=None):
+    def gettransaction(self, txid):
         tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx, blockcount)
+        return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        blockcount = self.blockcount()
         prtxs = []
         before_txid = ''
         while True:
-            parameter = 'txs'
-            if before_txid:
-                parameter = 'txs/chain/%s' % before_txid
-            res = self.compose_request('address', address, parameter)
-            prtxs += res
-            if len(res) == 25:
-                before_txid = res[-1:][0]['txid']
+            txs = self.compose_request('address', address, 'txs/chain', before_txid)
+            prtxs += txs
+            if len(txs) == 25:
+                before_txid = txs[-1:][0]['txid']
             else:
                 break
             if len(prtxs) > limit:
                 break
         txs = []
         for tx in prtxs[::-1]:
-            t = self._parse_transaction(tx, blockcount)
+            t = self._parse_transaction(tx)
             if t:
                 txs.append(t)
             if t.txid == after_txid:
@@ -171,35 +155,29 @@ class BlockstreamClient(BaseClient):
         return self.compose_request('tx', txid, 'hex')
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('tx', post_data=rawtx, method='post')
-        return {
-            'txid': res,
-            'response_dict': res
-        }
+        return self.compose_request('tx', post_data=rawtx, method='post')
 
     def estimatefee(self, blocks):
-        est = self.compose_request('fee-estimates')
-        closest = (sorted([int(i) - blocks for i in est.keys() if int(i) - blocks >= 0]))
-        # FIXME: temporary fix for too low testnet tx fees:
-        if self.network.name == 'testnet':
-            return 2048
-        if closest:
-            return int(est[str(closest[0] + blocks)] * 1024)
+        estimates = self.compose_request('fees', 'recommended')
+        if blocks < 2:
+            return estimates['fastestFee'] * 1024
+        elif blocks < 4:
+            return estimates['halfHourFee'] * 1024
+        if blocks < 7:
+            return estimates['hourFee'] * 1024
         else:
-            return int(est[str(sorted([int(i) for i in est.keys()])[-1:][0])] * 1024)
+            return estimates['minimumFee'] * 1024
 
     def blockcount(self):
-        return self.compose_request('blocks', 'tip', 'height')
+        res = self.compose_request('blocks', 'tip', 'height')
+        return res
 
-    def mempool(self, txid):
-        if txid:
-            t = self.gettransaction(txid)
-            if t and not t.confirmations:
-                return [t.txid]
-            else:
-                return []
-        else:
-            return self.compose_request('mempool', 'txids')
+    def mempool(self, txid=''):
+        txids = self.compose_request('mempool', 'txids')
+        if not txid:
+            return txids
+        if txid in txids:
+            return [txid]
         return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
@@ -244,12 +222,10 @@ class BlockstreamClient(BaseClient):
     def getrawblock(self, blockid):
         if isinstance(blockid, int):
             blockid = self.compose_request('block-height', str(blockid))
-        rawblock = self.compose_request('block', blockid, 'raw')
-        hexrawblock = rawblock.hex()
-        return hexrawblock
+        return self.compose_request('block', blockid, 'raw').hex()
 
     def isspent(self, txid, output_n):
-        res = self.compose_request('tx', txid, 'outspend', str(output_n))
+        res = self.compose_request('tx', txid, 'outspend', output_n)
         return 1 if res['spent'] else 0
 
     # def getinfo(self):
