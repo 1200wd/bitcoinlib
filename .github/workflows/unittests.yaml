@@ -7,6 +7,22 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
@@ -16,7 +32,7 @@ jobs:
           architecture: 'x64'
       - name: Install packages
         run: |
-          sudo apt-get install -y postgresql postgresql-contrib
+#          sudo apt-get install -y postgresql postgresql-contrib
           sudo apt-get install -y mysql-server
           sudo service postgresql start
           sudo service mysql start
@@ -31,4 +47,5 @@ jobs:
       - name: Test with covarage
         env:
           BCL_CONFIG_FILE: config.ini.unittest
+          UNITTESTS_FULL_DATABASE_TEST: False
         run: coverage run --source=bitcoinlib -m unittest -v
