@@ -25,7 +25,7 @@ jobs:
 #          sudo apt-get install -y postgresql postgresql-contrib
 #          sudo apt-get install -y mysql-server
 #          sudo service postgresql start
-#          sudo systemctl start mysql.service
+          sudo systemctl start mysql.service
       - name: Install dependencies
         run: |
           pip install coveralls
