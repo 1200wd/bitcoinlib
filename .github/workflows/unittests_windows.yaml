@@ -1,26 +1,23 @@
 
-name: Bitcoinlib Unittests
+name: Bitcoinlib Windows Unittests
 
 on: [push]
 
 jobs:
   build:
 
-    strategy:
-      matrix:
-        python: ["3.6", "3.7", "3.8", "3.9"]
-
-    runs-on: ubuntu-latest
+    runs-on: windows-2019
 
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.9'
           architecture: 'x64'
       - name: Install dependencies
         run: |
+          pip install win-unicode-console
           pip install coveralls
           pip install psycopg2
           pip install mysql-connector
