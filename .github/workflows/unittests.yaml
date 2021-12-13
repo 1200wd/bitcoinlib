@@ -8,8 +8,7 @@ jobs:
 
     strategy:
       matrix:
-#        python: ["3.6", "3.7", "3.8", "3.9"]
-        python: ["3.9"]
+        python: ["3.6", "3.7", "3.8", "3.9"]
 
     runs-on: ubuntu-latest
 
@@ -20,9 +19,6 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           architecture: 'x64'
-      - name: Install packages
-        run: |
-          sudo systemctl start mysql.service
       - name: Install dependencies
         run: |
           pip install coveralls
@@ -34,5 +30,5 @@ jobs:
       - name: Test with covarage
         env:
           BCL_CONFIG_FILE: config.ini.unittest
-          UNITTESTS_FULL_DATABASE_TEST: True
+          UNITTESTS_FULL_DATABASE_TEST: False
         run: coverage run --source=bitcoinlib -m unittest -v
