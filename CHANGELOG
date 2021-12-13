@@ -1,3 +1,11 @@
+RELEASE 0.6.3 - Mempool, Github actions, bugfixes
+=================================================
+* Add mempool.space provider
+* Move unittesting to workflow in Github Actions
+* Add support for bech32m addresses
+* Test regtest and update providers
+* Various bugfixes
+
 RELEASE 0.6.2 - Bugfixes October 2021
 =====================================
 * Fix logging issues
