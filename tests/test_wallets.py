@@ -704,6 +704,16 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
                                 'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
         self.assertRaisesRegexp(WalletError, "", w.get_key, cosigner_id=10)
 
+    def test_wallet_key_public_leaks(self):
+        w = wallet_create_or_open("wallet_private", network='testnet', db_uri=self.DATABASE_URI)
+        wk = w.public_master()
+        self.assertIsNone(wk._hdkey_object.private_hex)
+        self.assertIsNone(wk._dbkey)
+
+        w2 = wallet_create_or_open('wallet_public', network='testnet', keys=wk)
+        self.assertFalse(w2.main_key.is_private)
+        self.assertIsNone(w2.main_key.key_private)
+
 
 @parameterized_class(*params)
 class TestWalletElectrum(TestWalletMixin, unittest.TestCase):

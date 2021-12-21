@@ -538,6 +538,9 @@ class WalletKey(object):
         pub_key.key_private = None
         if self.key():
             pub_key.wif = self.key().wif()
+        if self._hdkey_object:
+            self._hdkey_object = pub_key._hdkey_object.public()
+        self._dbkey = None
         return pub_key
 
     def as_dict(self, include_private=False):
@@ -1116,7 +1119,7 @@ class Wallet(object):
         :param name: Unique name of this Wallet
         :type name: str
         :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
-        :type keys: str, bytes, int
+        :type keys: str, bytes, int, HDKey, HDWalletKey, list of str, list of bytes, list of int, list of HDKey, list of HDWalletKey
         :param owner: Wallet owner for your own reference
         :type owner: str
         :param network: Network name, use default if not specified
@@ -1193,13 +1196,16 @@ class Wallet(object):
                     witness_type = key.witness_type
             elif key:
                 # If key consists of several words assume it is a passphrase and convert it to a HDKey object
-                if len(key.split(" ")) > 1:
+                if isinstance(key, str) and len(key.split(" ")) > 1:
                     if not network:
                         raise WalletError("Please specify network when using passphrase to create a key")
                     key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
                 else:
                     try:
-                        key = HDKey(key, password=password, network=network)
+                        if isinstance(key, WalletKey):
+                            key = key._hdkey_object
+                        else:
+                            key = HDKey(key, password=password, network=network)
                     except BKeyError:
                         try:
                             scheme = 'single'
@@ -1588,7 +1594,7 @@ class Wallet(object):
             if network not in self.network_list():
                 raise WalletError("Network %s not found in this wallet" % network)
         else:
-            if len(key.split(" ")) > 1:
+            if isinstance(key, str) and len(key.split(" ")) > 1:
                 if network is None:
                     network = self.network
                 hdkey = HDKey.from_seed(Mnemonic().to_seed(key), network=network)
