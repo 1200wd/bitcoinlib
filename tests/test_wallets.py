@@ -2153,6 +2153,20 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.transactions()[0].delete()
         self.assertEqual(len(w.transactions()), 1)
 
+    def test_wallet_create_import_key(self):
+        w = wallet_create_or_open("wallet_private", network='bitcoinlib_test')
+
+        w.utxos_update()
+        wk = w.public_master()
+        w2 = wallet_create_or_open('wallet_public', network='bitcoinlib_test', keys=wk)
+        w2.utxos_update()
+
+        wt = w2.send_to('21HKMUVtSUETuWyDESrmCj6Vwvtuns8XG5k', 1000, fee=1000, offline=True)
+        wt.save()
+
+        wt2 = Transaction.load(wt.txid)
+        self.assertEqual(wt, wt2)
+
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):

@@ -715,6 +715,14 @@ class WalletTransaction(Transaction):
                    rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)
 
+    def to_transaction(self):
+        return Transaction(self.inputs, self.outputs, self.locktime, self.version,
+            self.network.name, self.fee, self.fee_per_kb, self.size,
+            self.txid, self.txhash, self.date, self.confirmations,
+            self.block_height, self.block_hash, self.input_total,
+            self.output_total, self.rawtx, self.status, self.coinbase,
+            self.verified, self.witness_type, self.flag)
+
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=False,
              replace_signatures=False):
         """
@@ -961,13 +969,8 @@ class WalletTransaction(Transaction):
             if not p.parent or str(p.parent) == '.':
                 p = Path(BCL_DATA_DIR, filename)
         f = p.open('wb')
-        wt = copy(self)
-        del wt.hdwallet
-        del wt.pushed
-        del wt.error
-        del wt.response_dict
-        del wt.account_id
-        pickle.dump(wt, f)
+        t = self.to_transaction()
+        pickle.dump(t, f)
         f.close()
 
     def delete(self):
