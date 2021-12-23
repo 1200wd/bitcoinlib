@@ -1693,7 +1693,7 @@ class Transaction(object):
         :return str:
         """
         adict = self.as_dict()
-        return json.dumps(adict, indent=4)
+        return json.dumps(adict, indent=4, default=str)
 
     def info(self):
         """
