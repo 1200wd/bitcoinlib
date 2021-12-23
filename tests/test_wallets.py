@@ -600,8 +600,10 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         # Test for issue #206
         key_correct = HDKey(witness_type='segwit', network='testnet')
         key_invalid = HDKey(witness_type='segwit', network='testnet')
-        w = wallet_create_or_open('my-awesome-wallet55', keys=key_correct, witness_type='segwit', network='testnet')
-        self.assertRaisesRegexp(AssertionError, '', Wallet, 'my-awesome-wallet55', main_key_object=key_invalid)
+        w = wallet_create_or_open('my-awesome-wallet55', keys=key_correct, witness_type='segwit', network='testnet',
+                                  db_uri=self.DATABASE_URI)
+        self.assertRaisesRegexp(AssertionError, '', Wallet, 'my-awesome-wallet55', main_key_object=key_invalid,
+                                db_uri=self.DATABASE_URI)
 
     def test_wallet_single_key(self):
         wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test',
@@ -710,7 +712,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         self.assertIsNone(wk._hdkey_object.private_hex)
         self.assertIsNone(wk._dbkey)
 
-        w2 = wallet_create_or_open('wallet_public', network='testnet', keys=wk)
+        w2 = wallet_create_or_open('wallet_public', network='testnet', keys=wk, db_uri=self.DATABASE_URI)
         self.assertFalse(w2.main_key.is_private)
         self.assertIsNone(w2.main_key.key_private)
 
@@ -816,8 +818,8 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_multiple_networks_value(self):
         pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysdteSN16sH'
-        wallet_delete_if_exists('test_wallet_multiple_networks_value', force=True)
-        w = wallet_create_or_open('test_wallet_multiple_networks_value', keys=pk)
+        wallet_delete_if_exists('test_wallet_multiple_networks_value', force=True, db_uri=self.DATABASE_URI)
+        w = wallet_create_or_open('test_wallet_multiple_networks_value', keys=pk, db_uri=self.DATABASE_URI)
         w.new_account(network='bitcoin')
         w.new_account(network='bitcoinlib_test')
         w.utxos_update(networks='testnet')
@@ -2154,11 +2156,11 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(len(w.transactions()), 1)
 
     def test_wallet_create_import_key(self):
-        w = wallet_create_or_open("wallet_private", network='bitcoinlib_test')
+        w = wallet_create_or_open("wallet_private", network='bitcoinlib_test', db_uri=self.DATABASE_URI)
 
         w.utxos_update()
         wk = w.public_master()
-        w2 = wallet_create_or_open('wallet_public', network='bitcoinlib_test', keys=wk)
+        w2 = wallet_create_or_open('wallet_public', network='bitcoinlib_test', keys=wk, db_uri=self.DATABASE_URI)
         w2.utxos_update()
 
         wt = w2.send_to('21HKMUVtSUETuWyDESrmCj6Vwvtuns8XG5k', 1000, fee=1000, offline=True)
