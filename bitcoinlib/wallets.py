@@ -23,7 +23,6 @@ from itertools import groupby
 from operator import itemgetter
 import numpy as np
 import pickle
-from copy import copy
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -507,9 +506,9 @@ class WalletKey(object):
         if self.key_type == 'multisig':
             self._hdkey_object = []
             for kc in self._dbkey.multisig_children:
-                self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
+                self._hdkey_object.append(HDKey.from_wif(kc.child_key.wif, network=kc.child_key.network_name, compressed=self.compressed))
         if self._hdkey_object is None and self.wif:
-            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name, compressed=self.compressed)
+            self._hdkey_object = HDKey.from_wif(self.wif, network=self.network_name, compressed=self.compressed)
         return self._hdkey_object
 
     def balance(self, as_string=False):
@@ -717,11 +716,11 @@ class WalletTransaction(Transaction):
 
     def to_transaction(self):
         return Transaction(self.inputs, self.outputs, self.locktime, self.version,
-            self.network.name, self.fee, self.fee_per_kb, self.size,
-            self.txid, self.txhash, self.date, self.confirmations,
-            self.block_height, self.block_hash, self.input_total,
-            self.output_total, self.rawtx, self.status, self.coinbase,
-            self.verified, self.witness_type, self.flag)
+                           self.network.name, self.fee, self.fee_per_kb, self.size,
+                           self.txid, self.txhash, self.date, self.confirmations,
+                           self.block_height, self.block_hash, self.input_total,
+                           self.output_total, self.rawtx, self.status, self.coinbase,
+                           self.verified, self.witness_type, self.flag)
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=False,
              replace_signatures=False):
@@ -3315,11 +3314,12 @@ class Wallet(object):
         if not key:
             raise WalletError("Key '%s' not found in this wallet" % key_id)
         if key.key_type == 'multisig':
-            inp_keys = [HDKey(ck.child_key.wif, network=ck.child_key.network_name) for ck in key.multisig_children]
+            inp_keys = [HDKey.from_wif(ck.child_key.wif, network=ck.child_key.network_name) for ck in
+                        key.multisig_children]
         elif key.key_type in ['bip32', 'single']:
             if not key.wif:
                 raise WalletError("WIF of key is empty cannot create HDKey")
-            inp_keys = [HDKey(key.wif, compressed=key.compressed, network=key.network_name)]
+            inp_keys = [HDKey.from_wif(key.wif, network=key.network_name)]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
