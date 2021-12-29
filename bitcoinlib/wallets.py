@@ -3811,7 +3811,7 @@ class Wallet(object):
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
+             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=True, number_of_change_outputs=1):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3846,7 +3846,7 @@ class Wallet(object):
         :type max_utxos: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
@@ -3880,7 +3880,7 @@ class Wallet(object):
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
-                priv_keys=None, locktime=0, offline=False, number_of_change_outputs=1):
+                priv_keys=None, locktime=0, offline=True, number_of_change_outputs=1):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
@@ -3911,7 +3911,7 @@ class Wallet(object):
         :type priv_keys: HDKey, list
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
@@ -3925,14 +3925,14 @@ class Wallet(object):
                          number_of_change_outputs=number_of_change_outputs)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
-              fee_per_kb=None, fee=None, locktime=0, offline=False):
+              fee_per_kb=None, fee=None, locktime=0, offline=True):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
 
         Wrapper for the :func:`send` method.
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
-        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', offline=True)
+        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb'
         >>> t
         <WalletTransaction(input_count=1, output_count=1, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
@@ -3941,7 +3941,7 @@ class Wallet(object):
         Output to multiple addresses
 
         >>> to_list = [('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 100000), (w.get_key(), 0)]
-        >>> w.sweep(to_list, offline=True)
+        >>> w.sweep(to_list)
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
 
         :param to_address: Single output address or list of outputs in format [(<adddress>, <amount>)]. If you specify a list of outputs, use amount value = 0 to indicate a change output
@@ -3962,7 +3962,7 @@ class Wallet(object):
         :type fee: int, str
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
 
         :return WalletTransaction:
