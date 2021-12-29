@@ -428,17 +428,24 @@ class Service(object):
         """
         return self._provider_execute('sendrawtransaction', rawtx)
 
-    def estimatefee(self, blocks=3):
+    def estimatefee(self, blocks=3, priority=''):
         """
         Estimate fee per kilobyte for a transaction for this network with expected confirmation within a certain
         amount of blocks
 
-        :param blocks: Expection confirmation time in blocks. Default is 3.
+        :param blocks: Expected confirmation time in blocks. Default is 3.
         :type blocks: int
+        :param priority: Priority for transaction: can be 'low', 'medium' or 'high'. Overwrites value supplied in 'blocks' argument
+        :type priority: str
 
-        :return int: Fee in smallest network denominator (satoshi)
+        :return int: Fee in the smallest network denominator (satoshi)
         """
         self.results_cache_n = 0
+        if priority:
+            if priority == 'low':
+                blocks = 10
+            elif priority == 'high':
+                blocks = 1
         if self.min_providers <= 1:  # Disable cache if comparing providers
             fee = self.cache.estimatefee(blocks)
             if fee:

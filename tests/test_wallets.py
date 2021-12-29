@@ -1048,7 +1048,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             pk2.public_master(multisig=True),
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(multisig=True),
         ]
-        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
+        wl = Wallet.create('multisig_test_bitcoin_send2', key_list, sigs_required=2,
                            db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
@@ -1057,6 +1057,27 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         t.send(offline=True)
         self.assertTrue(t.verify())
         self.assertIsNone(t.error)
+
+    def test_wallet_multisig_bitcoin_transaction_send_fee_priority(self):
+        self.db_remove()
+        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d')
+        key_list = [
+            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067'),
+            pk2.public_master(multisig=True),
+            HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(multisig=True),
+        ]
+        wl = Wallet.create('multisig_test_bitcoin_send3', key_list, sigs_required=2, db_uri=self.DATABASE_URI)
+        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
+                    0, 1)
+        t = wl.sweep('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', fee='low', offline=True)
+        t.sign(pk2)
+        self.assertTrue(t.verify())
+
+        t2 = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)], fee='low')
+        t2.sign(pk2)
+        t2.send(offline=True)
+        self.assertTrue(t2.verify())
+        self.assertIsNone(t2.error)
 
     def test_wallet_multisig_litecoin_transaction_send_offline(self):
         self.db_remove()
@@ -1068,7 +1089,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6',
                   network=network).public_master(multisig=True),
         ]
-        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=network,
+        wl = Wallet.create('multisig_test_litecoin_send', key_list, sigs_required=2, network=network,
                            db_uri=self.DATABASE_URI)
         wl.get_keys(number_of_keys=2)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
@@ -2154,11 +2175,11 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(len(w.transactions()), 1)
 
     def test_wallet_create_import_key(self):
-        w = wallet_create_or_open("wallet_private", network='bitcoinlib_test')
+        w = wallet_create_or_open("test_wallet_create_import_key_private", network='bitcoinlib_test')
 
         w.utxos_update()
         wk = w.public_master()
-        w2 = wallet_create_or_open('wallet_public', network='bitcoinlib_test', keys=wk)
+        w2 = wallet_create_or_open('test_wallet_create_import_key_public', network='bitcoinlib_test', keys=wk)
         w2.utxos_update()
 
         wt = w2.send_to('21HKMUVtSUETuWyDESrmCj6Vwvtuns8XG5k', 1000, fee=1000, offline=True)

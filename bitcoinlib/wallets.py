@@ -3452,9 +3452,9 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will be included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3500,17 +3500,23 @@ class Wallet(object):
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         transaction.fee_per_kb = None
-        if fee is None:
+        if isinstance(fee, int):
+            fee_estimate = fee
+        else:
+            n_blocks = 3
+            priority = ''
+            if isinstance(fee, str):
+                priority = fee
+            transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
             if not input_arr:
-                transaction.fee_per_kb = srv.estimatefee()
-                fee_estimate = (transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) / 1024.0
-                                * transaction.fee_per_kb)
+                fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
+                                   1024.0 * transaction.fee_per_kb)
                 if fee_estimate < transaction.network.fee_min:
                     fee_estimate = transaction.network.fee_min
             else:
                 fee_estimate = 0
-        else:
-            fee_estimate = fee
+            if isinstance(fee, str):
+                fee = fee_estimate
 
         # Add inputs
         sequence = 0xffffffff
@@ -3830,9 +3836,9 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will be included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -3897,8 +3903,8 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param fee: Fee to use for this transaction. Leave empty to automatically estimate.
-        :type fee: int
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
@@ -3952,8 +3958,8 @@ class Wallet(object):
         :type min_confirms: int
         :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider. This option is ignored when the 'fee' option is specified
         :type fee_per_kb: int
-        :param fee: Total transaction fee in smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers.
-        :type fee: int
+        :param fee: Total transaction fee in smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
@@ -3977,6 +3983,11 @@ class Wallet(object):
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+
+        if isinstance(fee, str):
+            fee_per_kb = srv.estimatefee(priority=fee)
+            tr_size = 125 + (len(input_arr) * 125)
+            fee = int((tr_size / 1024.0) * fee_per_kb)
 
         if not fee:
             if fee_per_kb is None:
