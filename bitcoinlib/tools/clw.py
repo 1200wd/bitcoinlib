@@ -154,10 +154,16 @@ def create_wallet(wallet_name, args, db_uri):
                 seed = Mnemonic().to_seed(passphrase).hex()
                 key_list.append(HDKey.from_seed(seed, network=args.network))
         return Wallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
-                               cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
+                             cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
     elif args.create_from_key:
-        return Wallet.create(wallet_name, args.create_from_key, network=args.network,
-                               db_uri=db_uri, witness_type=args.witness_type)
+        from bitcoinlib.keys import get_key_format
+        import_key = args.create_from_key
+        kf = get_key_format(import_key)
+        if kf['format'] == 'wif_protected':
+            password = input('Key password? ')
+            import_key, _ = HDKey._bip38_decrypt(import_key, password)
+        return Wallet.create(wallet_name, import_key, network=args.network, db_uri=db_uri,
+                             witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
         if passphrase is None:
@@ -204,7 +210,6 @@ def print_transaction(wt):
         } for i in wt.inputs]
     }
     pprint(tx_dict)
-
 
 
 def clw_exit(msg=None):
