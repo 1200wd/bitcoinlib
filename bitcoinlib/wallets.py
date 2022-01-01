@@ -3985,9 +3985,10 @@ class Wallet(object):
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
         if isinstance(fee, str):
+            n_outputs = 1 if not isinstance(to_address, list) else len(to_address)
             fee_per_kb = srv.estimatefee(priority=fee)
-            tr_size = 125 + (len(input_arr) * 125)
-            fee = int((tr_size / 1024.0) * fee_per_kb)
+            tr_size = 125 + (len(input_arr) * (77 + self.multisig_n_required * 72)) + n_outputs * 30
+            fee = 100 + int((tr_size / 1024.0) * fee_per_kb)
 
         if not fee:
             if fee_per_kb is None:
@@ -4009,8 +4010,12 @@ class Wallet(object):
                 else:
                     to_list.append(o)
 
-        return self.send(to_list, input_arr, network=network,
-                         fee=fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
+        if sum(x[1] for x in to_list) + fee != total_amount:
+            raise WalletError("Total amount of outputs does not match total input amount. If you specify a list of "
+                              "outputs, use amount value = 0 to indicate a change/rest output")
+
+        return self.send(to_list, input_arr, network=network, fee=fee, min_confirms=min_confirms, locktime=locktime,
+                         offline=offline)
 
     def wif(self, is_private=False, account_id=0):
         """
