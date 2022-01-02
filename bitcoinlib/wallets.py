@@ -3645,7 +3645,7 @@ class Wallet(object):
             min_output_value = transaction.network.dust_amount * 2 + transaction.network.fee_min * 4
             if transaction.fee and transaction.size:
                 if not transaction.fee_per_kb:
-                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.vsize)
                 min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
                                    transaction.network.dust_amount
 
@@ -3701,7 +3701,7 @@ class Wallet(object):
 
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
-            transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+            transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.vsize)
         if transaction.fee_per_kb < transaction.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
                               (transaction.fee_per_kb, transaction.network.fee_min))
@@ -3745,7 +3745,7 @@ class Wallet(object):
             rt.vsize = t.vsize
             if not t.vsize:
                 rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1024)
         elif isinstance(t, dict):
             input_arr = []
             for i in t['inputs']:
@@ -3778,7 +3778,7 @@ class Wallet(object):
             rt.vsize = t['vsize']
             if not rt.vsize:
                 rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1024)
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
