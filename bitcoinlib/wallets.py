@@ -3874,7 +3874,10 @@ class Wallet(object):
                                                       number_of_change_outputs)
                 transaction.sign(priv_keys)
 
-        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.size) * 1024)
+        transaction.rawtx = transaction.raw()
+        transaction.size = len(transaction.rawtx)
+        transaction.calc_weight_units()
+        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.vsize) * 1024)
         transaction.txid = transaction.signature_hash()[::-1].hex()
         transaction.send(offline)
         return transaction

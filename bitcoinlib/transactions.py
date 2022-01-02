@@ -2019,6 +2019,7 @@ class Transaction(object):
         else:
             if not self.size and b'' not in [i.unlocking_script for i in self.inputs]:
                 self.size = len(r)
+                self.calc_weight_units()
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
@@ -2451,7 +2452,7 @@ class Transaction(object):
 
     def calculate_fee(self):
         """
-        Get fee for this transaction in smallest denominator (i.e. Satoshi) based on its size and the
+        Get fee for this transaction in the smallest denominator (i.e. Satoshi) based on its size and the
         transaction.fee_per_kb value
 
         :return int: Estimated transaction fee
@@ -2459,12 +2460,13 @@ class Transaction(object):
 
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
-        fee = int(self.estimate_size() / 1024.0 * self.fee_per_kb)
-        # FIXME: fee is in kb, network.fee_min in sat/kb
-        if fee < self.network.fee_min:
-            fee = self.network.fee_min
-        elif fee > self.network.fee_max:
-            fee = self.network.fee_max
+        if self.fee_per_kb < self.network.fee_min:
+            self.fee_per_kb = self.network.fee_min
+        elif self.fee_per_kb > self.network.fee_max:
+            self.fee_per_kb = self.network.fee_max
+        if not self.vsize:
+            self.estimate_size()
+        fee = int(self.vsize / 1024.0 * self.fee_per_kb)
         return fee
 
     def update_totals(self):
