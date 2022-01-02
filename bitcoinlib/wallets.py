@@ -3806,8 +3806,9 @@ class Wallet(object):
         rt.version_int = t_import.version_int
         rt.version = t_import.version
         rt.verify()
-        rt.size = rt.vsize = len(rawtx)
-        rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+        rt.size = len(rawtx)
+        rt.calc_weight_units()
+        rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1024)
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,

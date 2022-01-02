@@ -1789,6 +1789,22 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertDictEqualExt(t.as_dict(), t2.as_dict(), ['spending_txid', 'spending_index_n'])
         del wlt
 
+    def test_wallet_transaction_import_raw_segwit_fee(self):
+        wallet_delete_if_exists('bcltestwlt-size', force=True, db_uri=self.DATABASE_URI)
+        pk = 'YXscyqNJ5YK411nwB2peYdMeJPmkJmMJCfNdo9JuWkEKLZhVSoUjbRRinVqqtBN2GNC2A6L1Taz1e3LWApHkC84GgTp3vr7neD' \
+             'ZTxXnvGkUwVz4c'
+        wlt = Wallet.create('bcltestwlt-size', keys=pk, network='bitcoinlib_test', witness_type='segwit',
+                            db_uri=self.DATABASE_URI)
+        wlt.utxos_update()
+        t = wlt.send_to(wlt.get_key().address, 8237234)
+        t2 = wlt.transaction_import_raw(t.raw())
+        self.assertEqual(t.fee, t2.fee)
+        self.assertEqual(t.size, t2.size)
+        self.assertEqual(t.vsize, t2.vsize)
+        self.assertEqual(t.fee_per_kb, t2.fee_per_kb)
+        self.assertEqual(t.raw_hex(), t2.raw_hex())
+        del wlt
+
     def test_wallet_transaction_import_dict(self):
         wlt = Wallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
