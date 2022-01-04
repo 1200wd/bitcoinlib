@@ -671,7 +671,7 @@ class WalletTransaction(Transaction):
 
         fee_per_kb = None
         if db_tx.fee and db_tx.size:
-            fee_per_kb = int((db_tx.fee / db_tx.size) * 1024)
+            fee_per_kb = int((db_tx.fee / db_tx.size) * 1000)
         network = Network(db_tx.network_name)
 
         inputs = []
@@ -3510,7 +3510,7 @@ class Wallet(object):
             transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
             if not input_arr:
                 fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
-                                   1024.0 * transaction.fee_per_kb)
+                                   1000.0 * transaction.fee_per_kb)
                 if fee_estimate < transaction.network.fee_min:
                     fee_estimate = transaction.network.fee_min
             else:
@@ -3621,8 +3621,8 @@ class Wallet(object):
                     transaction.fee_per_kb = srv.estimatefee()
                 if transaction.fee_per_kb < transaction.network.fee_min:
                     transaction.fee_per_kb = transaction.network.fee_min
-                transaction.fee = int((transaction.size / 1024.0) * transaction.fee_per_kb)
-                fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
+                transaction.fee = int((transaction.size / 1000.0) * transaction.fee_per_kb)
+                fee_per_output = int((50 / 1000.0) * transaction.fee_per_kb)
             else:
                 if amount_total_output and amount_total_input:
                     fee = False
@@ -3645,7 +3645,7 @@ class Wallet(object):
             min_output_value = transaction.network.dust_amount * 2 + transaction.network.fee_min * 4
             if transaction.fee and transaction.size:
                 if not transaction.fee_per_kb:
-                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.vsize)
+                    transaction.fee_per_kb = int((transaction.fee * 1000.0) / transaction.vsize)
                 min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
                                    transaction.network.dust_amount
 
@@ -3701,7 +3701,7 @@ class Wallet(object):
 
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
-            transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.vsize)
+            transaction.fee_per_kb = int((transaction.fee * 1000.0) / transaction.vsize)
         if transaction.fee_per_kb < transaction.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
                               (transaction.fee_per_kb, transaction.network.fee_min))
@@ -3745,7 +3745,7 @@ class Wallet(object):
             rt.vsize = t.vsize
             if not t.vsize:
                 rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1024)
+            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1000)
         elif isinstance(t, dict):
             input_arr = []
             for i in t['inputs']:
@@ -3778,7 +3778,7 @@ class Wallet(object):
             rt.vsize = t['vsize']
             if not rt.vsize:
                 rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1024)
+            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1000)
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
@@ -3808,7 +3808,7 @@ class Wallet(object):
         rt.verify()
         rt.size = len(rawtx)
         rt.calc_weight_units()
-        rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1024)
+        rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1000)
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
@@ -3878,7 +3878,7 @@ class Wallet(object):
         transaction.rawtx = transaction.raw()
         transaction.size = len(transaction.rawtx)
         transaction.calc_weight_units()
-        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.vsize) * 1024)
+        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.vsize) * 1000)
         transaction.txid = transaction.signature_hash()[::-1].hex()
         transaction.send(offline)
         return transaction
@@ -3992,13 +3992,13 @@ class Wallet(object):
             n_outputs = 1 if not isinstance(to_address, list) else len(to_address)
             fee_per_kb = srv.estimatefee(priority=fee)
             tr_size = 125 + (len(input_arr) * (77 + self.multisig_n_required * 72)) + n_outputs * 30
-            fee = 100 + int((tr_size / 1024.0) * fee_per_kb)
+            fee = 100 + int((tr_size / 1000.0) * fee_per_kb)
 
         if not fee:
             if fee_per_kb is None:
                 fee_per_kb = srv.estimatefee()
             tr_size = 125 + (len(input_arr) * 125)
-            fee = int((tr_size / 1024.0) * fee_per_kb)
+            fee = int((tr_size / 1000.0) * fee_per_kb)
         if total_amount - fee <= self.network.dust_amount:
             raise WalletError("Amount to send is smaller then dust amount: %s" % (total_amount - fee))
 

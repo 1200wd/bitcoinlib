@@ -2212,7 +2212,7 @@ class Transaction(object):
         self.calc_weight_units()
         self.update_totals()
         if self.fee:
-            self.fee_per_kb = int((self.fee / float(self.vsize)) * 1024)
+            self.fee_per_kb = int((self.fee / float(self.vsize)) * 1000)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
@@ -2466,7 +2466,7 @@ class Transaction(object):
             self.fee_per_kb = self.network.fee_max
         if not self.vsize:
             self.estimate_size()
-        fee = int(self.vsize / 1024.0 * self.fee_per_kb)
+        fee = int(self.vsize / 1000.0 * self.fee_per_kb)
         return fee
 
     def update_totals(self):

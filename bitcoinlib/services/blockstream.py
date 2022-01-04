@@ -182,11 +182,11 @@ class BlockstreamClient(BaseClient):
         closest = (sorted([int(i) - blocks for i in est.keys() if int(i) - blocks >= 0]))
         # FIXME: temporary fix for too low testnet tx fees:
         if self.network.name == 'testnet':
-            return 2048
+            return 2000
         if closest:
-            return int(est[str(closest[0] + blocks)] * 1024)
+            return int(est[str(closest[0] + blocks)] * 1000)
         else:
-            return int(est[str(sorted([int(i) for i in est.keys()])[-1:][0])] * 1024)
+            return int(est[str(sorted([int(i) for i in est.keys()])[-1:][0])] * 1000)
 
     def blockcount(self):
         return self.compose_request('blocks', 'tip', 'height')

@@ -160,13 +160,13 @@ class MempoolClient(BaseClient):
     def estimatefee(self, blocks):
         estimates = self.compose_request('fees', 'recommended')
         if blocks < 2:
-            return estimates['fastestFee'] * 1024
+            return estimates['fastestFee'] * 1000
         elif blocks < 4:
-            return estimates['halfHourFee'] * 1024
+            return estimates['halfHourFee'] * 1000
         if blocks < 7:
-            return estimates['hourFee'] * 1024
+            return estimates['hourFee'] * 1000
         else:
-            return estimates['minimumFee'] * 1024
+            return estimates['minimumFee'] * 1000
 
     def blockcount(self):
         res = self.compose_request('blocks', 'tip', 'height')
