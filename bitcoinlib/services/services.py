@@ -457,6 +457,10 @@ class Service(object):
                 fee = self.network.fee_default
             else:
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
+        if fee < self.network.fee_min:
+            fee = self.network.fee_min
+        elif fee > self.network.fee_max:
+            fee = self.network.fee_max
         self.cache.store_estimated_fee(blocks, fee)
         return fee
 

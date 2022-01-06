@@ -3511,8 +3511,6 @@ class Wallet(object):
             if not input_arr:
                 fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
                                    1000.0 * transaction.fee_per_kb)
-                if fee_estimate < transaction.network.fee_min:
-                    fee_estimate = transaction.network.fee_min
             else:
                 fee_estimate = 0
             if isinstance(fee, str):

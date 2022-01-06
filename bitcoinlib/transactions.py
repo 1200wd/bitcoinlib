@@ -2377,6 +2377,10 @@ class Transaction(object):
         witness_size = 2
         if self.witness_type != 'legacy':
             est_size += 2
+        # TODO: if no inputs assume 1 input
+        if not self.inputs:
+            est_size += 125
+            witness_size += 72
         for inp in self.inputs:
             est_size += 40
             scr_size = 0
@@ -2439,10 +2443,11 @@ class Transaction(object):
         """
         if not self.size:
             return None
+        witness_data_size = len(self.witness_data())
         wu = self.size * 4
-        if self.witness_type == 'segwit':
+        if self.witness_type == 'segwit' and witness_data_size > 1:
             wu = wu - 6  # for segwit marker and flag
-            wu = wu - len(self.witness_data()) * 3
+            wu = wu - witness_data_size * 3
         self.vsize = math.ceil(wu / 4)
         return wu
 
