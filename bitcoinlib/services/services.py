@@ -717,7 +717,7 @@ class Cache(object):
         for n in db_tx.nodes:
             if n.is_input:
                 witnesses = []
-                # TODO: Move code to Script class
+                # TODO: Move code to Script class / add_input
                 if n.witnesses:
                     witness_str = n.witnesses
                     n_items, cursor = varbyteint_to_int(witness_str[0:9])

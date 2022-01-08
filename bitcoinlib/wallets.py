@@ -688,10 +688,29 @@ class WalletTransaction(Transaction):
                         inp_keys.append(ck.child_key.public.hex())
                 else:
                     inp_keys = key.key()
+
+            # TODO: Move code to Script class / add_input
+            witnesses = []
+            if inp.witnesses:
+                witness_str = inp.witnesses
+                n_items, cursor = varbyteint_to_int(witness_str[0:9])
+                for m in range(0, n_items):
+                    witness = b'\0'
+                    item_size, size = varbyteint_to_int(witness_str[cursor:cursor + 9])
+                    if item_size:
+                        witness = witness_str[cursor + size:cursor + item_size + size]
+                    cursor += item_size + size
+                    witnesses.append(witness)
+                    # if self.witnesses and not self.signatures and not self.keys and \
+                    #         self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 \
+                    #         and b'\0' not in self.witnesses:
+                    #     self.signatures = [Signature.parse_bytes(self.witnesses[0])]
+
             inputs.append(Input(
                 prev_txid=inp.prev_txid, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
-                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address))
+                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address,
+                witnesses=witnesses))
 
         outputs = []
         for out in db_tx.outputs:
@@ -869,11 +888,12 @@ class WalletTransaction(Transaction):
             tx_input = sess.query(DbTransactionInput). \
                 filter_by(transaction_id=txidn, index_n=ti.index_n).scalar()
             if not tx_input:
+                witnesses = int_to_varbyteint(len(ti.witnesses)) + b''.join([bytes(varstr(w)) for w in ti.witnesses])
                 new_tx_item = DbTransactionInput(
                     transaction_id=txidn, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
                     prev_txid=ti.prev_txid, index_n=ti.index_n, double_spend=ti.double_spend,
                     script=ti.unlocking_script, script_type=ti.script_type, witness_type=ti.witness_type,
-                    sequence=ti.sequence, address=ti.address)
+                    sequence=ti.sequence, address=ti.address, witnesses=witnesses)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
