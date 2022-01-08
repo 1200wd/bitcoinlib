@@ -1805,6 +1805,22 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(t.raw_hex(), t2.raw_hex())
         del wlt
 
+    def test_wallet_transaction_load_segwit_size(self):
+        pk = 'YXscyqNJ5YK411nwB2peYdMeJPmkJmMJCfNdo9JuWkEKLZhVSoUjbRRinVqqtBN2GNC2A6L1Taz1e3LWApHkC84GgTp3vr7neD' \
+             'ZTxXnvGkUwVz4c'
+        wlt = Wallet.create('bcltestwlt2-size', keys=pk, network='bitcoinlib_test', witness_type='segwit',
+                            db_uri=self.DATABASE_URI)
+        wlt.utxos_update()
+        t = wlt.send_to(wlt.get_key().address, 50000000, offline=False)
+        t.verify()
+        self.assertTrue(t.verified)
+
+        t2 = wlt.transaction(t.txid)
+        t2.verify()
+        self.assertTrue(t2.verified)
+        self.assertEqual(t.vsize, t2.vsize)
+        self.assertEqual(t.witness_data(), t2.witness_data())
+
     def test_wallet_transaction_import_dict(self):
         wlt = Wallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()

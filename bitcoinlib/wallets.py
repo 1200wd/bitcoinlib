@@ -691,6 +691,7 @@ class WalletTransaction(Transaction):
 
             # TODO: Move code to Script class / add_input
             witnesses = []
+            signatures = None
             if inp.witnesses:
                 witness_str = inp.witnesses
                 n_items, cursor = varbyteint_to_int(witness_str[0:9])
@@ -701,16 +702,14 @@ class WalletTransaction(Transaction):
                         witness = witness_str[cursor + size:cursor + item_size + size]
                     cursor += item_size + size
                     witnesses.append(witness)
-                    # if self.witnesses and not self.signatures and not self.keys and \
-                    #         self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 \
-                    #         and b'\0' not in self.witnesses:
-                    #     self.signatures = [Signature.parse_bytes(self.witnesses[0])]
+            if inp.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(witnesses) == 2 and b'\0' not in witnesses:
+                signatures = [witnesses[0]]
 
             inputs.append(Input(
                 prev_txid=inp.prev_txid, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
                 double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address,
-                witnesses=witnesses))
+                witnesses=witnesses, signatures=signatures))
 
         outputs = []
         for out in db_tx.outputs:

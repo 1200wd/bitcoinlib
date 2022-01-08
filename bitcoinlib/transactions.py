@@ -2410,8 +2410,6 @@ class Transaction(object):
                                            inp.script_type)
             est_size += scr_size
             witness_size += scr_size
-        if not self.inputs:
-            est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
             est_size += 8
             if outp.lock_script:
