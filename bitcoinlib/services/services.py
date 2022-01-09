@@ -281,8 +281,9 @@ class Service(object):
 
         utxos = self._provider_execute('getutxos', address, after_txid, limit)
         if utxos is False:
-            self.complete = False
-            return utxos_cache
+            raise ServiceError("Error when retrieving UTXO's")
+            # self.complete = False
+            # return utxos_cache
         else:
             # TODO: Update cache_transactions_node
             if utxos and len(utxos) >= limit:
