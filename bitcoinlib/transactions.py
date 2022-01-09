@@ -991,6 +991,51 @@ class Input(object):
             self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
         return True
 
+    def verify(self, transaction_hash):
+        """
+        Verify input with provided transaction hash, check if signatures matches public key.
+
+        Does not check if UTXO is valid or has already been spent
+
+        :param transaction_hash: Double SHA256 Hash of Transaction signature
+        :type transaction_hash: bytes
+
+        :return bool: True if enough signatures provided and if all signatures are valid
+        """
+
+        if self.script_type == 'coinbase':
+            self.valid = True
+            return True
+        if not self.signatures:
+            _logger.info("No signatures found for transaction input %d" % self.index_n)
+            return False
+
+        sig_n = 0
+        key_n = 0
+        sigs_verified = 0
+        while sigs_verified < self.sigs_required:
+            if key_n >= len(self.keys):
+                _logger.info(
+                    "Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
+                    (self.index_n, sigs_verified, self.sigs_required))
+                return False
+            if sig_n >= len(self.signatures):
+                _logger.info("No valid signatures found")
+                return False
+            key = self.keys[key_n]
+            sig = self.signatures[sig_n]
+            if verify(transaction_hash, sig, key):
+                sigs_verified += 1
+                sig_n += 1
+            elif sig_n > 0:
+                # try previous signature
+                prev_sig = deepcopy(self.signatures[sig_n - 1])
+                if verify(transaction_hash, prev_sig, key):
+                    sigs_verified += 1
+            key_n += 1
+        self.valid = True
+        return True
+
     def as_dict(self):
         """
         Get transaction input information in json format
@@ -2060,46 +2105,18 @@ class Transaction(object):
         """
 
         self.verified = False
-        for i in self.inputs:
-            if i.script_type == 'coinbase':
-                i.valid = True
-                break
-            if not i.signatures:
-                _logger.info("No signatures found for transaction input %d" % i.index_n)
-                return False
+        for inp in self.inputs:
             try:
-                transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
+                transaction_hash = self.signature_hash(inp.index_n, witness_type=inp.witness_type)
             except TransactionError as e:
                 _logger.info("Could not create transaction hash. Error: %s" % e)
                 return False
             if not transaction_hash:
                 _logger.info("Need at least 1 key to create segwit transaction signature")
                 return False
-
-            sig_n = 0
-            key_n = 0
-            sigs_verified = 0
-            while sigs_verified < i.sigs_required:
-                if key_n >= len(i.keys):
-                    _logger.info(
-                        "Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
-                        (i.index_n, sigs_verified, i.sigs_required))
-                    return False
-                if sig_n >= len(i.signatures):
-                    _logger.info("No valid signatures found")
-                    return False
-                key = i.keys[key_n]
-                sig = i.signatures[sig_n]
-                if verify(transaction_hash, sig, key):
-                    sigs_verified += 1
-                    sig_n += 1
-                elif sig_n > 0:
-                    # try previous signature
-                    prev_sig = deepcopy(i.signatures[sig_n-1])
-                    if verify(transaction_hash, prev_sig, key):
-                        sigs_verified += 1
-                key_n += 1
-            i.valid = True
+            self.verified = inp.verify(transaction_hash)
+            if not self.verified:
+                return False
 
         self.verified = True
         return True
