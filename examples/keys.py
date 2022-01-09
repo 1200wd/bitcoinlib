@@ -49,7 +49,7 @@ k.info()
 print("\n=== Import uncompressed Private Key and Encrypt with BIP38 ===")
 k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
 print("Private key     %s" % k.wif())
-print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
+print("Encrypted pk    %s " % k.encrypt('TestingOneTwoThree'))
 print("Is Compressed   %s\n" % k.compressed)
 
 print("\n=== Import and Decrypt BIP38 Key ===")

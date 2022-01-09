@@ -33,8 +33,8 @@ class Benchmark:
     def benchmark_bip38():
         # Encrypt and decrypt BIP38 key
         k = Key()
-        bip38_key = k.bip38_encrypt(passphrase='satoshi')
-        k2 = Key(bip38_key, passphrase='satoshi')
+        bip38_key = k.encrypt(password='satoshi')
+        k2 = Key(bip38_key, password='satoshi')
         assert(k.wif() == k2.wif())
 
     @staticmethod

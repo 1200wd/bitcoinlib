@@ -1039,13 +1039,13 @@ class Key(object):
                             'specified network %s might be incorrect' % network)
         return priv, compressed
 
-    def bip38_encrypt(self, password):
+    def encrypt(self, password):
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
 
         >>> k = Key('cNUpWJbC1hVJtyxyV4bVAnb4uJ7FPhr82geo1vnoA29XWkeiiCQn')
-        >>> k.bip38_encrypt('test')
+        >>> k.encrypt('test')
         '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
 
         :param password: Required password for encryption
@@ -1055,6 +1055,10 @@ class Key(object):
         """
         flagbyte = b'\xe0' if self.compressed else b'\xc0'
         return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
+
+    @deprecated
+    def bip38_encrypt(self, password):
+        return self.encrypt(password)
 
     def wif(self, prefix=None):
         """
@@ -1538,23 +1542,6 @@ class HDKey(Key):
         """
 
         return self.hash160[:4]
-
-    def bip38_encrypt(self, password):
-        """
-        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
-        Based on code from https://github.com/nomorecoin/python-bip38-testing
-
-        >>> k = HDKey.from_wif('zprvAWgYBBk7JR8GjAHfvjhGLKFGUJNcnPtkNryWfstePYJc4SVFYbaFk3Fpqn9dSmtPLKrPWB7WzsgzZzFiB1Qnhzop6jqTdEvHVzutBM2bmNr')
-        >>> k.bip38_encrypt('my-secret-password')
-        '6PYUAKyDYo7Q6sSJ3ZYo4EFeWFTMkUES2mdvsMNBSoN5QyXPmeogxfumfW'
-
-        :param password: Required password for encryption
-        :type password: str
-
-        :return str: BIP38 password encrypted private key
-        """
-        flagbyte = b'\xe0' if self.compressed else b'\xc0'
-        return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, password, network=DEFAULT_NETWORK, witness_type=DEFAULT_WITNESS_TYPE):

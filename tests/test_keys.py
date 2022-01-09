@@ -557,7 +557,7 @@ class TestBip38(unittest.TestCase):
         for v in self.vectors["valid"]:
             k = Key(v['wif'])
             print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
-            self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase'])))
+            self.assertEqual(str(v['bip38']), k.encrypt(str(v['passphrase'])))
 
     def test_decrypt_bip38_key(self):
         if not USING_MODULE_SCRYPT:
@@ -580,7 +580,7 @@ class TestBip38(unittest.TestCase):
         networks = ['testnet', 'litecoin', 'dash']
         for network in networks:
             k = Key(network=network)
-            enc_key = k.bip38_encrypt('password')
+            enc_key = k.encrypt('password')
             k2 = Key(enc_key, password='password', network=network)
             self.assertEqual(k.wif(), k2.wif())
 
@@ -588,7 +588,7 @@ class TestBip38(unittest.TestCase):
         pkwif = '5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5'
         bip38_wif = '6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq'
         k = HDKey(pkwif)
-        self.assertEqual(k.bip38_encrypt('Satoshi'), bip38_wif)
+        self.assertEqual(k.encrypt('Satoshi'), bip38_wif)
 
 
 class TestKeysBulk(unittest.TestCase):

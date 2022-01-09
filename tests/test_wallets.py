@@ -307,7 +307,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
             self.skipTest('Need scrypt module to test BIP38 wallets')
         passphrase = "region kite swamp float card flag chalk click gadget share wage clever"
         k = HDKey().from_passphrase(passphrase)
-        ke = k.bip38_encrypt('hoihoi')
+        ke = k.encrypt('hoihoi')
         w = wallet_create_or_open('kewallet', ke, password='hoihoi', network='bitcoin', db_uri=self.DATABASE_URI)
         self.assertEqual(k.private_hex, w.main_key.key_private.hex())
 
