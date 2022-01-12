@@ -703,8 +703,8 @@ class Input(object):
         :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
-        :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
-        :type witnesses: list of bytes, list of str
+        :param witnesses: List of witnesses for inputs, used for segwit transactions for instance. Argument can be list of bytes or string or a single bytes string with concatenated witnesses as found in a raw transaction.
+        :type witnesses: list of bytes, list of str, bytes
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
         :type encoding: str
         :param strict: Raise exception when input is malformed, incomplete or not understood
@@ -769,11 +769,19 @@ class Input(object):
             self.encoding = encoding
         self.valid = None
         self.key_path = key_path
+
         self.witnesses = []
-        # for w in witnesses if witnesses else []:
-        #     self.witnesses.append(bytes.fromhex(w) if isinstance(w, str) else w)
-        # self.witnesses = witnesses if witnesses else []
-        self.witnesses = [] if not witnesses else [bytes.fromhex(w) if isinstance(w, str) else w for w in witnesses]
+        if isinstance(witnesses, bytes):
+            n_items, cursor = varbyteint_to_int(witnesses[0:9])
+            for m in range(0, n_items):
+                witness = b'\0'
+                item_size, size = varbyteint_to_int(witnesses[cursor:cursor + 9])
+                if item_size:
+                    witness = witnesses[cursor + size:cursor + item_size + size]
+                cursor += item_size + size
+                self.witnesses.append(witness)
+        elif witnesses:
+            self.witnesses = [bytes.fromhex(w) if isinstance(w, str) else w for w in witnesses]
         self.script_code = b''
         self.script = script
 
@@ -833,6 +841,7 @@ class Input(object):
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         self.hash_type = SIGHASH_ALL
+
         for sig in signatures:
             if not isinstance(sig, Signature):
                 try:
@@ -844,6 +853,14 @@ class Input(object):
                 self.signatures.append(sig)
                 if sig.hash_type:
                     self.hash_type = sig.hash_type
+
+        # fixme: p2wpkh == p2sh_p2wpkh
+        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh'] and self.witnesses and not self.signatures and \
+                self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 and \
+                b'\0' not in self.witnesses:
+            self.signatures = [Signature.parse_bytes(self.witnesses[0])]
+            self.keys = [Key(self.witnesses[1], network=self.network)]
+
         self.update_scripts(hash_type=self.hash_type)
 
     @classmethod
@@ -894,24 +911,10 @@ class Input(object):
         addr_data = b''
         unlock_script = b''
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh']:  # fixme: p2wpkh == p2sh_p2wpkh
-            if not self.keys and not self.public_hash:
-            # if not self.keys or not self.signatures:
-            # if not self.keys:
-                # if self.unlocking_script_unsigned:
-                #     script_dict = script_deserialize(self.unlocking_script_unsigned)
-                #     if script_dict['script_type'] == 'p2pkh':
-                #         self.public_hash = script_dict['hashes'][0]
-                #     else:
-                #         return
-                if self.witnesses and not self.signatures and not self.keys and \
-                        self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 \
-                        and b'\0' not in self.witnesses:
-                    self.signatures = [Signature.parse_bytes(self.witnesses[0])]
-                    self.keys = [Key(self.witnesses[1], network=self.network)]
-                else:
-                    return
             if not self.public_hash and self.keys:
                 self.public_hash = self.keys[0].hash160
+            if not self.keys and not self.public_hash:
+                return
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash

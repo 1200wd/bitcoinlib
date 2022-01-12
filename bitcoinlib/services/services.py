@@ -282,8 +282,6 @@ class Service(object):
         utxos = self._provider_execute('getutxos', address, after_txid, limit)
         if utxos is False:
             raise ServiceError("Error when retrieving UTXO's")
-            # self.complete = False
-            # return utxos_cache
         else:
             # TODO: Update cache_transactions_node
             if utxos and len(utxos) >= limit:
@@ -296,7 +294,7 @@ class Service(object):
 
     def gettransaction(self, txid):
         """
-        Get a transaction by its transaction hashtxos. Convert to Bitcoinlib transaction object.
+        Get a transaction by its transaction hash. Convert to Bitcoinlib Transaction object.
 
         :param txid: Transaction identification hash
         :type txid: str
@@ -717,22 +715,10 @@ class Cache(object):
                         block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value)
         for n in db_tx.nodes:
             if n.is_input:
-                witnesses = []
-                # TODO: Move code to Script class / add_input
-                if n.witnesses:
-                    witness_str = n.witnesses
-                    n_items, cursor = varbyteint_to_int(witness_str[0:9])
-                    for m in range(0, n_items):
-                        witness = b'\0'
-                        item_size, size = varbyteint_to_int(witness_str[cursor:cursor + 9])
-                        if item_size:
-                            witness = witness_str[cursor + size:cursor + item_size + size]
-                        cursor += item_size + size
-                        witnesses.append(witness)
                 if n.ref_txid == b'\00' * 32:
                     t.coinbase = True
                 t.add_input(n.ref_txid.hex(), n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses, strict=False)
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=n.witnesses, strict=False)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
                              spending_txid=None if not n.ref_txid else n.ref_txid.hex(),
