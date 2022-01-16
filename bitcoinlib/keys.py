@@ -777,14 +777,9 @@ class Key(object):
                     raise BKeyError("Can not create Key object from address")
                 self.key_format = kf["format"]
                 networks_extracted = kf["networks"]
-                self.is_private = is_private
-                if is_private is None:
-                    if kf['is_private']:
-                        self.is_private = True
-                    elif kf['is_private'] is None:
-                        raise BKeyError("Could not determine if key is private or public")
-                    else:
-                        self.is_private = False
+                self.is_private = is_private if is_private else kf['is_private']
+                if self.is_private is None:
+                    raise BKeyError("Could not determine if key is private or public")
 
         if network is not None:
             self.network = network
