@@ -156,16 +156,10 @@ class TestService(unittest.TestCase, CustomAssertions):
                 prev = balance
 
     def test_service_address_conversion(self):
-        srv = ServiceTest(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
-        try:
-            srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
-            exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
-            for r in srv.results:
-                if r not in exp_dict:
-                    print("WARNING: Provider %s not found in results" % r)
-                self.assertEqual(srv.results[r], exp_dict[r])
-        except ServiceError:
-            self.skipTest("No response from service providers")
+        srv = ServiceTest(min_providers=2, network='litecoin_legacy')
+        srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
+        for r in srv.results:
+            self.assertEqual(srv.results[r], 95510000)
 
     def test_service_get_utxos(self):
         expected_dict = {
