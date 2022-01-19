@@ -352,6 +352,21 @@ class Block:
             self.transactions.append(t)
             n += 1
 
+    def parse_transaction(self):
+        """
+        Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
+        Transaction object in Block.transactions list and return the transaction
+
+        :param limit: Maximum number of transactions to parse
+
+        :return:
+        """
+        if self.txs_data and len(self.transactions) < self.tx_count:
+            t = Transaction.parse_bytesio(self.txs_data, strict=False, network=self.network)  # , check_size=False
+            self.transactions.append(t)
+            return t
+        return False
+
     def as_dict(self):
         """
         Get representation of current Block as dictionary.
