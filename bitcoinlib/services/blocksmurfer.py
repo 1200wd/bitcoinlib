@@ -103,10 +103,10 @@ class BlocksmurferClient(BaseClient):
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
                         sigs_required=ti['sigs_required'], sequence=ti['sequence'],
                         witnesses=[bytes.fromhex(w) for w in ti['witnesses']], script_type=ti['script_type'],
-                        strict=False)
+                        strict=self.strict)
         for to in tx['outputs']:
             t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
-                         lock_script=to['script'], spent=to['spent'], strict=False)
+                         lock_script=to['script'], spent=to['spent'], strict=self.strict)
         t.update_totals()
         return t
 

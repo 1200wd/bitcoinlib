@@ -55,9 +55,9 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
-                 max_errors=SERVICE_MAX_ERRORS):
+                 max_errors=SERVICE_MAX_ERRORS, strict=True):
         """
-        Create a service object for the specified network. By default the object connect to 1 service provider, but you
+        Create a service object for the specified network. By default, the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
@@ -76,6 +76,8 @@ class Service(object):
         :type ignore_priority: bool
         :param exclude_providers: Exclude providers in this list, can be used when problems with certain providers arise.
         :type exclude_providers: list of str
+        :param strict: Strict checks of valid signatures, scripts and transactions. Normally use strict=True for wallets, transaction validations etcetera. For blockchain parsing strict=False should be used, but be sure to check warnings in the log file. Default is True.
+        :type strict: bool
 
         """
 
@@ -136,6 +138,7 @@ class Service(object):
             _logger.warning("Could not connect to cache database. Error: %s" % e)
         self.results_cache_n = 0
         self.ignore_priority = ignore_priority
+        self.strict = strict
         if self.min_providers > 1:
             self._blockcount = Service(network=network, cache_uri=cache_uri).blockcount()
         else:
@@ -172,7 +175,7 @@ class Service(object):
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount)
+                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)

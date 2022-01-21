@@ -82,7 +82,7 @@ class SmartbitClient(BaseClient):
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
                             witness_type=witness_type, witnesses=ti['witness'] if ti['witness'] != ['NULL'] else [],
-                            strict=False)
+                            strict=self.strict)
                 index_n += 1
 
         for to in tx['outputs']:
@@ -95,7 +95,7 @@ class SmartbitClient(BaseClient):
             if to['addresses']:
                 address = to['addresses'][0]
             t.add_output(value=to['value_int'], address=address, lock_script=to['script_pub_key']['hex'],
-                         spent=spent, output_n=to['n'], spending_txid=spending_txid, strict=False)
+                         spent=spent, output_n=to['n'], spending_txid=spending_txid, strict=self.strict)
         return t
 
     def getbalance(self, addresslist):

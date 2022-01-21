@@ -107,7 +107,7 @@ class BlockstreamClient(BaseClient):
         for ti in tx['vin']:
             if tx['vin'][0]['is_coinbase']:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
-                            unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'], strict=False)
+                            unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'], strict=self.strict)
             else:
                 witnesses = []
                 if 'witness' in ti:
@@ -116,7 +116,7 @@ class BlockstreamClient(BaseClient):
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address='' if 'scriptpubkey_address' not in ti['prevout']
                             else ti['prevout']['scriptpubkey_address'], sequence=ti['sequence'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=False)
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=self.strict)
             index_n += 1
         index_n = 0
         if len(tx['vout']) > 101:
@@ -128,7 +128,7 @@ class BlockstreamClient(BaseClient):
                 address = to['scriptpubkey_address']
             spent = self.isspent(t.txid, index_n)
             t.add_output(value=to['value'], address=address, lock_script=to['scriptpubkey'],
-                         output_n=index_n, spent=spent, strict=False)
+                         output_n=index_n, spent=spent, strict=self.strict)
             index_n += 1
         if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'

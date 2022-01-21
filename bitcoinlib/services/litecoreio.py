@@ -77,7 +77,7 @@ class LitecoreIOClient(BaseClient):
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'],
                          spending_txid=None if not to['spentTxId'] else to['spentTxId'],
-                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'], strict=False)
+                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'], strict=self.strict)
         return t
 
     def getbalance(self, addresslist):

@@ -64,11 +64,11 @@ class BitflyerClient(BaseClient):
     #         a = Address.parse(ti['address'])
     #         t.add_input(prev_txid=ti['prev_hash'], output_n=ti['prev_index'], unlocking_script=ti['script'],
     #                     value=ti['value'], address=ti['address'], sequence=ti['sequence'],
-    #                     witness_type=a.witness_type, strict=False)
+    #                     witness_type=a.witness_type, strict=self.strict)
     #     if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
     #         t.witness_type = 'segwit'
     #     for to in tx['outputs']:
-    #         t.add_output(value=to['value'], address=to['address'], lock_script=to['script'], strict=False)
+    #         t.add_output(value=to['value'], address=to['address'], lock_script=to['script'], strict=self.strict)
     #     t.update_totals()
     #     return t
 
