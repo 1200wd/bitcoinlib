@@ -61,9 +61,9 @@ class ServiceTest(Service):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_TEST, cache_uri=DATABASEFILE_CACHE_UNITTESTS, ignore_priority=True,
-                 exclude_providers=None):
+                 exclude_providers=None, max_errors=SERVICE_MAX_ERRORS, strict=True):
         super(self.__class__, self).__init__(network, min_providers, max_providers, providers, timeout, cache_uri,
-                                             ignore_priority, exclude_providers)
+                                             ignore_priority, exclude_providers, max_errors, strict)
 
 
 class TestService(unittest.TestCase, CustomAssertions):
@@ -636,7 +636,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_gettransaction_segwit_coinbase(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
-        srv = ServiceTest(network='bitcoin')
+        srv = ServiceTest(network='bitcoin', strict=False)
         t = srv.gettransaction(txid)
         self.assertTrue(t.verify())
         self.assertTrue(t.inputs[0].valid)
