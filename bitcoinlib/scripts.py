@@ -338,10 +338,16 @@ class Script(object):
                 data_type = get_data_type(data)
                 commands.append(data)
                 if data_type == 'signature':
-                    sig = Signature.parse_bytes(data)
-                    signatures.append(sig)
-                    hash_type = sig.hash_type
-                    blueprint.append('signature')
+                    try:
+                        sig = Signature.parse_bytes(data)
+                        signatures.append(sig)
+                        hash_type = sig.hash_type
+                        blueprint.append('signature')
+                    except Exception as e:
+                        if strict:
+                            raise ScriptError(str(e))
+                        else:
+                            _logger.warning(str(e))
                 elif data_type == 'signature_object':
                     signatures.append(data)
                     hash_type = data.hash_type
@@ -363,7 +369,7 @@ class Script(object):
                         if _level >= 1:
                             blueprint.append('data-%d' % len(data))
                         else:
-                            s2 = Script.parse_bytes(data, _level=_level+1)
+                            s2 = Script.parse_bytes(data, _level=_level+1, strict=strict)
                             commands.pop()
                             commands += s2.commands
                             blueprint += s2.blueprint

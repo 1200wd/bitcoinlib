@@ -787,7 +787,7 @@ class Input(object):
 
         # If unlocking script is specified extract keys, signatures, type from script
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys) and not script:
-            self.script = Script.parse_bytes(self.unlocking_script)
+            self.script = Script.parse_bytes(self.unlocking_script, strict=strict)
             self.keys = self.script.keys
             self.signatures = self.script.signatures
             sigs_required = self.script.sigs_required
@@ -841,6 +841,7 @@ class Input(object):
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         self.hash_type = SIGHASH_ALL
+        self.strict = strict
 
         for sig in signatures:
             if not isinstance(sig, Signature):
@@ -979,7 +980,7 @@ class Input(object):
                 addr_data = self.keys[0].public_byte
             if self.signatures:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
-        elif self.script_type not in ['coinbase', 'unknown']:
+        elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
             self.address = Address(hashed_data=addr_data, encoding=self.encoding, network=self.network,
