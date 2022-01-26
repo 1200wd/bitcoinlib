@@ -40,7 +40,7 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True):
         try:
             self.network = network
             if not isinstance(network, Network):
@@ -56,6 +56,7 @@ class BaseClient(object):
             self.latest_block = latest_block
             if network_overrides is not None:
                 self.network_overrides = network_overrides
+            self.strict = strict
         except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 

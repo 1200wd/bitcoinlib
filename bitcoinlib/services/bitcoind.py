@@ -175,7 +175,7 @@ class BitcoindClient(BaseClient):
         return txs
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
-        t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
+        t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.confirmations = tx.get('confirmations')
         t.block_hash = tx.get('blockhash')
         t.status = 'unconfirmed'

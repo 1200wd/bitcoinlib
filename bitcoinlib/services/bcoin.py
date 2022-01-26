@@ -46,7 +46,7 @@ class BcoinClient(BaseClient):
             variables = {}
         return self.request(url_path, variables, method, secure=False)
 
-    def _parse_transaction(self, tx,):
+    def _parse_transaction(self, tx):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
@@ -155,7 +155,7 @@ class BcoinClient(BaseClient):
         res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
         txid = ''
         if 'success' in res and res['success']:
-            t = Transaction.parse_hex(rawtx, strict=False, network=self.network)
+            t = Transaction.parse_hex(rawtx, network=self.network)
             txid = t.txid
         return {
             'txid': txid,
