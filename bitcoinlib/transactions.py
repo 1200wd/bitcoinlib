@@ -949,7 +949,7 @@ class Input(object):
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
-                if len(signatures):
+                if len(signatures) == self.sigs_required:  # and not self.unlocking_script
                     unlock_script_obj = Script(script_types=['p2sh_multisig'], keys=[k.public_byte for k in self.keys],
                                                signatures=self.signatures[:self.sigs_required],
                                                sigs_required=self.sigs_required, redeemscript=self.redeemscript)
