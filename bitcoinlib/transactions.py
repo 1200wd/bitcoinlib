@@ -1133,7 +1133,7 @@ class Output(object):
         :type network: str, Network
         """
 
-        if not (address or public_hash or public_key or lock_script):
+        if strict and not (address or public_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
@@ -1214,7 +1214,7 @@ class Output(object):
                                        encoding=self.encoding, network=self.network)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
-        if not self.script:
+        if not self.script and strict and (self.public_hash or self.public_key):
             self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
             self.lock_script = self.script.serialize()
             if not self.script:

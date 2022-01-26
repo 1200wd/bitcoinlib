@@ -340,9 +340,10 @@ class Block:
     def parse_transactions(self, limit=0):
         """
         Parse raw transactions from Block, if transaction data is available in txs_data attribute. Creates
-        Transaction objects in Block.transactions list
+        Transaction objects in Block.
 
         :param limit: Maximum number of transactions to parse
+        :type limit: int
 
         :return:
         """
@@ -355,11 +356,9 @@ class Block:
     def parse_transaction(self):
         """
         Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
-        Transaction object in Block.transactions list and return the transaction
+        Transaction object in Block and return the transaction
 
-        :param limit: Maximum number of transactions to parse
-
-        :return:
+        :return Tranasaction:
         """
         if self.txs_data and len(self.transactions) < self.tx_count:
             t = Transaction.parse_bytesio(self.txs_data, strict=False, network=self.network)  # , check_size=False
