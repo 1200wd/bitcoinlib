@@ -46,17 +46,11 @@ class BcoinClient(BaseClient):
             variables = {}
         return self.request(url_path, variables, method, secure=False)
 
-    def _parse_transaction(self, tx, strict=True):
+    def _parse_transaction(self, tx,):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
         t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
-        if not t.txid == tx['hash']:
-            if strict:
-                raise ClientError('Received transaction has different txid')
-            else:
-                t.txid = tx['hash']
-                _logger.warning('Received transaction has different txid')
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
@@ -201,8 +195,7 @@ class BcoinClient(BaseClient):
             tx['height'] = block['height']
             tx['block'] = block['hash']
             if parse_transactions:
-                # FIXME: Parse all transactions as strict=True
-                t = self._parse_transaction(tx, strict=False)
+                t = self._parse_transaction(tx)
                 parsed_txs.append(t)
             else:
                 parsed_txs.append(tx['hash'])

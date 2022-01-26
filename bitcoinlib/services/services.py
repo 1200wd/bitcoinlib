@@ -310,6 +310,9 @@ class Service(object):
                 self.results_cache_n = 1
         if not tx:
             tx = self._provider_execute('gettransaction', txid)
+            if tx.txid != txid:
+                _logger.warning("Incorrect txid after parsing")
+                tx.txid = txid
             if len(self.results) and self.min_providers <= 1:
                 self.cache.store_transaction(tx)
         return tx
