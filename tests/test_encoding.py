@@ -80,8 +80,8 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
     def test_change_base_leading_zeros2(self):
         self.assertEqual('1L', change_base('0013', 16, 58))
 
-    def test_change_base_leading_zeros3(self):
-        self.assertEqual('1L', change_base('013', 16, 58))
+    # def test_change_base_leading_zeros3(self):  # Incorrect  hex...
+    #     self.assertEqual('1L', change_base('013', 16, 58))
 
     def test_change_base_leading_zeros4(self):
         self.assertEqual(b'\x04G\x81', change_base('044781', 16, 256))

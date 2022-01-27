@@ -20,6 +20,7 @@
 
 import math
 import numbers
+from base58 import b58encode
 from copy import deepcopy
 import hashlib
 import pyaes
@@ -216,6 +217,10 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
         return int.from_bytes(inp, 'big')
     if base_from == 10 and base_to == 256:
         return inp.to_bytes(min_length, byteorder='big')
+    if base_from == 256 and base_to == 58:
+        return base58encode(inp)
+    if base_from == 16 and base_to == 58:
+        return base58encode(bytes.fromhex(chars))
 
     if output_even is None and base_to == 16:
         output_even = True
@@ -284,19 +289,35 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             output = [code_str[0]] + output
 
     if not output_as_list and isinstance(output, list):
-        if len(output) == 0:
-            output = 0
-        else:
-            co = ''
-            for c in output:
-                co += chr(c)
-            output = co
+        output = 0 if not len(output) else ''.join([chr(c) for c in output])
     if base_to == 10:
         return int(0) or (output != '' and int(output))
     if base_to == 256 and not output_as_list:
         return output.encode('ISO-8859-1')
     else:
         return output
+
+
+def base58encode(inp):
+    """
+    Convert bytes to base58 encode string
+
+    :param inp: Input string
+    :type inp: bytes
+
+    :return str:
+    """
+    origlen = len(inp)
+    inp = inp.lstrip(b'\0')
+    padding_zeros = origlen - len(inp)
+    code_str = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    acc = int.from_bytes(inp, 'big')
+
+    string = ''
+    while acc:
+        acc, idx = divmod(acc, 58)
+        string = code_str[idx:idx + 1] + string
+    return '1' * padding_zeros + string
 
 
 def varbyteint_to_int(byteint):
@@ -597,7 +618,7 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
     """
     key = to_bytes(prefix) + to_bytes(pubkeyhash)
     addr256 = key + double_sha256(key)[:4]
-    return change_base(addr256, 256, 58)
+    return base58encode(addr256)
 
 
 def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', checksum_xor=1):
@@ -885,7 +906,7 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
         aes.encrypt((int(private_hex[32:64], 16) ^ int.from_bytes(derivedhalf1[16:32], 'big')).to_bytes(16, 'big'))
     encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
     encrypted_privkey += double_sha256(encrypted_privkey)[:4]
-    return change_base(encrypted_privkey, 256, 58)
+    return base58encode(encrypted_privkey)
 
 
 class Quantity:

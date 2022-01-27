@@ -1083,7 +1083,7 @@ class Key(object):
         if self.compressed:
             key += b'\1'
         key += double_sha256(key)[:4]
-        self._wif = change_base(key, 256, 58)
+        self._wif = base58encode(key)
         self._wif_prefix = versionbyte
         return self._wif
 
