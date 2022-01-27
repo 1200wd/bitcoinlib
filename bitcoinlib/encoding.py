@@ -20,7 +20,6 @@
 
 import math
 import numbers
-from base58 import b58encode
 from copy import deepcopy
 import hashlib
 import pyaes
