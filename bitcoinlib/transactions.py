@@ -1331,15 +1331,15 @@ class Output(object):
 class Transaction(object):
     """
     Transaction Class
-    
+
     Contains 1 or more Input class object with UTXO's to spent and 1 or more Output class objects with destinations.
     Besides the transaction class contains a locktime and version.
-    
+
     Inputs and outputs can be included when creating the transaction, or can be add later with add_input and
     add_output respectively.
-    
-    A verify method is available to check if the transaction Inputs have valid unlocking scripts. 
-    
+
+    A verify method is available to check if the transaction Inputs have valid unlocking scripts.
+
     Each input in the transaction can be signed with the sign method provided a valid private key.
     """
 
@@ -1348,12 +1348,12 @@ class Transaction(object):
     def import_raw(rawtx, network=DEFAULT_NETWORK, check_size=True):
         """
         Import a raw transaction and create a Transaction object
-        
+
         Uses the transaction_deserialize method to parse the raw transaction and then calls the init method of
         this transaction class to create the transaction object
 
         REPLACED BY THE PARSE() METHOD
-        
+
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
         :param network: Network, leave empty for default
@@ -1548,20 +1548,20 @@ class Transaction(object):
                  confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
                  status='new', coinbase=False, verified=False, witness_type='legacy', flag=None):
         """
-        Create a new transaction class with provided inputs and outputs. 
-        
+        Create a new transaction class with provided inputs and outputs.
+
         You can also create a empty transaction and add input and outputs later.
-        
-        To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification 
+
+        To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification
         after signing makes the transaction invalid.
-        
+
         :param inputs: Array of Input objects. Leave empty to add later
         :type inputs: list (Input)
         :param outputs: Array of Output object. Leave empty to add later
         :type outputs: list (Output)
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param version: Version rules. Defaults to 1 in bytes 
+        :param version: Version rules. Defaults to 1 in bytes
         :type version: bytes, int
         :param network: Network, leave empty for default network
         :type network: str, Network
@@ -1700,8 +1700,8 @@ class Transaction(object):
     def as_dict(self):
         """
         Return Json dictionary with transaction information: Inputs, outputs, version and locktime
-        
-        :return dict: 
+
+        :return dict:
         """
 
         inputs = []
@@ -2016,9 +2016,9 @@ class Transaction(object):
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Serialize raw transaction
-        
+
         Return transaction with signed inputs if signatures are available
-        
+
         :param sign_id: Create raw transaction which can be signed by transaction with this input ID
         :type sign_id: int, None
         :param hash_type: Specific hash type, default is SIGHASH_ALL
@@ -2083,7 +2083,7 @@ class Transaction(object):
         :param witness_type: Serialize transaction with other witness type then default. Use to create legacy raw transaction for segwit transaction to create transaction signature ID's
         :type witness_type: str
 
-        :return hexstring: 
+        :return hexstring:
         """
 
         return self.raw(sign_id, hash_type=hash_type, witness_type=witness_type).hex()
@@ -2102,9 +2102,9 @@ class Transaction(object):
     def verify(self):
         """
         Verify all inputs of a transaction, check if signatures match public key.
-        
+
         Does not check if UTXO is valid or has already been spent
-        
+
         :return bool: True if enough signatures provided and if all signatures are valid
         """
 
@@ -2129,7 +2129,7 @@ class Transaction(object):
              replace_signatures=False):
         """
         Sign the transaction input with provided private key
-        
+
         :param keys: A private key or list of private keys
         :type keys: HDKey, Key, bytes, list
         :param index_n: Index of transaction input. Leave empty to sign all inputs
@@ -2243,7 +2243,7 @@ class Transaction(object):
                   key_path='', witness_type=None, witnesses=None, encoding=None, strict=True):
         """
         Add input to this transaction
-        
+
         Wrapper for append method of Input class.
 
         :param prev_txid: Transaction hash of the UTXO (previous output) which will be spent.
@@ -2317,9 +2317,9 @@ class Transaction(object):
                    output_n=None, encoding=None, spending_txid=None, spending_index_n=None, strict=True):
         """
         Add an output to this transaction
-        
+
         Wrapper for the append method of the Output class.
-        
+
         :param value: Value of output in smallest denominator of currency, for example satoshi's for bitcoins
         :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
@@ -2503,9 +2503,13 @@ class Transaction(object):
 
         self.input_total = sum([i.value for i in self.inputs if i.value])
         self.output_total = sum([o.value for o in self.outputs if o.value])
+        if self.coinbase:
+            self.input_total = self.output_total
         # self.fee = 0
         if self.input_total:
             self.fee = self.input_total - self.output_total
+            if self.vsize:
+                self.fee_per_kb = int((self.fee / float(self.vsize)) * 1000)
 
     def save(self, filename=None):
         """
