@@ -95,6 +95,9 @@ class Block:
         self.page = 1
         self.limit = 0
         self.height = height
+        self.total_in = 0
+        self.total_out = 0
+        self.size = 0
         if self.transactions and len(self.transactions) and isinstance(self.transactions[0], Transaction) \
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
@@ -156,7 +159,9 @@ class Block:
         """
 
         if isinstance(raw, bytes):
-            return cls.parse_bytesio(BytesIO(raw), block_hash, height, parse_transactions, limit, network)
+            b = cls.parse_bytesio(BytesIO(raw), block_hash, height, parse_transactions, limit, network)
+            b.size = len(raw)
+            return b
         else:
             return cls.parse_bytesio(raw, block_hash, height, parse_transactions, limit, network)
 
@@ -191,7 +196,9 @@ class Block:
         """
 
         raw_bytesio = BytesIO(raw_bytes)
-        return cls.parse_bytesio(raw_bytesio, block_hash, height, parse_transactions, limit, network)
+        b = cls.parse_bytesio(raw_bytesio, block_hash, height, parse_transactions, limit, network)
+        b.size = len(raw_bytes)
+        return b
 
     @classmethod
     def parse_bytesio(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0,
@@ -528,3 +535,10 @@ class Block:
                 bips.append('BIP101')   # Increase block size 8MB (rejected)
 
         return bips
+
+    def update_totals(self):
+        self.total_in = 0
+        self.total_out = 0
+        for t in self.transactions:
+            self.total_in += sum([i.value for i in t.inputs])
+            self.total_out += sum([o.value for o in t.outputs])
