@@ -527,7 +527,6 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 12, 24, 13, 16, 30),
             'flag': 1,
             'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
-            'input_total': 0,
             'inputs': [
                 {'address': '',
                  'index_n': 0,
