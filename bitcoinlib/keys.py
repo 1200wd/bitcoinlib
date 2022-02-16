@@ -1983,8 +1983,8 @@ class Signature(object):
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
-    @deprecated
     @staticmethod
+    @deprecated
     def from_str(signature, public_key=None):
         """
         Create a signature from signature string with r and s part. Signature length must be 64 bytes or 128 
