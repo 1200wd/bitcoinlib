@@ -978,7 +978,7 @@ class Input(object):
                 self.script_code = varstr(self.keys[0].public_byte) + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
                 addr_data = self.keys[0].public_byte
-            if self.signatures:
+            if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
         elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
