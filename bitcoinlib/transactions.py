@@ -922,12 +922,13 @@ class Input(object):
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() if hash_type else b'', self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
-            if self.witness_type == 'p2sh-segwit':
-                self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-            elif self.witness_type == 'segwit':
-                self.unlocking_script = b''
-            elif unlock_script != b'':
-                self.unlocking_script = unlock_script
+            if not self.unlocking_script or self.strict:
+                if self.witness_type == 'p2sh-segwit':
+                    self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
+                elif self.witness_type == 'segwit':
+                    self.unlocking_script = b''
+                elif unlock_script != b'':
+                    self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh', 'p2wsh']:  # fixme: p2sh_p2wsh == p2wsh
             if not self.redeemscript and self.keys:
                 self.redeemscript = Script(script_types=['multisig'], keys=self.keys,
@@ -971,7 +972,7 @@ class Input(object):
                     self.script_code = self.unlocking_script
                     if signatures:
                         self.witnesses = unlock_script
-                elif unlock_script != b'':
+                elif unlock_script != b'' and self.strict:
                     self.unlocking_script = unlock_script
         elif self.script_type == 'signature':
             if self.keys:
