@@ -43,12 +43,12 @@ class BitGoClient(BaseClient):
             url_path += '/' + cmd
         return self.request(url_path, variables, method=method)
 
-    def getbalance(self, addresslist):
-        balance = 0
-        for address in addresslist:
-            res = self.compose_request('address', address)
-            balance += res['balance']
-        return balance
+    # def getbalance(self, addresslist):
+    #     balance = 0
+    #     for address in addresslist:
+    #         res = self.compose_request('address', address)
+    #         balance += res['balance']
+    #     return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
