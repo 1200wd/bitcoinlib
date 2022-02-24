@@ -47,7 +47,7 @@ class TransactionError(Exception):
 
 
 @deprecated  # Replaced by Transaction.parse() in version 0.6
-def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
+def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):  # pragma: no cover
     """
     Deserialize a raw transaction
     
@@ -185,7 +185,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def script_deserialize(script, script_types=None, locking_script=None, size_bytes_check=True):
+def script_deserialize(script, script_types=None, locking_script=None, size_bytes_check=True):  # pragma: no cover
     """
     Deserialize a script: determine type, number of signatures and script data.
     
@@ -417,7 +417,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def script_to_string(script, name_data=False):
+def script_to_string(script, name_data=False):  # pragma: no cover
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
     
@@ -456,7 +456,7 @@ def script_to_string(script, name_data=False):
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def _serialize_multisig_redeemscript(public_key_list, n_required=None):
+def _serialize_multisig_redeemscript(public_key_list, n_required=None):  # pragma: no cover
     # Serialize m-to-n multisig script. Needs a list of public keys
     for key in public_key_list:
         if not isinstance(key, (str, bytes)):
@@ -474,7 +474,7 @@ def _serialize_multisig_redeemscript(public_key_list, n_required=None):
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
+def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):  # pragma: no cover
     """
     Create a multisig redeemscript used in a p2sh.
 
@@ -519,7 +519,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=False):
+def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=False):  # pragma: no cover
     usu = b'\x00'
     if as_list:
         usu = [usu]
@@ -557,7 +557,7 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def script_add_locktime_cltv(locktime_cltv, script):
+def script_add_locktime_cltv(locktime_cltv, script):  # pragma: no cover
     lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
@@ -566,7 +566,7 @@ def script_add_locktime_cltv(locktime_cltv, script):
 
 
 @deprecated  # Replaced by Script class in version 0.6
-def script_add_locktime_csv(locktime_csv, script):
+def script_add_locktime_csv(locktime_csv, script):  # pragma: no cover
     lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
@@ -1346,7 +1346,7 @@ class Transaction(object):
 
     @staticmethod
     @deprecated  # Replaced by Transaction.parse() in version 0.6
-    def import_raw(rawtx, network=DEFAULT_NETWORK, check_size=True):
+    def import_raw(rawtx, network=DEFAULT_NETWORK, check_size=True):  # pragma: no cover
         """
         Import a raw transaction and create a Transaction object
 

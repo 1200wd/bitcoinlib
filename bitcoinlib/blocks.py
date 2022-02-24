@@ -271,7 +271,7 @@ class Block:
 
     @classmethod
     @deprecated
-    def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
+    def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):  # pragma: no cover
         """
         Create Block object from raw serialized block in bytes.
 
