@@ -170,7 +170,7 @@ class LitecoindClient(BaseClient):
         return txs
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
-        t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
+        t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
         if t.confirmations or block_height:
             t.status = 'confirmed'

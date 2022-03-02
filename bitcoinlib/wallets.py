@@ -23,7 +23,6 @@ from itertools import groupby
 from operator import itemgetter
 import numpy as np
 import pickle
-from copy import copy
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -507,9 +506,9 @@ class WalletKey(object):
         if self.key_type == 'multisig':
             self._hdkey_object = []
             for kc in self._dbkey.multisig_children:
-                self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
+                self._hdkey_object.append(HDKey.from_wif(kc.child_key.wif, network=kc.child_key.network_name, compressed=self.compressed))
         if self._hdkey_object is None and self.wif:
-            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name, compressed=self.compressed)
+            self._hdkey_object = HDKey.from_wif(self.wif, network=self.network_name, compressed=self.compressed)
         return self._hdkey_object
 
     def balance(self, as_string=False):
@@ -538,6 +537,9 @@ class WalletKey(object):
         pub_key.key_private = None
         if self.key():
             pub_key.wif = self.key().wif()
+        if self._hdkey_object:
+            self._hdkey_object = pub_key._hdkey_object.public()
+        self._dbkey = None
         return pub_key
 
     def as_dict(self, include_private=False):
@@ -669,7 +671,7 @@ class WalletTransaction(Transaction):
 
         fee_per_kb = None
         if db_tx.fee and db_tx.size:
-            fee_per_kb = int((db_tx.fee / db_tx.size) * 1024)
+            fee_per_kb = int((db_tx.fee / db_tx.size) * 1000)
         network = Network(db_tx.network_name)
 
         inputs = []
@@ -686,10 +688,12 @@ class WalletTransaction(Transaction):
                         inp_keys.append(ck.child_key.public.hex())
                 else:
                     inp_keys = key.key()
+
             inputs.append(Input(
                 prev_txid=inp.prev_txid, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
-                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address))
+                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address,
+                witnesses=inp.witnesses))
 
         outputs = []
         for out in db_tx.outputs:
@@ -711,6 +715,14 @@ class WalletTransaction(Transaction):
                    block_height=db_tx.block_height, input_total=db_tx.input_total, output_total=db_tx.output_total,
                    rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)
+
+    def to_transaction(self):
+        return Transaction(self.inputs, self.outputs, self.locktime, self.version,
+                           self.network.name, self.fee, self.fee_per_kb, self.size,
+                           self.txid, self.txhash, self.date, self.confirmations,
+                           self.block_height, self.block_hash, self.input_total,
+                           self.output_total, self.rawtx, self.status, self.coinbase,
+                           self.verified, self.witness_type, self.flag)
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=False,
              replace_signatures=False):
@@ -859,11 +871,12 @@ class WalletTransaction(Transaction):
             tx_input = sess.query(DbTransactionInput). \
                 filter_by(transaction_id=txidn, index_n=ti.index_n).scalar()
             if not tx_input:
+                witnesses = int_to_varbyteint(len(ti.witnesses)) + b''.join([bytes(varstr(w)) for w in ti.witnesses])
                 new_tx_item = DbTransactionInput(
                     transaction_id=txidn, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
                     prev_txid=ti.prev_txid, index_n=ti.index_n, double_spend=ti.double_spend,
                     script=ti.unlocking_script, script_type=ti.script_type, witness_type=ti.witness_type,
-                    sequence=ti.sequence, address=ti.address)
+                    sequence=ti.sequence, address=ti.address, witnesses=witnesses)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
@@ -958,13 +971,8 @@ class WalletTransaction(Transaction):
             if not p.parent or str(p.parent) == '.':
                 p = Path(BCL_DATA_DIR, filename)
         f = p.open('wb')
-        wt = copy(self)
-        del wt.hdwallet
-        del wt.pushed
-        del wt.error
-        del wt.response_dict
-        del wt.account_id
-        pickle.dump(wt, f)
+        t = self.to_transaction()
+        pickle.dump(t, f)
         f.close()
 
     def delete(self):
@@ -1116,7 +1124,7 @@ class Wallet(object):
         :param name: Unique name of this Wallet
         :type name: str
         :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
-        :type keys: str, bytes, int
+        :type keys: str, bytes, int, HDKey, HDWalletKey, list of str, list of bytes, list of int, list of HDKey, list of HDWalletKey
         :param owner: Wallet owner for your own reference
         :type owner: str
         :param network: Network name, use default if not specified
@@ -1193,13 +1201,16 @@ class Wallet(object):
                     witness_type = key.witness_type
             elif key:
                 # If key consists of several words assume it is a passphrase and convert it to a HDKey object
-                if len(key.split(" ")) > 1:
+                if isinstance(key, str) and len(key.split(" ")) > 1:
                     if not network:
                         raise WalletError("Please specify network when using passphrase to create a key")
                     key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
                 else:
                     try:
-                        key = HDKey(key, password=password, network=network)
+                        if isinstance(key, WalletKey):
+                            key = key._hdkey_object
+                        else:
+                            key = HDKey(key, password=password, network=network)
                     except BKeyError:
                         try:
                             scheme = 'single'
@@ -1588,7 +1599,7 @@ class Wallet(object):
             if network not in self.network_list():
                 raise WalletError("Network %s not found in this wallet" % network)
         else:
-            if len(key.split(" ")) > 1:
+            if isinstance(key, str) and len(key.split(" ")) > 1:
                 if network is None:
                     network = self.network
                 hdkey = HDKey.from_seed(Mnemonic().to_seed(key), network=network)
@@ -3306,11 +3317,12 @@ class Wallet(object):
         if not key:
             raise WalletError("Key '%s' not found in this wallet" % key_id)
         if key.key_type == 'multisig':
-            inp_keys = [HDKey(ck.child_key.wif, network=ck.child_key.network_name) for ck in key.multisig_children]
+            inp_keys = [HDKey.from_wif(ck.child_key.wif, network=ck.child_key.network_name) for ck in
+                        key.multisig_children]
         elif key.key_type in ['bip32', 'single']:
             if not key.wif:
                 raise WalletError("WIF of key is empty cannot create HDKey")
-            inp_keys = [HDKey(key.wif, compressed=key.compressed, network=key.network_name)]
+            inp_keys = [HDKey.from_wif(key.wif, network=key.network_name)]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
@@ -3443,9 +3455,9 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will be included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3491,17 +3503,21 @@ class Wallet(object):
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         transaction.fee_per_kb = None
-        if fee is None:
+        if isinstance(fee, int):
+            fee_estimate = fee
+        else:
+            n_blocks = 3
+            priority = ''
+            if isinstance(fee, str):
+                priority = fee
+            transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
             if not input_arr:
-                transaction.fee_per_kb = srv.estimatefee()
-                fee_estimate = (transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) / 1024.0
-                                * transaction.fee_per_kb)
-                if fee_estimate < transaction.network.fee_min:
-                    fee_estimate = transaction.network.fee_min
+                fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
+                                   1000.0 * transaction.fee_per_kb)
             else:
                 fee_estimate = 0
-        else:
-            fee_estimate = fee
+            if isinstance(fee, str):
+                fee = fee_estimate
 
         # Add inputs
         sequence = 0xffffffff
@@ -3606,8 +3622,8 @@ class Wallet(object):
                     transaction.fee_per_kb = srv.estimatefee()
                 if transaction.fee_per_kb < transaction.network.fee_min:
                     transaction.fee_per_kb = transaction.network.fee_min
-                transaction.fee = int((transaction.size / 1024.0) * transaction.fee_per_kb)
-                fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
+                transaction.fee = int((transaction.size / 1000.0) * transaction.fee_per_kb)
+                fee_per_output = int((50 / 1000.0) * transaction.fee_per_kb)
             else:
                 if amount_total_output and amount_total_input:
                     fee = False
@@ -3630,7 +3646,7 @@ class Wallet(object):
             min_output_value = transaction.network.dust_amount * 2 + transaction.network.fee_min * 4
             if transaction.fee and transaction.size:
                 if not transaction.fee_per_kb:
-                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+                    transaction.fee_per_kb = int((transaction.fee * 1000.0) / transaction.vsize)
                 min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
                                    transaction.network.dust_amount
 
@@ -3686,7 +3702,7 @@ class Wallet(object):
 
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
-            transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+            transaction.fee_per_kb = int((transaction.fee * 1000.0) / transaction.vsize)
         if transaction.fee_per_kb < transaction.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
                               (transaction.fee_per_kb, transaction.network.fee_min))
@@ -3730,7 +3746,7 @@ class Wallet(object):
             rt.vsize = t.vsize
             if not t.vsize:
                 rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1000)
         elif isinstance(t, dict):
             input_arr = []
             for i in t['inputs']:
@@ -3763,7 +3779,7 @@ class Wallet(object):
             rt.vsize = t['vsize']
             if not rt.vsize:
                 rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+            rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1000)
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
@@ -3791,12 +3807,13 @@ class Wallet(object):
         rt.version_int = t_import.version_int
         rt.version = t_import.version
         rt.verify()
-        rt.size = rt.vsize = len(rawtx)
-        rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+        rt.size = len(rawtx)
+        rt.calc_weight_units()
+        rt.fee_per_kb = int((rt.fee / float(rt.vsize)) * 1000)
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
+             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=True, number_of_change_outputs=1):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3821,9 +3838,9 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will be included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -3831,7 +3848,7 @@ class Wallet(object):
         :type max_utxos: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
@@ -3859,13 +3876,16 @@ class Wallet(object):
                                                       number_of_change_outputs)
                 transaction.sign(priv_keys)
 
-        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.size) * 1024)
+        transaction.rawtx = transaction.raw()
+        transaction.size = len(transaction.rawtx)
+        transaction.calc_weight_units()
+        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.vsize) * 1000)
         transaction.txid = transaction.signature_hash()[::-1].hex()
         transaction.send(offline)
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
-                priv_keys=None, locktime=0, offline=False, number_of_change_outputs=1):
+                priv_keys=None, locktime=0, offline=True, number_of_change_outputs=1):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
@@ -3888,15 +3908,15 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param fee: Fee to use for this transaction. Leave empty to automatically estimate.
-        :type fee: int
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
@@ -3910,14 +3930,14 @@ class Wallet(object):
                          number_of_change_outputs=number_of_change_outputs)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
-              fee_per_kb=None, fee=None, locktime=0, offline=False):
+              fee_per_kb=None, fee=None, locktime=0, offline=True):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
 
         Wrapper for the :func:`send` method.
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
-        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', offline=True)
+        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb')
         >>> t
         <WalletTransaction(input_count=1, output_count=1, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
@@ -3926,7 +3946,7 @@ class Wallet(object):
         Output to multiple addresses
 
         >>> to_list = [('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 100000), (w.get_key(), 0)]
-        >>> w.sweep(to_list, offline=True)
+        >>> w.sweep(to_list)
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
 
         :param to_address: Single output address or list of outputs in format [(<adddress>, <amount>)]. If you specify a list of outputs, use amount value = 0 to indicate a change output
@@ -3943,11 +3963,11 @@ class Wallet(object):
         :type min_confirms: int
         :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider. This option is ignored when the 'fee' option is specified
         :type fee_per_kb: int
-        :param fee: Total transaction fee in smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers.
-        :type fee: int
+        :param fee: Total transaction fee in smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :type fee: int, str
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
 
         :return WalletTransaction:
@@ -3969,11 +3989,17 @@ class Wallet(object):
             total_amount += utxo['value']
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
+        if isinstance(fee, str):
+            n_outputs = 1 if not isinstance(to_address, list) else len(to_address)
+            fee_per_kb = srv.estimatefee(priority=fee)
+            tr_size = 125 + (len(input_arr) * (77 + self.multisig_n_required * 72)) + n_outputs * 30
+            fee = 100 + int((tr_size / 1000.0) * fee_per_kb)
+
         if not fee:
             if fee_per_kb is None:
                 fee_per_kb = srv.estimatefee()
             tr_size = 125 + (len(input_arr) * 125)
-            fee = int((tr_size / 1024.0) * fee_per_kb)
+            fee = int((tr_size / 1000.0) * fee_per_kb)
         if total_amount - fee <= self.network.dust_amount:
             raise WalletError("Amount to send is smaller then dust amount: %s" % (total_amount - fee))
 
@@ -3989,8 +4015,12 @@ class Wallet(object):
                 else:
                     to_list.append(o)
 
-        return self.send(to_list, input_arr, network=network,
-                         fee=fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
+        if sum(x[1] for x in to_list) + fee != total_amount:
+            raise WalletError("Total amount of outputs does not match total input amount. If you specify a list of "
+                              "outputs, use amount value = 0 to indicate a change/rest output")
+
+        return self.send(to_list, input_arr, network=network, fee=fee, min_confirms=min_confirms, locktime=locktime,
+                         offline=offline)
 
     def wif(self, is_private=False, account_id=0):
         """

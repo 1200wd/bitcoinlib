@@ -61,9 +61,9 @@ class ServiceTest(Service):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_TEST, cache_uri=DATABASEFILE_CACHE_UNITTESTS, ignore_priority=True,
-                 exclude_providers=None):
+                 exclude_providers=None, max_errors=SERVICE_MAX_ERRORS, strict=True):
         super(self.__class__, self).__init__(network, min_providers, max_providers, providers, timeout, cache_uri,
-                                             ignore_priority, exclude_providers)
+                                             ignore_priority, exclude_providers, max_errors, strict)
 
 
 class TestService(unittest.TestCase, CustomAssertions):
@@ -156,16 +156,10 @@ class TestService(unittest.TestCase, CustomAssertions):
                 prev = balance
 
     def test_service_address_conversion(self):
-        srv = ServiceTest(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
-        try:
-            srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
-            exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
-            for r in srv.results:
-                if r not in exp_dict:
-                    print("WARNING: Provider %s not found in results" % r)
-                self.assertEqual(srv.results[r], exp_dict[r])
-        except ServiceError:
-            self.skipTest("No response from service providers")
+        srv = ServiceTest(min_providers=2, network='litecoin_legacy')
+        srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
+        for r in srv.results:
+            self.assertEqual(srv.results[r], 95510000)
 
     def test_service_get_utxos(self):
         expected_dict = {
@@ -533,7 +527,6 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 12, 24, 13, 16, 30),
             'flag': 1,
             'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
-            'input_total': 0,
             'inputs': [
                 {'address': '',
                  'index_n': 0,
@@ -642,7 +635,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_gettransaction_segwit_coinbase(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
-        srv = ServiceTest(network='bitcoin')
+        srv = ServiceTest(network='bitcoin', strict=False)
         t = srv.gettransaction(txid)
         self.assertTrue(t.verify())
         self.assertTrue(t.inputs[0].valid)

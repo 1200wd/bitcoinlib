@@ -92,7 +92,7 @@ class BlockCypher(BaseClient):
 
     def gettransaction(self, txid):
         tx = self.compose_request('txs', txid, variables={'includeHex': 'true'})
-        t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
+        t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         if tx['confirmations']:
             t.status = 'confirmed'
             t.date = datetime.strptime(tx['confirmed'][:19], "%Y-%m-%dT%H:%M:%S")

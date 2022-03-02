@@ -61,7 +61,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": null,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 1000000,
     "priority": 12
   },
@@ -94,7 +94,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 10000,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 2000000,
     "priority": 8
   },
@@ -127,7 +127,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": null,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 1000000,
     "priority": 0
   },
@@ -160,7 +160,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 50000,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 1000000,
     "priority": 10
   },
@@ -193,7 +193,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 50000,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 1000000,
     "priority": 8
   },
@@ -226,7 +226,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 50000,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 1000000,
     "priority": 6
   },
@@ -251,7 +251,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 2000,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 50000,
     "priority": 10
   },
@@ -276,7 +276,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 10000,
-    "fee_min": 1024,
+    "fee_min": 1000,
     "fee_max": 50000,
     "priority": 6
   },
@@ -301,7 +301,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 200000000,
-    "fee_min":     100000000,
+    "fee_min":     1000000,
     "fee_max":   10000000000,
     "priority": 10
   },
@@ -326,7 +326,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 100000000,
-    "fee_min": 100000,
+    "fee_min": 1000000,
     "fee_max": 10000000000,
     "priority": 6
   }

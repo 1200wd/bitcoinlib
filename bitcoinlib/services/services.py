@@ -55,9 +55,9 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
-                 max_errors=SERVICE_MAX_ERRORS):
+                 max_errors=SERVICE_MAX_ERRORS, strict=True):
         """
-        Create a service object for the specified network. By default the object connect to 1 service provider, but you
+        Create a service object for the specified network. By default, the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
@@ -76,6 +76,8 @@ class Service(object):
         :type ignore_priority: bool
         :param exclude_providers: Exclude providers in this list, can be used when problems with certain providers arise.
         :type exclude_providers: list of str
+        :param strict: Strict checks of valid signatures, scripts and transactions. Normally use strict=True for wallets, transaction validations etcetera. For blockchain parsing strict=False should be used, but be sure to check warnings in the log file. Default is True.
+        :type strict: bool
 
         """
 
@@ -136,6 +138,7 @@ class Service(object):
             _logger.warning("Could not connect to cache database. Error: %s" % e)
         self.results_cache_n = 0
         self.ignore_priority = ignore_priority
+        self.strict = strict
         if self.min_providers > 1:
             self._blockcount = Service(network=network, cache_uri=cache_uri).blockcount()
         else:
@@ -172,7 +175,7 @@ class Service(object):
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount)
+                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
@@ -281,8 +284,7 @@ class Service(object):
 
         utxos = self._provider_execute('getutxos', address, after_txid, limit)
         if utxos is False:
-            self.complete = False
-            return utxos_cache
+            raise ServiceError("Error when retrieving UTXO's")
         else:
             # TODO: Update cache_transactions_node
             if utxos and len(utxos) >= limit:
@@ -295,7 +297,7 @@ class Service(object):
 
     def gettransaction(self, txid):
         """
-        Get a transaction by its transaction hashtxos. Convert to Bitcoinlib transaction object.
+        Get a transaction by its transaction hash. Convert to Bitcoinlib Transaction object.
 
         :param txid: Transaction identification hash
         :type txid: str
@@ -311,6 +313,9 @@ class Service(object):
                 self.results_cache_n = 1
         if not tx:
             tx = self._provider_execute('gettransaction', txid)
+            if tx and tx.txid != txid:
+                _logger.warning("Incorrect txid after parsing")
+                tx.txid = txid
             if len(self.results) and self.min_providers <= 1:
                 self.cache.store_transaction(tx)
         return tx
@@ -428,17 +433,24 @@ class Service(object):
         """
         return self._provider_execute('sendrawtransaction', rawtx)
 
-    def estimatefee(self, blocks=3):
+    def estimatefee(self, blocks=3, priority=''):
         """
         Estimate fee per kilobyte for a transaction for this network with expected confirmation within a certain
         amount of blocks
 
-        :param blocks: Expection confirmation time in blocks. Default is 3.
+        :param blocks: Expected confirmation time in blocks. Default is 3.
         :type blocks: int
+        :param priority: Priority for transaction: can be 'low', 'medium' or 'high'. Overwrites value supplied in 'blocks' argument
+        :type priority: str
 
-        :return int: Fee in smallest network denominator (satoshi)
+        :return int: Fee in the smallest network denominator (satoshi)
         """
         self.results_cache_n = 0
+        if priority:
+            if priority == 'low':
+                blocks = 10
+            elif priority == 'high':
+                blocks = 1
         if self.min_providers <= 1:  # Disable cache if comparing providers
             fee = self.cache.estimatefee(blocks)
             if fee:
@@ -450,6 +462,10 @@ class Service(object):
                 fee = self.network.fee_default
             else:
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
+        if fee < self.network.fee_min:
+            fee = self.network.fee_min
+        elif fee > self.network.fee_max:
+            fee = self.network.fee_max
         self.cache.store_estimated_fee(blocks, fee)
         return fee
 
@@ -705,22 +721,10 @@ class Cache(object):
                         block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value)
         for n in db_tx.nodes:
             if n.is_input:
-                witnesses = []
-                # TODO: Move code to Script class
-                if n.witnesses:
-                    witness_str = n.witnesses
-                    n_items, cursor = varbyteint_to_int(witness_str[0:9])
-                    for m in range(0, n_items):
-                        witness = b'\0'
-                        item_size, size = varbyteint_to_int(witness_str[cursor:cursor + 9])
-                        if item_size:
-                            witness = witness_str[cursor + size:cursor + item_size + size]
-                        cursor += item_size + size
-                        witnesses.append(witness)
                 if n.ref_txid == b'\00' * 32:
                     t.coinbase = True
                 t.add_input(n.ref_txid.hex(), n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses, strict=False)
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=n.witnesses, strict=False)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
                              spending_txid=None if not n.ref_txid else n.ref_txid.hex(),

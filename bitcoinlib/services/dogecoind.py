@@ -165,7 +165,7 @@ class DogecoindClient(BaseClient):
 
     def gettransaction(self, txid, block_height=None, get_input_values=True):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
+        t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.confirmations = tx['confirmations']
         if t.confirmations:
             t.status = 'confirmed'

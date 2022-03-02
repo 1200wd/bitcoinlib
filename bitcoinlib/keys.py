@@ -176,28 +176,27 @@ def get_key_format(key, is_private=None):
     else:
         try:
             key_hex = change_base(key, 58, 16)
-            networks = network_by_value('prefix_wif', key_hex[:2])
-            # TODO: First search for longer prefix, to avoid wrong matches
-            if networks:
-                if key_hex[-10:-8] == '01':
-                    key_format = 'wif_compressed'
-                else:
-                    key_format = 'wif'
-                is_private = True
+            prefix_data = wif_prefix_search(key_hex[:8])
+            if prefix_data:
+                networks = list(dict.fromkeys([n['network'] for n in prefix_data]))
+                if is_private is None and len(set([n['is_private'] for n in prefix_data])) > 1:
+                    raise BKeyError("Cannot determine if key is private or public, please specify is_private "
+                                    "attribute")
+                is_private = prefix_data[0]['is_private']
+                script_types = list(dict.fromkeys([n['script_type'] for n in prefix_data]))
+                witness_types = list(dict.fromkeys([n['witness_type'] for n in prefix_data]))
+                multisig = list(dict.fromkeys([n['multisig'] for n in prefix_data]))
+                key_format = 'hdkey_public'
+                if is_private:
+                    key_format = 'hdkey_private'
             else:
-                prefix_data = wif_prefix_search(key_hex[:8])
-                if prefix_data:
-                    networks = list(dict.fromkeys([n['network'] for n in prefix_data]))
-                    if is_private is None and len(set([n['is_private'] for n in prefix_data])) > 1:
-                        raise BKeyError("Cannot determine if key is private or public, please specify is_private "
-                                        "attribute")
-                    is_private = prefix_data[0]['is_private']
-                    script_types = list(dict.fromkeys([n['script_type'] for n in prefix_data]))
-                    witness_types = list(dict.fromkeys([n['witness_type'] for n in prefix_data]))
-                    multisig = list(dict.fromkeys([n['multisig'] for n in prefix_data]))
-                    key_format = 'hdkey_public'
-                    if is_private:
-                        key_format = 'hdkey_private'
+                networks = network_by_value('prefix_wif', key_hex[:2])
+                if networks:
+                    if key_hex[-10:-8] == '01':
+                        key_format = 'wif_compressed'
+                    else:
+                        key_format = 'wif'
+                    is_private = True
         except (TypeError, EncodingError):
             pass
     if not key_format:
@@ -596,8 +595,8 @@ class Address(object):
             if self.script_type is None:
                 self.script_type = 'p2pkh'
             if self.witness_type == 'p2sh-segwit':
-                # FIXME: Two times self.hash_bytes used...
                 self.redeemscript = b'\0' + varstr(self.hash_bytes)
+                # overwrite hash_bytes with hash of redeemscript
                 self.hash_bytes = hash160(self.redeemscript)
             if self.prefix is None:
                 if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \
@@ -682,6 +681,29 @@ class Key(object):
     generated using the os.urandom() function.
     """
 
+    @staticmethod
+    def from_wif(wif, network=None):
+        """
+        Import private key in WIF format.
+
+        :param wif: Private key in WIF format
+        :type wif: str
+        :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str, Network
+
+        :return Key:
+        """
+        key_hex = change_base(wif, 58, 16)
+        networks = network_by_value('prefix_wif', key_hex[:2])
+        compressed = False
+        if networks:
+            if key_hex[-10:-8] == '01':
+                compressed = True
+            network = network or next(iter(networks), DEFAULT_NETWORK)
+        else:
+            raise BKeyError("Could not create key, wif format not recognised")
+        return Key(wif, network, compressed, is_private=True)
+
     def __init__(self, import_key=None, network=None, compressed=True, password='', is_private=None, strict=True):
         """
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc. If import_key is empty a new
@@ -755,14 +777,9 @@ class Key(object):
                     raise BKeyError("Can not create Key object from address")
                 self.key_format = kf["format"]
                 networks_extracted = kf["networks"]
-                self.is_private = is_private
-                if is_private is None:
-                    if kf['is_private']:
-                        self.is_private = True
-                    elif kf['is_private'] is None:
-                        raise BKeyError("Could not determine if key is private or public")
-                    else:
-                        self.is_private = False
+                self.is_private = is_private if is_private else kf['is_private']
+                if self.is_private is None:
+                    raise BKeyError("Could not determine if key is private or public")
 
         if network is not None:
             self.network = network
@@ -1017,13 +1034,13 @@ class Key(object):
                             'specified network %s might be incorrect' % network)
         return priv, compressed
 
-    def bip38_encrypt(self, password):
+    def encrypt(self, password):
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
 
         >>> k = Key('cNUpWJbC1hVJtyxyV4bVAnb4uJ7FPhr82geo1vnoA29XWkeiiCQn')
-        >>> k.bip38_encrypt('test')
+        >>> k.encrypt('test')
         '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
 
         :param password: Required password for encryption
@@ -1033,6 +1050,10 @@ class Key(object):
         """
         flagbyte = b'\xe0' if self.compressed else b'\xc0'
         return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
+
+    @deprecated
+    def bip38_encrypt(self, password):
+        return self.encrypt(password)
 
     def wif(self, prefix=None):
         """
@@ -1062,7 +1083,7 @@ class Key(object):
         if self.compressed:
             key += b'\1'
         key += double_sha256(key)[:4]
-        self._wif = change_base(key, 256, 58)
+        self._wif = base58encode(key)
         self._wif_prefix = versionbyte
         return self._wif
 
@@ -1258,6 +1279,55 @@ class HDKey(Key):
         """
         return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network, key_type=key_type,
                                compressed=compressed, encoding=encoding, witness_type=witness_type, multisig=multisig)
+
+    @staticmethod
+    def from_wif(wif, network=None, compressed=True, multisig=None):
+        """
+        Create HDKey from BIP32 WIF
+
+        :param wif: HDKey WIF
+        :type wif: str
+        :param network: Network to use as string
+        :type network: str
+        :param compressed: Is key compressed or not, default is True
+        :type compressed: bool
+        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addresses
+        :type multisig: bool
+
+        :return HDKey:
+        """
+        bkey = change_base(wif, 58, 256)
+        if len(bkey) != 82:
+            raise BKeyError("Invalid BIP32 HDkey WIF. Length must be 82 characters")
+
+        if ord(bkey[45:46]):
+            is_private = False
+            key = bkey[45:78]
+        else:
+            is_private = True
+            key = bkey[46:78]
+        depth = ord(bkey[4:5])
+        parent_fingerprint = bkey[5:9]
+        child_index = int.from_bytes(bkey[9:13], 'big')
+        chain = bkey[13:45]
+
+        key_hex = bkey.hex()
+        prefix_data = wif_prefix_search(key_hex[:8], network=network, multisig=multisig)
+        if not prefix_data:
+            raise BKeyError("Invalid BIP32 HDkey WIF. Cannot find prefix in network definitions")
+
+        networks = list(dict.fromkeys([n['network'] for n in prefix_data]))
+        if not network and networks:
+            network = networks[0]
+        elif network not in networks:
+            raise BKeyError("Network %s not found in list of derived networks %s" % (network, networks))
+
+        witness_type = next(iter(list(dict.fromkeys([n['witness_type'] for n in prefix_data]))), None)
+        multisig = multisig or next(iter(list(dict.fromkeys([n['multisig'] for n in prefix_data]))), None)
+
+        return HDKey(key=key, chain=chain, depth=depth, parent_fingerprint=parent_fingerprint,
+                     child_index=child_index, is_private=is_private, network=network, witness_type=witness_type,
+                     multisig=multisig, compressed=compressed)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', password='', compressed=True,
@@ -1468,23 +1538,6 @@ class HDKey(Key):
 
         return self.hash160[:4]
 
-    def bip38_encrypt(self, password):
-        """
-        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
-        Based on code from https://github.com/nomorecoin/python-bip38-testing
-
-        >>> k = HDKey('zprvAWgYBBk7JR8GjAHfvjhGLKFGUJNcnPtkNryWfstePYJc4SVFYbaFk3Fpqn9dSmtPLKrPWB7WzsgzZzFiB1Qnhzop6jqTdEvHVzutBM2bmNr')
-        >>> k.bip38_encrypt('my-secret-password')
-        '6PYUAKyDYo7Q6sSJ3ZYo4EFeWFTMkUES2mdvsMNBSoN5QyXPmeogxfumfW'
-
-        :param password: Required password for encryption
-        :type password: str
-
-        :return str: BIP38 password encrypted private key
-        """
-        flagbyte = b'\xe0' if self.compressed else b'\xc0'
-        return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
-
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, password, network=DEFAULT_NETWORK, witness_type=DEFAULT_WITNESS_TYPE):
         """
@@ -1606,7 +1659,7 @@ class HDKey(Key):
         Get address derived from public key
 
         >>> wif = 'xpub661MyMwAqRbcFcXi3aM3fVdd42FGDSdufhrr5tdobiPjMrPUykFMTdaFEr7yoy1xxeifDY8kh2k4h9N77MY6rk18nfgg5rPtbFDF2YHzLfA'
-        >>> k = HDKey(wif)
+        >>> k = HDKey.from_wif(wif)
         >>> k.address()
         '15CacK61qnzJKpSpx9PFiC8X1ajeQxhq8a'
 
@@ -1637,7 +1690,7 @@ class HDKey(Key):
         See BIP0044 bitcoin proposal for more explanation.
 
         >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
-        >>> k = HDKey(wif)
+        >>> k = HDKey.from_wif(wif)
         >>> k.subkey_for_path("m/44'/0'/0'/0/2")
         <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
 
@@ -1930,8 +1983,8 @@ class Signature(object):
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
-    @deprecated
     @staticmethod
+    @deprecated
     def from_str(signature, public_key=None):
         """
         Create a signature from signature string with r and s part. Signature length must be 64 bytes or 128 

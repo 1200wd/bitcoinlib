@@ -38,14 +38,14 @@ kwargs = {}
 
 
 install_requires = [
-      'requests==2.26.0',
-      'fastecdsa==2.2.3;platform_system!="Windows"',
-      'ecdsa==0.16;platform_system=="Windows"',
+      'requests>=2.25.0',
+      'fastecdsa>=2.2.3;platform_system!="Windows"',
+      'ecdsa>=0.16;platform_system=="Windows"',
       'pyaes==1.6.1',
-      'scrypt==0.8.19',
-      'SQLAlchemy==1.4.28',
+      'scrypt>=0.8.19',
+      'SQLAlchemy>=1.4.28',
       'numpy==1.19.5;python_version<"3.8"',
-      'numpy==1.21.4;python_version>="3.8"'
+      'numpy>=1.21.0;python_version>="3.8"'
 ]
 
 kwargs['install_requires'] = install_requires
@@ -71,6 +71,7 @@ setup(
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10',
             'Topic :: Software Development :: Libraries :: Python Modules',
             'Topic :: Security :: Cryptography',
             'Topic :: Office/Business :: Financial :: Accounting',

@@ -108,17 +108,17 @@ class MempoolClient(BaseClient):
         for ti in tx['vin']:
             if ti['is_coinbase']:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptsig'], value=0,
-                            sequence=ti['sequence'], strict=False)
+                            sequence=ti['sequence'], strict=self.strict)
             else:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'],
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address=ti['prevout']['scriptpubkey_address'],
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'], sequence=ti['sequence'],
                             witnesses=None if 'witness' not in ti else [bytes.fromhex(w) for w in ti['witness']],
-                            strict=False)
+                            strict=self.strict)
         for to in tx['vout']:
             t.add_output(value=to['value'], address=to.get('scriptpubkey_address', ''), spent=None,
-                         lock_script=to['scriptpubkey'], strict=False)
+                         lock_script=to['scriptpubkey'], strict=self.strict)
         if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
         t.update_totals()
@@ -160,13 +160,13 @@ class MempoolClient(BaseClient):
     def estimatefee(self, blocks):
         estimates = self.compose_request('fees', 'recommended')
         if blocks < 2:
-            return estimates['fastestFee'] * 1024
+            return estimates['fastestFee'] * 1000
         elif blocks < 4:
-            return estimates['halfHourFee'] * 1024
+            return estimates['halfHourFee'] * 1000
         if blocks < 7:
-            return estimates['hourFee'] * 1024
+            return estimates['hourFee'] * 1000
         else:
-            return estimates['minimumFee'] * 1024
+            return estimates['minimumFee'] * 1000
 
     def blockcount(self):
         res = self.compose_request('blocks', 'tip', 'height')

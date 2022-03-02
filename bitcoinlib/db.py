@@ -374,6 +374,7 @@ class DbTransactionInput(Base):
     address = Column(String(255),
                      doc="Address string of input, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key or a redeemscript")
+    witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
     witness_type = Column(String(20), default='legacy',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
     prev_txid = Column(LargeBinary(32),
@@ -443,8 +444,11 @@ def db_update_version_id(db, version):
 def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
     # Database changes from version 0.5+
     #
-    # Older databases cannnot be updated this way, use updatedb.py to copy keys and recreate database.
-    #
+    if version_db == '0.6.3' and code_version > '0.6.3':
+        # Example: column = Column('latest_txid', String(32))
+        column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
+        add_column(db.engine, 'transaction_inputs', column)
+        # version_db = db_update_version_id(db, '0.6.4')
 
     version_db = db_update_version_id(db, code_version)
     return version_db

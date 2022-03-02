@@ -72,7 +72,7 @@ class LitecoinBlockexplorerClient(BaseClient):
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=us,
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti.get('doubleSpentTxID') is None else ti['doubleSpentTxID'],
-                            strict=False)
+                            strict=self.strict)
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
             # t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
@@ -81,7 +81,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             #              spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
             # FIXME: Found many wrong spending results
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-                         spent=None, output_n=to['n'], strict=False)
+                         spent=None, output_n=to['n'], strict=self.strict)
         return t
 
     def getbalance(self, addresslist):

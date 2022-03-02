@@ -23,7 +23,6 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_bytes
 
 
 _logger = logging.getLogger(__name__)
@@ -91,7 +90,7 @@ class CryptoID(BaseClient):
     def gettransaction(self, txid):
         variables = {'id': txid, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
-        t = Transaction.parse_hex(tx['hex'], strict=False, network=self.network)
+        t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         variables = {'t': txid}
         tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):

@@ -196,6 +196,17 @@ class TestPrivateKeyImport(unittest.TestCase):
         self.assertEqual('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', self.k.wif())
         self.assertEqual('mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn', self.k.address())
 
+    def test_private_key_import(self):
+        wif = 'KxDQjJwvLdNNGhsipGgmceWaPjRndZuaQB9B2tgdHsw5sQ8Rtqje'
+        self.assertEqual(Key.from_wif(wif).address(), '1Nro9WkpaKm9axmcfPVp79dAJU1Gx7VmMZ')
+        wif = 'L1NUEdnjKvK547BrFjRnuSvyLn2Ndkyjz9gQwc9dTF9ucRDV7SsP'
+        self.assertEqual(Key.from_wif(wif).address(), '1LuhZSrbPrd45RLa2EZ2JnrA4NtLf6sb58')
+        wif = '68vBWcBndYGLpd4KmeNTk1gS1A71zyDX6uVQKCxq6umYKyYUav5'
+        self.assertFalse(Key.from_wif(wif).compressed)
+        wif = '5Hwgr3u458GLafKBgxtssHSPqJnYoGrSzgQsPwLFhLNYskDPyyA'
+        self.assertFalse(Key.from_wif(wif).compressed)
+        self.assertEqual(Key.from_wif(wif).address(), '17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem')
+
 
 class TestPublicKeyConversion(unittest.TestCase):
 
@@ -342,6 +353,26 @@ class TestHDKeysImport(unittest.TestCase):
                  b"\xcc\x8an\x94\xa3\x93\xb5\xa5\xe6\xc3\xf1\x98\x91h6wt\xf0z=\x1f\x17"
         hdkey = HDKey(keystr)
         self.assertEqual(hdkey.address(), '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd')
+
+    def test_hdkey_import_private_uncompressed(self):
+        wif = 'YXscyqNJ5YK411nwB2T35cvM1M4F4VDzbfpTxgBxFL3eDFcUrPGfGSzLG4DmwGyRY6nzRGqyBjMMnw9x7oq2mw2mUQWpCZyfopCUEvU458AMAhqj'
+
+        k = HDKey(wif, compressed=False)
+        self.assertFalse(k.compressed)
+        self.assertEqual(k.private_hex, '427ea8c9c286fc050b8ccd8d8a7a8de57322c519ba79b3fad745bc4e97ed5a37')
+        self.assertEqual(k.public_hex, '0403c6eb8873620ac55a6035b0fd527e623f7659c97f30cb8d6a3fe90e924da5fa197aa4'
+                                       '9ee663e360ac71dbb514e2f8b02a90301a0ae52e8014ec805fa36040d9')
+
+        k2 = HDKey.from_wif(wif, compressed=False)
+        self.assertFalse(k2.compressed)
+        self.assertEqual(k2.private_hex, '427ea8c9c286fc050b8ccd8d8a7a8de57322c519ba79b3fad745bc4e97ed5a37')
+        self.assertEqual(k2.public_hex, '0403c6eb8873620ac55a6035b0fd527e623f7659c97f30cb8d6a3fe90e924da5fa197aa4'
+                                        '9ee663e360ac71dbb514e2f8b02a90301a0ae52e8014ec805fa36040d9')
+
+        k3 = HDKey.from_wif(wif)
+        self.assertTrue(k3.compressed)
+        self.assertEqual(k3.private_hex, '427ea8c9c286fc050b8ccd8d8a7a8de57322c519ba79b3fad745bc4e97ed5a37')
+        self.assertEqual(k3.public_hex, '0303c6eb8873620ac55a6035b0fd527e623f7659c97f30cb8d6a3fe90e924da5fa')
 
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
@@ -526,7 +557,7 @@ class TestBip38(unittest.TestCase):
         for v in self.vectors["valid"]:
             k = Key(v['wif'])
             print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
-            self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase'])))
+            self.assertEqual(str(v['bip38']), k.encrypt(str(v['passphrase'])))
 
     def test_decrypt_bip38_key(self):
         if not USING_MODULE_SCRYPT:
@@ -549,7 +580,7 @@ class TestBip38(unittest.TestCase):
         networks = ['testnet', 'litecoin', 'dash']
         for network in networks:
             k = Key(network=network)
-            enc_key = k.bip38_encrypt('password')
+            enc_key = k.encrypt('password')
             k2 = Key(enc_key, password='password', network=network)
             self.assertEqual(k.wif(), k2.wif())
 
@@ -557,7 +588,7 @@ class TestBip38(unittest.TestCase):
         pkwif = '5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5'
         bip38_wif = '6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq'
         k = HDKey(pkwif)
-        self.assertEqual(k.bip38_encrypt('Satoshi'), bip38_wif)
+        self.assertEqual(k.encrypt('Satoshi'), bip38_wif)
 
 
 class TestKeysBulk(unittest.TestCase):

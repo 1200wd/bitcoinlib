@@ -94,7 +94,7 @@ class ChainSo(BaseClient):
         res = self.compose_request('get_tx', txid)
         tx = res['data']
         rawtx = tx['tx_hex']
-        t = Transaction.parse_hex(rawtx, strict=False, network=self.network)
+        t = Transaction.parse_hex(rawtx, strict=self.strict, network=self.network)
         input_total = 0
         output_total = 0
         if not t.coinbase:
