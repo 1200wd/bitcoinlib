@@ -149,12 +149,10 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):  #
                     else:
                         rsds = script_deserialize(witness, script_types=['multisig'])
                         if not rsds['script_type'] == 'multisig':
-                            # FIXME: Parse unknown scripts
                             _logger.warning("Could not parse witnesses in transaction. Multisig redeemscript expected")
                             witness_script_type = 'unknown'
                             script_type = 'unknown'
                         else:
-                            # FIXME: Do not mixup naming signatures and keys
                             keys = rsds['signatures']
                             sigs_required = rsds['number_of_sigs_m']
                             witness_script_type = 'p2sh'
@@ -211,7 +209,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             itemlen, size = varbyteint_to_int(scr[0:9])
             if item_length and itemlen != item_length:
                 break
-            # TODO: Rethink and rewrite this:
             if not item_length and itemlen not in [20, 33, 65, 70, 71, 72, 73]:
                 break
             if redeemscript_expected and len(scr[itemlen + 1:]) < 20:
@@ -333,7 +330,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     cur += 1
                 elif ch == 'SIGHASH_ALL':
                     pass
-                    # TODO: Fix signature parsing: SIGHASHALL not part of signature...
                     # if cur_char != SIGHASH_ALL:
                     #     found = False
                     #     break

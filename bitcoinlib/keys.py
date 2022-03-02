@@ -595,8 +595,8 @@ class Address(object):
             if self.script_type is None:
                 self.script_type = 'p2pkh'
             if self.witness_type == 'p2sh-segwit':
-                # FIXME: Two times self.hash_bytes used...
                 self.redeemscript = b'\0' + varstr(self.hash_bytes)
+                # overwrite hash_bytes with hash of redeemscript
                 self.hash_bytes = hash160(self.redeemscript)
             if self.prefix is None:
                 if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \

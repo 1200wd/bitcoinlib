@@ -3937,7 +3937,7 @@ class Wallet(object):
         Wrapper for the :func:`send` method.
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
-        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb'
+        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb')
         >>> t
         <WalletTransaction(input_count=1, output_count=1, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS

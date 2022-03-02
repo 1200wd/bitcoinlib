@@ -37,7 +37,10 @@ try:
 except ImportError as SCRYPT_ERROR:
     pass
 if 'scrypt' not in sys.modules:
-    import pyscrypt as scrypt
+    try:
+        import pyscrypt as scrypt
+    except ImportError:
+        raise ImportError("Missing modules. Please install scrypt or pyscrypt")
     USING_MODULE_SCRYPT = False
 
 if not USING_MODULE_SCRYPT:

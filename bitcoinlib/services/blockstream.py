@@ -21,9 +21,9 @@
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
-from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import varstr
+
 
 PROVIDERNAME = 'blockstream'
 # Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
@@ -200,7 +200,6 @@ class BlockstreamClient(BaseClient):
                 return []
         else:
             return self.compose_request('mempool', 'txids')
-        return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if isinstance(blockid, int):
