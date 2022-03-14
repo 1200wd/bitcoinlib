@@ -741,10 +741,10 @@ class Key(object):
         :return: Key object
         """
         self.public_hex = None
-        self.public_uncompressed_hex = None
+        self._public_uncompressed_hex = None
         self.public_compressed_hex = None
         self.public_byte = None
-        self.public_uncompressed_byte = None
+        self._public_uncompressed_byte = None
         self.public_compressed_byte = None
         self.private_byte = None
         self.private_hex = None
@@ -798,7 +798,7 @@ class Key(object):
             self.secret = None
             pub_key = to_hexstring(import_key)
             if len(pub_key) == 130:
-                self.public_uncompressed_hex = pub_key
+                self._public_uncompressed_hex = pub_key
                 self.x_hex = pub_key[2:66]
                 self.y_hex = pub_key[66:130]
                 self._y = int(self.y_hex, 16)
@@ -813,18 +813,11 @@ class Key(object):
                 self.public_hex = pub_key
                 self.x_hex = pub_key[2:66]
                 self.compressed = True
-                # Calculate y from x with y=x^3 + 7 function
-                sign = pub_key[:2] == '03'
                 self._x = int(self.x_hex, 16)
-                ys = pow(self._x, 3, secp256k1_p) + 7 % secp256k1_p
-                self._y = mod_sqrt(ys)
-                if self._y & 1 != sign:
-                    self._y = secp256k1_p - self._y
-                self.y_hex = change_base(self._y, 10, 16, 64)
-                self.public_uncompressed_hex = '04' + self.x_hex + self.y_hex
                 self.public_compressed_hex = pub_key
             self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
-            self.public_uncompressed_byte = bytes.fromhex(self.public_uncompressed_hex)
+            if self._public_uncompressed_hex:
+                self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
             if self.compressed:
                 self.public_byte = self.public_compressed_byte
             else:
@@ -906,11 +899,11 @@ class Key(object):
                 prefix = '02'
 
             self.public_compressed_hex = prefix + self.x_hex
-            self.public_uncompressed_hex = '04' + self.x_hex + self.y_hex
+            self._public_uncompressed_hex = '04' + self.x_hex + self.y_hex
             self.public_hex = self.public_compressed_hex if self.compressed else self.public_uncompressed_hex
 
             self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
-            self.public_uncompressed_byte = bytes.fromhex(self.public_uncompressed_hex)
+            self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
             self.public_byte = self.public_compressed_byte if self.compressed else self.public_uncompressed_byte
         self._address_obj = None
         self._wif = None
@@ -962,9 +955,30 @@ class Key(object):
 
     @property
     def y(self):
-        if not self._y and self.y_hex:
+        if not self._y:
+            if not self.y_hex:
+                self._public_uncompressed_hex = self.public_uncompressed_hex
             self._y = int(self.y_hex, 16)
         return self._y
+
+    @property
+    def public_uncompressed_hex(self):
+        if not self._public_uncompressed_hex:
+            # Calculate y from x with y=x^3 + 7 function
+            sign = self.public_hex[:2] == '03'
+            ys = pow(self._x, 3, secp256k1_p) + 7 % secp256k1_p
+            self._y = mod_sqrt(ys)
+            if self._y & 1 != sign:
+                self._y = secp256k1_p - self._y
+            self.y_hex = change_base(self._y, 10, 16, 64)
+            self._public_uncompressed_hex = '04' + self.x_hex + self.y_hex
+        return self._public_uncompressed_hex
+
+    @property
+    def public_uncompressed_byte(self):
+        if not self._public_uncompressed_byte:
+            self._public_uncompressed_byte = bytes.fromhex(self.public_uncompressed_hex)
+        return self._public_uncompressed_byte
 
     def hex(self):
         return self.public_hex

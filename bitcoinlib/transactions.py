@@ -1141,25 +1141,25 @@ class Output(object):
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
         if isinstance(address, Address):
-            self.address = address.address
-            self.address_obj = address
+            self._address = address.address
+            self._address_obj = address
         elif isinstance(address, HDKey):
-            self.address = address.address()
-            self.address_obj = address.address_obj
+            self._address = address.address()
+            self._address_obj = address.address_obj
             public_key = address.public_byte
             if not script_type:
                 script_type = script_type_default(address.witness_type, address.multisig, True)
             self.public_hash = address.hash160
         else:
-            self.address = address
-            self.address_obj = None
+            self._address = address
+            self._address_obj = None
         self.public_key = to_bytes(public_key)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
         self.script_type = script_type
         self.encoding = encoding
-        if not self.address and self.encoding is None:
+        if not self._address and self.encoding is None:
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
@@ -1182,20 +1182,20 @@ class Output(object):
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
             self.public_hash = k.hash160
-        elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
-            address_dict = deserialize_address(self.address, self.encoding, self.network.name)
+        elif self._address and (not self.public_hash or not self.script_type or not self.encoding):
+            address_dict = deserialize_address(self._address, self.encoding, self.network.name)
             if address_dict['script_type'] and not script_type:
                 self.script_type = address_dict['script_type']
             if not self.script_type:
-                raise TransactionError("Could not determine script type of address %s" % self.address)
+                raise TransactionError("Could not determine script type of address %s" % self._address)
             self.encoding = address_dict['encoding']
             network_guesses = address_dict['networks']
             if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address %s is from %s network and transaction from %s network" %
-                                       (self.address, address_dict['network'], self.network.name))
+                                       (self._address, address_dict['network'], self.network.name))
             elif self.network.name not in network_guesses:
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
-                                       "in %s" % (self.address, self.network.name, network_guesses))
+                                       "in %s" % (self._address, self.network.name, network_guesses))
             self.public_hash = address_dict['public_key_hash_bytes']
         if not self.encoding:
             self.encoding = 'base58'
@@ -1206,11 +1206,11 @@ class Output(object):
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
-        if self.public_hash and not self.address:
-            self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
-                                       encoding=self.encoding, network=self.network)
-            self.address = self.address_obj.address
-            self.versionbyte = self.address_obj.prefix
+        # if self.public_hash and not self._address:
+        #     self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
+        #                                encoding=self.encoding, network=self.network)
+        #     self.address = self.address_obj.address
+        #     self.versionbyte = self.address_obj.prefix
         if not self.script and strict and (self.public_hash or self.public_key):
             self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
             self.lock_script = self.script.serialize()
@@ -1222,6 +1222,30 @@ class Output(object):
         # if self.script_type != 'nulldata' and value < self.network.dust_amount:
         #     raise TransactionError("Output to %s must be more then dust amount %d" %
         #                            (self.address, self.network.dust_amount))
+
+    @property
+    def address_obj(self):
+        """
+        Get address object property. Create standard address object if not defined already.
+
+        :return Address:
+        """
+        if not self._address_obj:
+            if self.public_hash:
+                self._address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
+                                            encoding=self.encoding, network=self.network)
+                self._address = self.address_obj.address
+                self.versionbyte = self.address_obj.prefix
+        return self._address_obj
+
+    @property
+    def address(self):
+        if not self._address:
+            address_obj = self.address_obj
+            if not address_obj:
+                return ''
+            self._address = address_obj.address
+        return self._address
 
     @classmethod
     def parse(cls, raw, output_n=0, strict=True, network=DEFAULT_NETWORK):
