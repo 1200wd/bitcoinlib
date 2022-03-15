@@ -897,7 +897,7 @@ class Input(object):
         Method to update Input scripts.
 
         Creates or updates unlocking script, witness script for segwit inputs, multisig redeemscripts and
-        locktime scripts. This method is called when initializing a Input class or when signing an input.
+        locktime scripts. This method is called when initializing an Input class or when signing an input.
 
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
@@ -1165,11 +1165,11 @@ class Output(object):
         self.output_n = output_n
         self.script = Script.parse_bytes(self.lock_script, strict=strict)
 
-        if self.address_obj:
-            self.script_type = self.address_obj.script_type if script_type is None else script_type
-            self.public_hash = self.address_obj.hash_bytes
-            self.network = self.address_obj.network
-            self.encoding = self.address_obj.encoding
+        if self._address_obj:
+            self.script_type = self._address_obj.script_type if script_type is None else script_type
+            self.public_hash = self._address_obj.hash_bytes
+            self.network = self._address_obj.network
+            self.encoding = self._address_obj.encoding
 
         if self.script:
             self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
@@ -1234,8 +1234,8 @@ class Output(object):
             if self.public_hash:
                 self._address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
                                             encoding=self.encoding, network=self.network)
-                self._address = self.address_obj.address
-                self.versionbyte = self.address_obj.prefix
+                self._address = self._address_obj.address
+                self.versionbyte = self._address_obj.prefix
         return self._address_obj
 
     @property
