@@ -360,6 +360,133 @@ class Block:
             self.transactions.append(t)
             n += 1
 
+    def parse_transactions_dict(self):
+        """
+
+        :return:
+        """
+        n = 0
+        transactions_dict = []
+        while self.txs_data and len(self.transactions) < self.tx_count:
+            tx = {}
+            tx['coinbase'] = False
+            tx['flag'] = None
+            tx['witness_type'] = 'legacy'
+            tx['height'] = self.height
+            # network = network
+            # if not isinstance(network, Network):
+            #     cls.network = Network(network)
+            # raw_bytes = b''
+            # 
+            # try:
+            pos_start = self.txs_data.tell()
+            # except AttributeError:
+            #     raise TransactionError("Provide raw transaction as BytesIO. Use parse, parse_bytes, parse_hex to parse "
+            #                            "other data types")
+
+            tx['version'] = self.txs_data.read(4)[::-1]
+            if not tx['version']:
+                break
+            tx_flag = b''
+            if self.txs_data.read(1) == b'\0':
+                flag = self.txs_data.read(1)
+                if flag == b'\1':
+                    tx['witness_type'] = 'segwit'
+                tx_flag = b'\0\1'
+            else:
+                self.txs_data.seek(-1, 1)
+
+            n_inputs = read_varbyteint(self.txs_data)
+            inputs = []
+            inputs_raw = b''
+            for n in range(0, n_inputs):
+                inp = {}
+                inp['prev_hash'] = self.txs_data.read(32)[::-1]
+                if len(inp['prev_hash']) != 32:
+                    raise Exception("Input transaction hash not found. Probably malformed self.txs_data transaction")
+                inp['output_n'] = self.txs_data.read(4)[::-1]
+                unlocking_script_size = read_varbyteint(self.txs_data)
+                inp['unlocking_script'] = self.txs_data.read(unlocking_script_size)
+                inp['inp_type'] = 'legacy'
+                if tx['witness_type'] == 'segwit' and not unlocking_script_size:
+                    inp['inp_type'] = 'segwit'
+                inp['sequence_number'] = self.txs_data.read(4)
+                inp['coinbase'] = False
+                if inp['prev_hash'] == 32 * b'\0':
+                    inp['coinbase'] = True
+                inputs.append(inp)
+                inputs_raw += inp['prev_hash'][::-1] + inp['output_n'][::-1] + int_to_varbyteint(unlocking_script_size) + \
+                              inp['unlocking_script'] + inp['sequence_number']
+            tx['inputs'] = inputs
+
+            outputs = []
+            outputs_raw = b''
+            n_outputs = read_varbyteint(self.txs_data)
+            tx['output_total'] = 0
+            for n in range(0, n_outputs):
+                outp = {}
+                outp_value = self.txs_data.read(8)
+                outp['value'] = int.from_bytes(outp_value[::-1], 'big')
+                lock_script_size = read_varbyteint(self.txs_data)
+                outp['lock_script'] = self.txs_data.read(lock_script_size)
+                outputs.append(outp)
+                tx['output_total'] += outp['value']
+                outputs_raw += outp_value + int_to_varbyteint(lock_script_size) + outp['lock_script']
+            if not outputs:
+                raise Exception("Error no outputs found in this transaction")
+            tx['outputs'] = outputs
+
+            witnesses_raw = b''
+            if tx['witness_type'] == 'segwit':
+                for n in range(0, len(inputs)):
+                    n_items = read_varbyteint(self.txs_data)
+                    witnesses_raw += int_to_varbyteint(n_items)
+                    if not n_items:
+                        continue
+                    # script = Script()
+                    inputs[n]['witnesses'] = []
+                    for m in range(0, n_items):
+                        item_size = read_varbyteint(self.txs_data)
+                        witnesses_raw += int_to_varbyteint(item_size)
+                        witness = self.txs_data.read(item_size)
+                        witnesses_raw += witness
+                        inputs[n]['witnesses'].append(witness)
+                        # s = Script.parse_bytes(varstr(witness), strict=strict)
+                        # script += s
+
+                    # inputs[n].script = script if not inputs[n].script else inputs[n].script + script
+                    # inputs[n].keys = script.keys
+                    # inputs[n].signatures = script.signatures
+                    # if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[
+                    #     0] == 'signature_multisig':  # , 'p2sh_p2wsh'
+                    #     inputs[n].script_type = 'p2sh_multisig'
+                    #     inputs[n].redeemscript = inputs[n].witnesses[-1]
+                    # elif inputs[n].script_type == 'p2wpkh':
+                    #     inputs[n].script_type = 'p2sh_p2wpkh'
+                    #     inputs[n].witness_type = 'p2sh-segwit'
+                    # elif inputs[n].script_type == 'p2wpkh' or inputs[n].script_type == 'p2wsh':
+                    #     inputs[n].script_type = 'p2sh_p2wsh'
+                    #     inputs[n].witness_type = 'p2sh-segwit'
+                    #
+                    # inputs[n].update_scripts()
+
+            tx_locktime = self.txs_data.read(4)
+            tx['locktime'] = int.from_bytes(tx_locktime[::-1], 'big')
+            # raw_len = len(raw_bytes)
+            # if not raw_bytes:
+            #     pos_end = self.txs_data.tell()
+            #     raw_len = pos_end - pos_start
+            #     self.txs_data.seek(pos_start)
+            #     raw_bytes = self.txs_data.read(raw_len)
+
+            # return Transaction(inputs, outputs, locktime, version, network, size=raw_len, output_total=output_total,
+            #                    coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes)
+            tx['rawtx'] = tx['version'][::-1] + tx_flag + int_to_varbyteint(n_inputs) + inputs_raw + \
+                          int_to_varbyteint(n_outputs) + outputs_raw + witnesses_raw + tx_locktime
+            transactions_dict.append(tx)
+            n += 1
+        return transactions_dict
+            
     def parse_transaction(self):
         """
         Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
