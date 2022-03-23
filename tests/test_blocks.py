@@ -47,6 +47,11 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.rb625007 = pickle.load(pickle_in)
         pickle_in.close()
 
+        filename = os.path.join(os.path.dirname(__file__), "block722010.pickle")
+        pickle_in = open(filename, "rb")
+        self.rb722010 = pickle.load(pickle_in)
+        pickle_in.close()
+
     def test_blocks_parse_genesis(self):
         raw_block = '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3' \
                     'e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c010100000001000000000000000000' \
@@ -192,3 +197,11 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertRaisesRegex(ValueError, 'Block contains incorrect number of transactions, can not serialize',
                                b.serialize)
         self.assertListEqual(b.version_bips(), ['BIP109'])
+
+    def test_block_parse_transaction_dict(self):
+        b = Block.parse_bytes(self.rb722010, parse_transactions=False, height=722010)
+        tx_dict = b.parse_transactions_dict()
+        self.assertEqual(2668, len(tx_dict))
+        self.assertEqual(0, len(b.transactions))
+        b.parse_transactions()
+        self.assertEqual(2668, len(b.transactions))
