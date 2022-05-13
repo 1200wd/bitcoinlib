@@ -84,6 +84,7 @@ class Block:
             self.nonce = to_bytes(nonce)
             self.nonce_int = 0 if not self.nonce else int.from_bytes(self.nonce, 'big')
         self.transactions = transactions
+        self.transactions_dict = []
         if self.transactions is None:
             self.transactions = []
         self.txs_data = None
@@ -374,11 +375,40 @@ class Block:
         transactions_dict = []
         txs_data_orig = deepcopy(self.txs_data)
         while self.txs_data and len(self.transactions) < self.tx_count:
+            tx = self.parse_transaction_dict(tx_n)
+            if not tx:
+                break
+            transactions_dict.append(tx)
+            tx_n += 1
+        self.txs_data = txs_data_orig
+        return transactions_dict
+            
+    def parse_transaction(self):
+        """
+        Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
+        Transaction object in Block and return the transaction
+
+        :return Tranasaction:
+        """
+        if self.txs_data and len(self.transactions) < self.tx_count:
+            t = Transaction.parse_bytesio(self.txs_data, strict=False, network=self.network)  # , check_size=False
+            self.transactions.append(t)
+            return t
+        return False
+
+    def parse_transaction_dict(self, tx_n):
+        """
+        Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
+        Transaction object in Block and return the transaction
+
+        :return Tranasaction:
+        """
+        if self.txs_data and len(self.transactions) < self.tx_count:
             tx = {'height': self.height, 'coinbase': False, 'flag': None, 'witness_type': 'legacy'}
 
             tx['version'] = self.txs_data.read(4)[::-1]
             if not tx['version']:
-                break
+                return False
             raw_flag = b''
             if self.txs_data.read(1) == b'\0':
                 flag = self.txs_data.read(1)
@@ -394,8 +424,8 @@ class Block:
             inputs_raw = b''
             for n in range(0, n_inputs):
                 inp = {}
-                inp['prev_hash'] = self.txs_data.read(32)[::-1]
-                if len(inp['prev_hash']) != 32:
+                inp['prev_txid'] = self.txs_data.read(32)[::-1]
+                if len(inp['prev_txid']) != 32:
                     raise Exception("Input transaction hash not found. Probably malformed self.txs_data transaction")
                 inp['output_n'] = self.txs_data.read(4)[::-1]
                 unlocking_script_size, unlocking_script_size_raw = read_varbyteint_return(self.txs_data)
@@ -404,12 +434,12 @@ class Block:
                 if tx['witness_type'] == 'segwit' and not unlocking_script_size:
                     inp['inp_type'] = 'segwit'
                 inp['sequence_number'] = self.txs_data.read(4)
-                inp['coinbase'] = False
-                if inp['prev_hash'] == 32 * b'\0':
-                    inp['coinbase'] = True
+                tx['coinbase'] = False
+                if inp['prev_txid'] == 32 * b'\0':
+                    tx['coinbase'] = True
                 inputs.append(inp)
                 inputs_raw += \
-                    inp['prev_hash'][::-1] + inp['output_n'][::-1] + unlocking_script_size_raw + \
+                    inp['prev_txid'][::-1] + inp['output_n'][::-1] + unlocking_script_size_raw + \
                     inp['unlocking_script'] + inp['sequence_number']
             tx['inputs'] = inputs
 
@@ -424,6 +454,7 @@ class Block:
                 lock_script_size, lock_script_size_raw = read_varbyteint_return(self.txs_data)
                 outp['lock_script'] = self.txs_data.read(lock_script_size)
                 outputs.append(outp)
+                outp['output_n'] = n
                 tx['output_total'] += outp['value']
                 outputs_raw += outp_value + lock_script_size_raw + outp['lock_script']
             if not outputs:
@@ -452,22 +483,9 @@ class Block:
                           witnesses_raw + tx_locktime
             tx['txid'] = double_sha256(tx['version'][::-1] + raw_n_inputs + inputs_raw + raw_n_outputs + outputs_raw
                                        + tx_locktime)[::-1]
-            transactions_dict.append(tx)
-            tx_n += 1
-        self.txs_data = txs_data_orig
-        return transactions_dict
-            
-    def parse_transaction(self):
-        """
-        Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
-        Transaction object in Block and return the transaction
-
-        :return Tranasaction:
-        """
-        if self.txs_data and len(self.transactions) < self.tx_count:
-            t = Transaction.parse_bytesio(self.txs_data, strict=False, network=self.network)  # , check_size=False
-            self.transactions.append(t)
-            return t
+            tx['size'] = len(tx['rawtx'])
+            # TODO: tx['vsize'] = len(tx['rawtx'])
+            return tx
         return False
 
     def as_dict(self):
