@@ -205,3 +205,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(0, len(b.transactions))
         b.parse_transactions()
         self.assertEqual(2668, len(b.transactions))
+        i = 0
+        for tx in tx_dict:
+            assert(tx['txid'].hex() == b.transactions[i].txid)
+            i += 1
