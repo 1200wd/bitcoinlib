@@ -24,7 +24,7 @@ jobs:
         pip install mysqlclient
         pip install parameterized
       # Install Cython - needed for python 3.10 at this moment
-        pip install Cython --install-option="--no-cython-compile"
+        pip install Cython
         python setup.py install
     - name: Test with covarage
       env:
