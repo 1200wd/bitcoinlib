@@ -721,6 +721,7 @@ class Input(object):
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
             else to_bytes(unlocking_script_unsigned)
         self.script = None
+        self.hash_type = SIGHASH_ALL
         if isinstance(sequence, numbers.Number):
             self.sequence = sequence
         else:
@@ -786,6 +787,8 @@ class Input(object):
             self.script = Script.parse_bytes(self.unlocking_script, strict=strict)
             self.keys = self.script.keys
             self.signatures = self.script.signatures
+            if len(self.signatures):
+                self.hash_type = self.signatures[0].hash_type
             sigs_required = self.script.sigs_required
             self.redeemscript = self.script.redeemscript if self.script.redeemscript else self.redeemscript
             if len(self.script.script_types) == 1 and not self.script_type:
@@ -836,7 +839,6 @@ class Input(object):
             self.compressed = True
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
-        self.hash_type = SIGHASH_ALL
         self.strict = strict
 
         for sig in signatures:
@@ -856,6 +858,7 @@ class Input(object):
                 self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 and \
                 b'\0' not in self.witnesses:
             self.signatures = [Signature.parse_bytes(self.witnesses[0])]
+            self.hash_type = self.signatures[0].hash_type
             self.keys = [Key(self.witnesses[1], network=self.network)]
 
         self.update_scripts(hash_type=self.hash_type)
@@ -2132,7 +2135,7 @@ class Transaction(object):
         self.verified = False
         for inp in self.inputs:
             try:
-                transaction_hash = self.signature_hash(inp.index_n, witness_type=inp.witness_type)
+                transaction_hash = self.signature_hash(inp.index_n, inp.hash_type, inp.witness_type)
             except TransactionError as e:
                 _logger.info("Could not create transaction hash. Error: %s" % e)
                 return False

@@ -97,6 +97,12 @@ class TestTransactionInputs(unittest.TestCase):
         self.assertRaisesRegex(ValueError, "Value uses different network \(litecoin\) then supplied network: bitcoin",
                                Input, prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1 LTC')
 
+    def test_transaction_hash_type(self):
+        rawtx = '0100000001c59c1304f1c0749cda6f0c358a090b26236bf542bf09d0808e6edae4aac513cb010000006a473044022036f11c02e964d2e93d307645c784b451e418de85de3fb269bbf542b1fffafc5002205019ac02ecb3749825fca30da8f5deabf3dae3f9a7606dbf702b19b85c55a51981210337ab1266172bd19ad17062a47c0c7c9e154e54cec9e979d5fdfadd52a5ae3a5dffffffff030000000000000000166a146f6d6e69000000000000001f000000037e11d6003ab85200000000001976a914c12632196e7884ca345bd0016b19fe38359e724d88ac22020000000000001976a91471a29f974cc44430be23190a9cbc0e55bcb26e8588ac00000000'
+        t = Transaction.parse_hex(rawtx)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.inputs[0].hash_type, 0x81)
+
     # TODO: Move and rewrite
     # def test_transaction_input_locktime(self):
         # rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
