@@ -40,7 +40,8 @@ if 'scrypt' not in sys.modules:
     try:
         import pyscrypt as scrypt
     except ImportError:
-        raise ImportError("Missing modules. Please install scrypt or pyscrypt")
+        _logger.warning("MISSING MODULES! Please install scrypt or pyscrypt")
+        _logger.warning("The bip38_decrypt and bip38_encrypt methods need a scrypt library to work!")
     USING_MODULE_SCRYPT = False
 
 if not USING_MODULE_SCRYPT:
