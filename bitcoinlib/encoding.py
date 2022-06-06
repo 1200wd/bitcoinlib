@@ -41,12 +41,13 @@ try:
         import scrypt
         USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
-    pass
+    from Crypto.Protocol.KDF import scrypt
+
 if 'scrypt' not in sys.modules:
     try:
         import pyscrypt as scrypt
     except ImportError:
-        _logger.warning("MISSING MODULES! Please install scrypt or pyscrypt")
+        _logger.warning("MISSING MODULES! Please install scrypt, pycryptodome or pyscrypt")
         _logger.warning("The bip38_decrypt and bip38_encrypt methods need a scrypt library to work!")
     USING_MODULE_SCRYPT = False
 

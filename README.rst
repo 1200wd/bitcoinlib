@@ -334,12 +334,12 @@ scrypt:
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.
 
-You can also use pyscrypt instead of scrypt. Pyscrypt is a pure Python scrypt password-based key derivation library.
-It works but it is slow when using BIP38 password protected keys.
+You can also use pyscrypt or pycryptodome instead of scrypt. Pyscrypt is a pure Python scrypt password-based key
+derivation library. It works but it is slow when using BIP38 password protected keys.
 
 .. code-block:: bash
 
-    $ pip install pyscrypt
+    $ pip install pycryptodome
 
 If you run into issues, do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
