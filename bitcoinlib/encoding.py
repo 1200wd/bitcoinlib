@@ -22,7 +22,6 @@ import math
 import numbers
 from copy import deepcopy
 import hashlib
-import pyaes
 import unicodedata
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
@@ -30,6 +29,13 @@ _logger = logging.getLogger(__name__)
 
 SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
+
+try:
+    import pyaes
+except ImportError as PYAES_ERROR:
+    _logger.warning("MISSING MODULES! Please install pyaes")
+    _logger.warning("The bip38_decrypt and bip38_encrypt methods need the pyaes library to work!")
+
 try:
     if USING_MODULE_SCRYPT is not False:
         import scrypt
