@@ -54,7 +54,7 @@ if 'scrypt' not in sys.modules:
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
         SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module %s" % SCRYPT_ERROR)
+    _logger.warning("Error when trying to import scrypt module. Error message: %s" % SCRYPT_ERROR)
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
