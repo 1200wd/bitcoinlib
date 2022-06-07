@@ -42,14 +42,15 @@ Package dependencies
 
 Required Python Packages, are automatically installed upon installing bitcoinlib:
 
-* fastecdsa
-* pyaes
-* scrypt (or much slower pycryptodome)
+* fastecdsa (or ecdsa on Windows)
 * sqlalchemy
 * requests
-* enum34 (for older Python installations)
-* pathlib2 (for Python 2)
-* six
+* numpy
+* pycryptodome
+
+If you want to use BIP38 encrypted private keys, it is strongly advised to install the much faster scrypt library.
+
+``pip install scrypt``
 
 
 Other requirements Linux
@@ -107,10 +108,6 @@ for steps you could take to install this library.
 If you have problems with installing this library on Windows you could try to use the pycryptodome library instead of
 scrypt. The pycryptodome library is pure Python so it doesn't need any C compilers installed. But this will run slower.
 
-.. code-block:: none
-
-    $ pip install pycryptodome
-
 
 Update Bitcoinlib
 -----------------
@@ -151,7 +148,7 @@ Troubleshooting
 ---------------
 
 When you experience issues with the scrypt package when installing you can try to solve this by installing
-scrypt seperately:
+scrypt separately:
 
 .. code-block:: bash
 
@@ -164,9 +161,6 @@ above.
 You can also use pycryptodome or pyscrypt instead of scrypt. Pycryptodome is a pure Python scrypt password-based key
 derivation library. It works but it is slow when using BIP38 password protected keys.
 
-.. code-block:: none
-
-    $ pip install pycryptodome
 
 If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 

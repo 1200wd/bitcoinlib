@@ -288,14 +288,14 @@ Install with pip
 
 These packages will be installed
 * fastecdsa (or ecdsa on Windows)
-* pyaes
-* scrypt
 * sqlalchemy
 * requests
-* enum34 (for older Python installations)
-* pathlib2 (for Python 2)
-* six
+* numpy
+* pycryptodome
 
+If you want to use BIP38 encrypted private keys, it is strongly advised to install the much faster scrypt library.
+
+``pip install scrypt``
 
 Install development environment
 -------------------------------
@@ -337,10 +337,6 @@ above.
 You can also use pyscrypt or pycryptodome instead of scrypt. Pyscrypt is a pure Python scrypt password-based key
 derivation library. It works but it is slow when using BIP38 password protected keys.
 
-.. code-block:: bash
-
-    $ pip install pycryptodome
-
 If you run into issues, do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
 
@@ -367,10 +363,7 @@ https://bitcoinlib.readthedocs.io/en/latest/_static/manuals.install.html#install
 Future / Roadmap
 ================
 
-* Create Block class
-* Create Script class and support advanced scripts
+* Support advanced scripts
 * Fully support timelocks
 * Support for lightning network
 * Support for Trezor wallet
-* Improve speed and security
-* Integrate in ERP and shopping solutions such as Odoo, Magento, Shopware
