@@ -31,10 +31,10 @@ SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 
 try:
-    import pyaes
+    from Crypto.Cipher import AES
 except ImportError as PYAES_ERROR:
-    _logger.warning("MISSING MODULES! Please install pyaes")
-    _logger.warning("The bip38_decrypt and bip38_encrypt methods need the pyaes library to work!")
+    _logger.warning("MISSING MODULES! Please install pycryptodome")
+    _logger.warning("The bip38_decrypt and bip38_encrypt methods need the pycryptodome library to work!")
 
 try:
     if USING_MODULE_SCRYPT is not False:
@@ -904,7 +904,8 @@ def bip38_decrypt(encrypted_privkey, password):
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
     encryptedhalf2 = d[16:32]
-    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    aes = AES.new(derivedhalf2, AES.MODE_ECB)
     decryptedhalf2 = aes.decrypt(encryptedhalf2)
     decryptedhalf1 = aes.decrypt(encryptedhalf1)
     priv = decryptedhalf1 + decryptedhalf2
@@ -939,7 +940,8 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
-    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    aes = AES.new(derivedhalf2, AES.MODE_ECB)
+    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
     encryptedhalf1 = \
         aes.encrypt((int(private_hex[0:32], 16) ^ int.from_bytes(derivedhalf1[0:16], 'big')).to_bytes(16, 'big'))
     encryptedhalf2 = \

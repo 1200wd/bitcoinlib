@@ -23,6 +23,7 @@ jobs:
         pip install mysql-connector
         pip install mysqlclient
         pip install parameterized
+        pip install scrypt
         pip install Cython --install-option="--no-cython-compile"
         python setup.py install
     - name: Test with covarage
