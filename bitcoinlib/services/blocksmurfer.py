@@ -65,7 +65,7 @@ class BlocksmurferClient(BaseClient):
                 confirmations = block_count - block_height
             utxos.append({
                 'address': address,
-                'txid': u['tx_hash'],
+                'txid': u['txid'],
                 'confirmations': confirmations,
                 'output_n': u['output_n'],
                 'input_n': u['input_n'],

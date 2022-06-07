@@ -169,7 +169,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'address': '1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx',
             'date': datetime(2017, 7, 31, 6, 0, 52),
             'value': 190000}
-        srv = ServiceTest(min_providers=3)
+        srv = ServiceTest(min_providers=3, providers=['blocksmurfer'])
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         for provider in srv.results:
             print("Provider %s" % provider)

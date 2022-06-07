@@ -67,7 +67,7 @@ class BitGoClient(BaseClient):
                         'confirmations': utxo['confirmations'],
                         'output_n': utxo['tx_output_n'],
                         'input_n': 0,
-                        'block_height': utxo['blockHeight'],
+                        'block_height': int(utxo['blockHeight']) if utxo['blockHeight'] else None,
                         'fee': None,
                         'size': 0,
                         'value': int(round(utxo['value'] * self.units, 0)),
