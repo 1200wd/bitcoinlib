@@ -45,7 +45,7 @@ def _read_network_definitions():
     """
 
     fn = Path(BCL_DATA_DIR, 'networks.json')
-    f = fn.open()
+    f = fn.open('rb')
 
     try:
         network_definitions = json.loads(f.read())
