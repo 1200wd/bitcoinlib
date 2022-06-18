@@ -206,7 +206,7 @@ class Mnemonic(object):
         wlcount = {}
         for fn in Path(BCL_INSTALL_DIR, 'wordlist').iterdir():
             if fn.suffix == ".txt":
-                with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', fn)) as f:
+                with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', fn), encoding='utf-8') as f:
                     wordlist = [w.strip() for w in f.readlines()]
                     language = fn.name.split('.')[0]
                     wlcount[language] = 0
