@@ -743,8 +743,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                              '13e3167d46334600b59a5aa286dd02147ac33e64bfc2e188e1f0c0a442182584')
 
     def test_service_getblock_height(self):
-        # srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
-        srv = ServiceTest(timeout=TIMEOUT_TEST, providers=['mempool'], cache_uri='')
+        srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
