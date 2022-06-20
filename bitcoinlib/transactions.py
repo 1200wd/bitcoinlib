@@ -887,6 +887,10 @@ class Input(object):
         output_n = raw.read(4)[::-1]
         unlocking_script_size = read_varbyteint(raw)
         unlocking_script = raw.read(unlocking_script_size)
+        # TODO - handle non-standard input script b'\1\0',
+        #  see tx 38cf5779d1c5ca32b79cd5052b54e824102e878f041607d3b962038f5a8cf1ed
+        # if unlocking_script_size == 1 and unlocking_script == b'\0':
+
         inp_type = 'legacy'
         if witness_type == 'segwit' and not unlocking_script_size:
             inp_type = 'segwit'
