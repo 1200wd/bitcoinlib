@@ -192,10 +192,9 @@ class MempoolClient(BaseClient):
         btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
         if parse_transactions:
             txs = []
-            blockcount = self.blockcount()
             for tx in btxs[:limit]:
                 # try:
-                txs.append(self._parse_transaction(tx, blockcount=blockcount))
+                txs.append(self._parse_transaction(tx))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
