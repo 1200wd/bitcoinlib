@@ -49,7 +49,7 @@ ALLOW_DATABASE_THREADS = None
 TIMEOUT_REQUESTS = 5
 MAX_TRANSACTIONS = 20
 BLOCK_COUNT_CACHE_TIME = 3
-SERVICE_MAX_ERRORS = 4  # Fail service request when more then max errors occur for <SERVICE_MAX_ERRORS> providers
+SERVICE_MAX_ERRORS = 3  # Fail service request when more then max errors occur for <SERVICE_MAX_ERRORS> providers
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
