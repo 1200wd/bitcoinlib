@@ -158,7 +158,7 @@ class MempoolClient(BaseClient):
         return self.compose_request('tx', post_data=rawtx, method='post')
 
     def estimatefee(self, blocks):
-        estimates = self.compose_request('fees', 'recommended')
+        estimates = self.compose_request('v1/fees', 'recommended')
         if blocks < 2:
             return estimates['fastestFee'] * 1000
         elif blocks < 4:
