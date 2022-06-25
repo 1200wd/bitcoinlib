@@ -2036,7 +2036,7 @@ class Signature(object):
         :type private: HDKey, Key, str, hexstring, bytes
         :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
         :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you known what you are doing. Providing wrong value for k can result in leaking your private key!
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
         :type k: int
         
         :return Signature: 
@@ -2322,7 +2322,7 @@ def sign(txid, private, use_rfc6979=True, k=None):
     :type private: HDKey, Key, str, hexstring, bytes
     :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
     :type use_rfc6979: bool
-    :param k: Provide own k. Only use for testing or if you known what you are doing. Providing wrong value for k can result in leaking your private key!
+    :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
     :type k: int
         
     :return Signature: 
