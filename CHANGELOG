@@ -1,3 +1,12 @@
+RELEASE 0.6.5 - Improve speed and fix installation issues
+=========================================================
+* Improve speed of Key object
+* Parse block transactions as dict
+* Improve and speedup unittesting
+* Speedup large wallet deletion
+* Allow use of pycryptodome wallet and make scrypt library optional
+* Fix unidecode error in Network
+
 RELEASE 0.6.4 - Blockchain parsing and bugfixes
 ===============================================
 * Allow to parse blocks with unrecognised transactions
