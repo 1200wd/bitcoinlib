@@ -71,7 +71,7 @@
     "client_class": "CryptoID",
     "provider_coin_id": "ltc",
     "url": "https://chainz.cryptoid.info/",
-    "api_key": "",
+    "api_key": "api-key-needed",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
@@ -82,7 +82,7 @@
     "client_class": "CryptoID",
     "provider_coin_id": "ltc",
     "url": "https://chainz.cryptoid.info/",
-    "api_key": "",
+    "api_key": "api-key-needed",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": {"prefix_address_p2sh": "32"}
@@ -93,7 +93,7 @@
     "client_class": "CryptoID",
     "provider_coin_id": "dash",
     "url": "https://chainz.cryptoid.info/",
-    "api_key": "",
+    "api_key": "api-key-needed",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
@@ -421,7 +421,7 @@
   "blockcypher.dogecoin": {
     "provider": "blockcypher",
     "network": "dogecoin",
-    "client_class": "BlockCypher",
+    "client_class": "",
     "provider_coin_id": "",
     "url": "https://api.blockcypher.com/v1/doge/main/",
     "api_key": "",

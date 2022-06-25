@@ -178,6 +178,8 @@ class Service(object):
                     self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
                 if not hasattr(pc_instance, method):
                     continue
+                if self.providers[sp]['api_key'] == 'api-key-needed':
+                    continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
                 if res is False:  # pragma: no cover
