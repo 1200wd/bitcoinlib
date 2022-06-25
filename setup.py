@@ -41,8 +41,7 @@ install_requires = [
       'requests>=2.25.0',
       'fastecdsa>=2.2.3;platform_system!="Windows"',
       'ecdsa>=0.17;platform_system=="Windows"',
-      'pyaes==1.6.1',
-      'scrypt>=0.8.19',
+      'pycryptodome>=3.14.1',
       'SQLAlchemy>=1.4.28',
       'numpy==1.19.5;python_version<"3.8"',
       'numpy>=1.21.0;python_version>="3.8"'

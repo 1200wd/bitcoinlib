@@ -42,14 +42,15 @@ Package dependencies
 
 Required Python Packages, are automatically installed upon installing bitcoinlib:
 
-* fastecdsa
-* pyaes
-* scrypt (or much slower pyscript)
+* fastecdsa (or ecdsa on Windows)
 * sqlalchemy
 * requests
-* enum34 (for older Python installations)
-* pathlib2 (for Python 2)
-* six
+* numpy
+* pycryptodome
+
+If you want to use BIP38 encrypted private keys, it is strongly advised to install the much faster scrypt library.
+
+``pip install scrypt``
 
 
 Other requirements Linux
@@ -104,8 +105,8 @@ The fastecdsa library is not enabled at this moment in the windows install, the 
 Installation of fastecdsa on Windows is possible but not easy, read https://github.com/AntonKueltz/fastecdsa/issues/11
 for steps you could take to install this library.
 
-If you have problems with installing this library on Windows you could try to use the pyscrypt library instead of
-scrypt. The pyscrypt library is pure Python so it doesn't need any C compilers installed. But this will run slower.
+If you have problems with installing this library on Windows you could try to use the pycryptodome library instead of
+scrypt. The pycryptodome library is pure Python so it doesn't need any C compilers installed. But this will run slower.
 
 
 Update Bitcoinlib
@@ -147,7 +148,7 @@ Troubleshooting
 ---------------
 
 When you experience issues with the scrypt package when installing you can try to solve this by installing
-scrypt seperately:
+scrypt separately:
 
 .. code-block:: bash
 
@@ -157,12 +158,9 @@ scrypt seperately:
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.
 
-You can also use pyscrypt instead of scrypt. Pyscrypt is a pure Python scrypt password-based key derivation library.
-It works but it is slow when using BIP38 password protected keys.
+You can also use pycryptodome or pyscrypt instead of scrypt. Pycryptodome is a pure Python scrypt password-based key
+derivation library. It works but it is slow when using BIP38 password protected keys.
 
-.. code-block:: none
-
-    $ pip install pyscrypt
 
 If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 

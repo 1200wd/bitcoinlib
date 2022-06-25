@@ -206,9 +206,12 @@ class Service(object):
                     # pprint(self.errors)
 
                 if len(self.errors) >= self.max_errors:
-                    _logger.warning("No successful response from serviceproviders, max errors exceeded: %s" %
+                    _logger.warning("Aborting, max errors exceeded: %s" %
                                     list(self.errors.keys()))
-                    return False
+                    if len(self.results):
+                        return list(self.results.values())[0]
+                    else:
+                        return False
 
             if self.resultcount >= self.max_providers:
                 break

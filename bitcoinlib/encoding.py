@@ -22,7 +22,6 @@ import math
 import numbers
 from copy import deepcopy
 import hashlib
-import pyaes
 import unicodedata
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
@@ -30,23 +29,32 @@ _logger = logging.getLogger(__name__)
 
 SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
+
+try:
+    from Crypto.Cipher import AES
+except ImportError as PYAES_ERROR:
+    _logger.warning("MISSING MODULES! Please install pycryptodome")
+    _logger.warning("The bip38_decrypt and bip38_encrypt methods need the pycryptodome library to work!")
+
 try:
     if USING_MODULE_SCRYPT is not False:
         import scrypt
         USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
-    pass
+    from Crypto.Protocol.KDF import scrypt
+
 if 'scrypt' not in sys.modules:
     try:
         import pyscrypt as scrypt
     except ImportError:
-        raise ImportError("Missing modules. Please install scrypt or pyscrypt")
+        _logger.warning("MISSING MODULES! Please install scrypt, pycryptodome or pyscrypt")
+        _logger.warning("The bip38_decrypt and bip38_encrypt methods need a scrypt library to work!")
     USING_MODULE_SCRYPT = False
 
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
         SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module %s" % SCRYPT_ERROR)
+    _logger.warning("Error when trying to import scrypt module. Error message: %s" % SCRYPT_ERROR)
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -339,7 +347,7 @@ def varbyteint_to_int(byteint):
     if not isinstance(byteint, (bytes, list)):
         raise EncodingError("Byteint must be a list or defined as bytes")
     if byteint == b'':
-        return 0
+        return 0, 0
     ni = byteint[0]
     if ni < 253:
         return ni, 1
@@ -365,6 +373,36 @@ def read_varbyteint(s):
     value, size = varbyteint_to_int(s.read(9))
     s.seek(pos + size)
     return value
+
+
+def read_varbyteint_return(s):
+    """
+    Read variable length integer from BytesIO stream. Return original converted bytes (to reconstruct transaction or
+    script).
+
+    :param s: A binary stream
+    :type s: BytesIO
+
+    :return (int, bytes):
+    """
+    pos = s.tell()
+    byteint = s.read(9)
+    if not byteint:
+        return 0, b''
+
+    ni = byteint[0]
+    if ni < 253:
+        s.seek(pos + 1)
+        return ni, byteint[0:1]
+    if ni == 253:  # integer of 2 bytes
+        size = 2
+    elif ni == 254:  # integer of 4 bytes
+        size = 4
+    else:  # integer of 8 bytes
+        size = 8
+    varbytes = byteint[1:1+size]
+    s.seek(pos + size + 1)
+    return int.from_bytes(varbytes[::-1], 'big'), byteint[0:1] + varbytes
 
 
 def int_to_varbyteint(inp):
@@ -866,7 +904,8 @@ def bip38_decrypt(encrypted_privkey, password):
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
     encryptedhalf2 = d[16:32]
-    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    aes = AES.new(derivedhalf2, AES.MODE_ECB)
     decryptedhalf2 = aes.decrypt(encryptedhalf2)
     decryptedhalf1 = aes.decrypt(encryptedhalf1)
     priv = decryptedhalf1 + decryptedhalf2
@@ -901,7 +940,8 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
-    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    aes = AES.new(derivedhalf2, AES.MODE_ECB)
+    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
     encryptedhalf1 = \
         aes.encrypt((int(private_hex[0:32], 16) ^ int.from_bytes(derivedhalf1[0:16], 'big')).to_bytes(16, 'big'))
     encryptedhalf2 = \

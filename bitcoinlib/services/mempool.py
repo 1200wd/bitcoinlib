@@ -158,7 +158,7 @@ class MempoolClient(BaseClient):
         return self.compose_request('tx', post_data=rawtx, method='post')
 
     def estimatefee(self, blocks):
-        estimates = self.compose_request('fees', 'recommended')
+        estimates = self.compose_request('v1/fees', 'recommended')
         if blocks < 2:
             return estimates['fastestFee'] * 1000
         elif blocks < 4:
@@ -192,10 +192,9 @@ class MempoolClient(BaseClient):
         btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
         if parse_transactions:
             txs = []
-            blockcount = self.blockcount()
             for tx in btxs[:limit]:
                 # try:
-                txs.append(self._parse_transaction(tx, blockcount=blockcount))
+                txs.append(self._parse_transaction(tx))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:

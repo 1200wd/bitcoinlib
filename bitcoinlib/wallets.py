@@ -154,15 +154,16 @@ def wallet_delete(wallet, db_uri=None, force=False):
 
     # Delete keys from this wallet and update transactions (remove key_id)
     ks = session.query(DbKey).filter_by(wallet_id=wallet_id)
-    for k in ks:
-        if not force and k.balance:
-            session.close()
-            raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
-                              (k.id, k.address))
-        session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
-        session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
-        session.query(DbKeyMultisigChildren).filter_by(parent_id=k.id).delete()
-        session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
+    if bool([k for k in ks if k.balance]) and not force:
+        session.close()
+        raise WalletError("Wallet still has unspent outputs. Use 'force=True' to delete this wallet")
+    k_ids = [k.id for k in ks]
+    session.query(DbTransactionOutput).filter(DbTransactionOutput.key_id.in_(k_ids)).update(
+        {DbTransactionOutput.key_id: None})
+    session.query(DbTransactionInput).filter(DbTransactionInput.key_id.in_(k_ids)).update(
+        {DbTransactionInput.key_id: None})
+    session.query(DbKeyMultisigChildren).filter(DbKeyMultisigChildren.parent_id.in_(k_ids)).delete()
+    session.query(DbKeyMultisigChildren).filter(DbKeyMultisigChildren.child_id.in_(k_ids)).delete()
     ks.delete()
 
     # Delete incomplete transactions from wallet
@@ -2912,7 +2913,6 @@ class Wallet(object):
         if isinstance(key_id, int):
             qr = qr.filter(DbKey.id == key_id)
         elif isinstance(key_id, list):
-            # for i in key_id:
             qr = qr.filter(DbKey.id.in_(key_id))
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []

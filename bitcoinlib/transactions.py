@@ -721,6 +721,7 @@ class Input(object):
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
             else to_bytes(unlocking_script_unsigned)
         self.script = None
+        self.hash_type = SIGHASH_ALL
         if isinstance(sequence, numbers.Number):
             self.sequence = sequence
         else:
@@ -786,6 +787,8 @@ class Input(object):
             self.script = Script.parse_bytes(self.unlocking_script, strict=strict)
             self.keys = self.script.keys
             self.signatures = self.script.signatures
+            if len(self.signatures):
+                self.hash_type = self.signatures[0].hash_type
             sigs_required = self.script.sigs_required
             self.redeemscript = self.script.redeemscript if self.script.redeemscript else self.redeemscript
             if len(self.script.script_types) == 1 and not self.script_type:
@@ -836,7 +839,6 @@ class Input(object):
             self.compressed = True
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
-        self.hash_type = SIGHASH_ALL
         self.strict = strict
 
         for sig in signatures:
@@ -856,6 +858,7 @@ class Input(object):
                 self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 and \
                 b'\0' not in self.witnesses:
             self.signatures = [Signature.parse_bytes(self.witnesses[0])]
+            self.hash_type = self.signatures[0].hash_type
             self.keys = [Key(self.witnesses[1], network=self.network)]
 
         self.update_scripts(hash_type=self.hash_type)
@@ -884,6 +887,10 @@ class Input(object):
         output_n = raw.read(4)[::-1]
         unlocking_script_size = read_varbyteint(raw)
         unlocking_script = raw.read(unlocking_script_size)
+        # TODO - handle non-standard input script b'\1\0',
+        #  see tx 38cf5779d1c5ca32b79cd5052b54e824102e878f041607d3b962038f5a8cf1ed
+        # if unlocking_script_size == 1 and unlocking_script == b'\0':
+
         inp_type = 'legacy'
         if witness_type == 'segwit' and not unlocking_script_size:
             inp_type = 'segwit'
@@ -897,7 +904,7 @@ class Input(object):
         Method to update Input scripts.
 
         Creates or updates unlocking script, witness script for segwit inputs, multisig redeemscripts and
-        locktime scripts. This method is called when initializing a Input class or when signing an input.
+        locktime scripts. This method is called when initializing an Input class or when signing an input.
 
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
@@ -1141,35 +1148,35 @@ class Output(object):
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
         if isinstance(address, Address):
-            self.address = address.address
-            self.address_obj = address
+            self._address = address.address
+            self._address_obj = address
         elif isinstance(address, HDKey):
-            self.address = address.address()
-            self.address_obj = address.address_obj
+            self._address = address.address()
+            self._address_obj = address.address_obj
             public_key = address.public_byte
             if not script_type:
                 script_type = script_type_default(address.witness_type, address.multisig, True)
             self.public_hash = address.hash160
         else:
-            self.address = address
-            self.address_obj = None
+            self._address = address
+            self._address_obj = None
         self.public_key = to_bytes(public_key)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
         self.script_type = script_type
         self.encoding = encoding
-        if not self.address and self.encoding is None:
+        if not self._address and self.encoding is None:
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
         self.script = Script.parse_bytes(self.lock_script, strict=strict)
 
-        if self.address_obj:
-            self.script_type = self.address_obj.script_type if script_type is None else script_type
-            self.public_hash = self.address_obj.hash_bytes
-            self.network = self.address_obj.network
-            self.encoding = self.address_obj.encoding
+        if self._address_obj:
+            self.script_type = self._address_obj.script_type if script_type is None else script_type
+            self.public_hash = self._address_obj.hash_bytes
+            self.network = self._address_obj.network
+            self.encoding = self._address_obj.encoding
 
         if self.script:
             self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
@@ -1182,20 +1189,20 @@ class Output(object):
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
             self.public_hash = k.hash160
-        elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
-            address_dict = deserialize_address(self.address, self.encoding, self.network.name)
+        elif self._address and (not self.public_hash or not self.script_type or not self.encoding):
+            address_dict = deserialize_address(self._address, self.encoding, self.network.name)
             if address_dict['script_type'] and not script_type:
                 self.script_type = address_dict['script_type']
             if not self.script_type:
-                raise TransactionError("Could not determine script type of address %s" % self.address)
+                raise TransactionError("Could not determine script type of address %s" % self._address)
             self.encoding = address_dict['encoding']
             network_guesses = address_dict['networks']
             if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address %s is from %s network and transaction from %s network" %
-                                       (self.address, address_dict['network'], self.network.name))
+                                       (self._address, address_dict['network'], self.network.name))
             elif self.network.name not in network_guesses:
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
-                                       "in %s" % (self.address, self.network.name, network_guesses))
+                                       "in %s" % (self._address, self.network.name, network_guesses))
             self.public_hash = address_dict['public_key_hash_bytes']
         if not self.encoding:
             self.encoding = 'base58'
@@ -1206,11 +1213,11 @@ class Output(object):
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
-        if self.public_hash and not self.address:
-            self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
-                                       encoding=self.encoding, network=self.network)
-            self.address = self.address_obj.address
-            self.versionbyte = self.address_obj.prefix
+        # if self.public_hash and not self._address:
+        #     self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
+        #                                encoding=self.encoding, network=self.network)
+        #     self.address = self.address_obj.address
+        #     self.versionbyte = self.address_obj.prefix
         if not self.script and strict and (self.public_hash or self.public_key):
             self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
             self.lock_script = self.script.serialize()
@@ -1222,6 +1229,30 @@ class Output(object):
         # if self.script_type != 'nulldata' and value < self.network.dust_amount:
         #     raise TransactionError("Output to %s must be more then dust amount %d" %
         #                            (self.address, self.network.dust_amount))
+
+    @property
+    def address_obj(self):
+        """
+        Get address object property. Create standard address object if not defined already.
+
+        :return Address:
+        """
+        if not self._address_obj:
+            if self.public_hash:
+                self._address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
+                                            encoding=self.encoding, network=self.network)
+                self._address = self._address_obj.address
+                self.versionbyte = self._address_obj.prefix
+        return self._address_obj
+
+    @property
+    def address(self):
+        if not self._address:
+            address_obj = self.address_obj
+            if not address_obj:
+                return ''
+            self._address = address_obj.address
+        return self._address
 
     @classmethod
     def parse(cls, raw, output_n=0, strict=True, network=DEFAULT_NETWORK):
@@ -2108,7 +2139,7 @@ class Transaction(object):
         self.verified = False
         for inp in self.inputs:
             try:
-                transaction_hash = self.signature_hash(inp.index_n, witness_type=inp.witness_type)
+                transaction_hash = self.signature_hash(inp.index_n, inp.hash_type, inp.witness_type)
             except TransactionError as e:
                 _logger.info("Could not create transaction hash. Error: %s" % e)
                 return False
