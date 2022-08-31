@@ -81,26 +81,33 @@ def EncodeDecimal(o):
 class AuthServiceProxy(object):
     __id_count = 0
 
-    def __init__(self, service_url, service_name=None, timeout=HTTP_TIMEOUT, connection=None):
+    def __init__(self, service_url, api_key=None, service_name=None, timeout=HTTP_TIMEOUT, connection=None):
         self.__service_url = service_url
         self.__service_name = service_name
         self.__url = urlparse.urlparse(service_url)
         if self.__url.port is None:
-            port = 80
+            if self.__url.scheme == 'https':
+                port = 443
+            else:
+                port = 80
         else:
             port = self.__url.port
-        (user, passwd) = (self.__url.username, self.__url.password)
-        try:
-            user = user.encode('utf8')
-        except AttributeError:
-            pass
-        try:
-            passwd = passwd.encode('utf8')
-        except AttributeError:
-            pass
-        authpair = user + b':' + passwd
-        self.__auth_header = b'Basic ' + base64.b64encode(authpair)
 
+        self.__auth_header = None
+        if not api_key:
+            (user, passwd) = (self.__url.username, self.__url.password)
+            try:
+                user = user.encode('utf8')
+            except AttributeError:
+                pass
+            try:
+                passwd = passwd.encode('utf8')
+            except AttributeError:
+                pass
+            authpair = user + b':' + passwd
+            self.__auth_header = b'Basic ' + base64.b64encode(authpair)
+
+        self.__api_key = api_key
         self.__timeout = timeout
 
         if connection:
@@ -119,7 +126,7 @@ class AuthServiceProxy(object):
             raise AttributeError
         if self.__service_name is not None:
             name = "%s.%s" % (self.__service_name, name)
-        return AuthServiceProxy(self.__service_url, name, self.__timeout, self.__conn)
+        return AuthServiceProxy(self.__service_url, self.__api_key, name, self.__timeout, self.__conn)
 
     def __call__(self, *args):
         AuthServiceProxy.__id_count += 1
@@ -130,11 +137,19 @@ class AuthServiceProxy(object):
                                'method': self.__service_name,
                                'params': args,
                                'id': AuthServiceProxy.__id_count}, default=EncodeDecimal)
-        self.__conn.request('POST', self.__url.path, postdata,
-                            {'Host': self.__url.hostname,
-                             'User-Agent': USER_AGENT,
-                             'Authorization': self.__auth_header,
-                             'Content-type': 'application/json'})
+        if self.__api_key:
+            headers = {
+                'x-api-key': self.__api_key,
+                'Content-type': 'application/json'
+            }
+        else:
+            headers = {
+                'Host': self.__url.hostname,
+                'User-Agent': USER_AGENT,
+                'Authorization': self.__auth_header,
+                'Content-type': 'application/json'
+            }
+        self.__conn.request('POST', self.__url.path, postdata, headers)
         self.__conn.sock.settimeout(self.__timeout)
 
         response = self._get_response()
@@ -159,11 +174,21 @@ class AuthServiceProxy(object):
 
         postdata = json.dumps(batch_data, default=EncodeDecimal)
         log.debug("--> " + postdata)
-        self.__conn.request('POST', self.__url.path, postdata,
-                            {'Host': self.__url.hostname,
-                             'User-Agent': USER_AGENT,
-                             'Authorization': self.__auth_header,
-                             'Content-type': 'application/json'})
+
+        if self.__api_key:
+            headers = {
+                'x-api-key': self.__api_key,
+                'Content-type': 'application/json'
+            }
+        else:
+            headers = {
+                'Host': self.__url.hostname,
+                'User-Agent': USER_AGENT,
+                'Authorization': self.__auth_header,
+                'Content-type': 'application/json'
+            }
+
+        self.__conn.request('POST', self.__url.path, postdata, headers)
         results = []
         responses = self._get_response()
         for response in responses:
