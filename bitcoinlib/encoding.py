@@ -680,6 +680,8 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
     :type witver: int
     :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
     :type separator: str
+    :param checksum_xor: checksum 1 for bech32 v0 addresses and 0x2bc830a3 for bech32m v1+ addresses
+    :type checksum_xor: int
 
     :return str: Bech32 encoded address
     """
@@ -687,8 +689,8 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
     pubkeyhash = list(to_bytes(pubkeyhash))
 
     if len(pubkeyhash) not in [20, 32]:
-        if int(pubkeyhash[0]) != 0:
-            witver = int(pubkeyhash[0]) - 0x50
+        if pubkeyhash[0] != 0:
+            witver = pubkeyhash[0] - 0x50
         pubkeyhash = pubkeyhash[2:]
 
     data = [witver] + convertbits(pubkeyhash, 8, 5)
