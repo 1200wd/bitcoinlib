@@ -194,11 +194,11 @@ class LitecoinBlockexplorerClient(BaseClient):
     #     return 1 if t.outputs[output_n].spent else 0
 
     def getinfo(self):
-        info = self.compose_request('status', '')['info']
+        info = self.compose_request('status', '')
         return {
-            'blockcount': info['blocks'],
-            'chain': info['network'],
-            'difficulty': int(float(info['difficulty'])),
+            'blockcount': info['backend']['blocks'],
+            'chain': info['backend']['chain'],
+            'difficulty': int(float(info['backend']['difficulty'])),
             'hashrate': 0,
-            'mempool_size': 0,
+            'mempool_size': info['blockbook']['mempoolSize'],
         }
