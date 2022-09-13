@@ -115,7 +115,7 @@ class DogecoindClient(BaseClient):
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return DogecoindClient(network, url)
 
-    def __init__(self, network='dogecoin', base_url='', denominator=100000000, *args):
+    def __init__(self, network='dogecoin', base_url='', denominator=100000000, api_key='', *args):
         """
         Open connection to dogecoin node
 
@@ -132,16 +132,21 @@ class DogecoindClient(BaseClient):
             bdc = self.from_config('', network)
             base_url = bdc.base_url
             network = bdc.network
-        if len(base_url.split(':')) != 4:
-            raise ConfigError("Dogecoind connection URL must be of format 'http(s)://user:password@host:port,"
-                              "current format is %s. Please set url in providers.json file or check dogecoin config "
-                              "file" % base_url)
-        if 'password' in base_url:
-            raise ConfigError("Invalid password in dogecoind provider settings. "
-                              "Please replace default password and set url in providers.json or dogecoin.conf file")
+
+        if not api_key:
+            if len(base_url.split(':')) != 4:
+                raise ConfigError("Dogecoind connection URL must be of format 'http(s)://user:password@host:port,"
+                                  "current format is %s. Please set url in providers.json file or check dogecoin config "
+                                  "file" % base_url)
+            if 'password' in base_url:
+                raise ConfigError("Invalid password in dogecoind provider settings. "
+                                  "Please replace default password and set url in providers.json or dogecoin.conf file")
+
         _logger.info("Connect to dogecoind")
-        self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
+        self.proxy = AuthServiceProxy(base_url, api_key)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key, *args)
+
+
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
