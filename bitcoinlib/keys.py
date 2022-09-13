@@ -297,7 +297,9 @@ def deserialize_address(address, encoding=None, network=None):
                 }
     if encoding == 'bech32' or encoding is None:
         try:
-            public_key_hash = addr_bech32_to_pubkeyhash(address, include_witver=True)
+            pkh_incl = addr_bech32_to_pubkeyhash(address, include_witver=True)
+            public_key_hash = pkh_incl[2:]
+            witver = pkh_incl[0] - 0x50 if pkh_incl[0] else 0
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
             witness_type = 'segwit'
@@ -309,13 +311,13 @@ def deserialize_address(address, encoding=None, network=None):
                 'address': address,
                 'encoding': 'bech32',
                 'public_key_hash': '' if not public_key_hash else public_key_hash.hex(),
-                'public_key_hash_bytes': public_key_hash[1:],
+                'public_key_hash_bytes': public_key_hash,
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
                 'script_type': script_type,
                 'witness_type': witness_type,
                 'networks': networks,
-                'witver': public_key_hash[0] - 0x50
+                'witver': witver,
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
