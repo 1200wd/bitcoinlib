@@ -400,7 +400,7 @@
     "provider": "dogecoind",
     "network": "dogecoin",
     "client_class": "DogecoindClient",
-    "provider_coin_id": "",
+    "provider_coin_id": "DOGE",
     "url": "",
     "api_key": "",
     "priority": 20,
