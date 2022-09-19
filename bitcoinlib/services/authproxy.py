@@ -149,9 +149,7 @@ class AuthServiceProxy(object):
                 'Authorization': self.__auth_header,
                 'Content-type': 'application/json'
             }
-
-        url_path = self.__url.path.split(':')[0]
-        self.__conn.request('POST', url_path, postdata, headers)
+        self.__conn.request('POST', self.__url.path, postdata, headers)
         self.__conn.sock.settimeout(self.__timeout)
 
         response = self._get_response()
