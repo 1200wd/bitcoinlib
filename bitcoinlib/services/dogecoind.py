@@ -105,8 +105,7 @@ class DogecoindClient(BaseClient):
         if network == 'testnet':
             port = 44555
         else:
-            # port = 22555
-            port = 443
+            port = 22555
         port = _read_from_config(config, 'rpc', 'rpcport', port)
         server = '127.0.0.1'
         server = _read_from_config(config, 'rpc', 'rpcconnect', server)
