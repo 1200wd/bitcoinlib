@@ -112,7 +112,7 @@ class MempoolClient(BaseClient):
             else:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'],
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
-                            address=ti['prevout']['scriptpubkey_address'],
+                            address=ti['prevout'].get('scriptpubkey_address', ''),
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'], sequence=ti['sequence'],
                             witnesses=None if 'witness' not in ti else [bytes.fromhex(w) for w in ti['witness']],
                             strict=self.strict)
