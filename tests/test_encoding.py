@@ -318,7 +318,7 @@ BECH32M_INVALID = [
     ('bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kemeawh', 'Invalid checksum (Bech32m instead of Bech32)'),
     ('tb1q0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq24jc47', 'Invalid checksum (Bech32m instead of Bech32)'),
     ('bc1p38j9r5y49hruaue7wxjce0updqjuyyx0kh56v8s25huc6995vvpql3jow4', "Character '111' not found in codebase"),
-    ('BC130XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ7ZWS8R', 'Invalid decoded data length'),
+    ('BC130XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ7ZWS8R', 'Invalid witness version'),
     ('bc1pw5dgrnzv', 'Invalid decoded data length, must be between 2 and 40'),
     ('bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v8n0nx0muaewav253zgeav',
      'Invalid decoded data length, must be between 2 and 40'),
@@ -326,6 +326,14 @@ BECH32M_INVALID = [
     ('bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v07qwwzcrf', "cannot convert 'NoneType' object to bytes"),
     ('tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vpggkg4j', "cannot convert 'NoneType' object to bytes"),
     ('bc1gmk9yu', 'Invalid checksum (Bech32 instead of Bech32m)'),
+]
+
+BECH32M_INVALID_PUBKEYHASH = [
+    ('612079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 'Witness version must be between 0 and '
+                                                                             '16'),
+    ('511979be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 'Incorrect pubkeyhash length'),
+    ('0013751e76e8199196d454941c45d1b3a323f1433bd6', 'Incorrect pubkeyhash length'),
+    ('6614751e76e8199196d454941c45d1b3a323f1433bd6', 'Witness version must be between 0 and 16')
 ]
 
 
@@ -403,6 +411,13 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
         for addr, err in BECH32M_INVALID:
             try:
                 addr_bech32_to_pubkeyhash(addr)
+            except (EncodingError, TypeError) as e:
+                assert (str(e) == err)
+
+    def test_bech32_invalid_pubkeyhash(self):
+        for pubkeyhash, err in BECH32M_INVALID_PUBKEYHASH:
+            try:
+                pubkeyhash_to_addr_bech32(pubkeyhash)
             except (EncodingError, TypeError) as e:
                 assert (str(e) == err)
 

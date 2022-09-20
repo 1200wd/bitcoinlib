@@ -580,7 +580,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
         raise EncodingError("Invalid decoded data length, must be between 2 and 40")
     if data[0] > 16:
-        raise EncodingError("Invalid decoded data length")
+        raise EncodingError("Invalid witness version")
     if data[0] == 0 and len(decoded) not in [20, 32]:
         raise EncodingError("Invalid decoded data length, must be 20 or 32 bytes")
     prefix = b''
@@ -688,10 +688,16 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
 
     pubkeyhash = list(to_bytes(pubkeyhash))
 
-    if len(pubkeyhash) not in [20, 32]:
+    # To simplify and speedup: assume pubkeyhash of size 20, 32 and 40 does not contain witness version and size byte
+    if len(pubkeyhash) not in [20, 32, 40]:
         if pubkeyhash[0] != 0:
             witver = pubkeyhash[0] - 0x50
+        if pubkeyhash[1] != len(pubkeyhash[2:]):
+            raise EncodingError("Incorrect pubkeyhash length")
         pubkeyhash = pubkeyhash[2:]
+
+    if witver > 16:
+        raise EncodingError("Witness version must be between 0 and 16")
 
     data = [witver] + convertbits(pubkeyhash, 8, 5)
 
