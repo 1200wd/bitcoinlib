@@ -46,9 +46,10 @@ class CryptoID(BaseClient):
         else:
             url_path = 'explorer/tx.raw.dws'
             variables.update({'coin': self.provider_coin_id})
-        if not self.api_key:
-            raise ClientError("Request a CryptoID API key before using this provider")
-        variables.update({'key': self.api_key})
+        # if not self.api_key:
+        #     raise ClientError("Request a CryptoID API key before using this provider")
+        if self.api_key:
+            variables.update({'key': self.api_key})
         return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):

@@ -177,8 +177,10 @@ class Service(object):
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
                     self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
                 if not hasattr(pc_instance, method):
+                    _logger.debug("Method %s not found for provider %s" % (pc_instance, sp))
                     continue
                 if self.providers[sp]['api_key'] == 'api-key-needed':
+                    _logger.debug("API key needed for provider %s" % sp)
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)

@@ -50,14 +50,14 @@ class LitecoinBlockexplorerClient(BaseClient):
         else:
             status = 'unconfirmed'
         fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
-        value_in = 0 if 'valueIn' not in tx else tx['valueIn']
+        value_in = 0 if 'valueIn' not in tx else int(round(float(tx['valueIn']) * self.units, 0))
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
         txdate = None
         if 'blocktime' in tx:
             txdate = datetime.utcfromtimestamp(tx['blocktime'])
-        t = Transaction(locktime=tx.get('locktime'), version=tx['version'], network=self.network, fee=fees,
+        t = Transaction(locktime=tx.get('locktime', 0), version=tx['version'], network=self.network, fee=fees,
                         txid=tx['txid'], date=txdate,
                         confirmations=tx['confirmations'], block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
@@ -65,23 +65,18 @@ class LitecoinBlockexplorerClient(BaseClient):
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_txid=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=ti['sequence'], value=0)
+                            script_type='coinbase', sequence=ti.get('sequence', 0), value=0)
             else:
-                value = int(round(float(ti['value']) * self.units, 0))
+                value = int(round(float(ti['value'] or 0) * self.units, 0))
                 us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=us,
-                            index_n=ti['n'], value=value, sequence=ti['sequence'],
-                            double_spend=False if ti.get('doubleSpentTxID') is None else ti['doubleSpentTxID'],
+                            index_n=ti['n'], value=value, sequence=ti.get('sequence', 0),
+                            double_spend=ti.get('doubleSpentTxID', False),
                             strict=self.strict)
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
-            # t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-            #              spent=True if to['spentTxId'] else False, output_n=to['n'],
-            #              spending_txid=None if not to['spentTxId'] else to['spentTxId'],
-            #              spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
-            # FIXME: Found many wrong spending results
-            t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-                         spent=None, output_n=to['n'], strict=self.strict)
+            t.add_output(value=value, lock_script=to['scriptPubKey']['hex'], address=to['scriptPubKey']['addresses'][0],
+                         spent=to['spent'], output_n=to['n'], strict=self.strict)
         return t
 
     def getbalance(self, addresslist):
@@ -114,8 +109,8 @@ class LitecoinBlockexplorerClient(BaseClient):
             })
         return txs[::-1][:limit]
 
-    def gettransaction(self, tx_id):
-        tx = self.compose_request('tx', tx_id)
+    def gettransaction(self, txid):
+        tx = self.compose_request('tx', txid)
         return self._convert_to_transaction(tx)
 
     # FIXME: Not available anymore
@@ -132,8 +127,8 @@ class LitecoinBlockexplorerClient(BaseClient):
     #         txs.append(self._convert_to_transaction(tx))
     #     return txs
 
-    def getrawtransaction(self, tx_id):
-        res = self.compose_request('tx', tx_id)
+    def getrawtransaction(self, txid):
+        res = self.compose_request('tx', txid)
         return res['hex']
 
     def sendrawtransaction(self, rawtx):
@@ -161,28 +156,28 @@ class LitecoinBlockexplorerClient(BaseClient):
         bd = self.compose_request('block', str(blockid))
         if parse_transactions:
             txs = []
-            for tx in bd['tx'][(page-1)*limit:page*limit]:
+            for tx in bd['txs'][(page-1)*limit:page*limit]:
                 # try:
-                txs.append(self.gettransaction(tx['id']))
+                txs.append(self.gettransaction(tx['txid']))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
         else:
-            txs = [tx['id'] for tx in bd['tx']]
+            txs = [tx['txid'] for tx in bd['txs']]
 
         block = {
             'bits': bd['bits'],
             'depth': bd['confirmations'],
             'block_hash': bd['hash'],
             'height': bd['height'],
-            'merkle_root': bd['merkleroot'],
+            'merkle_root': bd['merkleRoot'],
             'nonce': bd['nonce'],
-            'prev_block': bd['previousblockhash'],
+            'prev_block': bd['previousBlockHash'],
             'time': bd['time'],
-            'tx_count': len(bd['tx']),
+            'tx_count': len(bd['txs']),
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': None if not limit else int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'pages': None if not limit else int(len(bd['txs']) // limit) + (len(bd['txs']) % limit > 0),
             'limit': limit
         }
         return block
