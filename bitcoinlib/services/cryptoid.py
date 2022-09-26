@@ -116,7 +116,7 @@ class CryptoID(BaseClient):
         t.locktime = tx['locktime']
         t.version = tx['version'].to_bytes(4, 'big')
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
-        t.input_total = t.output_total
+        t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.fee = 0
         if t.input_total:
             t.fee = t.input_total - t.output_total
