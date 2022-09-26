@@ -513,7 +513,7 @@ class Service(object):
 
         Some providers require 1 or 2 extra request per transaction, so to avoid timeouts or rate limiting errors
         you can specify a page and limit for the transaction. For instance with page=2, limit=4 only transaction
-        5 to 8 are returned in the Blocks's 'transaction' attribute.
+        5 to 8 are returned to the Blocks's 'transaction' attribute.
 
         If you only use a local bcoin or bitcoind provider, make sure you set the limit to maximum (i.e. 9999)
         because all transactions are already downloaded when fetching the block.
@@ -530,13 +530,14 @@ class Service(object):
         :type parse_transactions: bool
         :param page: Page number of transaction paging. Default is start from the beginning: 1
         :type page: int
-        :param limit: Maximum amount of transaction to return. Default is 10 is parse transaction is enabled, otherwise returns all txid's (9999)
+        :param limit: Maximum amount of transaction to return. Default is 25 if parse transaction is enabled,
+        otherwise returns all txid's (9999)
         :type limit: int
 
         :return Block:
         """
         if limit is None:
-            limit = 10 if parse_transactions else 99999
+            limit = 25 if parse_transactions else 99999
 
         block = self.cache.getblock(blockid)
         is_last_page = False

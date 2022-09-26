@@ -185,18 +185,12 @@ class MempoolClient(BaseClient):
             blockid = self.compose_request('block-height', str(blockid))
         if (page == 1 and limit == 10) or limit > 25:
             limit = 25
-        elif page > 1:
-            if limit % 25 != 0:
-                return False
         bd = self.compose_request('block', blockid)
         btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
         if parse_transactions:
             txs = []
             for tx in btxs[:limit]:
-                # try:
                 txs.append(self._parse_transaction(tx))
-                # except Exception as e:
-                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
             txs = [tx['txid'] for tx in btxs]
 
