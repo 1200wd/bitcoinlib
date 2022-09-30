@@ -57,13 +57,13 @@ class BlocksmurferClient(BaseClient):
     # TODO: fix blocksmurfer api
     # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
     #     res = self.compose_request('utxos', address, variables={'after_txid': after_txid})
-    #     block_count = self.blockcount()
+    #     self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
     #     utxos = []
     #     for u in res:
     #         block_height = None if not u['block_height'] else u['block_height']
     #         confirmations = u['confirmations']
     #         if block_height and not confirmations:
-    #             confirmations = block_count - block_height
+    #             confirmations = self.latest_block - block_height
     #         utxos.append({
     #             'address': address,
     #             'txid': u['txid'],
@@ -79,13 +79,12 @@ class BlocksmurferClient(BaseClient):
     #         })
     #     return utxos[:limit]
 
-    def _parse_transaction(self, tx, block_count=None):
+    def _parse_transaction(self, tx, latest_block=None):
         block_height = None if not tx['block_height'] else tx['block_height']
         confirmations = tx['confirmations']
         if block_height and not confirmations and tx['status'] == 'confirmed':
-            if not block_count:
-                block_count = self.blockcount()
-            confirmations = block_count - block_height
+            self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
+            confirmations = self.latest_block - block_height
         tx_date = None if not tx.get('date') else datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
         # FIXME: Blocksmurfer returns 'date' or 'time', should be consistent
         if not tx_date and 'time' in tx:
@@ -166,13 +165,13 @@ class BlocksmurferClient(BaseClient):
 
         txs = []
         if parse_transactions and bd['transactions'] and isinstance(bd['transactions'][0], dict):
-            block_count = self.blockcount()
+            self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
             for tx in bd['transactions']:
                 tx['confirmations'] = bd['depth']
                 tx['time'] = bd['time']
                 tx['block_height'] = bd['height']
                 tx['block_hash'] = bd['block_hash']
-                t = self._parse_transaction(tx, block_count)
+                t = self._parse_transaction(tx, self.latest_block)
                 if t.txid != tx['txid']:
                     raise ClientError("Could not parse tx %s. Different txid's" % (tx['txid']))
                 txs.append(t)

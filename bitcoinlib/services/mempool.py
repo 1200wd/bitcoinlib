@@ -60,7 +60,7 @@ class MempoolClient(BaseClient):
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        blockcount = self.blockcount()
+        self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
         res = self.compose_request('address', address, 'utxo')
         utxos = []
         # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
@@ -70,7 +70,7 @@ class MempoolClient(BaseClient):
             block_height = None
             if 'block_height' in a['status']:
                 block_height = a['status']['block_height']
-                confirmations = blockcount - block_height
+                confirmations = self.latest_block - block_height
             utxos.append({
                 'address': address,
                 'txid': a['txid'],
@@ -95,10 +95,8 @@ class MempoolClient(BaseClient):
         status = 'unconfirmed'
         if tx['status']['confirmed']:
             if block_height:
-                blockcount = self.latest_block
-                if not self.latest_block:
-                    blockcount = self.blockcount()
-                confirmations = blockcount - block_height + 1
+                self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
+                confirmations = self.latest_block - block_height + 1
             tx_date = datetime.utcfromtimestamp(tx['status']['block_time'])
             status = 'confirmed'
 
