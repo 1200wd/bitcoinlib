@@ -157,8 +157,6 @@ class BitcoindClient(BaseClient):
 
     # Missing input_n and date
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        assert(self.network == 'regtest')
-
         utxos = []
         res = self.proxy.getaddressinfo(address)
         if not (res['ismine'] or res['iswatchonly']):
@@ -222,8 +220,6 @@ class BitcoindClient(BaseClient):
         return self._parse_transaction(tx_raw)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        assert(self.network == 'regtest')
-
         txs = []
         res = self.proxy.getaddressinfo(address)
         if not (res['ismine'] or res['iswatchonly']):
