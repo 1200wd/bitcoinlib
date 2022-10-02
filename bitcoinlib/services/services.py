@@ -478,7 +478,7 @@ class Service(object):
 
     def blockcount(self):
         """
-        Get latest block number: The block number of last block in longest chain on the Blockchain.
+        Get the latest block number: The block number of last block in longest chain on the Blockchain.
 
         Block count is cashed for BLOCK_COUNT_CACHE_TIME seconds to avoid to many calls to service providers.
 
