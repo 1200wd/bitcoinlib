@@ -424,7 +424,7 @@ class DbTransactionOutput(Base):
     spending_txid = Column(LargeBinary(32), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
-    __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'))
+    __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'),)
 
 
 def db_update_version_id(db, version):
