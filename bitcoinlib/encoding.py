@@ -700,6 +700,8 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
         raise EncodingError("Witness version must be between 0 and 16")
 
     data = [witver] + convertbits(pubkeyhash, 8, 5)
+    if witver > 0:
+        checksum_xor = BECH32M_CONST
 
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in prefix] + [0] + [ord(x) & 31 for x in prefix]
@@ -781,7 +783,7 @@ def varstr(string):
 
 def to_bytes(string, unhexlify=True):
     """
-    Convert string, hexadecimal string  to bytes
+    Convert string, hexadecimal string to bytes
 
     :param string: String to convert
     :type string: str, bytes

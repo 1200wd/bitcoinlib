@@ -940,6 +940,24 @@ class TestKeysSignatures(unittest.TestCase):
                                       b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
                                       b'\xed\xe04\x01')
 
+    class TestKeysTaproot(unittest.TestCase):
+
+        def test_bech32_invalid_pubkeyhash(self):
+            addresses = ['bc1qcuk5gxz4v962tne5mld4ztjakktmlupqd7jxn5k57774fuyzzplszs4ppd',
+                         'bc1p8denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsc6eqxe',
+                         'tb1p0fqgfy3awa5kn3kkfgceqv795kljfyrhtw0ps38xv06uwxjnraaqlnee59']
+
+            for address in addresses:
+                addr_dict = deserialize_address(address)
+                address_encode = pubkeyhash_to_addr_bech32(addr_dict['public_key_hash_bytes'], addr_dict['prefix'],
+                                                           addr_dict['witver'])
+                self.assertEqual(address, address_encode)
+
+            address_fantasy = deserialize_address('lc108denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsggm3lr')
+            self.assertEqual(address_fantasy['witver'], 15)
+            self.assertEqual(address_fantasy['public_key_hash'],
+                             '3b733c177580325bff9d80d86b59a04588d1da9859879a4ed6a81cd665337c1b')
+
 
 if __name__ == '__main__':
     unittest.main()

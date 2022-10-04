@@ -36,6 +36,7 @@ SCRIPT_TYPES = {
     'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
     'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
     'p2wsh': ('locking', [op.op_0, 'data'], [32]),
+    'p2tr': ('locking', [op.op_1, 'data'], [32]),
     'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2pk': ('locking', ['key', op.op_checksig], []),
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
