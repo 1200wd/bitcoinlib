@@ -699,7 +699,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
     if witver > 16:
         raise EncodingError("Witness version must be between 0 and 16")
 
-    if checksum_xor == BECH32M_CONST:
+    if checksum_xor == BECH32M_CONST and not witver:
         witver = 1
     elif witver > 0:
         checksum_xor = BECH32M_CONST
