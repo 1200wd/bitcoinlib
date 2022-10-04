@@ -699,9 +699,12 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
     if witver > 16:
         raise EncodingError("Witness version must be between 0 and 16")
 
-    data = [witver] + convertbits(pubkeyhash, 8, 5)
-    if witver > 0:
+    if checksum_xor == BECH32M_CONST:
+        witver = 1
+    elif witver > 0:
         checksum_xor = BECH32M_CONST
+
+    data = [witver] + convertbits(pubkeyhash, 8, 5)
 
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in prefix] + [0] + [ord(x) & 31 for x in prefix]

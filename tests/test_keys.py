@@ -940,24 +940,37 @@ class TestKeysSignatures(unittest.TestCase):
                                       b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
                                       b'\xed\xe04\x01')
 
-    class TestKeysTaproot(unittest.TestCase):
 
-        def test_bech32_invalid_pubkeyhash(self):
-            addresses = ['bc1qcuk5gxz4v962tne5mld4ztjakktmlupqd7jxn5k57774fuyzzplszs4ppd',
-                         'bc1p8denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsc6eqxe',
-                         'tb1p0fqgfy3awa5kn3kkfgceqv795kljfyrhtw0ps38xv06uwxjnraaqlnee59']
+class TestKeysTaproot(unittest.TestCase):
 
-            for address in addresses:
-                addr_dict = deserialize_address(address)
-                address_encode = pubkeyhash_to_addr_bech32(addr_dict['public_key_hash_bytes'], addr_dict['prefix'],
-                                                           addr_dict['witver'])
-                self.assertEqual(address, address_encode)
-                self.assertEqual(addr_dict['script_type'], 'p2tr')
+    def test_keys_taproot_addresses(self):
+        # Test taproot addresses
+        addresses = ['bc1p8denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsc6eqxe',
+                     'tb1p0fqgfy3awa5kn3kkfgceqv795kljfyrhtw0ps38xv06uwxjnraaqlnee59']
 
-            address_fantasy = deserialize_address('lc108denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsggm3lr')
-            self.assertEqual(address_fantasy['witver'], 15)
-            self.assertEqual(address_fantasy['public_key_hash'],
-                             '3b733c177580325bff9d80d86b59a04588d1da9859879a4ed6a81cd665337c1b')
+        for address in addresses:
+            addr_dict = deserialize_address(address)
+            address_encode = pubkeyhash_to_addr_bech32(addr_dict['public_key_hash_bytes'], addr_dict['prefix'],
+                                                       addr_dict['witver'])
+            self.assertEqual(address, address_encode)
+            self.assertEqual(addr_dict['script_type'], 'p2tr')
+
+        # Test address with other witver value
+        address_fantasy = deserialize_address('lc108denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsggm3lr')
+        self.assertEqual(address_fantasy['witver'], 15)
+        self.assertEqual(address_fantasy['public_key_hash'],
+                         '3b733c177580325bff9d80d86b59a04588d1da9859879a4ed6a81cd665337c1b')
+
+        # Test pubkeyhash_to_addr_bech32 with only witver or checksum_xor
+        address = 'bc1p05k5gxz4v962tne5z8d4ztjakktmzypqd7jxn5k57774fuyzzplshuxrmd'
+        pubkeyhash = '7d2d4418556174a5cf3411db512e5db597b110206fa469d2d4f7bd54f082107f'
+        p2tr_address = pubkeyhash_to_addr_bech32(pubkeyhash, 'bc', checksum_xor=BECH32M_CONST)
+        p2tr_address2 = pubkeyhash_to_addr_bech32(pubkeyhash, 'bc', witver=1)
+        self.assertEqual(p2tr_address, address)
+        self.assertEqual(p2tr_address2, address)
+        addr_dict = deserialize_address(p2tr_address2)
+        self.assertEqual(addr_dict['public_key_hash'], pubkeyhash)
+        self.assertEqual(addr_dict['script_type'], 'p2tr')
 
 
 if __name__ == '__main__':
