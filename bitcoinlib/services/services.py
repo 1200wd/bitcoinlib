@@ -258,13 +258,13 @@ class Service(object):
         """
         Get list of unspent outputs (UTXO's) for specified address.
 
-        Sorted from old to new, so highest number of confirmations first.
+        Sorted from old to new, so the highest number of confirmations first.
 
         :param address: Address string
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
         :type after_txid: str
-        :param limit: Maximum number of utxo's to return
+        :param limit: Maximum number of utxo's to return. Sometimes ignored by service providers if more results are returned by default.
         :type limit: int
 
         :return dict: UTXO's per address
@@ -277,23 +277,22 @@ class Service(object):
         utxos_cache = []
         if self.min_providers <= 1:
             utxos_cache = self.cache.getutxos(address, bytes.fromhex(after_txid)) or []
-        db_addr = self.cache.getaddress(address)
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
 
-            if db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount():
-                return utxos_cache
-            else:
-                utxos_cache = []
-                # after_txid = utxos_cache[-1:][0]['txid']
-        # if db_addr and db_addr.last_txid:
-        #     after_txid = db_addr.last_txid
+            # Last updated block does not always include spent info...
+            # if db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount():
+            #     return utxos_cache
+            after_txid = utxos_cache[-1:][0]['txid']
 
         utxos = self._provider_execute('getutxos', address, after_txid, limit)
         if utxos is False:
             raise ServiceError("Error when retrieving UTXO's")
         else:
-            # TODO: Update cache_transactions_node
+            # Update cache_transactions_node
+            for utxo in utxos:
+                self.cache.store_utxo(utxo['txid'], utxo['output_n'], commit=False)
+            self.cache.commit()
             if utxos and len(utxos) >= limit:
                 self.complete = False
             elif not after_txid:
@@ -910,7 +909,7 @@ class Cache(object):
                     'date': db_utxo.date
                 })
             elif db_utxo.spent is None:
-                return []
+                return utxos
             if db_utxo.txid == after_txid:
                 utxos = []
         return utxos
@@ -921,10 +920,10 @@ class Cache(object):
 
         Stored in cache in three groups: low, medium and high fees.
 
-        :param blocks: Expection confirmation time in blocks.
+        :param blocks: Expected confirmation time in blocks.
         :type blocks: int
 
-        :return int: Fee in smallest network denominator (satoshi)
+        :return int: Fee in the smallest network denominator (satoshi)
         """
         if not self.cache_enabled():
             return False
@@ -1009,6 +1008,7 @@ class Cache(object):
         :param order_n: Order in block
         :type order_n: int
         :param commit: Commit transaction to database. Default is True. Can be disabled if a larger number of transactions are added to cache, so you can commit outside this method.
+        :type commit: bool
 
         :return:
         """
@@ -1045,7 +1045,7 @@ class Cache(object):
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
-                _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
+                _logger.info("Caching failure tx: Output value, address or output_n missing")
                 return False
             new_node = DbCacheTransactionNode(
                 txid=txid, address=o.address, index_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
@@ -1059,6 +1059,32 @@ class Cache(object):
                 _logger.info("Added transaction %s to cache" % t.txid)
             except Exception as e:    # pragma: no cover
                 _logger.warning("Caching failure tx: %s" % e)
+
+    def store_utxo(self, txid, index_n, commit=True):
+        """
+        Store utxo in cache. Updates only known transaction outputs for transactions which are fully cached
+
+        :param txid: Transaction ID
+        :type txid: str
+        :param index_n: Index number of output
+        :type index_n: int
+        :param commit: Commit transaction to database. Default is True. Can be disabled if a larger number of transactions are added to cache, so you can commit outside this method.
+        :type commit: bool
+
+        :return:
+        """
+        if not self.cache_enabled():
+            return False
+        txid = bytes.fromhex(txid)
+        result = self.session.query(DbCacheTransactionNode). \
+            filter(DbCacheTransactionNode.txid == txid, DbCacheTransactionNode.index_n == index_n,
+                   DbCacheTransactionNode.is_input == False).\
+            update({DbCacheTransactionNode.spent: False})
+        if commit:
+            try:
+                self.commit()
+            except Exception as e:    # pragma: no cover
+                _logger.warning("Caching failure utxo %s:%d: %s" % (txid.hex(), index_n, e))
 
     def store_address(self, address, last_block=None, balance=0, n_utxos=None, txs_complete=False, last_txid=None):
         """

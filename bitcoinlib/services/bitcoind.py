@@ -155,7 +155,6 @@ class BitcoindClient(BaseClient):
                 balance += int(tx['amount'] * self.units)
         return balance
 
-    # Missing input_n and date
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         res = self.proxy.getaddressinfo(address)
@@ -163,7 +162,7 @@ class BitcoindClient(BaseClient):
             raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
                               "address to wallet." % address)
 
-        txs_list = self.proxy.listunspent(0, 99999999, [address])
+        txs_list = self.proxy.listunspent(0, 9999999, [address])
         blockcount = self.blockcount()
         for tx in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             utxos.append({
@@ -220,18 +219,22 @@ class BitcoindClient(BaseClient):
         return self._parse_transaction(tx_raw)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        MAX_WALLET_TRANSACTIONS = 1000
         txs = []
         res = self.proxy.getaddressinfo(address)
         if not (res['ismine'] or res['iswatchonly']):
             raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
                               "address to wallet." % address)
-        self.proxy.setlabel(address, address)
-        txs_list = self.proxy.listtransactions(address, limit)
-        for tx in txs_list:
-            tx_raw = self.proxy.getrawtransaction(tx['txid'], 1)
-            t = self._parse_transaction(tx_raw, tx['blockheight'])
+        txs_list = self.proxy.listtransactions("*", MAX_WALLET_TRANSACTIONS, 0, True)
+        if len(txs_list) >= MAX_WALLET_TRANSACTIONS:
+            raise ClientError("Bitcoind wallet contains too many transactions %d, use other service provider for this "
+                              "wallet" % MAX_WALLET_TRANSACTIONS)
+        txids = list(set([(tx['txid'], tx['blockheight']) for tx in txs_list if tx['address'] == address]))
+        for (txid, blockheight) in txids:
+            tx_raw = self.proxy.getrawtransaction(txid, 1)
+            t = self._parse_transaction(tx_raw, blockheight)
             txs.append(t)
-            if tx['txid'] == after_txid:
+            if txid == after_txid:
                 txs = []
         return txs
 

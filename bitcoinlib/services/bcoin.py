@@ -77,8 +77,8 @@ class BcoinClient(BaseClient):
 
             # Fail if large number of transactions are found
             if not srv.complete:
-                raise ClientError("If not all transactions known, we cannot determine utxo's. "
-                                  "Increase limit or use other provider")
+                raise ClientError("If not all transactions are known, we cannot determine utxo's. "
+                                  "Increase limit or use other provider.")
 
             for a in [output for outputs in [t.outputs for t in txs] for output in outputs]:
                 if a.address == address:
@@ -92,12 +92,12 @@ class BcoinClient(BaseClient):
         # First get all transactions for this address from the blockchain
         from bitcoinlib.services.services import Service
         srv = Service(network=self.network.name, providers=['bcoin'])
-        txs = srv.gettransactions(address, limit=25)
+        txs = srv.gettransactions(address, limit=50)
 
         # Fail if large number of transactions are found
         if not srv.complete:
-            raise ClientError("If not all transactions known, we cannot determine utxo's. "
-                              "Increase limit or use other provider")
+            raise ClientError("If not all transactions are known, we cannot determine utxo's. "
+                              "Increase limit or use other provider.")
 
         utxos = []
         for tx in txs:
