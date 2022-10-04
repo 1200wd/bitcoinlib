@@ -306,7 +306,7 @@ def deserialize_address(address, encoding=None, network=None):
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
             else:
-                script_type = 'p2wsh'
+                script_type = 'p2wsh' if not witver else 'p2tr'
             return {
                 'address': address,
                 'encoding': 'bech32',

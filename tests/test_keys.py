@@ -952,6 +952,7 @@ class TestKeysSignatures(unittest.TestCase):
                 address_encode = pubkeyhash_to_addr_bech32(addr_dict['public_key_hash_bytes'], addr_dict['prefix'],
                                                            addr_dict['witver'])
                 self.assertEqual(address, address_encode)
+                self.assertEqual(addr_dict['script_type'], 'p2tr')
 
             address_fantasy = deserialize_address('lc108denc9m4sqe9hluasrvxkkdqgkydrk5ctxre5nkk4qwdvefn0sdsggm3lr')
             self.assertEqual(address_fantasy['witver'], 15)
