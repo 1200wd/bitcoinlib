@@ -197,15 +197,15 @@ WALLET_KEY_STRUCTURES = [
         'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts',
         'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
     },
-    {
-        'purpose': 86,
-        'script_type': 'p2tr',
-        'witness_type': 'segwit',
-        'multisig': False,
-        'encoding': 'bech32m',
-        'description': 'Taproot single key wallet using P2TR transactions',
-        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
-    },
+    # {
+    #     'purpose': 86,
+    #     'script_type': 'p2tr',
+    #     'witness_type': 'segwit',
+    #     'multisig': False,
+    #     'encoding': 'bech32',
+    #     'description': 'Taproot single key wallet using P2TR transactions',
+    #     'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+    # },
 ]
 
 # UNITTESTS

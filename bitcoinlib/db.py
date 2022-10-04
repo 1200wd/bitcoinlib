@@ -79,9 +79,9 @@ class Db:
         # Just a very simple database update script, without any external libraries for now
         #
         version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
-        if version_db[:3] == '0.4' and BITCOINLIB_VERSION[:3] == '0.5':
-            raise ValueError("Old database version found (<0.4.19). Can not connect to 0.5 version database "
-                             "automatically, use db_update tool to update")
+        if version_db[:3] == '0.4' and BITCOINLIB_VERSION[:3] >= '0.5':
+            raise ValueError("Old database version found (<0.4.19). Can not convert to >0.5 version database "
+                             "automatically, use updatedb.py tool to update")
         try:
             if BITCOINLIB_VERSION != version_db:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
@@ -390,10 +390,7 @@ class DbTransactionInput(Base):
     double_spend = Column(Boolean, default=False,
                           doc="Indicates if a service provider tagged this transaction as double spend")
 
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2sh_multisig',
-                                                       'signature', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
-                                      name='transactioninput_constraint_script_types_allowed'),
-                      CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
+    __table_args__ = (CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
                                       name='transactioninput_constraint_allowed_types'),
                       UniqueConstraint('transaction_id', 'index_n', name='constraint_transaction_input_unique'))
 
@@ -421,16 +418,13 @@ class DbTransactionOutput(Base):
     script = Column(LargeBinary, doc="Locking script which locks transaction output")
     script_type = Column(String(20), default='p2pkh',
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "
-                             "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")
+                             "'nulldata', 'unknown', 'p2wpkh', 'p2wsh', 'p2tr'. Default is p2pkh")
     value = Column(BigInteger, default=0, doc="Total transaction output value")
     spent = Column(Boolean, default=False, doc="Indicated if output is already spent in another transaction")
     spending_txid = Column(LargeBinary(32), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
-                                                       'unknown', 'p2wpkh', 'p2wsh']),
-                                      name='transactionoutput_constraint_script_types_allowed'),
-                      UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'))
+    __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'))
 
 
 def db_update_version_id(db, version):
@@ -444,11 +438,10 @@ def db_update_version_id(db, version):
 def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
     # Database changes from version 0.5+
     #
-    if version_db == '0.6.3' and code_version > '0.6.3':
+    if version_db <= '0.6.3' and code_version > '0.6.3':
         # Example: column = Column('latest_txid', String(32))
         column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
         add_column(db.engine, 'transaction_inputs', column)
         # version_db = db_update_version_id(db, '0.6.4')
-
     version_db = db_update_version_id(db, code_version)
     return version_db
