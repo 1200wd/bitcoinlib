@@ -1343,7 +1343,7 @@ class Output(object):
             'value': self.value,
             'script': self.lock_script.hex(),
             'script_type': self.script_type,
-            'public_key': self.public_key.hex(),
+            'public_key': self.public_key,
             'public_hash': self.public_hash.hex(),
             'address': self.address,
             'output_n': self.output_n,
