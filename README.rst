@@ -126,6 +126,7 @@ Create a transaction in the first wallet
     w1.utxos_update()
     t = w1.sweep('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', min_confirms=0)
     t.info()
+    t.send()
 
 And then import the transaction in the second wallet, sign it and push it to the network
 
@@ -253,6 +254,8 @@ Implements the following Bitcoin Improvement Proposals
 - Structure for Deterministic P2SH Multisignature Wallets (BIP0045)
 - Bech32/base32 address format for native v0-16 witness outputs (BIP0173)
 - Native and P2SH nested Segregated Witness transactions (BIP0141 and BIP0143)
+- Bech32m format for v1+ witness addresses (BIP0350)
+- and many more...
 
 
 Installing and updating

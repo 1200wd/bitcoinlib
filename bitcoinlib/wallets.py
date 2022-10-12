@@ -3636,7 +3636,7 @@ class Wallet(object):
         else:
             transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
-        # Skip change if amount is smaller then the dust limit or estimated fee
+        # Skip change if amount is smaller than the dust limit or estimated fee
         if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= transaction.network.dust_amount:
             transaction.fee += transaction.change
             transaction.change = 0
@@ -3963,7 +3963,7 @@ class Wallet(object):
         :type min_confirms: int
         :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider. This option is ignored when the 'fee' option is specified
         :type fee_per_kb: int
-        :param fee: Total transaction fee in smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
+        :param fee: Total transaction fee in the smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
         :type fee: int, str
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
