@@ -2360,12 +2360,12 @@ def verify(txid, signature, public_key=None):
 
 def ec_point(m):
     """
-    Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G with m
+    Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
 
-    :param m: A point on the elliptic curve
+    :param m: A scalar multiplier
     :type m: int
 
-    :return Point: Point multiplied by generator G
+    :return Point: Generator point G multiplied by m
     """
     m = int(m)
     if USE_FASTECDSA:
