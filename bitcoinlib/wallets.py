@@ -937,8 +937,6 @@ class WalletTransaction(Transaction):
         mut_list = []
         wlt_addresslist = self.hdwallet.addresslist()
         input_addresslist = [i.address for i in self.inputs]
-        if self.txid == '9b2e0e6f3b21da8d4d8f64ce1bc281609dab71ef70f2ca550f66aef118e0b30e':
-            print(self.txid)
         if self.outgoing_tx:
             fee_per_output = self.fee / len(self.outputs)
             for o in self.outputs:
@@ -3214,7 +3212,7 @@ class Wallet(object):
             res.append(u)
         return res
 
-    def transactions_full(self, network=None, include_new=False):
+    def transactions_full(self, network=None, include_new=False, limit=0, offset=0):
         """
         Get all transactions of this wallet as WalletTransaction objects
 
@@ -3224,6 +3222,10 @@ class Wallet(object):
         :type network: str
         :param include_new: Also include new and incomplete transactions in list. Default is False
         :type include_new: bool
+        :param limit: Maximum number of transactions to return. Combine with offset parameter to use as pagination
+        :type limit: int
+        :param offset: Number of transactions to skip
+        :type offset: int
 
         :return list of WalletTransaction:
         """
@@ -3234,6 +3236,10 @@ class Wallet(object):
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs = []
+        if limit:
+            qr = qr.limit(limit)
+        if offset:
+            qr = qr.offset(offset)
         for tx in qr.all():
             txs.append(self.transaction(tx[0].hex()))
         return txs

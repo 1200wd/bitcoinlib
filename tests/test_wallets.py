@@ -147,7 +147,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
             self.skipTest("Problems with Travis windows python encodings")
         self.assertIsNone(self.wallet.info())
         self.assertIn("<Wallet(name=test_wallet_create, db_uri=", repr(self.wallet))
-        print(self.wallet)
 
     def test_wallet_exists(self):
         self.assertTrue(wallet_exists(self.wallet.wallet_id, db_uri=self.DATABASE_URI))
@@ -2224,6 +2223,17 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
         wt2 = Transaction.load(wt.txid)
         self.assertEqual(wt, wt2)
+
+    def test_wallet_transactions_pagination(self):
+        w = wallet_create_or_open("bclt_wallet_pagination_test", network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w.get_keys(number_of_keys=10)
+        w.utxos_update()
+        txs_all = w.transactions_full()
+        txs_page = w.transactions_full(limit=2, offset=10)
+        self.assertEqual(len(txs_all), 20)
+        self.assertEqual(len(txs_page), 2)
+        self.assertEqual(txs_all[10], txs_page[0])
+        self.assertEqual(txs_all[11], txs_page[1])
 
 
 @parameterized_class(*params)
