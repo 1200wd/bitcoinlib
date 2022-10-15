@@ -1384,7 +1384,6 @@ class Wallet(object):
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
     def __exit__(self, exception_type, exception_value, traceback):
-    #     print("HALLLOOOOOOO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!----")
         try:
             self._session.close()
             self._engine.dispose()
@@ -1397,13 +1396,6 @@ class Wallet(object):
             self._engine.dispose()
         except Exception:
             pass
-        # try:
-        #     if self._session:
-        #         if self._dbwallet and self._dbwallet.parent_id:
-        #             return
-        #         self._session.close()
-        # except Exception:
-        #     pass
 
     def __repr__(self):
         return "<Wallet(name=%s, db_uri=\"%s\")>" % \

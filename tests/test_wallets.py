@@ -95,7 +95,13 @@ class TestWalletMixin:
         if cls.SCHEMA == 'sqlite':
             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
                 if os.path.isfile(db):
-                    os.remove(db)
+                    try:
+                        os.remove(db)
+                    except PermissionError:
+                        db_obj = Db(db)
+                        db_obj.drop_db(True)
+                        db_obj.session.close()
+                        db_obj.engine.dispose()
         elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
