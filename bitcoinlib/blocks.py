@@ -371,15 +371,13 @@ class Block:
 
         :return:
         """
-        tx_n = 0
         transactions_dict = []
         txs_data_orig = deepcopy(self.txs_data)
         while self.txs_data and len(self.transactions) < self.tx_count:
-            tx = self.parse_transaction_dict(tx_n)
+            tx = self.parse_transaction_dict()
             if not tx:
                 break
             transactions_dict.append(tx)
-            tx_n += 1
         self.txs_data = txs_data_orig
         return transactions_dict
             
@@ -396,17 +394,16 @@ class Block:
             return t
         return False
 
-    def parse_transaction_dict(self, tx_n):
+    def parse_transaction_dict(self):
         """
         Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
         Transaction object in Block and return the transaction
 
-        :return Tranasaction:
+        :return Transaction:
         """
         if self.txs_data and len(self.transactions) < self.tx_count:
-            tx = {'height': self.height, 'coinbase': False, 'flag': None, 'witness_type': 'legacy'}
-
-            tx['version'] = self.txs_data.read(4)[::-1]
+            tx = {'height': self.height, 'coinbase': False, 'flag': None, 'witness_type': 'legacy',
+                  'version': self.txs_data.read(4)[::-1]}
             if not tx['version']:
                 return False
             raw_flag = b''
