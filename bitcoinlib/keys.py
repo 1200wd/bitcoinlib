@@ -233,7 +233,7 @@ def deserialize_address(address, encoding=None, network=None):
     """
     Deserialize address. Calculate public key hash and try to determine script type and network.
 
-    The 'network' dictionary item with contains the network with highest priority if multiple networks are found. Same applies for the script type.
+    The 'network' dictionary item with contains the network with the highest priority if multiple networks are found. Same applies for the script type.
 
     Specify the network argument if network is known to avoid unexpected results.
 
@@ -1355,7 +1355,7 @@ class HDKey(Key):
 
         If no import_key is specified a key will be generated with systems cryptographically random function.
         Import key can be any format normal or HD key (extended key) accepted by get_key_format.
-        If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
+        If a normal key with no chain part is provided, a chain with only 32 0-bytes will be used.
 
         >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
         >>> k = HDKey(private_hex)

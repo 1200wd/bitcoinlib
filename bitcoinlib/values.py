@@ -24,7 +24,7 @@ from bitcoinlib.config.config import NETWORK_DENOMINATORS
 
 def value_to_satoshi(value, network=None):
     """
-    Convert Value object or value string to smallest denominator amount as integer
+    Convert Value object or value string to the smallest denominator amount as integer
 
     :param value: Value object, value string as accepted by Value class or numeric value amount
     :type value: str, int, float, Value
@@ -50,7 +50,8 @@ class Value:
     @classmethod
     def from_satoshi(cls, value, denominator=None, network=DEFAULT_NETWORK):
         """
-        Initialize Value class with smallest denominator as input. Such as represented in script and transactions cryptocurrency values.
+        Initialize Value class with the smallest denominator as input. Such as represented in script and transactions
+        cryptocurrency values.
 
         :param value: Amount of Satoshi's / smallest denominator for this network
         :type value: int
@@ -300,7 +301,7 @@ class Value:
         >>> Value('1.5 BTC').str(currency_repr='name')
         '1.50000000 bitcoins'
 
-        :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols. If not provided the default self.denominator value is used. Use value 'auto' to automatically determine best denominator for human readability.
+        :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols. If not provided the default self.denominator value is used. Use value 'auto' to automatically determine the best denominator for human readability.
         :type denominator: int, float, str
         :param decimals: Number of decimals to use
         :type decimals: float
@@ -387,7 +388,7 @@ class Value:
     @property
     def value_sat(self):
         """
-        Value in smallest denominator, i.e. Satoshi for the Bitcoin network
+        Value in the smallest denominator, i.e. Satoshi for the Bitcoin network
 
         :return int:
         """
@@ -395,7 +396,7 @@ class Value:
 
     def to_bytes(self, length=8, byteorder='little'):
         """
-        Representation of value_sat (value in smallest denominator: satoshi's) as bytes string. Used for script or transaction serialization.
+        Representation of value_sat (value in the smallest denominator: satoshi's) as bytes string. Used for script or transaction serialization.
 
         >>> Value('1 sat').to_bytes()
         b'\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00'
@@ -411,7 +412,7 @@ class Value:
 
     def to_hex(self, length=16, byteorder='little'):
         """
-        Representation of value_sat (value in smallest denominator: satoshi's) as hexadecimal string.
+        Representation of value_sat (value in the smallest denominator: satoshi's) as hexadecimal string.
 
         >>> Value('15 sat').to_hex()
         '0f00000000000000'

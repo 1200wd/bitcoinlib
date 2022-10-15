@@ -98,7 +98,7 @@ def _get_script_types(blueprint):
             script_types.append('unknown')
             break
 
-        # Select match with correct data length if more then 1 match is found
+        # Select match with correct data length if more than 1 match is found
         match_id = 0
         for match in matches:
             data_lens = match[2]
@@ -680,7 +680,7 @@ class Stack(list):
 
     def is_arithmetic(self, items=1):
         """
-        Check if top stack item is or last stock are arithmetic and has no more then 4 bytes
+        Check if top stack item is or last stock are arithmetic and has no more than 4 bytes
 
         :return bool:
         """
@@ -1189,7 +1189,7 @@ def decode_num(encoded):
     >>> decode_num(b'@B\\x0f')
     1000000
 
-    :param encoded: Number as bytes
+    :param encoded: Number to decode
     :type encoded: bytes
 
     :return int:

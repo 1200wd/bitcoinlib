@@ -420,8 +420,7 @@ class Block:
             inputs = []
             inputs_raw = b''
             for n in range(0, n_inputs):
-                inp = {}
-                inp['prev_txid'] = self.txs_data.read(32)[::-1]
+                inp = {'prev_txid': self.txs_data.read(32)[::-1]}
                 if len(inp['prev_txid']) != 32:
                     raise Exception("Input transaction hash not found. Probably malformed self.txs_data transaction")
                 inp['output_n'] = self.txs_data.read(4)[::-1]

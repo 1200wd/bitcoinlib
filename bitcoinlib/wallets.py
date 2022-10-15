@@ -237,7 +237,7 @@ def wallet_empty(wallet, db_uri=None):
 def wallet_delete_if_exists(wallet, db_uri=None, force=False):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
-    unless 'force=True' is specified. If wallet wallet does not exist return False
+    unless 'force=True' is specified. If the wallet does not exist return False
 
     :param wallet: Wallet ID as integer or Wallet Name as string
     :type wallet: int, str
@@ -956,7 +956,7 @@ class WalletTransaction(Transaction):
 
     def save(self, filename=None):
         """
-        Store transaction object as file so it can be imported in bitcoinlib later with the :func:`load` method.
+        Store transaction object as file, so it can be imported in bitcoinlib later with the :func:`load` method.
 
         :param filename: Location and name of file, leave empty to store transaction in bitcoinlib data directory: .bitcoinlib/<transaction_id.tx)
         :type filename: str
@@ -1088,7 +1088,7 @@ class Wallet(object):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
 
-        When only a name is specified an legacy Wallet with a single masterkey is created with standard p2wpkh
+        When only a name is specified a legacy Wallet with a single masterkey is created with standard p2wpkh
         scripts.
 
         >>> if wallet_delete_if_exists('create_legacy_wallet_test'): pass
@@ -1144,9 +1144,9 @@ class Wallet(object):
         :type encoding: str
         :param multisig: Multisig wallet or child of a multisig wallet, default is None / derive from number of keys.
         :type multisig: bool
-        :param sigs_required: Number of signatures required for validation if using a multisignature wallet. For example 2 for 2-of-3 multisignature. Default is all keys must signed
+        :param sigs_required: Number of signatures required for validation if using a multisignature wallet. For example 2 for 2-of-3 multisignature. Default is all keys must be signed
         :type sigs_required: int
-        :param cosigner_id: Set this if wallet contains only public keys, more then one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the cosigned_id may be different.
+        :param cosigner_id: Set this if wallet contains only public keys, more than one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the cosigned_id may be different.
         :type cosigner_id: int
         :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
             * Path start with masterkey (m) and end with change / address_index
@@ -1584,7 +1584,7 @@ class Wallet(object):
         :type network: str
         :param purpose: BIP definition used, default is BIP44
         :type purpose: int
-        :param key_type: Key type of imported key, can be single (unrelated to wallet, bip32, bip44 or master for new or extra master key import. Default is 'single'
+        :param key_type: Key type of imported key, can be single. Unrelated to wallet, bip32, bip44 or master for new or extra master key import. Default is 'single'
         :type key_type: str
 
         :return WalletKey:
@@ -1696,7 +1696,7 @@ class Wallet(object):
         >>> w.new_key('my key') # doctest:+ELLIPSIS
         <WalletKey(key_id=..., name=my key, wif=..., path=m/44'/0'/0'/0/...)>
 
-        :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with an unique sequence number will be used
+        :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with a unique sequence number will be used
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -1979,7 +1979,7 @@ class Wallet(object):
 
         An account key can only be created if wallet contains a masterkey.
 
-        :param name: Account Name. If not specified 'Account #" with the account_id will be used
+        :param name: Account Name. If not specified "Account #" with the account_id will be used as name
         :type name: str
         :param account_id: Account ID. Default is last accounts ID + 1
         :type account_id: int
@@ -3344,7 +3344,7 @@ class Wallet(object):
         >>> w.select_inputs(50000000)
         [<Input(prev_txid='748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', output_n=0, address='16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', index_n=0, type='sig_pubkey')>]
 
-        :param amount: Total value of inputs in smallest denominator (sathosi) to select
+        :param amount: Total value of inputs in the smallest denominator (sathosi) to select
         :type amount: int
         :param variance: Allowed difference in total input value. Default is dust amount of selected network. Difference will be added to transaction fee.
         :type variance: int
@@ -3354,7 +3354,7 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will be included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3873,7 +3873,7 @@ class Wallet(object):
         # Calculate exact fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
             fee_exact = transaction.calculate_fee()
-            # Recreate transaction if fee estimation more then 10% off
+            # Recreate transaction if fee estimation more than 10% off
             if fee_exact != self.network.fee_min and fee_exact != self.network.fee_max and \
                     fee_exact and abs((float(transaction.fee) - float(fee_exact)) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
@@ -3907,7 +3907,7 @@ class Wallet(object):
 
         :param to_address: Single output address as string Address object, HDKey object or WalletKey object
         :type to_address: str, Address, HDKey, WalletKey
-        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin), as Value object or value string as accepted by Value class
+        :param amount: Output is the smallest denominator for this network (ie: Satoshi's for Bitcoin), as Value object or value string as accepted by Value class
         :type amount: int, str, Value
         :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
         :type input_key_id: int, list
@@ -3917,7 +3917,7 @@ class Wallet(object):
         :type network: str
         :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in the smallest currency  denominator, for example satoshi's if you are using bitcoins. You can also supply a string: 'low', 'normal' or 'high' to determine fees automatically.
         :type fee: int, str
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will be included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
