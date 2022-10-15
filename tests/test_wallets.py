@@ -95,10 +95,7 @@ class TestWalletMixin:
         if cls.SCHEMA == 'sqlite':
             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
                 if os.path.isfile(db):
-                    try:
-                        os.remove(db)
-                    except:
-                        pass
+                    os.remove(db)
         elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
@@ -141,10 +138,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         cls.wallet = Wallet.create(
             name='test_wallet_create',
             db_uri=cls.DATABASE_URI)
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_create(self):
         self.assertTrue(isinstance(self.wallet, Wallet))
@@ -325,10 +318,6 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_wallet_import(self):
         keystr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
                  'A7irEvBoe4aAn52'
@@ -492,10 +481,6 @@ class TestWalletExport(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_wallet_export_hdwifs(self):
         # p2wpkh
         p = 'garage million cheese nephew original subject pass reward month practice advance decide'
@@ -559,10 +544,6 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
             db_uri=cls.DATABASE_URI)
         cls.wallet.new_key()
         cls.wallet.new_key_change()
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_addresslist(self):
         expected_addresslist = ['1B8gTuj778tkrQV1e8qjcesoZt9Cif3VEp', '1LS8zYrkgGpvJdtMmUdU1iU4TUMQh6jjF1',
@@ -757,10 +738,6 @@ class TestWalletElectrum(TestWalletMixin, unittest.TestCase):
         for i in range(6):
             cls.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i)
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_electrum_keys(self):
         for key in self.wallet.keys():
             if key.name[:6] == '-test-' and key.path not in ['m/0', 'm/1'] and key.path[3:] != 'm/4':
@@ -805,10 +782,6 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         cls.wallet.new_key()
         cls.wallet.new_key()
         cls.wallet.new_key(network='bitcoin')
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_multiple_networks_defined(self):
         networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
@@ -865,10 +838,6 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.db_remove()
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_multi_networks_send_transaction(self):
         pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
@@ -941,10 +910,6 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_wallet_bitcoinlib_testnet_sendto(self):
         w = Wallet.create(
             network='bitcoinlib_test',
@@ -1000,10 +965,6 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.db_remove()
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_multisig_2_wallets_private_master_plus_account_public(self):
         self.db_remove()
@@ -1525,10 +1486,6 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_wallet_key_import_and_sign_multisig(self):
         network = 'bitcoinlib_test'
         words = 'square innocent drama'
@@ -1649,10 +1606,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                            db_uri=cls.DATABASE_URI)
         cls.wallet.new_key()
         cls.wallet.utxos_update()
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_import_utxos(self):
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
@@ -2290,10 +2243,6 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_wallet_create_with_passphrase_dash(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
         wlt = Wallet.create("wallet-passphrase-litecoin", keys=passphrase, network='dash',
@@ -2359,10 +2308,6 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.db_remove()
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_segwit_create_p2pkh(self):
         phrase = "review arch uniform illness hello animal device reform bicycle obscure cruise boat"
@@ -2611,10 +2556,6 @@ class TestWalletKeyStructures(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
-
     def test_wallet_path_expand(self):
         wlt = wallet_create_or_open('wallet_path_expand', network='bitcoin', db_uri=self.DATABASE_URI)
         self.assertListEqual(wlt.path_expand([8]), ['m', "44'", "0'", "0'", '0', '8'])
@@ -2671,10 +2612,6 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.db_remove()
-
-    @classmethod
-    def tearDownClass(cls):
-        close_all_sessions()
 
     def test_wallet_readonly_create_and_import(self):
         k = '13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'
