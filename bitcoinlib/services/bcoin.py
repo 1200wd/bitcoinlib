@@ -183,7 +183,6 @@ class BcoinClient(BaseClient):
 
     def getblock(self, blockid, parse_transactions, page, limit):
         block = self.compose_request('block', str(blockid))
-        # FIXME: This doesnt work if page or limit is used, also see pages calc below
         block['tx_count'] = len(block['txs'])
         txs = block['txs']
         parsed_txs = []

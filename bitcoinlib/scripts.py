@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Scripts class - Parse, Serialize and Evaluate scripts
-#    © 2021 - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
