@@ -4204,6 +4204,7 @@ class Wallet(object):
                                                                 Value.from_satoshi(tx['value'], network=nw).str_unit(
                                                                     currency_repr='symbol'),
                                                                 spent, status))
+
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],

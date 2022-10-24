@@ -189,8 +189,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
-    :param output_even: Specify if output must contain an even number of characters. Sometimes handy for hex
-    conversions.
+    :param output_even: Specify if output must contain an even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
     :param output_as_list: Always output as list instead of string.
     :type output_as_list: bool

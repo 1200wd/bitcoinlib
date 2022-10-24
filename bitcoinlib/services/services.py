@@ -529,8 +529,7 @@ class Service(object):
         :type parse_transactions: bool
         :param page: Page number of transaction paging. Default is start from the beginning: 1
         :type page: int
-        :param limit: Maximum amount of transaction to return. Default is 25 if parse transaction is enabled,
-        otherwise returns all txid's (9999)
+        :param limit: Maximum amount of transaction to return. Default is 25 if parse transaction is enabled, otherwise returns all txid's (9999)
         :type limit: int
 
         :return Block:
