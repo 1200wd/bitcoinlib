@@ -862,7 +862,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         wallet.get_keys(network='testnet', number_of_keys=2)
         wallet.get_key(network='testnet', change=1)
-        wallet.utxos_update(networks='testnet')
+        # wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=0), 0)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
         self.assertEqual(wallet.balance(network='testnet'), 0)
