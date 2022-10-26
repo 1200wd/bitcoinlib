@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CryptoID Chainz client
-#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -46,9 +46,10 @@ class CryptoID(BaseClient):
         else:
             url_path = 'explorer/tx.raw.dws'
             variables.update({'coin': self.provider_coin_id})
-        if not self.api_key:
-            raise ClientError("Request a CryptoID API key before using this provider")
-        variables.update({'key': self.api_key})
+        # if not self.api_key:
+        #     raise ClientError("Request a CryptoID API key before using this provider")
+        if self.api_key:
+            variables.update({'key': self.api_key})
         return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):
@@ -115,7 +116,7 @@ class CryptoID(BaseClient):
         t.locktime = tx['locktime']
         t.version = tx['version'].to_bytes(4, 'big')
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
-        t.input_total = t.output_total
+        t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.fee = 0
         if t.input_total:
             t.fee = t.input_total - t.output_total

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2021 March - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2022 - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -415,7 +415,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
 @deprecated  # Replaced by Script class in version 0.6
 def script_to_string(script, name_data=False):  # pragma: no cover
     """
-    Convert script to human readable string format with OP-codes, signatures, keys, etc
+    Convert script to human-readable string format with OP-codes, signatures, keys, etc
     
     :param script: A locking or unlocking script
     :type script: bytes, str
@@ -607,7 +607,7 @@ def transaction_update_spents(txs, address):
     Update spent information for list of transactions for a specific address. This method assumes the list of
     transaction complete and up-to-date.
 
-    This methods loops through all the transaction and update all transaction outputs for given address, checks
+    This method loops through all the transaction and update all transaction outputs for given address, checks
     if the output is spent and add the spending transaction ID and index number to the outputs.
 
     The same list of transactions with updates outputs will be returned
@@ -646,7 +646,7 @@ class Input(object):
     Transaction Input class, used by Transaction class
     
     An Input contains a reference to an UTXO or Unspent Transaction Output (prev_txid + output_n).
-    To spent the UTXO an unlocking script can be included to prove ownership.
+    To spend the UTXO an unlocking script can be included to prove ownership.
     
     Inputs are verified by the Transaction class.
     """
@@ -687,7 +687,7 @@ class Input(object):
         :type sort: boolean
         :param index_n: Index of input in transaction. Used by Transaction class.
         :type index_n: int
-        :param value: Value of input in smallest denominator integers (Satoshi's) or as Value object or string
+        :param value: Value of input in the smallest denominator integers (Satoshi's) or as Value object or string
         :type value: int, Value, str
         :param double_spend: Is this input also spend in another transaction
         :type double_spend: bool
@@ -1102,14 +1102,14 @@ class Output(object):
         """
         Create a new transaction output
         
-        An transaction outputs locks the specified amount to a public key. Anyone with the private key can unlock
+        A transaction outputs locks the specified amount to a public key. Anyone with the private key can unlock
         this output.
         
         The transaction output class contains an amount and the destination which can be provided either as address, 
-        public key, public key hash or a locking script. Only one needs to be provided as the they all can be derived 
-        from each other, but you can provide as much attributes as you know to improve speed.
+        public key, public key hash or a locking script. Only one needs to be provided as they all can be derived
+        from each other, but you can provide as many attributes as you know to improve speed.
         
-        :param value: Amount of output in smallest denominator integers (Satoshi's) or as Value object or string
+        :param value: Amount of output in the smallest denominator integers (Satoshi's) or as Value object or string
         :type value: int, Value, str
         :param address: Destination address of output. Leave empty to derive from other attributes you provide. An instance of an Address or HDKey class is allowed as argument.
         :type address: str, Address, HDKey
@@ -1227,7 +1227,7 @@ class Output(object):
         self.spending_txid = spending_txid
         self.spending_index_n = spending_index_n
         # if self.script_type != 'nulldata' and value < self.network.dust_amount:
-        #     raise TransactionError("Output to %s must be more then dust amount %d" %
+        #     raise TransactionError("Output to %s must be more than dust amount %d" %
         #                            (self.address, self.network.dust_amount))
 
     @property
@@ -1294,7 +1294,7 @@ class Output(object):
 
         Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
 
-        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+        When setting a relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
         :type blocks: int
@@ -1317,7 +1317,7 @@ class Output(object):
 
         Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
 
-        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+        When setting a relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param seconds: Number of seconds since the related previous transaction output has been confirmed.
         :return:
@@ -1363,7 +1363,7 @@ class Transaction(object):
     Contains 1 or more Input class object with UTXO's to spent and 1 or more Output class objects with destinations.
     Besides the transaction class contains a locktime and version.
 
-    Inputs and outputs can be included when creating the transaction, or can be add later with add_input and
+    Inputs and outputs can be included when creating the transaction, or can be added later with add_input and
     add_output respectively.
 
     A verify method is available to check if the transaction Inputs have valid unlocking scripts.
@@ -1578,7 +1578,7 @@ class Transaction(object):
         """
         Create a new transaction class with provided inputs and outputs.
 
-        You can also create a empty transaction and add input and outputs later.
+        You can also create an empty transaction and add input and outputs later.
 
         To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification
         after signing makes the transaction invalid.
@@ -1848,7 +1848,7 @@ class Transaction(object):
 
         Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
 
-        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+        When setting a relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
         :type blocks: int
@@ -1875,7 +1875,7 @@ class Transaction(object):
 
         Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
 
-        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+        When setting a relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param seconds: Number of seconds since the related previous transaction output has been confirmed.
         :type seconds: int
@@ -2348,7 +2348,7 @@ class Transaction(object):
 
         Wrapper for the append method of the Output class.
 
-        :param value: Value of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :param value: Value of output in the smallest denominator of currency, for example satoshi's for bitcoins
         :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str, Address
@@ -2541,7 +2541,7 @@ class Transaction(object):
 
     def save(self, filename=None):
         """
-        Store transaction object as file so it can be imported in bitcoinlib later with the :func:`load` method.
+        Store transaction object as file, so it can be imported in bitcoinlib later with the :func:`load` method.
 
         :param filename: Location and name of file, leave empty to store transaction in bitcoinlib data directory: .bitcoinlib/<transaction_id.tx)
         :type filename: str

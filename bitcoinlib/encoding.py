@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Methods for encoding and conversion
-#    © 2016 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -189,7 +189,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
-    :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
+    :param output_even: Specify if output must contain an even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
     :param output_as_list: Always output as list instead of string.
     :type output_as_list: bool
@@ -580,7 +580,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
         raise EncodingError("Invalid decoded data length, must be between 2 and 40")
     if data[0] > 16:
-        raise EncodingError("Invalid decoded data length")
+        raise EncodingError("Invalid witness version")
     if data[0] == 0 and len(decoded) not in [20, 32]:
         raise EncodingError("Invalid decoded data length, must be 20 or 32 bytes")
     prefix = b''
@@ -678,18 +678,31 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
     :type prefix: str
     :param witver: Witness version between 0 and 16
     :type witver: int
-    :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :param separator: Separator char between hrp and data, should always be left to '1' otherwise it's not standard.
     :type separator: str
+    :param checksum_xor: checksum 1 for bech32 v0 addresses and 0x2bc830a3 for bech32m v1+ addresses
+    :type checksum_xor: int
 
     :return str: Bech32 encoded address
     """
 
     pubkeyhash = list(to_bytes(pubkeyhash))
 
-    if len(pubkeyhash) not in [20, 32]:
-        if int(pubkeyhash[0]) != 0:
-            witver = int(pubkeyhash[0]) - 0x50
+    # To simplify and speedup: assume pubkeyhash of size 20, 32 and 40 does not contain witness version and size byte
+    if len(pubkeyhash) not in [20, 32, 40]:
+        if pubkeyhash[0] != 0:
+            witver = pubkeyhash[0] - 0x50
+        if pubkeyhash[1] != len(pubkeyhash[2:]):
+            raise EncodingError("Incorrect pubkeyhash length")
         pubkeyhash = pubkeyhash[2:]
+
+    if witver > 16:
+        raise EncodingError("Witness version must be between 0 and 16")
+
+    if checksum_xor == BECH32M_CONST and not witver:
+        witver = 1
+    elif witver > 0:
+        checksum_xor = BECH32M_CONST
 
     data = [witver] + convertbits(pubkeyhash, 8, 5)
 
@@ -773,7 +786,7 @@ def varstr(string):
 
 def to_bytes(string, unhexlify=True):
     """
-    Convert string, hexadecimal string  to bytes
+    Convert string, hexadecimal string to bytes
 
     :param string: String to convert
     :type string: str, bytes

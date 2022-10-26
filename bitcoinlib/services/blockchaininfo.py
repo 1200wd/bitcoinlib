@@ -76,6 +76,7 @@ class BlockchainInfoClient(BaseClient):
         return utxos[::-1][:limit]
 
     def gettransaction(self, txid, latest_block=None):
+        self.latest_block = self.latest_block if not latest_block else latest_block
         tx = self.compose_request('rawtx', txid)
         rawtx = self.getrawtransaction(txid)
         t = Transaction.parse_hex(rawtx, strict=self.strict, network=self.network)
@@ -87,14 +88,14 @@ class BlockchainInfoClient(BaseClient):
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
         if 'block_height' in tx and tx['block_height']:
-            if not latest_block:
-                latest_block = self.blockcount()
+            if not self.latest_block:
+                self.latest_block = self.blockcount()
             t.status = 'confirmed'
             t.date = datetime.utcfromtimestamp(tx['time'])
             t.block_height = tx['block_height']
             t.confirmations = 1
-            if latest_block > t.block_height:
-                t.confirmations = latest_block - t.block_height
+            if self.latest_block > t.block_height:
+                t.confirmations = self.latest_block - t.block_height
         else:
             t.status = 'unconfirmed'
             t.confirmations = 0
@@ -116,15 +117,15 @@ class BlockchainInfoClient(BaseClient):
         txids = []
         variables = {'limit': 100}
         res = self.compose_request('rawaddr', address, variables=variables)
-        latest_block = self.blockcount()
+        self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
         for tx in res['txs']:
             if tx['hash'] not in txids:
                 txids.insert(0, tx['hash'])
         if after_txid:
             txids = txids[txids.index(after_txid) + 1:]
         for txid in txids[:limit]:
-            t = self.gettransaction(txid, latest_block=latest_block)
-            t.confirmations = 0 if not t.block_height else latest_block - t.block_height
+            t = self.gettransaction(txid, latest_block=self.latest_block)
+            t.confirmations = 0 if not t.block_height else self.latest_block - t.block_height
             txs.append(t)
         return txs
 
@@ -152,10 +153,10 @@ class BlockchainInfoClient(BaseClient):
         bd = self.compose_request('rawblock', str(blockid))
         if parse_transactions:
             txs = []
-            latest_block = self.blockcount()
+            self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
             for tx in bd['tx'][(page-1)*limit:page*limit]:
                 # try:
-                txs.append(self.gettransaction(tx['hash'], latest_block=latest_block))
+                txs.append(self.gettransaction(tx['hash'], latest_block=self.latest_block))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['hash'], e))
         else:

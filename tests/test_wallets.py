@@ -95,7 +95,13 @@ class TestWalletMixin:
         if cls.SCHEMA == 'sqlite':
             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
                 if os.path.isfile(db):
-                    os.remove(db)
+                    try:
+                        os.remove(db)
+                    except PermissionError:
+                        db_obj = Db(db)
+                        db_obj.drop_db(True)
+                        db_obj.session.close()
+                        db_obj.engine.dispose()
         elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
@@ -147,7 +153,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
             self.skipTest("Problems with Travis windows python encodings")
         self.assertIsNone(self.wallet.info())
         self.assertIn("<Wallet(name=test_wallet_create, db_uri=", repr(self.wallet))
-        print(self.wallet)
 
     def test_wallet_exists(self):
         self.assertTrue(wallet_exists(self.wallet.wallet_id, db_uri=self.DATABASE_URI))
@@ -857,7 +862,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         wallet.get_keys(network='testnet', number_of_keys=2)
         wallet.get_key(network='testnet', change=1)
-        wallet.utxos_update(networks='testnet')
+        # wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=0), 0)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
         self.assertEqual(wallet.balance(network='testnet'), 0)
@@ -2225,6 +2230,17 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wt2 = Transaction.load(wt.txid)
         self.assertEqual(wt, wt2)
 
+    def test_wallet_transactions_pagination(self):
+        w = wallet_create_or_open("bclt_wallet_pagination_test", network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w.get_keys(number_of_keys=10)
+        w.utxos_update()
+        txs_all = w.transactions_full()
+        txs_page = w.transactions_full(limit=2, offset=10)
+        self.assertEqual(len(txs_all), 20)
+        self.assertEqual(len(txs_page), 2)
+        self.assertEqual(txs_all[10], txs_page[0])
+        self.assertEqual(txs_all[11], txs_page[1])
+
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
@@ -2615,7 +2631,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         self.assertGreaterEqual(w.balance(), 4532991)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
         self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
-                         '983ae77727f4ebe2043fae39ff9087a845d6c0b068a6170d70652aad5a14b791')
+                         '22965c151d850b5c7d98561e5432459141b1321a299cdcac1764f540eef56451')
 
     def test_wallet_address_import_public_key(self):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \

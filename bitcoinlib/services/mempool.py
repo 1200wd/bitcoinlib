@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    mempool.space client
-#    © 2021 November - 1200 Web Development <http://1200wd.com/>
+#    © 2021-2022 - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -60,7 +60,7 @@ class MempoolClient(BaseClient):
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        blockcount = self.blockcount()
+        self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
         res = self.compose_request('address', address, 'utxo')
         utxos = []
         # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
@@ -70,7 +70,7 @@ class MempoolClient(BaseClient):
             block_height = None
             if 'block_height' in a['status']:
                 block_height = a['status']['block_height']
-                confirmations = blockcount - block_height
+                confirmations = self.latest_block - block_height
             utxos.append({
                 'address': address,
                 'txid': a['txid'],
@@ -95,10 +95,8 @@ class MempoolClient(BaseClient):
         status = 'unconfirmed'
         if tx['status']['confirmed']:
             if block_height:
-                blockcount = self.latest_block
-                if not self.latest_block:
-                    blockcount = self.blockcount()
-                confirmations = blockcount - block_height + 1
+                self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
+                confirmations = self.latest_block - block_height + 1
             tx_date = datetime.utcfromtimestamp(tx['status']['block_time'])
             status = 'confirmed'
 
@@ -112,7 +110,7 @@ class MempoolClient(BaseClient):
             else:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'],
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
-                            address=ti['prevout']['scriptpubkey_address'],
+                            address=ti['prevout'].get('scriptpubkey_address', ''),
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'], sequence=ti['sequence'],
                             witnesses=None if 'witness' not in ti else [bytes.fromhex(w) for w in ti['witness']],
                             strict=self.strict)
@@ -185,18 +183,12 @@ class MempoolClient(BaseClient):
             blockid = self.compose_request('block-height', str(blockid))
         if (page == 1 and limit == 10) or limit > 25:
             limit = 25
-        elif page > 1:
-            if limit % 25 != 0:
-                return False
         bd = self.compose_request('block', blockid)
         btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
         if parse_transactions:
             txs = []
             for tx in btxs[:limit]:
-                # try:
                 txs.append(self._parse_transaction(tx))
-                # except Exception as e:
-                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
             txs = [tx['txid'] for tx in btxs]
 
@@ -224,7 +216,7 @@ class MempoolClient(BaseClient):
         return self.compose_request('block', blockid, 'raw').hex()
 
     def isspent(self, txid, output_n):
-        res = self.compose_request('tx', txid, 'outspend', output_n)
+        res = self.compose_request('tx', txid, 'outspend', str(output_n))
         return 1 if res['spent'] else 0
 
     # def getinfo(self):

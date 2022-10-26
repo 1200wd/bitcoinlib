@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CONFIG - Configuration settings
-#    © 2019 March - 1200 Web Development <http://1200wd.com/>
+#    © 2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -197,6 +197,15 @@ WALLET_KEY_STRUCTURES = [
         'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts',
         'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
     },
+    # {
+    #     'purpose': 86,
+    #     'script_type': 'p2tr',
+    #     'witness_type': 'segwit',
+    #     'multisig': False,
+    #     'encoding': 'bech32',
+    #     'description': 'Taproot single key wallet using P2TR transactions',
+    #     'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+    # },
 ]
 
 # UNITTESTS

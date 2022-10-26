@@ -164,9 +164,9 @@ class BitapsClient(BaseClient):
     #             break
     #     return txs[:limit]
 
-    def getrawtransaction(self, txid):
-        tx = self.compose_request('transaction', txid)
-        return tx['data']['rawTx']
+    # def getrawtransaction(self, txid):
+    #     tx = self.compose_request('transaction', txid)
+    #     return tx['data']['rawTx']
 
     # def sendrawtransaction
 

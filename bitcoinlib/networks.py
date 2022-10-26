@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 - 2020 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -206,7 +206,7 @@ def print_value(value, network=DEFAULT_NETWORK, rep='string', denominator=1, dec
 
     Wrapper for the Network().print_value method.
 
-    :param value: Value in smallest denominator such as Satoshi
+    :param value: Value in the smallest denominator such as Satoshi
     :type value: int, float
     :param network: Network name as string, default is 'bitcoin'
     :type network: str
@@ -254,7 +254,7 @@ class Network(object):
         self.priority = NETWORK_DEFINITIONS[network_name]['priority']
         self.prefixes_wif = NETWORK_DEFINITIONS[network_name]['prefixes_wif']
 
-        # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
+        # This could be shorter and more flexible with the code below, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
         #     exec("self.%s = NETWORK_DEFINITIONS[network_name]['%s']" % (f, f))
 
@@ -275,12 +275,12 @@ class Network(object):
         """
         Return the value as string with currency symbol
 
-        Print value for 100000 satoshi as string in human readable format
+        Print value for 100000 satoshi as string in human-readable format
 
         >>> Network('bitcoin').print_value(100000)
         '0.00100000 BTC'
 
-        :param value: Value in smallest denominator such as Satoshi
+        :param value: Value in the smallest denominator such as Satoshi
         :type value: int, float
         :param rep: Currency representation: 'string', 'symbol', 'none' or your own custom name
         :type rep: str

@@ -60,7 +60,7 @@ class BlockstreamClient(BaseClient):
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         res = self.compose_request('address', address, 'utxo')
-        blockcount = self.blockcount()
+        self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
         utxos = []
         res = sorted(res, key=lambda k: 0 if 'block_height' not in k['status'] else k['status']['block_height'])
         for a in res:
@@ -68,7 +68,7 @@ class BlockstreamClient(BaseClient):
             block_height = None
             if 'block_height' in a['status']:
                 block_height = a['status']['block_height']
-                confirmations = blockcount - block_height
+                confirmations = self.latest_block - block_height
             utxos.append({
                 'address': address,
                 'txid': a['txid'],
@@ -86,14 +86,12 @@ class BlockstreamClient(BaseClient):
                 utxos = []
         return utxos[:limit]
 
-    def _parse_transaction(self, tx, blockcount=None):
-        if not blockcount:
-            blockcount = self.blockcount()
+    def _parse_transaction(self, tx):
         confirmations = 0
         block_height = None
         if 'block_height' in tx['status']:
             block_height = tx['status']['block_height']
-            confirmations = blockcount - block_height
+            confirmations = self.latest_block - block_height
         status = 'unconfirmed'
         if tx['status']['confirmed']:
             status = 'confirmed'
@@ -136,12 +134,12 @@ class BlockstreamClient(BaseClient):
         t.size = tx['size']
         return t
 
-    def gettransaction(self, txid, blockcount=None):
+    def gettransaction(self, txid):
         tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx, blockcount)
+        return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        blockcount = self.blockcount()
+        self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
         prtxs = []
         before_txid = ''
         while True:
@@ -158,7 +156,7 @@ class BlockstreamClient(BaseClient):
                 break
         txs = []
         for tx in prtxs[::-1]:
-            t = self._parse_transaction(tx, blockcount)
+            t = self._parse_transaction(tx)
             if t:
                 txs.append(t)
             if t.txid == after_txid:
@@ -206,17 +204,17 @@ class BlockstreamClient(BaseClient):
             blockid = self.compose_request('block-height', str(blockid))
         if (page == 1 and limit == 10) or limit > 25:
             limit = 25
-        elif page > 1:
-            if limit % 25 != 0:
-                return False
+        # elif page > 1:
+        #     if limit % 25 != 0:
+        #         return False
         bd = self.compose_request('block', blockid)
         btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
         if parse_transactions:
             txs = []
-            blockcount = self.blockcount()
+            self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
             for tx in btxs[:limit]:
                 # try:
-                txs.append(self._parse_transaction(tx, blockcount=blockcount))
+                txs.append(self._parse_transaction(tx))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
