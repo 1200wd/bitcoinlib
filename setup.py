@@ -24,7 +24,7 @@ import os
 import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
-version = '0.6.5'
+version = '0.6.6'
 
 # Get the long description from the relevant file
 readmetxt = ''
