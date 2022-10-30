@@ -55,29 +55,29 @@ class BlocksmurferClient(BaseClient):
         return balance
 
     # TODO: fix blocksmurfer api
-    # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-    #     res = self.compose_request('utxos', address, variables={'after_txid': after_txid})
-    #     self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
-    #     utxos = []
-    #     for u in res:
-    #         block_height = None if not u['block_height'] else u['block_height']
-    #         confirmations = u['confirmations']
-    #         if block_height and not confirmations:
-    #             confirmations = self.latest_block - block_height
-    #         utxos.append({
-    #             'address': address,
-    #             'txid': u['txid'],
-    #             'confirmations': confirmations,
-    #             'output_n': u['output_n'],
-    #             'input_n': u['input_n'],
-    #             'block_height': block_height,
-    #             'fee': u['fee'],
-    #             'size': u['size'],
-    #             'value': u['value'],
-    #             'script': u['script'],
-    #             'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S")
-    #         })
-    #     return utxos[:limit]
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        res = self.compose_request('utxos', address, variables={'after_txid': after_txid})
+        self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
+        utxos = []
+        for u in res:
+            block_height = None if not u['block_height'] else u['block_height']
+            confirmations = u['confirmations']
+            if block_height and not confirmations:
+                confirmations = self.latest_block - block_height
+            utxos.append({
+                'address': address,
+                'txid': u['txid'],
+                'confirmations': confirmations,
+                'output_n': u['output_n'],
+                'input_n': u['input_n'],
+                'block_height': block_height,
+                'fee': u['fee'],
+                'size': u['size'],
+                'value': u['value'],
+                'script': u['script'],
+                'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S")
+            })
+        return utxos[:limit]
 
     def _parse_transaction(self, tx, latest_block=None):
         block_height = None if not tx['block_height'] else tx['block_height']
@@ -86,9 +86,6 @@ class BlocksmurferClient(BaseClient):
             self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
             confirmations = self.latest_block - block_height
         tx_date = None if not tx.get('date') else datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
-        # FIXME: Blocksmurfer returns 'date' or 'time', should be consistent
-        if not tx_date and 'time' in tx:
-            tx_date = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, input_total=tx['input_total'],
                         output_total=tx['output_total'], confirmations=confirmations, block_height=block_height,
