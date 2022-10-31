@@ -782,7 +782,8 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.transactions[3].txid, '31f429a9b22ab93ab4548ab3b9b245f1e9e09407d66cb397244e07fa337264e7')
 
     def test_service_getblock_parse_tx_paging_last_page(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
+        # Exclude providers not accepting pagination options
+        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='', exclude_providers=['mempool', 'blockstream'])
         b = srv.getblock(336454, limit=5, page=58)
         self.assertEqual(len(b.transactions), 2)
 
