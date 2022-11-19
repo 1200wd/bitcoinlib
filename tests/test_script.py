@@ -589,6 +589,12 @@ class TestScriptTypes(unittest.TestCase):
                          b"\x02!\x00\x8c\xbbB#;\xb0M\x7f(\xa7\x15\xcf|\x93\x8e#"
                          b'\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e\x03')
 
+    def test_script_p2tr(self):
+        scr = '512013334589ddbcb9d81d3d774f9eb88e14666b54ef33008444d0f1ad78879fe033'
+        s = Script.parse_hex(scr)
+        self.assertEqual('p2tr', s.script_types[0])
+        self.assertEqual([81, 'data-32'], s.blueprint)
+
 
 class TestScript(unittest.TestCase, CustomAssertions):
 

@@ -614,7 +614,7 @@ def addr_bech32_checksum(bech):
     return _bech32_polymod(hrp_expanded + data)
 
 
-def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
+def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58', witver=0):
     """
     Convert public key hash to base58 encoded address
 
@@ -626,6 +626,8 @@ def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
     :type prefix: str, bytes
     :param encoding: Encoding of address to calculate: base58 or bech32. Default is base58
     :type encoding: str
+    :param witver: Witness version used. Currently used for Taproot addresses with witver=1. Ignored for base58 addresses
+    :type witver: int
 
     :return str: Base58 or bech32 encoded address
 
@@ -637,7 +639,7 @@ def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
     elif encoding == 'bech32':
         if prefix is None:
             prefix = 'bc'
-        return pubkeyhash_to_addr_bech32(pubkeyhash, prefix)
+        return pubkeyhash_to_addr_bech32(pubkeyhash, prefix, witver)
     else:
         raise EncodingError("Encoding %s not supported" % encoding)
 

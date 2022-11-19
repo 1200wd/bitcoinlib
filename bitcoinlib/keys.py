@@ -570,18 +570,22 @@ class Address(object):
         self.script_type = script_type
         self.encoding = encoding
         self.compressed = compressed
+        self.witver = 0
         if witness_type is None:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
                 witness_type = 'p2sh-segwit'
+            elif self.script_type == 'p2tr':
+                witness_type = 'taproot'
+                self.witver = 1
         self.witness_type = witness_type
         self.depth = depth
         self.change = change
         self.address_index = address_index
 
         if self.encoding is None:
-            if self.script_type in ['p2wpkh', 'p2wsh'] or self.witness_type == 'segwit':
+            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr'] or self.witness_type == 'segwit':
                 self.encoding = 'bech32'
             else:
                 self.encoding = 'base58'
@@ -589,7 +593,7 @@ class Address(object):
         self.prefix = prefix
         self.redeemscript = b''
         if not self.hash_bytes:
-            if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig']) or \
+            if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig', 'p2tr']) or \
                     self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
@@ -617,7 +621,8 @@ class Address(object):
                 self.prefix = self.network.prefix_bech32
         else:
             raise BKeyError("Encoding %s not supported" % self.encoding)
-        self.address = pubkeyhash_to_addr(self.hash_bytes, prefix=self.prefix, encoding=self.encoding)
+        self.address = pubkeyhash_to_addr(self.hash_bytes, prefix=self.prefix, encoding=self.encoding,
+                                          witver=self.witver)
         self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':

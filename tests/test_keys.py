@@ -725,6 +725,11 @@ class TestKeysAddress(unittest.TestCase):
         k2 = HDKey.from_passphrase(phrase, witness_type='segwit', multisig=True)
         self.assertEqual(k2.address(), 'bc1qvj6c7n0hpl9t5r80zya4uukf0zens8ulxgwc0avnxsengtr5juss4pqeqy')
 
+    def test_keys_address_p2tr(self):
+        public_hash = b'\xa3|9\x03\xc8\xd0\xdbe\x12\xe2\xb4\x0b\r\xff\xa0^Z:\xb76\x03\xce\x8c\x9cKwq\xe5A#(\xf9'
+        address = 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'
+        self.assertEqual(Address(hashed_data=public_hash, script_type='p2tr', encoding='bech32').address, address)
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):

@@ -1198,6 +1198,17 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                          )
         self.assertTrue(t1 == t2)
 
+    def test_transaction_p2tr(self):
+        rawtx = '01000000000101d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c0549580100000000fdffffff02' \
+                '0000000000000000316a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e20' \
+                '4062697462756734329e06010000000000225120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e541' \
+                '2328f90140a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8' \
+                '389f008e05029db7f464a5ff2e01d5e6e626174affd30a00'
+        t = Transaction.parse_hex(rawtx)
+        t.info()
+        self.assertEqual(t.outputs[1].address, 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297')
+        self.assertEqual(t.outputs[1].script_type, 'p2tr')
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from

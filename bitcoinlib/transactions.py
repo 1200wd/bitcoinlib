@@ -1180,7 +1180,7 @@ class Output(object):
 
         if self.script:
             self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
-            if self.script_type in ['p2wpkh', 'p2wsh']:
+            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr']:
                 self.encoding = 'bech32'
             self.public_hash = self.script.public_hash
             if self.script.keys:
@@ -1206,7 +1206,7 @@ class Output(object):
             self.public_hash = address_dict['public_key_hash_bytes']
         if not self.encoding:
             self.encoding = 'base58'
-            if self.script_type in ['p2wpkh', 'p2wsh']:
+            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr']:
                 self.encoding = 'bech32'
 
         if self.script_type is None:
