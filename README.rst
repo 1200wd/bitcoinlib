@@ -264,7 +264,7 @@ Installing and updating
 Pre-requirements Linux
 ----------------------
 
-``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
+``sudo apt install build-essential python3-dev libgmp3-dev libssl-dev``
 
 To install OpenSSL development package on Debian, Ubuntu or their derivatives
 

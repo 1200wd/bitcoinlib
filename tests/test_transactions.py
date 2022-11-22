@@ -207,7 +207,6 @@ class TestTransactions(unittest.TestCase):
                 'ab387523fd7bdce168be7bbfef7afc4c6e53aeffffffff02a08601000000000017a914eb2f6545c638f7ab3897dfeb9e92bb' \
                 '8b11b840c687f23a0d000000000017a9145ac6cc10677d242eeb260dae9770221be9c87c8b8700000000'
         t = Transaction.parse_hex(rawtx, network='testnet')
-        t.info()
         self.assertEqual(t.inputs[0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
         self.assertEqual(t.outputs[0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
         self.assertEqual(t.outputs[1].address, '2N1XCxDRsyi8so3wr6C5xj5Arcv2wej7znf')
@@ -1205,7 +1204,6 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '2328f90140a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8' \
                 '389f008e05029db7f464a5ff2e01d5e6e626174affd30a00'
         t = Transaction.parse_hex(rawtx)
-        t.info()
         self.assertEqual(t.outputs[1].address, 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297')
         self.assertEqual(t.outputs[1].script_type, 'p2tr')
 

@@ -302,7 +302,7 @@ def deserialize_address(address, encoding=None, network=None):
             witver = pkh_incl[0] - 0x50 if pkh_incl[0] else 0
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
-            witness_type = 'segwit'
+            witness_type = 'segwit' if not witver else 'taproot'
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
             else:
