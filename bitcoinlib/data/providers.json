@@ -396,7 +396,7 @@
     "denominator": 1,
     "network_overrides": null
   },
-    "mempool.testnet": {
+  "mempool.testnet": {
     "provider": "mempool",
     "network": "testnet",
     "client_class": "MempoolClient",
