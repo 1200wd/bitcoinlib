@@ -191,7 +191,7 @@ class AuthServiceProxy(object):
         responsedata = http_response.read().decode('utf8')
         response = json.loads(responsedata, parse_float=decimal.Decimal)
         if "error" in response and response["error"] is None:
-            log.debug("<-%s- %s" % (response["id"], json.dumps(response["result"], default=EncodeDecimal)))
+            log.debug("<-%s- %s" % (response["id"], json.dumps(response["result"], default=EncodeDecimal)[:1000]))
         else:
-            log.debug("<-- " + responsedata)
+            log.debug("<-- " + responsedata[:1000])
         return response
