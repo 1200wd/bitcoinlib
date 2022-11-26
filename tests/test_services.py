@@ -53,7 +53,7 @@ if UNITTESTS_FULL_DATABASE_TEST:
         DATABASE_CACHE_MYSQL
     ]
 
-TIMEOUT_TEST = 2
+TIMEOUT_TEST = 3
 
 
 # Wrapper class for the Service client: Set cache_uri, timeout and ignore provider priority
@@ -692,7 +692,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_mempool(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
-        srv = ServiceTest(min_providers=10)
+        srv = ServiceTest(min_providers=10, strict=False)
         srv.mempool(txid)
         for provider in srv.results:
             # print("Mempool: Comparing btc provider %s" % provider)
@@ -972,7 +972,6 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(utxos), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
-    # FIXME: Fails with some providers, needs testing
     def test_service_cache_transaction_coinbase(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')

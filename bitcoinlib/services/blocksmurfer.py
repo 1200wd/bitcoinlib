@@ -79,8 +79,8 @@ class BlocksmurferClient(BaseClient):
             })
         return utxos[:limit]
 
-    def _parse_transaction(self, tx, latest_block=None):
-        block_height = None if not tx['block_height'] else tx['block_height']
+    def _parse_transaction(self, tx, block_height=None):
+        block_height = block_height if not tx['block_height'] else tx['block_height']
         confirmations = tx['confirmations']
         if block_height and not confirmations and tx['status'] == 'confirmed':
             self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
