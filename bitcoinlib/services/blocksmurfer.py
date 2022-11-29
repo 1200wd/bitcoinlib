@@ -196,7 +196,9 @@ class BlocksmurferClient(BaseClient):
         }
         return block
 
-    # def getrawblock(self, blockid):
+    def getrawblock(self, blockid):
+        res = self.compose_request('rawblock', blockid)
+        return res
 
     def isspent(self, txid, output_n):
         res = self.compose_request('isspent', txid, str(output_n))
