@@ -2022,7 +2022,8 @@ class Transaction(object):
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
             hash_outputs = double_sha256(outputs_serialized)
 
-        if not self.inputs[sign_id].value:
+        is_coinbase = self.inputs[sign_id].script_type == 'coinbase'
+        if not self.inputs[sign_id].value and not is_coinbase:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
                                    sign_id)
 
@@ -2030,7 +2031,7 @@ class Transaction(object):
             self.inputs[sign_id].redeemscript = self.inputs[sign_id].script_code
 
         if (not self.inputs[sign_id].redeemscript or self.inputs[sign_id].redeemscript == b'\0') and \
-                self.inputs[sign_id].redeemscript != 'unknown':
+                self.inputs[sign_id].redeemscript != 'unknown' and not is_coinbase:
             raise TransactionError("Redeem script missing")
 
         ser_tx = \
