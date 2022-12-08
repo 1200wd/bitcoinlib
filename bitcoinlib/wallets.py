@@ -2852,6 +2852,7 @@ class Wallet(object):
                                 is_complete=False, block_height=block_height, account_id=account_id,
                                 confirmations=utxo['confirmations'], network_name=network)
                             self._session.add(new_tx)
+                            # TODO: Get unique id before inserting to increase performance for large utxo-sets
                             self._commit()
                             tid = new_tx.id
                         else:

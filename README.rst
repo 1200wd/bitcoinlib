@@ -296,7 +296,7 @@ These packages will be installed
 * numpy
 * pycryptodome
 
-If you want to use BIP38 encrypted private keys, it is strongly advised to install the much faster scrypt library.
+If you want to use BIP38 encrypted private keys, you should also install the much faster scrypt library.
 
 ``pip install scrypt``
 

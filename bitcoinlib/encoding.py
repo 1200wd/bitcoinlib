@@ -41,7 +41,10 @@ try:
         import scrypt
         USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
-    from Crypto.Protocol.KDF import scrypt
+    try:
+        from Crypto.Protocol.KDF import scrypt
+    except ImportError:
+        pass
 
 if 'scrypt' not in sys.modules:
     try:
@@ -51,11 +54,6 @@ if 'scrypt' not in sys.modules:
         _logger.warning("The bip38_decrypt and bip38_encrypt methods need a scrypt library to work!")
     USING_MODULE_SCRYPT = False
 
-if not USING_MODULE_SCRYPT:
-    if 'scrypt_error' not in locals():
-        SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module. Error message: %s" % SCRYPT_ERROR)
-
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
     if USE_FASTECDSA is not False:
@@ -64,9 +62,12 @@ try:
 except ImportError:
     pass
 if 'fastecdsa' not in sys.modules:
-    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead. ")
+    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead.")
     USE_FASTECDSA = False
-    import ecdsa
+    try:
+        import ecdsa
+    except ImportError:
+        raise ImportError("Could not include ecdsa library. Please install fastecdsa or ecdsa library.")
 
 
 class EncodingError(Exception):
