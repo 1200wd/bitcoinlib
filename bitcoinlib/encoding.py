@@ -43,10 +43,12 @@ try:
 except ImportError as SCRYPT_ERROR:
     try:
         from Crypto.Protocol.KDF import scrypt
-    except ImportError:
+        _logger.info("Using scrypt method from pycryptodome")
+    except ImportError as err:
+        _logger.info("Could not import scrypt from pycryptodome: %s" % str(err))
         pass
 
-if 'scrypt' not in sys.modules:
+if 'scrypt' not in sys.modules and 'Crypto.Protocol.KDF' not in sys.modules:
     try:
         import pyscrypt as scrypt
     except ImportError:
@@ -953,7 +955,10 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     if isinstance(password, str):
         password = password.encode('utf-8')
     addresshash = double_sha256(address)[0:4]
-    key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
+    if 'Crypto.Protocol.KDF' in sys.modules:
+        key = scrypt(password, addresshash, 64, 16384, 8, 8)
+    else:
+        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     aes = AES.new(derivedhalf2, AES.MODE_ECB)
