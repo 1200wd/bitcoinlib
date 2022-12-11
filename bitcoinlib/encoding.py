@@ -31,6 +31,11 @@ SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 
 try:
+    from Crypto.Hash import RIPEMD160
+except ImportError as err:
+    _logger.warning("Could not import RIPEMD160 from cryptodome, will try do use hashlib but this could lead to errors")
+
+try:
     from Crypto.Cipher import AES
 except ImportError as PYAES_ERROR:
     _logger.warning("MISSING MODULES! Please install pycryptodome")
@@ -879,6 +884,13 @@ def double_sha256(string, as_hex=False):
         return hashlib.sha256(hashlib.sha256(string).digest()).hexdigest()
 
 
+def ripemd160(string):
+    try:
+        return RIPEMD160.new(string).digest()
+    except Exception:
+        return hashlib.new('ripemd160', string).digest()
+
+
 def hash160(string):
     """
     Creates a RIPEMD-160 + SHA256 hash of the input string
@@ -888,7 +900,7 @@ def hash160(string):
 
     :return bytes: RIPEMD-160 hash of script
     """
-    return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
+    return ripemd160(hashlib.sha256(string).digest())
 
 
 def bip38_decrypt(encrypted_privkey, password):
@@ -917,7 +929,10 @@ def bip38_decrypt(encrypted_privkey, password):
         password = password.encode('utf-8')
     addresshash = d[0:4]
     d = d[4:-4]
-    key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
+    try:
+        key = scrypt(password, addresshash, 64, 16384, 8, 8)
+    except Exception:
+        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
@@ -955,9 +970,9 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     if isinstance(password, str):
         password = password.encode('utf-8')
     addresshash = double_sha256(address)[0:4]
-    if 'Crypto.Protocol.KDF' in sys.modules:
+    try:
         key = scrypt(password, addresshash, 64, 16384, 8, 8)
-    else:
+    except Exception:
         key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]

@@ -999,7 +999,8 @@ class Stack(list):
         return True
 
     def op_ripemd160(self):
-        self.append(hashlib.new('ripemd160', self.pop()).digest())
+        # self.append(hashlib.new('ripemd160', self.pop()).digest())
+        self.append(ripemd160(self.pop()))
         return True
 
     def op_sha1(self):
