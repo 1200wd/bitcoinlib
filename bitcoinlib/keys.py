@@ -2094,7 +2094,7 @@ class Signature(object):
             s = int(signature[64:], 16)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
-            return Signature(r, s, txid, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
+            return Signature(r, s, txid, secret, public_key=pub_key, k=k)
 
     def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL):
