@@ -64,7 +64,10 @@ class LitecoindClient(BaseClient):
 
         :return LitecoindClient:
         """
-        config = configparser.ConfigParser(strict=False)
+        try:
+            config = configparser.ConfigParser(strict=False)
+        except TypeError:
+            config = configparser.ConfigParser()
         config_fn = 'litecoin.conf'
         if isinstance(network, Network):
             network = network.name
@@ -139,42 +142,52 @@ class LitecoindClient(BaseClient):
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    # def getbalance
+    def getbalance(self, addresslist):
+        balance = 0
+        for address in addresslist:
+            res = self.proxy.getaddressinfo(address)
+            if not (res['ismine'] or res['iswatchonly']):
+                raise ClientError(
+                    "Address %s not found in litceoind wallet, use 'importpubkey' or 'importaddress' to add "
+                    "address to wallet." % address)
+            txs_list = self.proxy.listunspent(0, 99999999, [address])
+            for tx in txs_list:
+                balance += int(tx['amount'] * self.units)
+        return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        txs = []
-
+        utxos = []
         res = self.proxy.getaddressinfo(address)
         if not (res['ismine'] or res['iswatchonly']):
-            raise ClientError("Address %s not found in litecoind wallet, use 'importaddress' to add address to "
-                              "wallet." % address)
+            raise ClientError("Address %s not found in litecoind wallet, use 'importpubkey' or 'importaddress' to add "
+                              "address to wallet." % address)
 
         txs_list = self.proxy.listunspent(0, 99999999, [address])
-        for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
-            txs.append({
-                'address': t['address'],
-                'txid': t['txid'],
-                'confirmations': t['confirmations'],
-                'output_n': t['vout'],
+        blockcount = self.blockcount()
+        for tx in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
+            utxos.append({
+                'address': tx['address'],
+                'txid': tx['txid'],
+                'confirmations': tx['confirmations'],
+                'output_n': tx['vout'],
                 'input_n': -1,
-                'block_height': None,
+                'block_height': blockcount - tx['confirmations'] + 1,
                 'fee': None,
                 'size': 0,
-                'value': int(t['amount'] * self.units),
-                'script': t['scriptPubKey'],
+                'value': int(tx['amount'] * self.units),
+                'script': tx['scriptPubKey'],
                 'date': None,
             })
-            if t['txid'] == after_txid:
-                txs = []
+            if tx['txid'] == after_txid:
+                utxos = []
 
-        return txs
+        return utxos
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
-        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
-        if t.confirmations or block_height:
-            t.status = 'confirmed'
-            t.verified = True
+        t.confirmations = tx.get('confirmations')
+        t.block_hash = tx.get('blockhash')
+        t.status = 'unconfirmed'
         for i in t.inputs:
             if i.prev_txid == b'\x00' * 32:
                 i.script_type = 'coinbase'
@@ -184,17 +197,46 @@ class LitecoindClient(BaseClient):
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
+
+        if not block_height and t.block_hash:
+            block_height = self.proxy.getblock(t.block_hash, 1)['height']
         t.block_height = block_height
+        if not t.confirmations and block_height is not None:
+            if not self.latest_block:
+                self.latest_block = self.blockcount()
+            t.confirmations = (self.latest_block - block_height) + 1
+        if t.confirmations or block_height:
+            t.status = 'confirmed'
+            t.verified = True
         t.version = tx['version'].to_bytes(4, 'big')
-        t.date = datetime.utcfromtimestamp(tx['blocktime'])
+        t.version_int = tx['version']
+        t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
         t.update_totals()
         return t
 
     def gettransaction(self, txid):
-        tx = self.proxy.getrawtransaction(txid, 1)
-        return self._parse_transaction(tx)
+        tx_raw = self.proxy.getrawtransaction(txid, 1)
+        return self._parse_transaction(tx_raw)
 
-    # def gettransactions
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        MAX_WALLET_TRANSACTIONS = 1000
+        txs = []
+        res = self.proxy.getaddressinfo(address)
+        if not (res['ismine'] or res['iswatchonly']):
+            raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
+                              "address to wallet." % address)
+        txs_list = self.proxy.listtransactions("*", MAX_WALLET_TRANSACTIONS, 0, True)
+        if len(txs_list) >= MAX_WALLET_TRANSACTIONS:
+            raise ClientError("Bitcoind wallet contains too many transactions %d, use other service provider for this "
+                              "wallet" % MAX_WALLET_TRANSACTIONS)
+        txids = list(set([(tx['txid'], tx['blockheight']) for tx in txs_list if tx['address'] == address]))
+        for (txid, blockheight) in txids:
+            tx_raw = self.proxy.getrawtransaction(txid, 1)
+            t = self._parse_transaction(tx_raw, blockheight)
+            txs.append(t)
+            if txid == after_txid:
+                txs = []
+        return txs
 
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)
@@ -229,8 +271,8 @@ class LitecoindClient(BaseClient):
         return []
 
     def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
-        if isinstance(blockid, int):
-            blockid = self.proxy.getblockhash(blockid)
+        if isinstance(blockid, int) or len(blockid) < 10:
+            blockid = self.proxy.getblockhash(int(blockid))
         if not limit:
             limit = 99999
 
@@ -238,13 +280,9 @@ class LitecoindClient(BaseClient):
         if parse_transactions:
             bd = self.proxy.getblock(blockid, 2)
             for tx in bd['tx'][(page - 1) * limit:page * limit]:
-                # try:
-                tx['blocktime'] = bd['time']
+                tx['time'] = bd['time']
                 tx['blockhash'] = bd['hash']
-                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
-                # except Exception as e:
-                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
-            # txs += [tx['hash'] for tx in bd['tx'][len(txs):]]
+                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=True))
         else:
             bd = self.proxy.getblock(blockid, 1)
             txs = bd['tx']
@@ -256,7 +294,7 @@ class LitecoindClient(BaseClient):
             'height': bd['height'],
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
-            'prev_block': bd['previousblockhash'],
+            'prev_block': None if 'previousblockhash' not in bd else bd['previousblockhash'],
             'time': bd['time'],
             'tx_count': bd['nTx'],
             'txs': txs,
