@@ -90,21 +90,18 @@ class BcoinClient(BaseClient):
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         # First get all transactions for this address from the blockchain
-        from bitcoinlib.services.services import Service
-        srv = Service(network=self.network.name, providers=['bcoin'])
-        txs = srv.gettransactions(address, limit=50)
+        txs = self.gettransactions(address, limit=50)
 
         # Fail if large number of transactions are found
-        if not srv.complete:
-            raise ClientError("If not all transactions are known, we cannot determine utxo's. "
-                              "Increase limit or use other provider.")
+        if not len(txs) >= 50:
+            raise ClientError("If not all transactions are known, we cannot determine utxo's")
 
         utxos = []
         for tx in txs:
             for unspent in tx.outputs:
                 if unspent.address != address:
                     continue
-                if not srv.isspent(tx.txid, unspent.output_n):
+                if not self.isspent(tx.txid, unspent.output_n):
                     utxos.append(
                         {
                             'address': unspent.address,
