@@ -134,7 +134,7 @@ class LitecoinBlockexplorerClient(BaseClient):
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('sendtx', data=rawtx)
         return {
-            'txid': res['txid'],
+            'txid': res['result'],
             'response_dict': res
         }
 
