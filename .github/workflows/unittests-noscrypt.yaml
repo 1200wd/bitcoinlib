@@ -1,27 +1,26 @@
-name: Bitcoinlib Windows Unittests
+name: Bitcoinlib Unittests Coveralls Ubuntu - No scrypt
 on: [push]
 
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.9'
+          python-version: '3.10'
           architecture: 'x64'
       - name: Install dependencies
         run: |
-          pip install win-unicode-console
           pip install coveralls
           pip install psycopg2
           pip install mysql-connector
           pip install mysqlclient
           pip install parameterized
-          pip install scrypt
+          pip install Cython --install-option="--no-cython-compile"
           python setup.py install
       - name: Test with coverage
         env:
