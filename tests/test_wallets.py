@@ -184,6 +184,11 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
             db_uri=self.DATABASE_URI)
         self.assertEqual(wallet_delete('wallet_to_remove', db_uri=self.DATABASE_URI), 1)
 
+    def test_delete_wallet_no_private(self):
+        key = "YXsfembHRwpatrAVUFhHAd7mErqzPtfehhq5YEt4dFM2B6hVNtxnqj3JqiP4nAf9BZ9SRBmH8esrDamoA3ZFNdNshvYA8rf7bDxhEdUyuoPZ7HTF"
+        Wallet.create('delete_watch_only_wallet', keys=key, network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        self.assertEqual(wallet_delete('delete_watch_only_wallet', db_uri=self.DATABASE_URI), 1)
+
     def test_wallet_empty(self):
         w = Wallet.create('empty_wallet_test', db_uri=self.DATABASE_URI)
         self.assertNotEqual(len(w.keys()), 1)
