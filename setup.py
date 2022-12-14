@@ -39,7 +39,7 @@ kwargs = {}
 
 install_requires = [
       'requests>=2.25.0',
-      'fastecdsa>=2.2.3;platform_system!="Windows"',
+      'fastecdsa>=2.2.1;platform_system!="Windows"',
       'ecdsa>=0.17;platform_system=="Windows"',
       'pycryptodome>=3.14.1',
       'SQLAlchemy>=1.4.28',

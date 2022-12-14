@@ -1180,7 +1180,7 @@ class Output(object):
 
         if self.script:
             self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
-            if self.script_type in ['p2wpkh', 'p2wsh']:
+            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr']:
                 self.encoding = 'bech32'
             self.public_hash = self.script.public_hash
             if self.script.keys:
@@ -1206,7 +1206,7 @@ class Output(object):
             self.public_hash = address_dict['public_key_hash_bytes']
         if not self.encoding:
             self.encoding = 'base58'
-            if self.script_type in ['p2wpkh', 'p2wsh']:
+            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr']:
                 self.encoding = 'bech32'
 
         if self.script_type is None:
@@ -2022,7 +2022,8 @@ class Transaction(object):
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
             hash_outputs = double_sha256(outputs_serialized)
 
-        if not self.inputs[sign_id].value:
+        is_coinbase = self.inputs[sign_id].script_type == 'coinbase'
+        if not self.inputs[sign_id].value and not is_coinbase:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
                                    sign_id)
 
@@ -2030,7 +2031,7 @@ class Transaction(object):
             self.inputs[sign_id].redeemscript = self.inputs[sign_id].script_code
 
         if (not self.inputs[sign_id].redeemscript or self.inputs[sign_id].redeemscript == b'\0') and \
-                self.inputs[sign_id].redeemscript != 'unknown':
+                self.inputs[sign_id].redeemscript != 'unknown' and not is_coinbase:
             raise TransactionError("Redeem script missing")
 
         ser_tx = \
@@ -2332,6 +2333,8 @@ class Transaction(object):
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
             self.version_int = 2
+        if witness_type is None:
+            witness_type = self.witness_type
         self.inputs.append(
             Input(prev_txid=prev_txid, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,

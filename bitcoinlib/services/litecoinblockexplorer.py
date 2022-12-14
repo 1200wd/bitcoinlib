@@ -132,9 +132,9 @@ class LitecoinBlockexplorerClient(BaseClient):
         return res['hex']
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('sendtx', data={'hex': rawtx}, method='post')
+        res = self.compose_request('sendtx', data=rawtx)
         return {
-            'txid': res['txid'],
+            'txid': res['result'],
             'response_dict': res
         }
 
@@ -184,9 +184,9 @@ class LitecoinBlockexplorerClient(BaseClient):
 
     # def getrawblock(self, blockid):
 
-    # def isspent(self, txid, output_n):
-    #     t = self.gettransaction(txid)
-    #     return 1 if t.outputs[output_n].spent else 0
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return 1 if t.outputs[output_n].spent else 0
 
     def getinfo(self):
         info = self.compose_request('status', '')

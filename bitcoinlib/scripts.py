@@ -408,7 +408,7 @@ class Script(object):
                 if len(s.keys) != s.commands[-2] - 80:
                     raise ScriptError("%d keys found but %d keys expected" %
                                       (len(s.keys), s.commands[-2] - 80))
-            elif st in ['p2wpkh', 'p2wsh', 'p2sh'] and len(s.commands) > 1:
+            elif st in ['p2wpkh', 'p2wsh', 'p2sh', 'p2tr'] and len(s.commands) > 1:
                 s.public_hash = s.commands[1]
             elif st == 'p2pkh' and len(s.commands) > 2:
                 s.public_hash = s.commands[2]
@@ -999,7 +999,8 @@ class Stack(list):
         return True
 
     def op_ripemd160(self):
-        self.append(hashlib.new('ripemd160', self.pop()).digest())
+        # self.append(hashlib.new('ripemd160', self.pop()).digest())
+        self.append(ripemd160(self.pop()))
         return True
 
     def op_sha1(self):

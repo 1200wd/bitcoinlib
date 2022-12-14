@@ -154,7 +154,7 @@ def wallet_delete(wallet, db_uri=None, force=False):
 
     # Delete keys from this wallet and update transactions (remove key_id)
     ks = session.query(DbKey).filter_by(wallet_id=wallet_id)
-    if bool([k for k in ks if k.balance]) and not force:
+    if bool([k for k in ks if k.balance and k.is_private]) and not force:
         session.close()
         raise WalletError("Wallet still has unspent outputs. Use 'force=True' to delete this wallet")
     k_ids = [k.id for k in ks]
@@ -2852,6 +2852,7 @@ class Wallet(object):
                                 is_complete=False, block_height=block_height, account_id=account_id,
                                 confirmations=utxo['confirmations'], network_name=network)
                             self._session.add(new_tx)
+                            # TODO: Get unique id before inserting to increase performance for large utxo-sets
                             self._commit()
                             tid = new_tx.id
                         else:
