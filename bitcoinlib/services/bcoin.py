@@ -93,7 +93,7 @@ class BcoinClient(BaseClient):
         txs = self.gettransactions(address, limit=50)
 
         # Fail if large number of transactions are found
-        if not len(txs) >= 50:
+        if len(txs) > 50:
             raise ClientError("If not all transactions are known, we cannot determine utxo's")
 
         utxos = []
