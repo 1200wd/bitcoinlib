@@ -53,7 +53,7 @@ if UNITTESTS_FULL_DATABASE_TEST:
         DATABASE_CACHE_MYSQL
     ]
 
-TIMEOUT_TEST = 2
+TIMEOUT_TEST = 3
 
 
 # Wrapper class for the Service client: Set cache_uri, timeout and ignore provider priority
@@ -692,7 +692,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_mempool(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
-        srv = ServiceTest(min_providers=10)
+        srv = ServiceTest(min_providers=10, strict=False)
         srv.mempool(txid)
         for provider in srv.results:
             # print("Mempool: Comparing btc provider %s" % provider)
@@ -770,7 +770,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_getblock_parse_tx_paging(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
-        b = srv.getblock(120000, parse_transactions=True, limit=4, page=2)
+        b = srv.getblock(120000, parse_transactions=True, limit=25, page=2)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
@@ -778,11 +778,12 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(to_hexstring(b.merkle_root),
                          '6dbba50b72ad0569c2449090a371516e3865840e905483cac0f54d96944eee28')
         self.assertEqual(b.tx_count, 56)
-        self.assertEqual(b.transactions[0].txid, '79b8ea58d3a3d18b583ac7b8fed5b7b06706a5198d4ffc38095d9fc55dc62030')
-        self.assertEqual(b.transactions[3].txid, '6182f42ea89a59df3a417f958e1c9bb3f0ea8ee7193cda760b477c4ce09c357c')
+        self.assertEqual(b.transactions[0].txid, '3420b2c059781f5ee772836b5207860ccf5f958a2c045161270f11eaf004c335')
+        self.assertEqual(b.transactions[3].txid, '31f429a9b22ab93ab4548ab3b9b245f1e9e09407d66cb397244e07fa337264e7')
 
     def test_service_getblock_parse_tx_paging_last_page(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
+        # Exclude providers not accepting pagination options
+        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='', exclude_providers=['mempool', 'blockstream'])
         b = srv.getblock(336454, limit=5, page=58)
         self.assertEqual(len(b.transactions), 2)
 
@@ -952,12 +953,8 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso'])
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso', 'mempool'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
-        res = srv.gettransactions(address,
-                                  after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
-        self.assertGreaterEqual(len(res), 1)
-        self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
         self.assertGreaterEqual(len(res), 1)
@@ -975,7 +972,6 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(utxos), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
-    # FIXME: Fails with some providers, needs testing
     def test_service_cache_transaction_coinbase(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
@@ -1034,9 +1030,6 @@ class TestServiceCache(unittest.TestCase):
 
         for cache_db in DATABASES_CACHE:
             srv = ServiceTest(cache_uri=cache_db, exclude_providers=['chainso', 'blockchair', 'bitcoind'])
-            # Those
-            # providers
-            # return incomplete results
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
             print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
             check_block_128594(b)
@@ -1054,10 +1047,9 @@ class TestServiceCache(unittest.TestCase):
         srv.gettransaction('eeb0c4bae63970f2ece284bcc871098942d5aff1d960398e523a9b339d25f73e')
         self.assertEqual(srv.results_cache_n, 0)
 
-    # FIXME: Fails with some providers, fix blocksmurfer
     def test_service_cache_transaction_p2sh_p2wpkh_input(self):
         txid = '6ab6432a6b7b04ecc335c6e8adccc45c25f46e33752478f0bcacaf3f1b61ad92'
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['blocksmurfer'])
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         t = srv.gettransaction(txid)
         self.assertEqual(t.size, 249)
         self.assertEqual(srv.results_cache_n, 0)

@@ -1,3 +1,21 @@
+RELEASE 0.6.7 - Fix installation, dependencies and provider issues
+==================================================================
+* Fix installation issues
+* Use pycryptodome for Ripemd160, scrypt and AES
+* Fix Litecoin issues
+* Add support for p2tr addresses
+* Fix support for Blocksmurfer provider
+* Fix many service provider issues
+
+RELEASE 0.6.6 - Service provider updates
+========================================
+* Add new methods to bitcoind provider
+* Allow to parse and send to bech32m addresses
+* Limit/offset on transactions query
+* Cache blockcount and increase efficiency
+* Fix and update various service providers
+* Cache more utxo's to reduce requests
+
 RELEASE 0.6.5 - Improve speed and fix installation issues
 =========================================================
 * Improve speed of Key object

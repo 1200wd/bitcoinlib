@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Scripts class - Parse, Serialize and Evaluate scripts
-#    © 2021 - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -36,6 +36,7 @@ SCRIPT_TYPES = {
     'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
     'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
     'p2wsh': ('locking', [op.op_0, 'data'], [32]),
+    'p2tr': ('locking', ['op_n', 'data'], [32]),
     'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2pk': ('locking', ['key', op.op_checksig], []),
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
@@ -97,7 +98,7 @@ def _get_script_types(blueprint):
             script_types.append('unknown')
             break
 
-        # Select match with correct data length if more then 1 match is found
+        # Select match with correct data length if more than 1 match is found
         match_id = 0
         for match in matches:
             data_lens = match[2]
@@ -407,7 +408,7 @@ class Script(object):
                 if len(s.keys) != s.commands[-2] - 80:
                     raise ScriptError("%d keys found but %d keys expected" %
                                       (len(s.keys), s.commands[-2] - 80))
-            elif st in ['p2wpkh', 'p2wsh', 'p2sh'] and len(s.commands) > 1:
+            elif st in ['p2wpkh', 'p2wsh', 'p2sh', 'p2tr'] and len(s.commands) > 1:
                 s.public_hash = s.commands[1]
             elif st == 'p2pkh' and len(s.commands) > 2:
                 s.public_hash = s.commands[2]
@@ -679,7 +680,7 @@ class Stack(list):
 
     def is_arithmetic(self, items=1):
         """
-        Check if top stack item is or last stock are arithmetic and has no more then 4 bytes
+        Check if top stack item is or last stock are arithmetic and has no more than 4 bytes
 
         :return bool:
         """
@@ -998,7 +999,8 @@ class Stack(list):
         return True
 
     def op_ripemd160(self):
-        self.append(hashlib.new('ripemd160', self.pop()).digest())
+        # self.append(hashlib.new('ripemd160', self.pop()).digest())
+        self.append(ripemd160(self.pop()))
         return True
 
     def op_sha1(self):
@@ -1188,7 +1190,7 @@ def decode_num(encoded):
     >>> decode_num(b'@B\\x0f')
     1000000
 
-    :param encoded: Number as bytes
+    :param encoded: Number to decode
     :type encoded: bytes
 
     :return int:

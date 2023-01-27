@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    dashd deamon
-#    © 2018 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2022 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -247,8 +247,8 @@ class DashdClient(BaseClient):
     def isspent(self, txid, index):
         res = self.proxy.gettxout(txid, index)
         if not res:
-            return True
-        return False
+            return 1
+        return 0
 
     def getinfo(self):
         info = self.proxy.getmininginfo()

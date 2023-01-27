@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2021 March - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -233,14 +233,14 @@ def deserialize_address(address, encoding=None, network=None):
     """
     Deserialize address. Calculate public key hash and try to determine script type and network.
 
-    The 'network' dictionary item with contains the network with highest priority if multiple networks are found. Same applies for the script type.
+    The 'network' dictionary item with contains the network with the highest priority if multiple networks are found. Same applies for the script type.
 
     Specify the network argument if network is known to avoid unexpected results.
 
     If more networks and or script types are found you can find these in the 'networks' field.
 
     >>> deserialize_address('1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
-    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest']}
+    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest'], 'witver': None}
 
     :param address: A base58 or bech32 encoded address
     :type address: str
@@ -293,17 +293,20 @@ def deserialize_address(address, encoding=None, network=None):
                     'script_type': script_type,
                     'witness_type': witness_type,
                     'networks': networks,
+                    'witver': None,
                 }
     if encoding == 'bech32' or encoding is None:
         try:
-            public_key_hash = addr_bech32_to_pubkeyhash(address)
+            pkh_incl = addr_bech32_to_pubkeyhash(address, include_witver=True)
+            public_key_hash = pkh_incl[2:]
+            witver = pkh_incl[0] - 0x50 if pkh_incl[0] else 0
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
-            witness_type = 'segwit'
+            witness_type = 'segwit' if not witver else 'taproot'
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
             else:
-                script_type = 'p2wsh'
+                script_type = 'p2wsh' if not witver else 'p2tr'
             return {
                 'address': address,
                 'encoding': 'bech32',
@@ -314,6 +317,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'script_type': script_type,
                 'witness_type': witness_type,
                 'networks': networks,
+                'witver': witver,
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
@@ -495,7 +499,7 @@ class Address(object):
 
         >>> addr = Address.parse('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
         >>> addr.as_dict()
-        {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
+        {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witver': 0, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
 
         :param address: Address to import
         :type address: str
@@ -566,18 +570,22 @@ class Address(object):
         self.script_type = script_type
         self.encoding = encoding
         self.compressed = compressed
+        self.witver = 0
         if witness_type is None:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
                 witness_type = 'p2sh-segwit'
+            elif self.script_type == 'p2tr':
+                witness_type = 'taproot'
+                self.witver = 1
         self.witness_type = witness_type
         self.depth = depth
         self.change = change
         self.address_index = address_index
 
         if self.encoding is None:
-            if self.script_type in ['p2wpkh', 'p2wsh'] or self.witness_type == 'segwit':
+            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr'] or self.witness_type == 'segwit':
                 self.encoding = 'bech32'
             else:
                 self.encoding = 'base58'
@@ -585,7 +593,7 @@ class Address(object):
         self.prefix = prefix
         self.redeemscript = b''
         if not self.hash_bytes:
-            if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig']) or \
+            if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig', 'p2tr']) or \
                     self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
@@ -613,7 +621,8 @@ class Address(object):
                 self.prefix = self.network.prefix_bech32
         else:
             raise BKeyError("Encoding %s not supported" % self.encoding)
-        self.address = pubkeyhash_to_addr(self.hash_bytes, prefix=self.prefix, encoding=self.encoding)
+        self.address = pubkeyhash_to_addr(self.hash_bytes, prefix=self.prefix, encoding=self.encoding,
+                                          witver=self.witver)
         self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
@@ -1351,7 +1360,7 @@ class HDKey(Key):
 
         If no import_key is specified a key will be generated with systems cryptographically random function.
         Import key can be any format normal or HD key (extended key) accepted by get_key_format.
-        If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
+        If a normal key with no chain part is provided, a chain with only 32 0-bytes will be used.
 
         >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
         >>> k = HDKey(private_hex)
@@ -2085,7 +2094,7 @@ class Signature(object):
             s = int(signature[64:], 16)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
-            return Signature(r, s, txid, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
+            return Signature(r, s, txid, secret, public_key=pub_key, k=k)
 
     def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL):
@@ -2360,12 +2369,12 @@ def verify(txid, signature, public_key=None):
 
 def ec_point(m):
     """
-    Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G with m
+    Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
 
-    :param m: A point on the elliptic curve
+    :param m: A scalar multiplier
     :type m: int
 
-    :return Point: Point multiplied by generator G
+    :return Point: Generator point G multiplied by m
     """
     m = int(m)
     if USE_FASTECDSA:

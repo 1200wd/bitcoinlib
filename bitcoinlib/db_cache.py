@@ -94,7 +94,7 @@ class DbCache:
 
     def drop_db(self):
         self.session.commit()
-        self.session.close_all()
+        # self.session.close_all()
         close_all_sessions()
         Base.metadata.drop_all(self.engine)
 

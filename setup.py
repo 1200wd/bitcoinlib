@@ -24,7 +24,7 @@ import os
 import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
-version = '0.6.5'
+version = '0.6.7'
 
 # Get the long description from the relevant file
 readmetxt = ''
@@ -39,7 +39,7 @@ kwargs = {}
 
 install_requires = [
       'requests>=2.25.0',
-      'fastecdsa>=2.2.3;platform_system!="Windows"',
+      'fastecdsa>=2.2.1;platform_system!="Windows"',
       'ecdsa>=0.17;platform_system=="Windows"',
       'pycryptodome>=3.14.1',
       'SQLAlchemy>=1.4.28',
@@ -66,7 +66,6 @@ setup(
             'Operating System :: OS Independent',
             'Operating System :: Microsoft :: Windows',
             'Operating System :: POSIX',
-            'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',

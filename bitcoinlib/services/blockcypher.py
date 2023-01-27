@@ -153,7 +153,7 @@ class BlockCypher(BaseClient):
     def sendrawtransaction(self, rawtx):
         # BlockCypher sometimes accepts transactions, but does not push them to the network :(
         if self.network.name in ['bitcoin', 'litecoin']:
-            return False
+            raise ClientError("Avoid stuck transactions, skip usage of blockcypher provider")
         res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
         return {
             'txid': res['tx']['hash'],

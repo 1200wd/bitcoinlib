@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Methods for encoding and conversion
-#    © 2016 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -31,6 +31,11 @@ SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 
 try:
+    from Crypto.Hash import RIPEMD160
+except ImportError as err:
+    _logger.warning("Could not import RIPEMD160 from cryptodome, will try do use hashlib but this could lead to errors")
+
+try:
     from Crypto.Cipher import AES
 except ImportError as PYAES_ERROR:
     _logger.warning("MISSING MODULES! Please install pycryptodome")
@@ -41,20 +46,20 @@ try:
         import scrypt
         USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
-    from Crypto.Protocol.KDF import scrypt
+    try:
+        from Crypto.Protocol.KDF import scrypt
+        _logger.info("Using scrypt method from pycryptodome")
+    except ImportError as err:
+        _logger.info("Could not import scrypt from pycryptodome: %s" % str(err))
+        pass
 
-if 'scrypt' not in sys.modules:
+if 'scrypt' not in sys.modules and 'Crypto.Protocol.KDF' not in sys.modules:
     try:
         import pyscrypt as scrypt
     except ImportError:
         _logger.warning("MISSING MODULES! Please install scrypt, pycryptodome or pyscrypt")
         _logger.warning("The bip38_decrypt and bip38_encrypt methods need a scrypt library to work!")
     USING_MODULE_SCRYPT = False
-
-if not USING_MODULE_SCRYPT:
-    if 'scrypt_error' not in locals():
-        SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module. Error message: %s" % SCRYPT_ERROR)
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -64,9 +69,12 @@ try:
 except ImportError:
     pass
 if 'fastecdsa' not in sys.modules:
-    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead. ")
+    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead.")
     USE_FASTECDSA = False
-    import ecdsa
+    try:
+        import ecdsa
+    except ImportError:
+        raise ImportError("Could not include ecdsa library. Please install fastecdsa or ecdsa library.")
 
 
 class EncodingError(Exception):
@@ -189,7 +197,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
-    :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
+    :param output_even: Specify if output must contain an even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
     :param output_as_list: Always output as list instead of string.
     :type output_as_list: bool
@@ -580,7 +588,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
         raise EncodingError("Invalid decoded data length, must be between 2 and 40")
     if data[0] > 16:
-        raise EncodingError("Invalid decoded data length")
+        raise EncodingError("Invalid witness version")
     if data[0] == 0 and len(decoded) not in [20, 32]:
         raise EncodingError("Invalid decoded data length, must be 20 or 32 bytes")
     prefix = b''
@@ -614,7 +622,7 @@ def addr_bech32_checksum(bech):
     return _bech32_polymod(hrp_expanded + data)
 
 
-def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
+def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58', witver=0):
     """
     Convert public key hash to base58 encoded address
 
@@ -626,6 +634,8 @@ def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
     :type prefix: str, bytes
     :param encoding: Encoding of address to calculate: base58 or bech32. Default is base58
     :type encoding: str
+    :param witver: Witness version used. Currently used for Taproot addresses with witver=1. Ignored for base58 addresses
+    :type witver: int
 
     :return str: Base58 or bech32 encoded address
 
@@ -637,7 +647,7 @@ def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
     elif encoding == 'bech32':
         if prefix is None:
             prefix = 'bc'
-        return pubkeyhash_to_addr_bech32(pubkeyhash, prefix)
+        return pubkeyhash_to_addr_bech32(pubkeyhash, prefix, witver)
     else:
         raise EncodingError("Encoding %s not supported" % encoding)
 
@@ -678,18 +688,31 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
     :type prefix: str
     :param witver: Witness version between 0 and 16
     :type witver: int
-    :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :param separator: Separator char between hrp and data, should always be left to '1' otherwise it's not standard.
     :type separator: str
+    :param checksum_xor: checksum 1 for bech32 v0 addresses and 0x2bc830a3 for bech32m v1+ addresses
+    :type checksum_xor: int
 
     :return str: Bech32 encoded address
     """
 
     pubkeyhash = list(to_bytes(pubkeyhash))
 
-    if len(pubkeyhash) not in [20, 32]:
-        if int(pubkeyhash[0]) != 0:
-            witver = int(pubkeyhash[0]) - 0x50
+    # To simplify and speedup: assume pubkeyhash of size 20, 32 and 40 does not contain witness version and size byte
+    if len(pubkeyhash) not in [20, 32, 40]:
+        if pubkeyhash[0] != 0:
+            witver = pubkeyhash[0] - 0x50
+        if pubkeyhash[1] != len(pubkeyhash[2:]):
+            raise EncodingError("Incorrect pubkeyhash length")
         pubkeyhash = pubkeyhash[2:]
+
+    if witver > 16:
+        raise EncodingError("Witness version must be between 0 and 16")
+
+    if checksum_xor == BECH32M_CONST and not witver:
+        witver = 1
+    elif witver > 0:
+        checksum_xor = BECH32M_CONST
 
     data = [witver] + convertbits(pubkeyhash, 8, 5)
 
@@ -773,7 +796,7 @@ def varstr(string):
 
 def to_bytes(string, unhexlify=True):
     """
-    Convert string, hexadecimal string  to bytes
+    Convert string, hexadecimal string to bytes
 
     :param string: String to convert
     :type string: str, bytes
@@ -861,6 +884,13 @@ def double_sha256(string, as_hex=False):
         return hashlib.sha256(hashlib.sha256(string).digest()).hexdigest()
 
 
+def ripemd160(string):
+    try:
+        return RIPEMD160.new(string).digest()
+    except Exception:
+        return hashlib.new('ripemd160', string).digest()
+
+
 def hash160(string):
     """
     Creates a RIPEMD-160 + SHA256 hash of the input string
@@ -870,7 +900,7 @@ def hash160(string):
 
     :return bytes: RIPEMD-160 hash of script
     """
-    return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
+    return ripemd160(hashlib.sha256(string).digest())
 
 
 def bip38_decrypt(encrypted_privkey, password):
@@ -899,7 +929,10 @@ def bip38_decrypt(encrypted_privkey, password):
         password = password.encode('utf-8')
     addresshash = d[0:4]
     d = d[4:-4]
-    key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
+    try:
+        key = scrypt(password, addresshash, 64, 16384, 8, 8)
+    except Exception:
+        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
@@ -937,7 +970,10 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     if isinstance(password, str):
         password = password.encode('utf-8')
     addresshash = double_sha256(address)[0:4]
-    key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
+    try:
+        key = scrypt(password, addresshash, 64, 16384, 8, 8)
+    except Exception:
+        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     aes = AES.new(derivedhalf2, AES.MODE_ECB)

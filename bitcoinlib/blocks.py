@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BLOCK parsing and construction
-#    © 2020 June - 1200 Web Development <http://1200wd.com/>
+#    © 2022 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -371,15 +371,13 @@ class Block:
 
         :return:
         """
-        tx_n = 0
         transactions_dict = []
         txs_data_orig = deepcopy(self.txs_data)
         while self.txs_data and len(self.transactions) < self.tx_count:
-            tx = self.parse_transaction_dict(tx_n)
+            tx = self.parse_transaction_dict()
             if not tx:
                 break
             transactions_dict.append(tx)
-            tx_n += 1
         self.txs_data = txs_data_orig
         return transactions_dict
             
@@ -396,17 +394,16 @@ class Block:
             return t
         return False
 
-    def parse_transaction_dict(self, tx_n):
+    def parse_transaction_dict(self):
         """
         Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
         Transaction object in Block and return the transaction
 
-        :return Tranasaction:
+        :return Transaction:
         """
         if self.txs_data and len(self.transactions) < self.tx_count:
-            tx = {'height': self.height, 'coinbase': False, 'flag': None, 'witness_type': 'legacy'}
-
-            tx['version'] = self.txs_data.read(4)[::-1]
+            tx = {'height': self.height, 'coinbase': False, 'flag': None, 'witness_type': 'legacy',
+                  'version': self.txs_data.read(4)[::-1]}
             if not tx['version']:
                 return False
             raw_flag = b''
@@ -423,8 +420,7 @@ class Block:
             inputs = []
             inputs_raw = b''
             for n in range(0, n_inputs):
-                inp = {}
-                inp['prev_txid'] = self.txs_data.read(32)[::-1]
+                inp = {'prev_txid': self.txs_data.read(32)[::-1]}
                 if len(inp['prev_txid']) != 32:
                     raise Exception("Input transaction hash not found. Probably malformed self.txs_data transaction")
                 inp['output_n'] = self.txs_data.read(4)[::-1]
