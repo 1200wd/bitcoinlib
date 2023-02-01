@@ -109,7 +109,7 @@ class BlockChairClient(BaseClient):
         if confirmations:
             status = 'confirmed'
         witness_type = 'legacy'
-        if tx['has_witness']:
+        if tx.get('has_witness'):
             witness_type = 'segwit'
         input_total = tx['input_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
@@ -124,9 +124,9 @@ class BlockChairClient(BaseClient):
             t.add_input(prev_txid=b'\00' * 32, output_n=0, value=0)
 
         for ti in res['data'][tx_id]['inputs']:
-            if ti['spending_witness']:
+            if ti.get('spending_witness'):
                 # witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
-                witnesses = ti['spending_witness'].split(",")
+                witnesses = ti.get('spending_witness').split(",")
                 address = Address.parse(ti['recipient'])
                 if address.script_type == 'p2sh':
                     witness_type = 'p2sh-segwit'
