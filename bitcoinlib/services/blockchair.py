@@ -50,6 +50,8 @@ class BlockChairClient(BaseClient):
             variables.update({'limit': limit})
         if offset:
             variables.update({'offset': offset})
+        if self.api_key:
+            variables.update({'key': self.api_key})
         if command:
             url_path += command
         if data:
