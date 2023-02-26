@@ -746,7 +746,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                              '13e3167d46334600b59a5aa286dd02147ac33e64bfc2e188e1f0c0a442182584')
 
     def test_service_getblock_height(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
+        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
@@ -956,7 +956,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso', 'mempool'])
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
@@ -1010,7 +1010,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(txs), 5)
 
     def test_service_cache_correctly_update_spent_info(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso'])
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
         self.assertTrue(txs[0].outputs[0].spent)
@@ -1032,7 +1032,7 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
 
         for cache_db in DATABASES_CACHE:
-            srv = ServiceTest(cache_uri=cache_db, exclude_providers=['chainso', 'blockchair', 'bitcoind'])
+            srv = ServiceTest(cache_uri=cache_db, exclude_providers=['blockchair', 'bitcoind'])
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
             print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
             check_block_128594(b)
