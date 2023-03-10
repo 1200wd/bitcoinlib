@@ -1058,12 +1058,12 @@ class TestTransactions(unittest.TestCase):
 
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
-    def test_transaction_redeemscript_errors(self):
-        exp_error = "Redeemscripts with more then 15 keys are non-standard and could result in locked up funds"
-        keys = []
-        for n in range(20):
-            keys.append(HDKey().public_hex)
-        self.assertRaisesRegexp(TransactionError, exp_error, serialize_multisig_redeemscript, keys)
+    # def test_transaction_redeemscript_errors(self):
+    #     exp_error = "Redeemscripts with more then 15 keys are non-standard and could result in locked up funds"
+    #     keys = []
+    #     for n in range(20):
+    #         keys.append(HDKey().public_hex)
+    #     self.assertRaisesRegexp(TransactionError, exp_error, serialize_multisig_redeemscript, keys)
 
     def test_transaction_script_type_string(self):
         # Locking script

@@ -181,6 +181,12 @@ class Script(object):
         >>> s.stack
         []
 
+        >>> key1 = '5JruagvxNLXTnkksyLMfgFgf3CagJ3Ekxu5oGxpTm5mPfTAPez3'
+        >>> key2 = '5JX3qAwDEEaapvLXRfbXRMSiyRgRSW9WjgxeyJQWwBugbudCwsk'
+        >>> key3 = '5JjHVMwJdjPEPQhq34WMUhzLcEd4SD7HgZktEh8WHstWcCLRceV'
+        >>> keylist = [Key(k) for k in [key1, key2, key3]]
+        >>> redeemscript = Script(keys=keylist, sigs_required=2, script_types=['multisig'])
+
         :param commands: List of script language commands
         :type commands: list
         :param message: Signed message to verify, normally a transaction hash. Used to validate script

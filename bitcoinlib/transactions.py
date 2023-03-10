@@ -451,67 +451,67 @@ def script_to_string(script, name_data=False):  # pragma: no cover
     return ' '.join(scriptstr)
 
 
-@deprecated  # Replaced by Script class in version 0.6
-def _serialize_multisig_redeemscript(public_key_list, n_required=None):  # pragma: no cover
-    # Serialize m-to-n multisig script. Needs a list of public keys
-    for key in public_key_list:
-        if not isinstance(key, (str, bytes)):
-            raise TransactionError("Item %s in public_key_list is not of type string or bytes")
-    if n_required is None:
-        n_required = len(public_key_list)
-
-    script = int_to_varbyteint(op.op_1 + n_required - 1)
-    for key in public_key_list:
-        script += varstr(key)
-    script += int_to_varbyteint(op.op_1 + len(public_key_list) - 1)
-    script += b'\xae'  # 'OP_CHECKMULTISIG'
-
-    return script
-
-
-@deprecated  # Replaced by Script class in version 0.6
-def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):  # pragma: no cover
-    """
-    Create a multisig redeemscript used in a p2sh.
-
-    Contains the number of signatures, followed by the list of public keys and the OP-code for the number of signatures required.
-
-    :param key_list: List of public keys
-    :type key_list: Key, list
-    :param n_required: Number of required signatures
-    :type n_required: int
-    :param compressed: Use compressed public keys?
-    :type compressed: bool
-
-    :return bytes: A multisig redeemscript
-    """
-
-    if not key_list:
-        return b''
-    if not isinstance(key_list, list):
-        raise TransactionError("Argument public_key_list must be of type list")
-    if len(key_list) > 15:
-        raise TransactionError("Redeemscripts with more then 15 keys are non-standard and could result in "
-                               "locked up funds")
-    public_key_list = []
-    for k in key_list:
-        if isinstance(k, Key):
-            if compressed:
-                public_key_list.append(k.public_byte)
-            else:
-                public_key_list.append(k.public_uncompressed_byte)
-        elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
-            public_key_list.append(k)
-        elif len(k) == 132 and k[0:2] == '04' or len(k) == 66 and k[0:2] in ['02', '03']:
-            public_key_list.append(bytes.fromhex(k))
-        else:
-            kobj = Key(k)
-            if compressed:
-                public_key_list.append(kobj.public_byte)
-            else:
-                public_key_list.append(kobj.public_uncompressed_byte)
-
-    return _serialize_multisig_redeemscript(public_key_list, n_required)
+# @deprecated  # Replaced by Script class in version 0.6
+# def _serialize_multisig_redeemscript(public_key_list, n_required=None):  # pragma: no cover
+#     # Serialize m-to-n multisig script. Needs a list of public keys
+#     for key in public_key_list:
+#         if not isinstance(key, (str, bytes)):
+#             raise TransactionError("Item %s in public_key_list is not of type string or bytes")
+#     if n_required is None:
+#         n_required = len(public_key_list)
+#
+#     script = int_to_varbyteint(op.op_1 + n_required - 1)
+#     for key in public_key_list:
+#         script += varstr(key)
+#     script += int_to_varbyteint(op.op_1 + len(public_key_list) - 1)
+#     script += b'\xae'  # 'OP_CHECKMULTISIG'
+#
+#     return script
+#
+#
+# @deprecated  # Replaced by Script class in version 0.6
+# def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):  # pragma: no cover
+#     """
+#     Create a multisig redeemscript used in a p2sh.
+#
+#     Contains the number of signatures, followed by the list of public keys and the OP-code for the number of signatures required.
+#
+#     :param key_list: List of public keys
+#     :type key_list: Key, list
+#     :param n_required: Number of required signatures
+#     :type n_required: int
+#     :param compressed: Use compressed public keys?
+#     :type compressed: bool
+#
+#     :return bytes: A multisig redeemscript
+#     """
+#
+#     if not key_list:
+#         return b''
+#     if not isinstance(key_list, list):
+#         raise TransactionError("Argument public_key_list must be of type list")
+#     if len(key_list) > 15:
+#         raise TransactionError("Redeemscripts with more then 15 keys are non-standard and could result in "
+#                                "locked up funds")
+#     public_key_list = []
+#     for k in key_list:
+#         if isinstance(k, Key):
+#             if compressed:
+#                 public_key_list.append(k.public_byte)
+#             else:
+#                 public_key_list.append(k.public_uncompressed_byte)
+#         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
+#             public_key_list.append(k)
+#         elif len(k) == 132 and k[0:2] == '04' or len(k) == 66 and k[0:2] in ['02', '03']:
+#             public_key_list.append(bytes.fromhex(k))
+#         else:
+#             kobj = Key(k)
+#             if compressed:
+#                 public_key_list.append(kobj.public_byte)
+#             else:
+#                 public_key_list.append(kobj.public_uncompressed_byte)
+#
+#     return _serialize_multisig_redeemscript(public_key_list, n_required)
 
 
 @deprecated  # Replaced by Script class in version 0.6
