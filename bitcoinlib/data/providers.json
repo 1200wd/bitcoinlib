@@ -263,28 +263,6 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "dogecoin": {
-    "provider": "dogecoind",
-    "network": "dogecoin",
-    "client_class": "DogecoindClient",
-    "provider_coin_id": "",
-    "url": "",
-    "api_key": "",
-    "priority": 20,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "dogecoind.testnet": {
-    "provider": "dogecoind",
-    "network": "dogecoin_testnet",
-    "client_class": "DogecoindClient",
-    "provider_coin_id": "",
-    "url": "",
-    "api_key": "",
-    "priority": 20,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "blockcypher.dogecoin": {
     "provider": "blockcypher",
     "network": "dogecoin",
