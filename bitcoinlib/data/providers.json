@@ -230,6 +230,50 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "litecoinblockexplorer": {
+    "provider": "litecoinblockexplorer",
+    "network": "bitcoin",
+    "client_class": "LitecoinBlockexplorerClient",
+    "provider_coin_id": "",
+    "url": "https://bitcoinblockexplorers.com/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+    "litecoinblockexplorer.dash": {
+    "provider": "litecoinblockexplorer",
+    "network": "dash",
+    "client_class": "LitecoinBlockexplorerClient",
+    "provider_coin_id": "",
+    "url": "https://dashblockexplorer.com/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "litecoinblockexplorer.testnet2": {
+    "provider": "litecoinblockexplorer",
+    "network": "testnet",
+    "client_class": "LitecoinBlockexplorerClient",
+    "provider_coin_id": "",
+    "url": "https://tbtc1.blockbook.bitaccess.net/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "litecoinblockexplorer.dogecoin": {
+    "provider": "litecoinblockexplorer",
+    "network": "dogecoin",
+    "client_class": "LitecoinBlockexplorerClient",
+    "provider_coin_id": "",
+    "url": "https://dogeblocks.com/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "insightdash": {
     "provider": "insightdash",
     "network": "dash",
