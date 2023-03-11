@@ -274,6 +274,72 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "blockbook.litecoin": {
+    "provider": "blockbook",
+    "network": "litecoin",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://litecoinblockexplorer.net/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockbook.litecoin.legacy": {
+    "provider": "blockbook",
+    "network": "litecoin_legacy",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://litecoinblockexplorer.net/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockbook": {
+    "provider": "blockbook",
+    "network": "bitcoin",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://bitcoinblockexplorers.com/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+    "blockbook.dash": {
+    "provider": "blockbook",
+    "network": "dash",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://dashblockexplorer.com/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockbook.testnet2": {
+    "provider": "blockbook",
+    "network": "testnet",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://tbtc1.blockbook.bitaccess.net/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockbook.dogecoin": {
+    "provider": "blockbook",
+    "network": "dogecoin",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://dogeblocks.com/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "insightdash": {
     "provider": "insightdash",
     "network": "dash",
