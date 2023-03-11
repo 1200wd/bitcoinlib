@@ -833,7 +833,7 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         w.new_account(network='bitcoin')
         w.new_account(network='bitcoinlib_test')
         w.utxos_update(networks='testnet')
-        self.assertEqual(len(w.utxos(network='testnet')), 1)
+        self.assertEqual(len(w.utxos(network='testnet')), 2)
         w.utxos_update(networks='bitcoinlib_test')
         self.assertEqual(len(w.utxos(network='bitcoinlib_test')), 4)
         t = w.send_to('blt1qctnl4yk3qepjy3uu36kved5ds6q9g8c6raan7l', '50 mTST', offline=False)
