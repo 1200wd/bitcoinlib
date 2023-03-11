@@ -51,9 +51,6 @@ class LitecoinBlockexplorerClient(BaseClient):
             status = 'unconfirmed'
         fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
         value_in = 0 if 'valueIn' not in tx else int(round(float(tx['valueIn']) * self.units, 0))
-        # isCoinbase = False
-        # if 'isCoinBase' in tx and tx['isCoinBase']:
-        #     isCoinbase = True
         txdate = None
         if 'blocktime' in tx:
             txdate = datetime.utcfromtimestamp(tx['blocktime'])
@@ -67,27 +64,9 @@ class LitecoinBlockexplorerClient(BaseClient):
         t.block_height = tx['blockheight']
         t.block_hash = tx['blockhash']
         t.status = status
-        # t = Transaction(locktime=tx.get('locktime', 0), version=tx['version'], network=self.network, fee=fees,
-        #                 txid=tx['txid'], date=txdate, confirmations=tx['confirmations'],
-        #                 block_height=tx['blockheight'], status=status, input_total=value_in, coinbase=isCoinbase,
-        #                 output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['hex']) // 2,
-        #                 witness_type=t0.witness_type)
-        # for ti in tx['vin']:
         for n, ti in enumerate(tx['vin']):
-            # if isCoinbase:
-            #     t.add_input(prev_txid=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-            #                 script_type='coinbase', sequence=ti.get('sequence', 0), value=0)
-            # else:
             t.inputs[n].value = int(round(float(ti['value'] or 0) * self.units, 0))
-                # us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
-                # t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=us,
-                #             index_n=ti['n'], value=value, sequence=ti.get('sequence', 0),
-                #             double_spend=ti.get('doubleSpentTxID', False),
-                #             strict=self.strict)
         for i, to in enumerate(tx['vout']):
-            # value = int(round(float(to['value']) * self.units, 0))
-            # t.add_output(value=value, lock_script=to['scriptPubKey']['hex'], address=to['scriptPubKey']['addresses'][0],
-            #              spent=to['spent'], output_n=to['n'], strict=self.strict)
             t.outputs[i].spent = to['spent']
         return t
 
@@ -169,10 +148,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         if parse_transactions:
             txs = []
             for tx in bd['txs'][(page-1)*limit:page*limit]:
-                # try:
                 txs.append(self.gettransaction(tx['txid']))
-                # except Exception as e:
-                #     _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
         else:
             txs = [tx['txid'] for tx in bd['txs']]
 
@@ -185,7 +161,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             'nonce': int(bd['nonce']),
             'prev_block': bd['previousBlockHash'],
             'time': bd['time'],
-            'tx_count': len(bd['txs']),
+            'tx_count': bd['txCount'],
             'txs': txs,
             'version': bd['version'],
             'page': page,
