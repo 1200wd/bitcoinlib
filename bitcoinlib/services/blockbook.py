@@ -125,7 +125,9 @@ class BlockbookClient(BaseClient):
             'response_dict': res
         }
 
-    # def estimatefee(self, blocks):
+    def estimatefee(self, blocks):
+        res = self.compose_request('estimatefee', str(blocks))
+        return int(float(res['result']) / self.network.denominator)
 
     def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
