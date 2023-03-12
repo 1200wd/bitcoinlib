@@ -101,6 +101,8 @@ class BlockbookClient(BaseClient):
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('address', address.address, variables={'details': 'txs'})
+        if 'transactions' not in res:
+            return []
         txs = []
         txs_dict = res['transactions'][::-1]
         if after_txid:
