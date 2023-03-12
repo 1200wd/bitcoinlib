@@ -75,7 +75,7 @@ class BitapsClient(BaseClient):
                             sequence=ti['sequence'], index_n=int(n), value=0)
             else:
                 t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
-                            unlocking_script_unsigned=ti['scriptPubKey'],
+                            unlocking_script_unsigned=ti['scriptPubKey'], witnesses=ti.get('txInWitness', []),
                             address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
                             index_n=int(n), value=ti['amount'], strict=self.strict)
 
