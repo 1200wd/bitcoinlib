@@ -2564,9 +2564,9 @@ class Wallet(object):
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        balance = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri).\
-            getbalance(self.addresslist(account_id=account_id, network=network))
-        if balance:
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        balance = srv.getbalance(self.addresslist(account_id=account_id, network=network))
+        if srv.results:
             new_balance = {
                 'account_id': account_id,
                 'network': network,

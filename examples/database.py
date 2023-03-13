@@ -9,6 +9,7 @@
 
 
 from bitcoinlib.wallets import *
+from sqlalchemy.sql import text
 
 print("\n=== Query database directly to use limit on large databases ===")
 wallet_delete_if_exists('wallet_query', force=True)
@@ -25,6 +26,6 @@ else:
 wallet_id = w.wallet_id
 
 db = Db()
-res = db.session.execute("SELECT * FROM transactions WHERE wallet_id= %d LIMIT 5" % wallet_id)
+res = db.session.execute(text("SELECT * FROM transactions WHERE wallet_id= %d LIMIT 5" % wallet_id))
 for row in res:
     print(row[1].hex())
