@@ -133,7 +133,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         }
 
     def estimatefee(self, blocks):
-        res = self.compose_request('estimatefee', str(blocks))
+        res = self.compose_request('estimatefee', str(int(blocks)+1))
         return int(float(res['result']) / self.network.denominator)
 
     def blockcount(self):

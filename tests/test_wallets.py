@@ -827,7 +827,8 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 
     def test_wallet_multiple_networks_value(self):
-        pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysdteSN16sH'
+        pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysd' \
+             'teSN16sH'
         wallet_delete_if_exists('test_wallet_multiple_networks_value', force=True, db_uri=self.DATABASE_URI)
         w = wallet_create_or_open('test_wallet_multiple_networks_value', keys=pk, db_uri=self.DATABASE_URI)
         w.new_account(network='bitcoin')
@@ -838,10 +839,7 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         self.assertEqual(len(w.utxos(network='bitcoinlib_test')), 4)
         t = w.send_to('blt1qctnl4yk3qepjy3uu36kved5ds6q9g8c6raan7l', '50 mTST', offline=False)
         self.assertTrue(t.pushed)
-        w.info()
-        from pprint import pprint
-        pprint(w.utxos(network='testnet'))
-        t = w.send_to('tb1qhq6x777xpj32jm005qppxa6gyxt3qrc376ye6c', '0.1 mTBTC')
+        t = w.send_to('tb1qhq6x777xpj32jm005qppxa6gyxt3qrc376ye6c', '0.1 mTBTC', fee=1000)
         self.assertFalse(t.pushed)
         self.assertTrue(t.verified)
 
