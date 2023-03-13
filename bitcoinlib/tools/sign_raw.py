@@ -29,7 +29,7 @@ network = 'testnet'
 # raw_tx = t.raw_hex()
 # t.info()
 
-# Raw partially signed transaction transaction
+# Raw partially signed transaction
 raw_tx = ''
 if not raw_tx:
     raw_tx = input("Paste raw transaction hex: ")
