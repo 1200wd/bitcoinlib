@@ -55,8 +55,8 @@ class BlockbookClient(BaseClient):
         t.fee = int(tx['fees'])
         t.date = txdate if tx['confirmations'] else None
         t.confirmations = tx['confirmations']
-        t.block_height = tx['blockHeight']
-        t.block_hash = tx['blockHash']
+        t.block_height = None if tx['blockHeight'] == -1 else tx['blockHeight']
+        t.block_hash = tx.get('blockHash', '')
         t.status = status
         for n, ti in enumerate(tx['vin']):
             t.inputs[n].value = int(ti.get('value', 0))

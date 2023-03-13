@@ -61,8 +61,8 @@ class LitecoinBlockexplorerClient(BaseClient):
         t.fees = int(round(float(tx['fees']) * self.units, 0))
         t.date = txdate
         t.confirmations = tx['confirmations']
-        t.block_height = tx['blockheight']
-        t.block_hash = tx['blockhash']
+        t.block_height = None if tx['blockheight'] == -1 else tx['blockheight']
+        t.block_hash = tx.get('blockhash', '')
         t.status = status
         for n, ti in enumerate(tx['vin']):
             t.inputs[n].value = int(round(float(ti['value'] or 0) * self.units, 0))
