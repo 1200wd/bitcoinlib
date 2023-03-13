@@ -1,3 +1,10 @@
+RELEASE 0.6.8 - Bugfixes and service provider update
+====================================================
+* Remove Chainso provider
+* Add Blockbook providers
+* Fix litecoinblockexplorer, bitaps provider
+* Other bugfixes and unittest issues
+
 RELEASE 0.6.7 - Fix installation, dependencies and provider issues
 ==================================================================
 * Fix installation issues
