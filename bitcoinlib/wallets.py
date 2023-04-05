@@ -1011,9 +1011,11 @@ class Wallet(object):
 
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri):
+                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri, db_password):
 
-        session = Db(db_uri=db_uri).session
+        db = Db(db_uri, db_password)
+        session = db.session
+        db_uri = db.db_uri
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
@@ -1084,7 +1086,7 @@ class Wallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, db_uri=None):
+               cosigner_id=None, key_path=None, db_uri=None, db_password=None):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
 
@@ -1277,7 +1279,7 @@ class Wallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           key_path=main_key_path, db_uri=db_uri)
+                           key_path=main_key_path, db_uri=db_uri, db_password=db_password)
 
         if multisig:
             wlt_cos_id = 0

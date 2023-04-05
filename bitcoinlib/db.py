@@ -58,7 +58,7 @@ class Db:
             else:
                 db_uri = 'sqlite:///%s' % db_uri
 
-        if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
+        if db_uri.startswith("sqlite") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
         if self.o.scheme == 'mysql':
