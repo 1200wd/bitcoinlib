@@ -1297,7 +1297,7 @@ class Wallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
-                                db_uri=db_uri)
+                                db_uri=db_uri, db_password=db_password)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
             # hdpm._dbwallet = hdpm._session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id)
