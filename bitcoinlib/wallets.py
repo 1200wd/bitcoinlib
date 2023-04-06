@@ -50,7 +50,7 @@ class WalletError(Exception):
         return self.msg
 
 
-def wallets_list(db_uri=None, include_cosigners=False):
+def wallets_list(db_uri=None, include_cosigners=False, db_password=None):
     """
     List Wallets from database
 
@@ -59,11 +59,13 @@ def wallets_list(db_uri=None, include_cosigners=False):
 
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
+    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :type db_password: str
 
     :return dict: Dictionary of wallets defined in database
     """
 
-    session = Db(db_uri=db_uri).session
+    session = Db(db_uri=db_uri, password=db_password).session
     wallets = session.query(DbWallet).order_by(DbWallet.id).all()
     wlst = []
     for w in wallets:
@@ -83,7 +85,7 @@ def wallets_list(db_uri=None, include_cosigners=False):
     return wlst
 
 
-def wallet_exists(wallet, db_uri=None):
+def wallet_exists(wallet, db_uri=None, db_password=None):
     """
     Check if Wallets is defined in database
 
@@ -91,13 +93,15 @@ def wallet_exists(wallet, db_uri=None):
     :type wallet: int, str
     :param db_uri: URI of the database
     :type db_uri: str
+    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :type db_password: str
 
     :return bool: True if wallet exists otherwise False
     """
 
-    if wallet in [x['name'] for x in wallets_list(db_uri)]:
+    if wallet in [x['name'] for x in wallets_list(db_uri, db_password=db_password)]:
         return True
-    if isinstance(wallet, int) and wallet in [x['id'] for x in wallets_list(db_uri)]:
+    if isinstance(wallet, int) and wallet in [x['id'] for x in wallets_list(db_uri, db_password=db_password)]:
         return True
     return False
 
@@ -105,7 +109,7 @@ def wallet_exists(wallet, db_uri=None):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, db_uri=None):
+        key_path=None, db_uri=None, db_password=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -113,17 +117,17 @@ def wallet_create_or_open(
 
     See Wallets class create method for option documentation
     """
-    if wallet_exists(name, db_uri=db_uri):
+    if wallet_exists(name, db_uri=db_uri, db_password=db_password):
         if keys or owner or password or witness_type or key_path:
             _logger.warning("Opening existing wallet, extra options are ignored")
-        return Wallet(name, db_uri=db_uri)
+        return Wallet(name, db_uri=db_uri, db_password=db_password)
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                              password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                             key_path, db_uri=db_uri)
+                             key_path, db_uri=db_uri, db_password=db_password)
 
 
-def wallet_delete(wallet, db_uri=None, force=False):
+def wallet_delete(wallet, db_uri=None, force=False, db_password=None):
     """
     Delete wallet and associated keys and transactions from the database. If wallet has unspent outputs it raises a
     WalletError exception unless 'force=True' is specified
@@ -134,11 +138,13 @@ def wallet_delete(wallet, db_uri=None, force=False):
     :type db_uri: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
+    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :type db_password: str
 
     :return int: Number of rows deleted, so 1 if successful
     """
 
-    session = Db(db_uri=db_uri).session
+    session = Db(db_uri=db_uri, password=db_password).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
@@ -185,7 +191,7 @@ def wallet_delete(wallet, db_uri=None, force=False):
     return res
 
 
-def wallet_empty(wallet, db_uri=None):
+def wallet_empty(wallet, db_uri=None, db_password=None):
     """
     Remove all generated keys and transactions from wallet. Does not delete the wallet itself or the masterkey,
     so everything can be recreated.
@@ -194,11 +200,13 @@ def wallet_empty(wallet, db_uri=None):
     :type wallet: int, str
     :param db_uri: URI of the database
     :type db_uri: str
+    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :type db_password: str
 
     :return bool: True if successful
     """
 
-    session = Db(db_uri=db_uri).session
+    session = Db(db_uri=db_uri, password=db_password).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
@@ -234,7 +242,7 @@ def wallet_empty(wallet, db_uri=None):
     return True
 
 
-def wallet_delete_if_exists(wallet, db_uri=None, force=False):
+def wallet_delete_if_exists(wallet, db_uri=None, force=False, db_password=None):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
     unless 'force=True' is specified. If the wallet does not exist return False
@@ -245,12 +253,14 @@ def wallet_delete_if_exists(wallet, db_uri=None, force=False):
     :type db_uri: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
+    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :type db_password: str
 
     :return int: Number of rows deleted, so 1 if successful
     """
 
-    if wallet_exists(wallet, db_uri):
-        return wallet_delete(wallet, db_uri, force)
+    if wallet_exists(wallet, db_uri, db_password=db_password):
+        return wallet_delete(wallet, db_uri, force, db_password=db_password)
     return False
 
 
@@ -1158,6 +1168,8 @@ class Wallet(object):
         :type key_path: list, str
         :param db_uri: URI of the database
         :type db_uri: str
+        :param db_password: Password to encrypt database. Requires the installation of pysqlcipher3.
+        :type db_password: str
 
         :return Wallet:
         """
@@ -1310,7 +1322,7 @@ class Wallet(object):
     def __enter__(self):
         return self
 
-    def __init__(self, wallet, db_uri=None, session=None, main_key_object=None):
+    def __init__(self, wallet, db_uri=None, session=None, main_key_object=None, db_password=None):
         """
         Open a wallet with given ID or name
 
@@ -1327,7 +1339,7 @@ class Wallet(object):
         if session:
             self._session = session
         else:
-            dbinit = Db(db_uri=db_uri)
+            dbinit = Db(db_uri=db_uri, password=db_password)
             self._session = dbinit.session
             self._engine = dbinit.engine
         self.db_uri = db_uri

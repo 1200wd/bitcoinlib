@@ -57,6 +57,8 @@ class Db:
                 db_uri = 'sqlite+pysqlcipher://:%s@/%s?cipher=aes-256-cfb&kdf_iter=64000' % (password, db_uri)
             else:
                 db_uri = 'sqlite:///%s' % db_uri
+        elif password:
+            raise NotImplementedError("Password protection is only available for sqlite databases at the moment")
 
         if db_uri.startswith("sqlite") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
