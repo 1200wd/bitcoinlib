@@ -10,8 +10,8 @@ your system might require other packages. Please read https://www.zetetic.net/sq
 .. code-block:: bash
 
     $ sudo apt install sqlcipher libsqlcipher0 libsqlcipher-dev
-    $ pip install pysqlcipher3
-
+    $ pip install sqlcipher3-binary
+    # Previous, but now unmaintained: $ pip install pysqlcipher3
 
 Now you can use a SQLCipher database URI to create and query a encrypted database:
 

@@ -59,7 +59,8 @@ def wallets_list(db_uri=None, include_cosigners=False, db_password=None):
 
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
-    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see
+    documentation).
     :type db_password: str
 
     :return dict: Dictionary of wallets defined in database
@@ -93,7 +94,7 @@ def wallet_exists(wallet, db_uri=None, db_password=None):
     :type wallet: int, str
     :param db_uri: URI of the database
     :type db_uri: str
-    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see documentation).
     :type db_password: str
 
     :return bool: True if wallet exists otherwise False
@@ -138,7 +139,7 @@ def wallet_delete(wallet, db_uri=None, force=False, db_password=None):
     :type db_uri: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
-    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see documentation).
     :type db_password: str
 
     :return int: Number of rows deleted, so 1 if successful
@@ -200,7 +201,7 @@ def wallet_empty(wallet, db_uri=None, db_password=None):
     :type wallet: int, str
     :param db_uri: URI of the database
     :type db_uri: str
-    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see documentation).
     :type db_password: str
 
     :return bool: True if successful
@@ -253,7 +254,7 @@ def wallet_delete_if_exists(wallet, db_uri=None, force=False, db_password=None):
     :type db_uri: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
-    :param db_password: Password to use for encrypted database. Requires the installation of pysqlcipher3.
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see documentation).
     :type db_password: str
 
     :return int: Number of rows deleted, so 1 if successful
@@ -1168,7 +1169,7 @@ class Wallet(object):
         :type key_path: list, str
         :param db_uri: URI of the database
         :type db_uri: str
-        :param db_password: Password to encrypt database. Requires the installation of pysqlcipher3.
+        :param db_password: Password to encrypt database. Requires the installation of sqlcipher (see documentation).
         :type db_password: str
 
         :return Wallet:
