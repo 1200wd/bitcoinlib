@@ -58,7 +58,7 @@ Other requirements Linux
 
 On Debian, Ubuntu or their derivatives:
 
-``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
+``sudo apt install build-essential python3-dev libgmp3-dev``
 
 On Fedora, CentOS or RHEL:
 
