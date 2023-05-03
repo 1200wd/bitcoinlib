@@ -38,9 +38,11 @@ class TestSecurity(TestCase):
     def test_security_wallet_field_encryption(self):
         pk = 'xprv9s21ZrQH143K2HrtPWvqgD8mUhMrrfE1ZME43baM8ti3hWgJwWX1wjHc25y2x11seT5G3KeHFY28MyTRxceeW22kMDAWsMDn7' \
              'rcWnEMFP3t'
-        pk_enc_hex = 'cbfe0c6aa900cdd080cd28855e21e563d65fa3de4ad99a320037ccb7ce633d2c2889bb90b20e5dae2b0005405819d' \
-                     '3239d21e4ffc39e980fcb6bbbb7db1718247ed3b53a3caeffd930c071cd3a059cc063bd0a71503671e98906dbe857' \
-                     '17f1ffea8e20844309f6fb6b281349a2b3915af3d12dc4c90c3b68f6666eb665682d'
+        pk_wif_enc_hex = \
+            'cbfe0c6aa900cdd080cd28855e21e563d65fa3de4ad99a320037ccb7ce633d2c2889bb90b20e5dae2b0005405819d' \
+            '3239d21e4ffc39e980fcb6bbbb7db1718247ed3b53a3caeffd930c071cd3a059cc063bd0a71503671e98906dbe857' \
+            '17f1ffea8e20844309f6fb6b281349a2b3915af3d12dc4c90c3b68f6666eb665682d'
+        pk_enc_hex = 'f8777f10a435d5e3fdbb64cfdcb929626ce38c7103e772921ad1fc21c5e69e474423a998523bf53565ab45711a14086c'
 
         if not DATABASE_ENCRYPTION_ENABLED:
             self.skipTest("Database encryption not enabled, skip this test")
@@ -51,10 +53,12 @@ class TestSecurity(TestCase):
         wallet.new_key()
         self.assertEqual(wallet.main_key.wif, pk)
 
-        db_query = text('SELECT wif FROM keys WHERE id=%d' % wallet._dbwallet.main_key_id)
-        encrypted_main_key = wallet._session.execute(db_query).fetchone()[0]
-        self.assertEqual(type(encrypted_main_key), bytes, "Encryption of database private key failed!")
-        self.assertEqual(encrypted_main_key.hex(), pk_enc_hex)
+        db_query = text('SELECT wif, private FROM keys WHERE id=%d' % wallet._dbwallet.main_key_id)
+        encrypted_main_key_wif = wallet._session.execute(db_query).fetchone()[0]
+        encrypted_main_key_private = wallet._session.execute(db_query).fetchone()[1]
+        self.assertEqual(type(encrypted_main_key_wif), bytes, "Encryption of database private key failed!")
+        self.assertEqual(encrypted_main_key_wif.hex(), pk_wif_enc_hex)
+        self.assertEqual(encrypted_main_key_private.hex(), pk_enc_hex)
 
 
 if __name__ == '__main__':
