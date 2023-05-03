@@ -20,7 +20,7 @@ jobs:
           pip install mysql-connector
           pip install mysqlclient
           pip install parameterized
-          pip install Cython --install-option="--no-cython-compile"
+          pip install Cython
           python setup.py install
       - name: Test with coverage
         env:
