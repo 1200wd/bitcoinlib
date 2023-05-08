@@ -1065,7 +1065,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                            db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
-        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
+        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)], fee=10000)
         t.sign(pk2)
         t.send(offline=True)
         self.assertTrue(t.verify())
