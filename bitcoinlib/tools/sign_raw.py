@@ -4,7 +4,7 @@
 #
 #    Import and sign multisig transaction with private key wif or passphrase
 #
-#    © 2019 December - 1200 Web Development <http://1200wd.com/>
+#    © 2019-2023 April - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
