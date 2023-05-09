@@ -110,7 +110,7 @@ def wallet_exists(wallet, db_uri=None, db_password=None):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, db_uri=None, db_password=None):
+        key_path=None, db_uri=None, db_cache_uri=None, db_password=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -121,11 +121,11 @@ def wallet_create_or_open(
     if wallet_exists(name, db_uri=db_uri, db_password=db_password):
         if keys or owner or password or witness_type or key_path:
             _logger.warning("Opening existing wallet, extra options are ignored")
-        return Wallet(name, db_uri=db_uri, db_password=db_password)
+        return Wallet(name, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                              password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                             key_path, db_uri=db_uri, db_password=db_password)
+                             key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
 
 
 def wallet_delete(wallet, db_uri=None, force=False, db_password=None):
@@ -1022,10 +1022,15 @@ class Wallet(object):
 
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri, db_password):
+                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri, db_cache_uri,
+                db_password):
 
         db = Db(db_uri, db_password)
         session = db.session
+        if (db_uri is None or db_uri.startswith("sqlite")) and db_cache_uri is None:
+            db_cache_uri = DEFAULT_DATABASE_CACHE
+        elif not db_cache_uri:
+            db_cache_uri = db.db_uri
         db_uri = db.db_uri
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
@@ -1064,7 +1069,7 @@ class Wallet(object):
         new_wallet_id = new_wallet.id
 
         if scheme == 'bip32' and multisig and parent_id is None:
-            w = cls(new_wallet_id, db_uri=db_uri)
+            w = cls(new_wallet_id, db_uri=db_uri, db_cache_uri=db_cache_uri)
         elif scheme == 'bip32':
             mk = WalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                     account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
@@ -1072,7 +1077,7 @@ class Wallet(object):
             new_wallet.main_key_id = mk.key_id
             session.commit()
 
-            w = cls(new_wallet_id, db_uri=db_uri, main_key_object=mk.key())
+            w = cls(new_wallet_id, db_uri=db_uri, db_cache_uri=db_cache_uri, main_key_object=mk.key())
             w.key_for_path([0, 0], account_id=account_id, cosigner_id=cosigner_id)
         else:  # scheme == 'single':
             if not key:
@@ -1082,7 +1087,7 @@ class Wallet(object):
                                     witness_type=witness_type, multisig=multisig)
             new_wallet.main_key_id = mk.key_id
             session.commit()
-            w = cls(new_wallet_id, db_uri=db_uri, main_key_object=mk.key())
+            w = cls(new_wallet_id, db_uri=db_uri, db_cache_uri=db_cache_uri, main_key_object=mk.key())
 
         session.close()
         return w
@@ -1097,7 +1102,7 @@ class Wallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, db_uri=None, db_password=None):
+               cosigner_id=None, key_path=None, db_uri=None, db_cache_uri=None, db_password=None):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
 
@@ -1167,8 +1172,10 @@ class Wallet(object):
             * All keys must be hardened, except for change, address_index or cosigner_id
             * Max length of path is 8 levels
         :type key_path: list, str
-        :param db_uri: URI of the database
+        :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
+        :param db_cache_uri: URI of the cache database. If not specified  the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
+        :type db_cache_uri: str
         :param db_password: Password to encrypt database. Requires the installation of sqlcipher (see documentation).
         :type db_password: str
 
@@ -1292,7 +1299,7 @@ class Wallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           key_path=main_key_path, db_uri=db_uri, db_password=db_password)
+                           key_path=main_key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
 
         if multisig:
             wlt_cos_id = 0
@@ -1310,7 +1317,7 @@ class Wallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
-                                db_uri=db_uri, db_password=db_password)
+                                db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
             # hdpm._dbwallet = hdpm._session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id)
@@ -1323,7 +1330,7 @@ class Wallet(object):
     def __enter__(self):
         return self
 
-    def __init__(self, wallet, db_uri=None, session=None, main_key_object=None, db_password=None):
+    def __init__(self, wallet, db_uri=None, db_cache_uri=None, session=None, main_key_object=None, db_password=None):
         """
         Open a wallet with given ID or name
 
@@ -1331,6 +1338,8 @@ class Wallet(object):
         :type wallet: int, str
         :param db_uri: URI of the database
         :type db_uri: str
+        :param db_cache_uri: URI of the cache database. If not specified  the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
+        :type db_cache_uri: str
         :param session: Sqlalchemy session
         :type session: sqlalchemy.orm.session.Session
         :param main_key_object: Pass main key object to save time
@@ -1344,7 +1353,7 @@ class Wallet(object):
             self._session = dbinit.session
             self._engine = dbinit.engine
         self.db_uri = db_uri
-        self.db_cache_uri = db_uri
+        self.db_cache_uri = db_cache_uri
         if isinstance(wallet, int) or wallet.isdigit():
             db_wlt = self._session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
@@ -1365,7 +1374,7 @@ class Wallet(object):
             self.multisig_n_required = db_wlt.multisig_n_required
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
-            self.cosigner = [Wallet(w.id, db_uri=db_uri) for w in co_sign_wallets]
+            self.cosigner = [Wallet(w.id, db_uri=db_uri, db_cache_uri=db_cache_uri) for w in co_sign_wallets]
             self.sort_keys = db_wlt.sort_keys
             if db_wlt.main_key_id:
                 self.main_key = WalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
@@ -2803,6 +2812,7 @@ class Wallet(object):
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
+                    srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
                     srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
                     utxos = []
                     for address in addresslist:
