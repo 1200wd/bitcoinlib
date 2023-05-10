@@ -42,7 +42,7 @@ Then install using pip
 
     $ pip install bitcoinlib
 
-For more detailed installation instructions, installation instructions for other systems or troubleshooting please read https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.install.html
+For more detailed installation instructions, how to install on other systems or troubleshooting please read https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.install.html
 
 
 Documentation
@@ -51,8 +51,8 @@ Documentation
 Read the full documentation at: http://bitcoinlib.readthedocs.io/
 
 
-An Example
-----------
+Example
+-------
 
 The bitcoin library contains a wallet implementation using SQLAlchemy and SQLite3 to import, create and manage
 keys in a Hierarchical Deterministic way.
@@ -86,7 +86,8 @@ If successful a transaction ID is returned
 More examples
 -------------
 
-For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
+Checkout the documentation page https://bitcoinlib.readthedocs.io/en/latest/ or take a look at some
+more examples at https://github.com/1200wd/bitcoinlib/tree/master/examples
 
 
 Contact
