@@ -1112,7 +1112,7 @@ class Wallet(object):
         >>> if wallet_delete_if_exists('create_legacy_wallet_test'): pass
         >>> w = Wallet.create('create_legacy_wallet_test')
         >>> w
-        <Wallet(name=create_legacy_wallet_test, db_uri="None")>
+        <Wallet(name="create_legacy_wallet_test")>
 
         To create a multi signature wallet specify multiple keys (private or public) and provide the sigs_required
         argument if it different then len(keys)
@@ -1132,7 +1132,7 @@ class Wallet(object):
         >>> if wallet_delete_if_exists('bitcoinlib_legacy_wallet_test', force=True): pass
         >>> w = Wallet.create('bitcoinlib_legacy_wallet_test', wif)
         >>> w
-        <Wallet(name=bitcoinlib_legacy_wallet_test, db_uri="None")>
+        <Wallet(name="bitcoinlib_legacy_wallet_test")>
         >>> # Add some test utxo data:
         >>> if w.utxo_add('16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', 100000000, '748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', 0): pass
 
@@ -1422,8 +1422,11 @@ class Wallet(object):
             pass
 
     def __repr__(self):
-        return "<Wallet(name=%s, db_uri=\"%s\")>" % \
-               (self.name, self.db_uri)
+        db_uri = self.db_uri.split('?')[0]
+        if DEFAULT_DATABASE in db_uri:
+            return "<Wallet(name=\"%s\")>" % self.name
+        return "<Wallet(name=\"%s\", db_uri=\"%s\")>" % \
+               (self.name, db_uri)
 
     def __str__(self):
         return self.name
