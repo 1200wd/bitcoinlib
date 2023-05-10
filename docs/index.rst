@@ -6,7 +6,7 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
-Bitcoin and other Crypto Currency Library for Python.
+Bitcoin Crypto Currency Library for Python.
 
 Includes a fully functional wallet, with multi signature, multi currency and multiple accounts. Use this
 library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
