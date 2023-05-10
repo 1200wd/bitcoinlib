@@ -1080,7 +1080,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(multisig=True),
         ]
         wl = Wallet.create('multisig_test_bitcoin_send3', key_list, sigs_required=2, db_uri=self.DATABASE_URI)
-        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
+        wl.utxo_add(wl.get_key().address, 20000000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
         t = wl.sweep('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', fee='low')
         t.sign(pk2)
