@@ -15,6 +15,7 @@ from bitcoinlib.services.services import Service
 from bitcoinlib.wallets import wallet_create_or_open, wallet_delete_if_exists
 
 network = 'testnet'
+
 # # Example wallet
 # phrase1 = 'meadow bag inquiry eyebrow exotic onion skill clerk dish hunt caught road'
 # phrase2 = 'east amount soap pause erosion invite mom finger oak still vast bacon'
