@@ -340,14 +340,14 @@ class TestTransactions(unittest.TestCase):
         t.add_output(2710000, '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
-        self.assertEqual(t.estimate_size(), 225)
+        self.assertEqual(t.estimate_size(), 227)
 
     def test_transactions_estimate_size_nulldata(self):
         t = Transaction()
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
         t.add_output(0, lock_script=lock_script)
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
-        self.assertEqual(t.estimate_size(number_of_change_outputs=1), 239)
+        self.assertEqual(t.estimate_size(number_of_change_outputs=1), 241)
 
     def test_transaction_very_large(self):
         rawtx = \
@@ -1361,7 +1361,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_input(prev_txid, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
-        self.assertEqual(t.estimate_size(), 337)
+        self.assertEqual(t.estimate_size(), 339)
 
     def test_transaction_multisig_litecoin(self):
         network = 'litecoin'

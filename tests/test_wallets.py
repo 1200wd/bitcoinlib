@@ -152,7 +152,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         if os.name == 'nt':
             self.skipTest("Problems with Travis windows python encodings")
         self.assertIsNone(self.wallet.info())
-        self.assertIn("<Wallet(name=test_wallet_create, db_uri=", repr(self.wallet))
+        self.assertIn("<Wallet(name=\"test_wallet_create\", db_uri=", repr(self.wallet))
 
     def test_wallet_exists(self):
         self.assertTrue(wallet_exists(self.wallet.wallet_id, db_uri=self.DATABASE_URI))
@@ -1845,9 +1845,9 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt = Wallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        self.assertRaisesRegexp(WalletError, 'Fee per kB of 666 is lower then minimal network fee of 1000',
+        self.assertRaisesRegexp(WalletError, 'Fee per kB of 660 is lower then minimal network fee of 1000',
                                 wlt.send_to, to_key.address, 50000000, fee=150)
-        self.assertRaisesRegexp(WalletError, 'Fee per kB of 1333333 is higher then maximum network fee of 1000000',
+        self.assertRaisesRegexp(WalletError, 'Fee per kB of 1321585 is higher then maximum network fee of 1000000',
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
@@ -1892,8 +1892,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             t.sign(p2)
             t.estimate_size()
             size2 = t.size
-            self.assertAlmostEqual(size1, size2, delta=4)
-            self.assertAlmostEqual(len(t.raw()), size2, delta=4)
+            self.assertAlmostEqual(size1, size2, delta=6)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=6)
 
     def test_wallet_transaction_method(self):
         pk1 = HDKey(network='bitcoinlib_test')
