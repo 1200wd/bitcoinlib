@@ -261,7 +261,11 @@ class BitcoindClient(BaseClient):
         return int(res * self.units)
 
     def blockcount(self):
-        return self.proxy.getblockcount()
+        bcinfo = self.proxy.getblockchaininfo()
+        if bcinfo['headers'] - bcinfo['blocks'] > 2:
+            raise ClientError("Node not fully synced! Currently %d blocks synced and %d blocks known" %
+                              (bcinfo['blocks'], bcinfo['headers']))
+        return bcinfo['blocks']
 
     def mempool(self, txid=''):
         txids = self.proxy.getrawmempool()

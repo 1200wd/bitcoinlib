@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Segregated Witness Wallets
 #
-#    © 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #
 # Create 4 different Segregated Witness wallets of which 2 Native segwit wallets and 2 wallets with P2SH embeded
@@ -70,7 +70,7 @@ else:
         print("Balance to low, please deposit at least %s to %s" %
               (((tx_fee+tx_amount)*4)-w1.balance(), w1_key.address))
     print("Sending transaction from wallet #1 to wallet #2:")
-    t = w1.send_to(w2_key.address, 4 * tx_amount, fee=tx_fee)
+    t = w1.send_to(w2_key.address, 4 * tx_amount, fee=tx_fee, offline=False)
     t.info()
 
     while True:
@@ -79,7 +79,7 @@ else:
         sleep(1)
         if w2.utxos():
             print("Sending transaction from wallet #2 to wallet #3:")
-            t2 = w2.send_to(w3_key.address, 3 * tx_amount, fee=tx_fee)
+            t2 = w2.send_to(w3_key.address, 3 * tx_amount, fee=tx_fee, offline=False)
             t2.info()
             break
 
@@ -89,7 +89,7 @@ else:
         sleep(1)
         if w3.utxos():
             print("Sending transaction from wallet #3 to wallet #4:")
-            t3 = w3.send_to(w4_key.address, 2 * tx_amount, fee=tx_fee)
+            t3 = w3.send_to(w4_key.address, 2 * tx_amount, fee=tx_fee, offline=False)
             t3.sign(wif2)
             t3.send()
             t3.info()
@@ -101,7 +101,7 @@ else:
         sleep(1)
         if w4.utxos():
             print("Sending transaction from wallet #4 to wallet #1:")
-            t4 = w4.send_to(w1_key.address, tx_amount, fee=tx_fee)
+            t4 = w4.send_to(w1_key.address, tx_amount, fee=tx_fee, offline=False)
             t4.sign(wif2)
             t4.send()
             t4.info()

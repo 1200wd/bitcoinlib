@@ -85,7 +85,7 @@ class BlockbookClient(BaseClient):
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,
-                'block_height': tx['height'],
+                'block_height': tx.get('height', 0),
                 'fee': None,
                 'size': 0,
                 'value': int(tx['value']),

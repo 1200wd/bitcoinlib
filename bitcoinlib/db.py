@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2016 - 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,12 +20,13 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
-                        ForeignKey, DateTime, LargeBinary)
+                        ForeignKey, DateTime, LargeBinary, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from urllib.parse import urlparse
 from bitcoinlib.main import *
+from bitcoinlib.encoding import aes_encrypt, aes_decrypt
 
 _logger = logging.getLogger(__name__)
 Base = declarative_base()
@@ -57,8 +58,10 @@ class Db:
                 db_uri = 'sqlite+pysqlcipher://:%s@/%s?cipher=aes-256-cfb&kdf_iter=64000' % (password, db_uri)
             else:
                 db_uri = 'sqlite:///%s' % db_uri
+        elif password:
+            raise NotImplementedError("Password protection is only available for sqlite databases at the moment")
 
-        if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
+        if db_uri.startswith("sqlite") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
         if self.o.scheme == 'mysql':
@@ -126,6 +129,61 @@ def add_column(engine, table_name, column):
     column_name = column.compile(dialect=engine.dialect)
     column_type = column.type.compile(engine.dialect)
     engine.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table_name, column_name, column_type))
+
+
+class EncryptedBinary(TypeDecorator):
+    """
+    FieldType for encrypted Binary storage using EAS encryption
+    """
+
+    impl = LargeBinary
+    cache_ok = True
+    key = None
+    if DATABASE_ENCRYPTION_ENABLED:
+        if not DB_FIELD_ENCRYPTION_KEY:
+            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
+                            "environment. Please supply 32 bytes key as hexadecimal string.")
+        else:
+            key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+
+    def process_bind_param(self, value, dialect):
+        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+            return value
+        return aes_encrypt(value, self.key)
+
+    def process_result_value(self, value, dialect):
+        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+            return value
+        return aes_decrypt(value, self.key)
+
+
+class EncryptedString(TypeDecorator):
+    """
+    FieldType for encrypted String storage using EAS encryption
+    """
+
+    impl = String
+    cache_ok = True
+    key = None
+    if DATABASE_ENCRYPTION_ENABLED:
+        if not DB_FIELD_ENCRYPTION_KEY:
+            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
+                            "environment. Please supply 32 bytes key as hexadecimal string.")
+        else:
+            impl = LargeBinary
+            key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+
+    def process_bind_param(self, value, dialect):
+        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+            return value
+        if not isinstance(value, bytes):
+            value = bytes(value, 'utf8')
+        return aes_encrypt(value, self.key)
+
+    def process_result_value(self, value, dialect):
+        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+            return value
+        return aes_decrypt(value, self.key).decode('utf8')
 
 
 class DbConfig(Base):
@@ -224,8 +282,8 @@ class DbKey(Base):
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
     public = Column(LargeBinary(128), index=True, doc="Bytes representation of public key")
-    private = Column(LargeBinary(128), index=True, doc="Bytes representation of private key")
-    wif = Column(String(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
+    private = Column(EncryptedBinary(48), doc="Bytes representation of private key")
+    wif = Column(EncryptedString(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
     key_type = Column(String(10), default='bip32', doc="Type of key: single, bip32 or multisig. Default is bip32")
     address = Column(String(255), index=True,

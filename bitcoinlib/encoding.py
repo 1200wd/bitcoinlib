@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Methods for encoding and conversion
-#    © 2016 - 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -901,6 +901,52 @@ def hash160(string):
     :return bytes: RIPEMD-160 hash of script
     """
     return ripemd160(hashlib.sha256(string).digest())
+
+
+def aes_encrypt(data, key):
+    """
+    Encrypt data using AES Symmetric Block cipher Encryption in SIV mode (see
+    https://pycryptodome.readthedocs.io/en/latest/src/cipher/modern.html#siv-mode)
+
+    A nonce is not used so data is encrypted deterministic, in SIV mode this doesn't reduce security.
+
+    Method returns a byte string with ciphertext and a 16-byte tag. The ciphertext has the same length as the data.
+
+    Data can be decrypted with the :func:`aes_decrypt` method
+
+    :param data: Data to encrypt
+    :type data: bytes
+    :param key: The cryptographic key, size must be 32 bytes because AES-128 is used as cipher
+    :type key: bytes
+
+    :return bytes: Ciphertext and 16 bytes tag
+
+    """
+    cipher = AES.new(key, AES.MODE_SIV)
+    ct, tag = cipher.encrypt_and_digest(data)
+    return ct + tag
+
+
+def aes_decrypt(encrypted_data, key):
+    """
+    Decrypt encrypted data using AES Symmetric Block cipher Encryption in SIV mode. Use to decrypt data encrypted
+    with the :func:`aes_encrypt` method. The encrypted data attribute must contain a Ciphertext and 16-byte tag.
+
+    A nonce is not used so data is encrypted deterministic, in SIV mode this doesn't reduce security.
+    (see https://pycryptodome.readthedocs.io/en/latest/src/cipher/modern.html#siv-mode)
+
+    :param encrypted_data: Data to decrypt. Must consist of a ciphertext and 16 byte tag.
+    :type encrypted_data: bytes
+    :param key: The cryptographic key, size must be 32 bytes because AES-128 is used as cipher
+    :type key: bytes
+
+    :return bytes: Ciphertext and 16 bytes tag
+
+    """
+    ct = encrypted_data[:-16]
+    tag = encrypted_data[-16:]
+    cipher2 = AES.new(key, AES.MODE_SIV)
+    return cipher2.decrypt_and_verify(ct, tag)
 
 
 def bip38_decrypt(encrypted_privkey, password):

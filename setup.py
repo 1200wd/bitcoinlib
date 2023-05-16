@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    PyPi Setup Tool
-#    © 2018-2020 January - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -44,7 +44,7 @@ install_requires = [
       'pycryptodome>=3.14.1',
       'SQLAlchemy>=1.4.28',
       'numpy==1.19.5;python_version<"3.8"',
-      'numpy>=1.21.0;python_version>="3.8"'
+      'numpy>=1.22.0;python_version>="3.8"'
 ]
 
 kwargs['install_requires'] = install_requires
@@ -70,6 +70,7 @@ setup(
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',
             'Programming Language :: Python :: 3.10',
+            'Programming Language :: Python :: 3.11',
             'Topic :: Software Development :: Libraries :: Python Modules',
             'Topic :: Security :: Cryptography',
             'Topic :: Office/Business :: Financial :: Accounting',

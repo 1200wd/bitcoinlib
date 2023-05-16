@@ -86,7 +86,7 @@ class AuthServiceProxy(object):
         self.__service_name = service_name
         self.__url = urlparse.urlparse(service_url)
         if self.__url.port is None:
-            port = 80
+            port = 443 if self.__url.scheme == 'https' else 80
         else:
             port = self.__url.port
         (user, passwd) = (self.__url.username, self.__url.password)
