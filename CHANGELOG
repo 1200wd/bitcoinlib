@@ -1,3 +1,11 @@
+RELEASE 0.6.10 - Field and database encryption
+==============================================
+* Allow to encrypt private key fields in database
+* Include examples/documentation for field and full database encryption
+* Fixed various provider issues
+* Fixed unittests fee issues
+* Fixed secure bitcoind connection
+
 RELEASE 0.6.9 - Bugfixes and service provider update
 ====================================================
 * Remove Chainso provider
