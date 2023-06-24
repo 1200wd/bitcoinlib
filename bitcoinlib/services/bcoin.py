@@ -73,7 +73,7 @@ class BcoinClient(BaseClient):
         for address in addresslist:
             # First get all transactions for this address from the blockchain
             srv = Service(network=self.network.name, providers=['bcoin'])
-            txs = srv.gettransactions(address, limit=25)
+            txs = srv.gettransactions(address, limit=MAX_TRANSACTIONS)
 
             # Fail if large number of transactions are found
             if not srv.complete:
