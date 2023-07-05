@@ -98,8 +98,9 @@ class AuthServiceProxy(object):
             passwd = passwd.encode('utf8')
         except AttributeError:
             pass
-        authpair = user + b':' + passwd
-        self.__auth_header = b'Basic ' + base64.b64encode(authpair)
+        if not (user is None or passwd is None):
+            authpair = user + b':' + passwd
+            self.__auth_header = b'Basic ' + base64.b64encode(authpair)
 
         self.__timeout = timeout
 

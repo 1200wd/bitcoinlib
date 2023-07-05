@@ -7,7 +7,7 @@ jobs:
 
     strategy:
       matrix:
-        python: ["3.8", "3.10", "3.11"]
+        python: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v3
@@ -26,7 +26,7 @@ jobs:
         pip install scrypt
         pip install Cython
         python setup.py install
-    - name: Test with covarage
+    - name: Test with coverage
       env:
         BCL_CONFIG_FILE: config.ini.unittest
         UNITTESTS_FULL_DATABASE_TEST: False
