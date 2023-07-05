@@ -130,7 +130,7 @@ class MempoolClient(BaseClient):
         prtxs = []
         before_txid = ''
         while True:
-            txs = self.compose_request('address', address, 'txs/chain', before_txid)
+            txs = self.compose_request('address', address, 'txs', before_txid)
             prtxs += txs
             if len(txs) == 25:
                 before_txid = txs[-1:][0]['txid']
