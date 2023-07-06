@@ -578,7 +578,7 @@ class Address(object):
                 witness_type = 'p2sh-segwit'
             elif self.script_type == 'p2tr':
                 witness_type = 'taproot'
-                self.witver = 1
+                self.witver = 8 if self.network == 'litecoin' else 1
         self.witness_type = witness_type
         self.depth = depth
         self.change = change
