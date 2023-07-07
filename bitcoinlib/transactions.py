@@ -1097,8 +1097,8 @@ class Output(object):
     """
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                 output_n=0, script_type=None, encoding=None, spending_txid='', spending_index_n=None, strict=True,
-                 network=DEFAULT_NETWORK):
+                 output_n=0, script_type=None, witver=0, encoding=None, spending_txid='', spending_index_n=None,
+                 strict=True, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -1125,6 +1125,8 @@ class Output(object):
         :type output_n: int
         :param script_type: Script type of output (p2pkh, p2sh, segwit p2wpkh, etc). Extracted from lock_script if provided.
         :type script_type: str
+        :param witver: Witness version
+        :type witver: int
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from address or default base58 encoding
         :type encoding: str
         :param spending_txid: Transaction hash of input spending this transaction output
@@ -1171,6 +1173,7 @@ class Output(object):
         self.spent = spent
         self.output_n = output_n
         self.script = Script.parse_bytes(self.lock_script, strict=strict)
+        self.witver = witver
 
         if self._address_obj:
             self.script_type = self._address_obj.script_type if script_type is None else script_type
@@ -1185,6 +1188,8 @@ class Output(object):
             self.public_hash = self.script.public_hash
             if self.script.keys:
                 self.public_key = self.script.keys[0].public_hex
+            if self.script_type == 'p2tr':
+                self.witver = self.script.commands[0] - 80
 
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
@@ -1213,11 +1218,6 @@ class Output(object):
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
-        # if self.public_hash and not self._address:
-        #     self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
-        #                                encoding=self.encoding, network=self.network)
-        #     self.address = self.address_obj.address
-        #     self.versionbyte = self.address_obj.prefix
         if not self.script and strict and (self.public_hash or self.public_key):
             self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
             self.lock_script = self.script.serialize()
@@ -1240,7 +1240,7 @@ class Output(object):
         if not self._address_obj:
             if self.public_hash:
                 self._address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
-                                            encoding=self.encoding, network=self.network)
+                                            witver=self.witver, encoding=self.encoding, network=self.network)
                 self._address = self._address_obj.address
                 self.versionbyte = self._address_obj.prefix
         return self._address_obj
