@@ -1,3 +1,10 @@
+RELEASE 0.6.11 - Bugfix release
+===============================
+* Fix issues with mempool.space, bcoin, litecoind and bitcoind
+* Fix data type mixup in Service.getblock
+* Fix installation issues with old Python versions
+* Fix p2tr addresses with non-standard witness version
+
 RELEASE 0.6.10 - Field and database encryption
 ==============================================
 * Allow to encrypt private key fields in database
