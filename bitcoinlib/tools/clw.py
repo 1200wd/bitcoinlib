@@ -88,7 +88,7 @@ def parse_args():
                                     'you would like to create keys for other cosigners.')
     group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
-                                   help="Create transaction. Specify address followed by amount. Repeat for multiple "
+                                   help="Create transaction. Specify address followed by amount in satoshis. Repeat for multiple "
                                    "outputs", nargs='*')
     group_transaction.add_argument('--sweep', metavar="ADDRESS",
                                    help="Sweep wallet, transfer all funds to specified address")
@@ -187,11 +187,11 @@ def create_transaction(wlt, send_args, args):
     output_arr = []
     while send_args:
         if len(send_args) == 1:
-            raise ValueError("Invalid number of transaction input use <address1> <amount1> ... <address_n> <amount_n>")
+            raise ValueError("Invalid number of transaction inputs. Use <address_1> <amount_1> ... <address_n> <amount_n>")
         try:
             amount = int(send_args[1])
         except ValueError:
-            clw_exit("Amount must be a integer value: %s" % send_args[1])
+            clw_exit("Amount must be in satoshis, an integer value: %s" % send_args[1])
         output_arr.append((send_args[0], amount))
         send_args = send_args[2:]
     return wlt.transaction_create(output_arr=output_arr, network=args.network, fee=args.fee, min_confirms=0)
