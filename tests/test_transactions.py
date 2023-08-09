@@ -1537,6 +1537,24 @@ class TestTransactionsTimelocks(unittest.TestCase):
         t3 = Transaction.load(filename='tx_test.tx')
         self.assertEqual(t, t3)
 
+    def test_transaction_save_load_sign(self):
+        pk1 = HDKey('tprv8ZgxMBicQKsPen95zTdorkDGPi4jHy9xBf4TdVxrB1wTJgSKCZbHpWhmaTGoRXHj2dJRcJQhRkV22Mz3uhg9nThjGLA'
+                    'JKzrPuZXPmFUgQ42')
+        pk2 = HDKey('tprv8ZgxMBicQKsPdhv4GxyNcfNK1Wka7QEnQ2c8DNdRL5z3hzf7ufUYNW14fgArjFvLtyg5xmPrkpx6oGBo2dquPf5inH6'
+                    'Jg6h2D89nsQdY8Ga')
+
+        t = Transaction(network='testnet')
+        t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
+                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
+        t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
+        self.assertFalse(t.verify())
+        t.save()
+
+        t2 = Transaction.load(t.txid)
+        t2.sign(pk1)
+        t2.sign(pk2)
+        self.assertTrue(t2.verify())
+
     def test_transaction_locktime_cltv(self):
         # timelock = 533600
         # inputs = [
