@@ -1197,7 +1197,26 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                          )
         self.assertTrue(t1 == t2)
 
-    def test_transaction_p2tr(self):
+    def test_transaction_lightning_force_close(self):
+        txid = '0018f5e7c12f1ba6b75021f72e5037bf07f7625ab5c97c09d5e32c61d276db90'
+        network = 'bitcoin'
+        rawtx = ('0200000000010152d28713dfb0014f739821c4b96fe0a72dab4e893aec1df226ddc5e81e3d7e3d0000000000f000000001'
+                 'fccb070000000000160014dc754901d5d9299c6b42c315c5e384c89c5eafda03483045022100db8e0480b4f9b44063b635'
+                 'c89291a2f9cb860fe05c533c59dbcdb014df1fcd02022010936f2acbfd14bcb010cbaee6b13139f6fec8686edb41d2380c'
+                 '5aa42e1be48001004d632103750ff0f31bb30189b1714b4613e0e68c8d9c2fe85b0f5a174f2f8b31aa06c51d6702f000b2'
+                 '752102a3ab7a4b357101f4b77fa7d915b37aeeed0404b2f7de2f0bedc6dfb15386cbfa68acbf270900')
+        witness_0 = ('3045022100db8e0480b4f9b44063b635c89291a2f9cb860fe05c533c59dbcdb014df1fcd02022010936f2acbfd14bc'
+                     'b010cbaee6b13139f6fec8686edb41d2380c5aa42e1be48001')
+        witness_1 = '00'
+        witness_2 = ('632103750ff0f31bb30189b1714b4613e0e68c8d9c2fe85b0f5a174f2f8b31aa06c51d6702f000b2752102a3ab7a4b3'
+                     '57101f4b77fa7d915b37aeeed0404b2f7de2f0bedc6dfb15386cbfa68ac')
+        t = Transaction.parse_hex(rawtx, True, network=network)
+        self.assertEqual(t.txid, txid)
+        self.assertEqual(t.inputs[0].witnesses[0].hex(), witness_0)
+        self.assertEqual(t.inputs[0].witnesses[1].hex(), witness_1)
+        self.assertEqual(t.inputs[0].witnesses[2].hex(), witness_2)
+
+    def test_transaction_p2tr_output(self):
         rawtx = '01000000000101d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c0549580100000000fdffffff02' \
                 '0000000000000000316a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e20' \
                 '4062697462756734329e06010000000000225120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e541' \
@@ -1206,6 +1225,28 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t = Transaction.parse_hex(rawtx)
         self.assertEqual(t.outputs[1].address, 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297')
         self.assertEqual(t.outputs[1].script_type, 'p2tr')
+
+    def test_transaction_p2tr_input_litecoin(self):
+        txid = '91030689be4cb4a940b6c3a740cede243cbe2793c5405f08b0ed34e22df12430'
+        network = 'litecoin'
+        rawtx = ('0100000000010122614318de2d668e53481173347915aa340e48d65088a88e77eb6464f7fc34610000000000fdffffff'
+                 '011027000000000000160014daba82eb57ac200b44fd87030398906cc742233c03402121b2683cc78e2de583dd82e7e2'
+                 'be76eaf5905dc03af01178bb0f40a309fe1b9669fe491fb3bdcc04c5366fdfac9d2c5b7c1f764b94545ad55a696122e6'
+                 'd9f14d205029871633eecea9ebe3c12a622f40321135649c30c0a018fd8d2879a0b608cfac0063036f72640101187465'
+                 '78742f706c61696e3b636861727365743d7574662d380007686f742e6c74636821c15029871633eecea9ebe3c12a622f'
+                 '40321135649c30c0a018fd8d2879a0b608cf00000000')
+
+        witness_0 = ('2121b2683cc78e2de583dd82e7e2be76eaf5905dc03af01178bb0f40a309fe1b9669fe491fb3bdcc04c5366fdfac9d'
+                     '2c5b7c1f764b94545ad55a696122e6d9f1')
+        witness_1 = ('205029871633eecea9ebe3c12a622f40321135649c30c0a018fd8d2879a0b608cfac0063036f726401011874657874'
+                     '2f706c61696e3b636861727365743d7574662d380007686f742e6c746368')
+        witness_2 = 'c15029871633eecea9ebe3c12a622f40321135649c30c0a018fd8d2879a0b608cf'
+        t = Transaction.parse_hex(rawtx, True, network=network)
+        self.assertEqual(t.txid, txid)
+        self.assertEqual(t.inputs[0].script_type, 'p2tr')
+        self.assertEqual(t.inputs[0].witnesses[0].hex(), witness_0)
+        self.assertEqual(t.inputs[0].witnesses[1].hex(), witness_1)
+        self.assertEqual(t.inputs[0].witnesses[2].hex(), witness_2)
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):

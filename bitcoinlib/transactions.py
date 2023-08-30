@@ -985,7 +985,7 @@ class Input(object):
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
         elif self.script_type == 'p2tr':  # segwit_v1
-            self.redeemscript = self.unlocking_script = self.witnesses[0]
+            self.redeemscript = self.witnesses[0]
             # FIXME: Address cannot be known without looking at previous transaction
         elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
@@ -1478,6 +1478,7 @@ class Transaction(object):
                 if not n_items:
                     continue
                 script = Script()
+                is_taproot = False
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
                     if item_size == 0:
@@ -1485,7 +1486,13 @@ class Transaction(object):
                     else:
                         witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
-                    s = Script.parse_bytes(witness, strict=strict)
+                    if not is_taproot:
+                        s = Script.parse_bytes(witness, strict=strict)
+                    if s.script_types == ['p2tr_unlock']:
+                        # FIXME: Support Taproot unlocking scripts
+                        _logger.warning("Taproot is not supported at the moment, rest of parsing input transaction "
+                                        "skipped")
+                        is_taproot = True
                     script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
@@ -1503,6 +1510,8 @@ class Transaction(object):
                 elif inputs[n].script_type == 'p2wpkh' or inputs[n].script_type == 'p2wsh':
                     inputs[n].script_type = 'p2sh_p2wsh'
                     inputs[n].witness_type = 'p2sh-segwit'
+                elif 'unknown' in script.script_types:
+                    inputs[n].script_type = 'unknown'
 
                 inputs[n].update_scripts()
 

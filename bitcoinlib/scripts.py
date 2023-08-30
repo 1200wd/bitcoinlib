@@ -430,8 +430,8 @@ class Script(object):
                                       (len(s.keys), s.commands[-2] - 80))
             elif st in ['p2wpkh', 'p2wsh', 'p2sh', 'p2tr'] and len(s.commands) > 1:
                 s.public_hash = s.commands[1]
-            elif st == ['p2tr_unlock']:
-                s.public_hash = s.commands[1]
+            elif st == 'p2tr_unlock':
+                s.public_hash = s.commands[0]
             elif st == 'p2pkh' and len(s.commands) > 2:
                 s.public_hash = s.commands[2]
         s.redeemscript = redeemscript if redeemscript else s.redeemscript
