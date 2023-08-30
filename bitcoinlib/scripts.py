@@ -45,6 +45,7 @@ SCRIPT_TYPES = {
     'sig_pubkey': ('unlocking', ['signature', 'key'], []),
     # 'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
+    'p2tr_unlock': ('unlocking', ['data'], [64]),
     'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'redeemscript'], []),
     'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'redeemscript'], []),
     'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
@@ -155,7 +156,7 @@ def get_data_type(data):
     elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
             (data.startswith(b'\x04') and len(data) == 65):
         return 'key'
-    elif len(data) == 20 or len(data) == 32 or 1 < len(data) <= 4:
+    elif len(data) == 20 or len(data) == 32 or len(data) == 64 or 1 < len(data) <= 4:
         return 'data-%d' % len(data)
     else:
         return 'other'
@@ -282,14 +283,17 @@ class Script(object):
 
         :return Script:
         """
+        data_length = None
         if isinstance(script, bytes):
+            data_length = len(script) // 2
             script = BytesIO(script)
         elif isinstance(script, str):
+            data_length = len(script)
             script = BytesIO(bytes.fromhex(script))
-        return cls.parse_bytesio(script, message, tx_data, strict, _level)
+        return cls.parse_bytesio(script, message, tx_data, data_length, strict, _level)
 
     @classmethod
-    def parse_bytesio(cls, script, message=None, tx_data=None, strict=True, _level=0):
+    def parse_bytesio(cls, script, message=None, tx_data=None, data_length=0, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -299,6 +303,8 @@ class Script(object):
         :type message: bytes
         :param tx_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts
         :type tx_data: dict
+        :param data_length: Length of script data if known. Supply if you can to increase efficiency and lower change of incorrect parsing
+        :type data_length: int
         :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
@@ -317,28 +323,20 @@ class Script(object):
         if not tx_data:
             tx_data = {}
 
-        while script:
-            chb = script.read(1)
-            if not chb:
-                break
-            ch = int.from_bytes(chb, 'big')
-            data = None
+        chb = script.read(1)
+        ch = int.from_bytes(chb, 'big')
+        data = None
+        if chb == b'\x30' and 69 <= data_length <= 74:
+            data = chb + script.read(data_length - 1)
+        elif ((chb == b'\x02' or chb == b'\x03') and data_length == 33) or \
+                (chb == b'\x04' and data_length == 65):
+            data = chb + script.read(data_length - 1)
+        elif data_length == 64:
+            data = chb + script.read(data_length - 1)
+        else:
             data_length = 0
-            if 1 <= ch <= 75:  # Data`
-                data_length = ch
-            elif ch == op.op_pushdata1:
-                data_length = int.from_bytes(script.read(1), 'little')
-            elif ch == op.op_pushdata2:
-                data_length = int.from_bytes(script.read(2), 'little')
-            if data_length:
-                data = script.read(data_length)
-                if len(data) != data_length:
-                    msg = "Malformed script, not enough data found"
-                    if strict:
-                        raise ScriptError(msg)
-                    else:
-                        _logger.warning(msg)
 
+        while chb and script:
             if data:
                 data_type = get_data_type(data)
                 commands.append(data)
@@ -384,9 +382,31 @@ class Script(object):
                             sigs_required = s2.sigs_required
                     except (ScriptError, IndexError):
                         blueprint.append('data-%d' % len(data))
+                data = None
+                data_length = 0
             else:  # Other opcode
+                if 1 <= ch <= 75:  # Data`
+                    data_length = ch
+                elif ch == op.op_pushdata1:
+                    data_length = int.from_bytes(script.read(1), 'little')
+                elif ch == op.op_pushdata2:
+                    data_length = int.from_bytes(script.read(2), 'little')
+                if data_length:
+                    data = script.read(data_length)
+                    if len(data) != data_length:
+                        msg = "Malformed script, not enough data found"
+                        if strict:
+                            raise ScriptError(msg)
+                        else:
+                            chb = b''
+                            _logger.warning(msg)
+                    continue
+
                 commands.append(ch)
                 blueprint.append(ch)
+
+            chb = script.read(1)
+            ch = int.from_bytes(chb, 'big')
 
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, tx_data=tx_data,
                 hash_type=hash_type)
@@ -409,6 +429,8 @@ class Script(object):
                     raise ScriptError("%d keys found but %d keys expected" %
                                       (len(s.keys), s.commands[-2] - 80))
             elif st in ['p2wpkh', 'p2wsh', 'p2sh', 'p2tr'] and len(s.commands) > 1:
+                s.public_hash = s.commands[1]
+            elif st == ['p2tr_unlock']:
                 s.public_hash = s.commands[1]
             elif st == 'p2pkh' and len(s.commands) > 2:
                 s.public_hash = s.commands[2]
@@ -443,7 +465,8 @@ class Script(object):
 
         :return Script:
         """
-        return cls.parse_bytesio(BytesIO(bytes.fromhex(script)), message, tx_data, strict, _level)
+        data_length = len(script) // 2
+        return cls.parse_bytesio(BytesIO(bytes.fromhex(script)), message, tx_data, data_length, strict, _level)
 
     @classmethod
     def parse_bytes(cls, script, message=None, tx_data=None, strict=True, _level=0):
@@ -465,7 +488,8 @@ class Script(object):
 
         :return Script:
         """
-        return cls.parse_bytesio(BytesIO(script), message, tx_data, strict, _level)
+        data_length = len(script)
+        return cls.parse_bytesio(BytesIO(script), message, tx_data, data_length, strict, _level)
 
     def __repr__(self):
         s_items = []

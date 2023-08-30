@@ -984,6 +984,9 @@ class Input(object):
                 addr_data = self.keys[0].public_byte
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
+        elif self.script_type == 'p2tr':  # segwit_v1
+            self.redeemscript = self.unlocking_script = self.witnesses[0]
+            # FIXME: Address cannot be known without looking at previous transaction
         elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
@@ -1477,17 +1480,23 @@ class Transaction(object):
                 script = Script()
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
-                    witness = rawtx.read(item_size)
+                    if item_size == 0:
+                        witness = b'\0'
+                    else:
+                        witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
-                    s = Script.parse_bytes(varstr(witness), strict=strict)
+                    s = Script.parse_bytes(witness, strict=strict)
                     script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
-                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] == 'signature_multisig':  # , 'p2sh_p2wsh'
+                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
+                elif script.script_types[0] == 'p2tr_unlock':
+                    inputs[n].script_type = 'p2tr'
+                    inputs[n].witness_type = 'segwit'
                 elif inputs[n].script_type == 'p2wpkh':
                     inputs[n].script_type = 'p2sh_p2wpkh'
                     inputs[n].witness_type = 'p2sh-segwit'
