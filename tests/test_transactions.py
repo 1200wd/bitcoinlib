@@ -105,26 +105,26 @@ class TestTransactionInputs(unittest.TestCase):
 
     # TODO: Move and rewrite
     # def test_transaction_input_locktime(self):
-        # rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
-        #         '022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b' \
-        #         '161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d097733' \
-        #         '7376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a32' \
-        #         '7696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c' \
-        #         '9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3a' \
-        #         'c99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66a' \
-        #         'dea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7ff' \
-        #         'f527757d5987ffffffff'
-        # t = Transaction.parse_hex(rawtx)
-        # t.inputs[0].set_locktime_relative_time(1000)
-        # self.assertEqual(t.inputs[0].sequence, 4194305)
-        # t.inputs[0].set_locktime_relative_time(0)
-        # self.assertEqual(t.inputs[0].sequence, 0xffffffff)
-        # t.inputs[0].set_locktime_relative_time(100)
-        # self.assertEqual(t.inputs[0].sequence, 4194305)
-        # t.inputs[0].set_locktime_relative_blocks(120)
-        # self.assertEqual(t.inputs[0].sequence, 120)
-        # t.inputs[0].set_locktime_relative_blocks(0)
-        # self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+    #      rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
+    #              '022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b' \
+    #              '161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d097733' \
+    #              '7376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a32' \
+    #              '7696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c' \
+    #              '9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3a' \
+    #              'c99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66a' \
+    #              'dea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7ff' \
+    #              'f527757d5987ffffffff'
+    #      t = Transaction.parse_hex(rawtx)
+    #      t.inputs[0].set_locktime_relative_time(1000)
+    #      self.assertEqual(t.inputs[0].sequence, 4194305)
+    #      t.inputs[0].set_locktime_relative_time(0)
+    #      self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+    #      t.inputs[0].set_locktime_relative_time(100)
+    #      self.assertEqual(t.inputs[0].sequence, 4194305)
+    #      t.inputs[0].set_locktime_relative_blocks(120)
+    #      self.assertEqual(t.inputs[0].sequence, 120)
+    #      t.inputs[0].set_locktime_relative_blocks(0)
+    #      self.assertEqual(t.inputs[0].sequence, 0xffffffff)
 
 
 class TestTransactionOutputs(unittest.TestCase):
@@ -1225,6 +1225,35 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t = Transaction.parse_hex(rawtx)
         self.assertEqual(t.outputs[1].address, 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297')
         self.assertEqual(t.outputs[1].script_type, 'p2tr')
+
+    def test_transaction_p2tr_input(self):
+        txid = '37777defed8717c581b4c0509329550e344bdc14ac38f71fc050096887e535c8'
+        network = 'bitcoin'
+        rawtx = (
+            '020000000001027bc0bba407bc67178f100e352bf6e047fae4cbf960d783586cb5e430b3b700e70000000000feffffff7bc0bb'
+            'a407bc67178f100e352bf6e047fae4cbf960d783586cb5e430b3b700e70100000000feffffff01b4ba0e000000000016001417'
+            '3fd310e9db2c7e9550ce0f03f1e6c01d833aa90140134896c42cd95680b048845847c8054756861ffab7d4abab72f6508d67d1'
+            'ec0c590287ec2161dd7884983286e1cd56ce65c08a24ee0476ede92678a93b1b180c03407b5d614a4610bf9196775791fcc589'
+            '597ca066dcd10048e004cd4c7341bb4bb90cee4705192f3f7db524e8067a5222c7f09baf29ef6b805b8327ecd1e5ab83ca2220'
+            'f5b059b9a72298ccbefff59d9b943f7e0fc91d8a3b944a95e7b6390cc99eb5f4ac41c0d9dfdf0fe3c83e9870095d67fff59a80'
+            '56dad28c6dfb944bb71cf64b90ace9a7776b22a1185fb2dc9524f6b178e2693189bf01655d7f38f043923668dc5af45bffd30a'
+            '00')
+
+        witness_0_0 = ('134896c42cd95680b048845847c8054756861ffab7d4abab72f6508d67d1ec0c590287ec2161dd7884983286e1cd'
+                       '56ce65c08a24ee0476ede92678a93b1b180c')
+        witness_1_0 = ('7b5d614a4610bf9196775791fcc589597ca066dcd10048e004cd4c7341bb4bb90cee4705192f3f7db524e8067a52'
+                       '22c7f09baf29ef6b805b8327ecd1e5ab83ca')
+        witness_1_1 = '20f5b059b9a72298ccbefff59d9b943f7e0fc91d8a3b944a95e7b6390cc99eb5f4ac'
+        witness_1_2 = ('c0d9dfdf0fe3c83e9870095d67fff59a8056dad28c6dfb944bb71cf64b90ace9a7776b22a1185fb2dc9524f6b178'
+                       'e2693189bf01655d7f38f043923668dc5af45b')
+        t = Transaction.parse_hex(rawtx, True, network=network)
+        self.assertEqual(t.txid, txid)
+        self.assertEqual(t.inputs[0].script_type, 'p2tr')
+        self.assertEqual(t.inputs[1].script_type, 'p2tr')
+        self.assertEqual(t.inputs[0].witnesses[0].hex(), witness_0_0)
+        self.assertEqual(t.inputs[1].witnesses[0].hex(), witness_1_0)
+        self.assertEqual(t.inputs[1].witnesses[1].hex(), witness_1_1)
+        self.assertEqual(t.inputs[1].witnesses[2].hex(), witness_1_2)
 
     def test_transaction_p2tr_input_litecoin(self):
         txid = '91030689be4cb4a940b6c3a740cede243cbe2793c5405f08b0ed34e22df12430'
