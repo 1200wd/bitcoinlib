@@ -1488,12 +1488,12 @@ class Transaction(object):
                     inputs[n].witnesses.append(witness)
                     if not is_taproot:
                         s = Script.parse_bytes(witness, strict=strict)
-                    if s.script_types == ['p2tr_unlock']:
-                        # FIXME: Support Taproot unlocking scripts
-                        _logger.warning("Taproot is not supported at the moment, rest of parsing input transaction "
-                                        "skipped")
-                        is_taproot = True
-                    script += s
+                        if s.script_types == ['p2tr_unlock']:
+                            # FIXME: Support Taproot unlocking scripts
+                            _logger.warning("Taproot is not supported at the moment, rest of parsing input transaction "
+                                            "skipped")
+                            is_taproot = True
+                        script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
@@ -1510,7 +1510,7 @@ class Transaction(object):
                 elif inputs[n].script_type == 'p2wpkh' or inputs[n].script_type == 'p2wsh':
                     inputs[n].script_type = 'p2sh_p2wsh'
                     inputs[n].witness_type = 'p2sh-segwit'
-                elif 'unknown' in script.script_types:
+                elif 'unknown' in script.script_types and not coinbase:
                     inputs[n].script_type = 'unknown'
 
                 inputs[n].update_scripts()
