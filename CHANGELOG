@@ -1,3 +1,11 @@
+RELEASE 0.6.12 - Prepare for Taproot
+====================================
+* Parse p2tr input scripts
+* Fix issues with coinbase segwit transactions
+* Ignore extra signatures when creating unlocking script
+* Clarify wording of amount parameter in clw
+* Add parsing taproot transactions unittests
+
 RELEASE 0.6.11 - Bugfix release
 ===============================
 * Fix issues with mempool.space, bcoin, litecoind and bitcoind
