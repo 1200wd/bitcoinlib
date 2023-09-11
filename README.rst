@@ -1,16 +1,16 @@
 Python Bitcoin Library
 ======================
 
-Bitcoin Crypto Currency Library for Python.
+Bitcoin cryptocurrency Library writen in Python.
 
-Includes a fully functional wallet, with multi signature, multi currency and multiple accounts. Use this
-library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
+Allows you to create a fully functional Bitcoin wallet with a single line of code.
+Use this library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
 simple and straightforward Python code.
 
-You this library at a high level and create and manage wallets for the command line or at a low level
-and create your own custom made transactions, keys or wallets.
+You can use this library at a high level and create and manage wallets from the command line or at a low level
+and create your own custom made transactions, scripts, keys or wallets.
 
-The BitcoinLib connects to various service providers automatically to update wallets, transactions and
+The BitcoinLib connects to various service providers automatically to update wallets, transaction and
 blockchain information.
 
 .. image:: https://github.com/1200wd/bitcoinlib/actions/workflows/unittests.yaml/badge.svg
