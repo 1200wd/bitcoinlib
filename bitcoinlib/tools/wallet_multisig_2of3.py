@@ -71,7 +71,7 @@ if not wallet_exists(WALLET_NAME):
                 key_lists[w[0]].append(addkey)
 
     offline_wallet = Wallet.create(WALLET_NAME, key_lists['Offline PC'], sigs_required=SIGNATURES_REQUIRED,
-                                     witness_type=WITNESS_TYPE, network=NETWORK)
+                                   witness_type=WITNESS_TYPE, network=NETWORK)
     offline_wallet.new_key()
 
     print("\n\nA multisig wallet has been created on this system")

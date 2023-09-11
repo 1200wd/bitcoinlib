@@ -953,7 +953,7 @@ class Input(object):
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
-                if len(signatures) == self.sigs_required:  # and not self.unlocking_script
+                if len(signatures) and len(signatures) >= self.sigs_required:  # and not self.unlocking_script
                     unlock_script_obj = Script(script_types=['p2sh_multisig'], keys=[k.public_byte for k in self.keys],
                                                signatures=self.signatures[:self.sigs_required],
                                                sigs_required=self.sigs_required, redeemscript=self.redeemscript)
@@ -984,6 +984,9 @@ class Input(object):
                 addr_data = self.keys[0].public_byte
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
+        elif self.script_type == 'p2tr':  # segwit_v1
+            self.redeemscript = self.witnesses[0]
+            # FIXME: Address cannot be known without looking at previous transaction
         elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
@@ -1475,25 +1478,40 @@ class Transaction(object):
                 if not n_items:
                     continue
                 script = Script()
+                is_taproot = False
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
-                    witness = rawtx.read(item_size)
+                    if item_size == 0:
+                        witness = b'\0'
+                    else:
+                        witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
-                    s = Script.parse_bytes(varstr(witness), strict=strict)
-                    script += s
+                    if not is_taproot:
+                        s = Script.parse_bytes(witness, strict=strict)
+                        if s.script_types == ['p2tr_unlock']:
+                            # FIXME: Support Taproot unlocking scripts
+                            _logger.warning("Taproot is not supported at the moment, rest of parsing input transaction "
+                                            "skipped")
+                            is_taproot = True
+                        script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
-                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] == 'signature_multisig':  # , 'p2sh_p2wsh'
+                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
+                elif script.script_types[0] == 'p2tr_unlock':
+                    inputs[n].script_type = 'p2tr'
+                    inputs[n].witness_type = 'segwit'
                 elif inputs[n].script_type == 'p2wpkh':
                     inputs[n].script_type = 'p2sh_p2wpkh'
                     inputs[n].witness_type = 'p2sh-segwit'
                 elif inputs[n].script_type == 'p2wpkh' or inputs[n].script_type == 'p2wsh':
                     inputs[n].script_type = 'p2sh_p2wsh'
                     inputs[n].witness_type = 'p2sh-segwit'
+                elif 'unknown' in script.script_types and not coinbase:
+                    inputs[n].script_type = 'unknown'
 
                 inputs[n].update_scripts()
 

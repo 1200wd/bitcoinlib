@@ -100,7 +100,7 @@ pk2 = HDKey()
 pk3 = HDKey()
 t = Transaction()
 test_txid = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
-t.add_input(prev_txid=test_txid, output_n=0,
+t.add_input(prev_txid=test_txid, output_n=0, value=100000,
             keys=[pk1.public_byte, pk2.public_byte, pk3.public_byte],
             script_type='p2sh_multisig', sigs_required=2)
 t.add_output(100000, '1HsZBGm6nNGG1Moc3TL6S9DSGbnPbsSyW3')
