@@ -22,7 +22,7 @@ jobs:
           pip install mysqlclient
           pip install parameterized
           pip install scrypt
-          python setup.py install
+          python -m pip install .
       - name: Test with coverage
         env:
           BCL_CONFIG_FILE: config.ini.unittest

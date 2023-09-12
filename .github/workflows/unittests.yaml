@@ -25,7 +25,7 @@ jobs:
         pip install parameterized
         pip install scrypt
         pip install Cython
-        python setup.py install
+        python -m pip install .
     - name: Test with coverage
       env:
         BCL_CONFIG_FILE: config.ini.unittest
