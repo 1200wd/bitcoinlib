@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install .[dev]
-          pip uninstall scrypt
+          pip uninstall -y scrypt
       - name: Test with coverage
         env:
           BCL_CONFIG_FILE: config_encryption.ini.unittest
