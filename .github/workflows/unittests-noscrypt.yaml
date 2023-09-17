@@ -15,13 +15,8 @@ jobs:
           architecture: 'x64'
       - name: Install dependencies
         run: |
-          pip install coveralls
-          pip install psycopg2
-          pip install mysql-connector
-          pip install mysqlclient
-          pip install parameterized
-          pip install Cython
-          python -m pip install .
+          python -m pip install .[dev]
+          pip uninstall scrypt
       - name: Test with coverage
         env:
           BCL_CONFIG_FILE: config_encryption.ini.unittest

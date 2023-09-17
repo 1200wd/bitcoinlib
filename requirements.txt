@@ -11,3 +11,5 @@ mysql-connector-python>=8.0.27
 mysqlclient>=2.1.0
 parameterized>=0.8.1
 sphinx_rtd_theme>=1.0.0
+Cython
+win-unicode-console;platform_system=="Windows"
