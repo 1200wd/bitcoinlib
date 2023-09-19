@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BitAps client
-#    © 2019 August - 1200 Web Development <http://1200wd.com/>
+#    © 2019 - 2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -46,48 +46,48 @@ class BitapsClient(BaseClient):
             url_path += data
         return self.request(url_path, variables=variables, method=method)
 
-    # def _parse_transaction(self, tx):
-    #     status = 'unconfirmed'
-    #     if tx['confirmations']:
-    #         status = 'confirmed'
-    #     date = None
-    #     if 'timestamp' in tx and tx['timestamp']:
-    #         date = datetime.utcfromtimestamp(tx['timestamp'])
-    #     elif 'blockTime' in tx and tx['blockTime']:
-    #         date = datetime.utcfromtimestamp(tx['blockTime'])
-    #     block_height = None
-    #     if 'blockHeight' in tx:
-    #         block_height = tx['blockHeight']
-    #     witness_type = 'legacy'
-    #     if tx['segwit']:
-    #         witness_type = 'segwit'
-    #
-    #     t = Transaction(
-    #         locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
-    #         fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'],
-    #         txid=tx['txId'], date=date, confirmations=tx['confirmations'], block_height=block_height,
-    #         input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
-    #         verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)
-    #
-    #     for n, ti in tx['vIn'].items():
-    #         if t.coinbase:
-    #             t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
-    #                         sequence=ti['sequence'], index_n=int(n), value=0)
-    #         else:
-    #             t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
-    #                         unlocking_script_unsigned=ti['scriptPubKey'],
-    #                         address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
-    #                         index_n=int(n), value=ti['amount'], strict=self.strict)
-    #
-    #     for _, to in tx['vOut'].items():
-    #         spending_txid = None if not to['spent'] else to['spent'][0]['txId']
-    #         spending_index_n = None if not to['spent'] else to['spent'][0]['vIn']
-    #         t.add_output(to['value'], '' if 'address' not in to else to['address'],
-    #                      '' if 'addressHash' not in to else to['addressHash'], lock_script=to['scriptPubKey'],
-    #                      spent=bool(to['spent']), spending_txid=spending_txid, spending_index_n=spending_index_n,
-    #                      strict=self.strict)
-    #
-    #     return t
+    def _parse_transaction(self, tx):
+        status = 'unconfirmed'
+        if tx['confirmations']:
+            status = 'confirmed'
+        date = None
+        if 'timestamp' in tx and tx['timestamp']:
+            date = datetime.utcfromtimestamp(tx['timestamp'])
+        elif 'blockTime' in tx and tx['blockTime']:
+            date = datetime.utcfromtimestamp(tx['blockTime'])
+        block_height = None
+        if 'blockHeight' in tx:
+            block_height = tx['blockHeight']
+        witness_type = 'legacy'
+        if tx['segwit']:
+            witness_type = 'segwit'
+
+        t = Transaction(
+            locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
+            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'],
+            txid=tx['txId'], date=date, confirmations=tx['confirmations'], block_height=block_height,
+            input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
+            verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)
+
+        for n, ti in tx['vIn'].items():
+            if t.coinbase:
+                t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                            sequence=ti['sequence'], index_n=int(n), value=0)
+            else:
+                t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                            unlocking_script_unsigned=ti['scriptPubKey'], witnesses=ti.get('txInWitness', []),
+                            address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
+                            index_n=int(n), value=ti['amount'], strict=self.strict)
+
+        for _, to in tx['vOut'].items():
+            spending_txid = None if not to['spent'] else to['spent'][0]['txId']
+            spending_index_n = None if not to['spent'] else to['spent'][0]['vIn']
+            t.add_output(to['value'], '' if 'address' not in to else to['address'],
+                         '' if 'addressHash' not in to else to['addressHash'], lock_script=to['scriptPubKey'],
+                         spent=bool(to['spent']), spending_txid=spending_txid, spending_index_n=spending_index_n,
+                         strict=self.strict)
+
+        return t
 
     def getbalance(self, addresslist):
         balance = 0
@@ -138,31 +138,30 @@ class BitapsClient(BaseClient):
                 break
         return utxos[:limit]
 
-    # FIXME: Disabled results very unpredictable, seem randomized... :(
-    # def gettransaction(self, txid):
-    #     res = self.compose_request('transaction', txid)
-    #     return self._parse_transaction(res['data'])
-    #
-    # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-    #     page = 0
-    #     txs = []
-    #     while True:
-    #         variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': 'asc'}
-    #         try:
-    #             res = self.compose_request('address', 'transactions', address, variables)
-    #         except ClientError:
-    #             if "address not found" in self.resp.text:
-    #                 return []
-    #         for tx in res['data']['list']:
-    #             txs.append(self._parse_transaction(tx))
-    #             if tx['txId'] == after_txid:
-    #                 txs = []
-    #         if len(txs) > limit:
-    #             break
-    #         page += 1
-    #         if page >= res['data']['pages']:
-    #             break
-    #     return txs[:limit]
+    def gettransaction(self, txid):
+        res = self.compose_request('transaction', txid)
+        return self._parse_transaction(res['data'])
+
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        page = 0
+        txs = []
+        while True:
+            variables = {'mode': 'verbose', 'limit': MAX_TRANSACTIONS, 'page': page, 'order': 'asc'}
+            try:
+                res = self.compose_request('address', 'transactions', address, variables)
+            except ClientError:
+                if "address not found" in self.resp.text:
+                    return []
+            for tx in res['data']['list']:
+                txs.append(self._parse_transaction(tx))
+                if tx['txId'] == after_txid:
+                    txs = []
+            if len(txs) > limit:
+                break
+            page += 1
+            if page >= res['data']['pages']:
+                break
+        return txs[:limit]
 
     # def getrawtransaction(self, txid):
     #     tx = self.compose_request('transaction', txid)

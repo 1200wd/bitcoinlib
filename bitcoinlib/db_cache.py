@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Cache DataBase - SqlAlchemy database definitions for caching
-#    © 2020 February - 1200 Web Development <http://1200wd.com/>
+#    © 2020 - 2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -70,10 +70,6 @@ class DbCache:
         elif not db_uri:
             return
         self.o = urlparse(db_uri)
-
-        # if self.o.scheme == 'mysql':
-        #     raise Warning("Could not connect to cache database. MySQL databases not supported at the moment, "
-        #                   "because bytes strings are not supported as primary keys")
 
         if not self.o.scheme or len(self.o.scheme) < 2:
             db_uri = 'sqlite:///%s' % db_uri

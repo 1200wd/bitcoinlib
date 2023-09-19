@@ -24,9 +24,9 @@ jobs:
         pip install mysqlclient
         pip install parameterized
         pip install scrypt
-        pip install Cython --install-option="--no-cython-compile"
+        pip install Cython
         python setup.py install
-    - name: Test with covarage
+    - name: Test with coverage
       env:
         BCL_CONFIG_FILE: config.ini.unittest
         UNITTESTS_FULL_DATABASE_TEST: False

@@ -429,5 +429,17 @@ class TestEncodingConfig(unittest.TestCase):
         self.assertEqual(op.op_checklocktimeverify, 177)
 
 
+class TestEncodingEncryption(unittest.TestCase):
+
+    def test_encryption_aes(self):
+        key = b'e2bfe15fc5d7067b567402dd9d7235fc088ac84eab8113bf8d7e3c288d2f1eff'
+        data = b'A lot of people automatically dismiss e-currency as a lost cause because of all the companies that failed ' \
+               b'since the 1990\'s. I hope it\'s obvious it was only the centrally controlled nature of those systems that ' \
+               b'doomed them. I think this is the first time we\'re trying a decentralized, non-trust-based system.'
+        encrypted_data = aes_encrypt(data, key)
+        quote = aes_decrypt(encrypted_data, key)
+        self.assertEqual(data, quote)
+
+
 if __name__ == '__main__':
     unittest.main()

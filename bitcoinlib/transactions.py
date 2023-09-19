@@ -953,7 +953,7 @@ class Input(object):
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
-                if len(signatures) == self.sigs_required:  # and not self.unlocking_script
+                if len(signatures) and len(signatures) >= self.sigs_required:  # and not self.unlocking_script
                     unlock_script_obj = Script(script_types=['p2sh_multisig'], keys=[k.public_byte for k in self.keys],
                                                signatures=self.signatures[:self.sigs_required],
                                                sigs_required=self.sigs_required, redeemscript=self.redeemscript)
@@ -984,6 +984,9 @@ class Input(object):
                 addr_data = self.keys[0].public_byte
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
+        elif self.script_type == 'p2tr':  # segwit_v1
+            self.redeemscript = self.witnesses[0]
+            # FIXME: Address cannot be known without looking at previous transaction
         elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
@@ -1097,8 +1100,8 @@ class Output(object):
     """
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                 output_n=0, script_type=None, encoding=None, spending_txid='', spending_index_n=None, strict=True,
-                 network=DEFAULT_NETWORK):
+                 output_n=0, script_type=None, witver=0, encoding=None, spending_txid='', spending_index_n=None,
+                 strict=True, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -1125,6 +1128,8 @@ class Output(object):
         :type output_n: int
         :param script_type: Script type of output (p2pkh, p2sh, segwit p2wpkh, etc). Extracted from lock_script if provided.
         :type script_type: str
+        :param witver: Witness version
+        :type witver: int
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from address or default base58 encoding
         :type encoding: str
         :param spending_txid: Transaction hash of input spending this transaction output
@@ -1171,6 +1176,7 @@ class Output(object):
         self.spent = spent
         self.output_n = output_n
         self.script = Script.parse_bytes(self.lock_script, strict=strict)
+        self.witver = witver
 
         if self._address_obj:
             self.script_type = self._address_obj.script_type if script_type is None else script_type
@@ -1185,6 +1191,8 @@ class Output(object):
             self.public_hash = self.script.public_hash
             if self.script.keys:
                 self.public_key = self.script.keys[0].public_hex
+            if self.script_type == 'p2tr':
+                self.witver = self.script.commands[0] - 80
 
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
@@ -1213,11 +1221,6 @@ class Output(object):
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
-        # if self.public_hash and not self._address:
-        #     self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
-        #                                encoding=self.encoding, network=self.network)
-        #     self.address = self.address_obj.address
-        #     self.versionbyte = self.address_obj.prefix
         if not self.script and strict and (self.public_hash or self.public_key):
             self.script = Script(script_types=[self.script_type], public_hash=self.public_hash, keys=[self.public_key])
             self.lock_script = self.script.serialize()
@@ -1240,7 +1243,7 @@ class Output(object):
         if not self._address_obj:
             if self.public_hash:
                 self._address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
-                                            encoding=self.encoding, network=self.network)
+                                            witver=self.witver, encoding=self.encoding, network=self.network)
                 self._address = self._address_obj.address
                 self.versionbyte = self._address_obj.prefix
         return self._address_obj
@@ -1475,25 +1478,40 @@ class Transaction(object):
                 if not n_items:
                     continue
                 script = Script()
+                is_taproot = False
                 for m in range(0, n_items):
                     item_size = read_varbyteint(rawtx)
-                    witness = rawtx.read(item_size)
+                    if item_size == 0:
+                        witness = b'\0'
+                    else:
+                        witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
-                    s = Script.parse_bytes(varstr(witness), strict=strict)
-                    script += s
+                    if not is_taproot:
+                        s = Script.parse_bytes(witness, strict=strict)
+                        if s.script_types == ['p2tr_unlock']:
+                            # FIXME: Support Taproot unlocking scripts
+                            _logger.warning("Taproot is not supported at the moment, rest of parsing input transaction "
+                                            "skipped")
+                            is_taproot = True
+                        script += s
 
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
-                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] == 'signature_multisig':  # , 'p2sh_p2wsh'
+                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
+                elif script.script_types[0] == 'p2tr_unlock':
+                    inputs[n].script_type = 'p2tr'
+                    inputs[n].witness_type = 'segwit'
                 elif inputs[n].script_type == 'p2wpkh':
                     inputs[n].script_type = 'p2sh_p2wpkh'
                     inputs[n].witness_type = 'p2sh-segwit'
                 elif inputs[n].script_type == 'p2wpkh' or inputs[n].script_type == 'p2wsh':
                     inputs[n].script_type = 'p2sh_p2wsh'
                     inputs[n].witness_type = 'p2sh-segwit'
+                elif 'unknown' in script.script_types and not coinbase:
+                    inputs[n].script_type = 'unknown'
 
                 inputs[n].update_scripts()
 
@@ -2333,8 +2351,6 @@ class Transaction(object):
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
             self.version_int = 2
-        if witness_type is None:
-            witness_type = self.witness_type
         self.inputs.append(
             Input(prev_txid=prev_txid, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
@@ -2426,7 +2442,7 @@ class Transaction(object):
 
         # if self.input_total and self.output_total + self.fee == self.input_total:
         #     add_change_output = False
-        est_size = 10
+        est_size = 12
         witness_size = 2
         if self.witness_type != 'legacy':
             est_size += 2

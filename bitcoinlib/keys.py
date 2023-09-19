@@ -533,7 +533,7 @@ class Address(object):
                        address_index=address_index, network=network, network_overrides=network_overrides)
 
     def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
-                 compressed=None, encoding=None, witness_type=None, depth=None, change=None,
+                 compressed=None, encoding=None, witness_type=None, witver=0, depth=None, change=None,
                  address_index=None, network=DEFAULT_NETWORK, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
@@ -550,6 +550,8 @@ class Address(object):
         :type prefix: str, bytes
         :param script_type: Type of script, i.e. p2sh or p2pkh.
         :type script_type: str
+        :param witver: Witness version. Used for p2tr addresses
+        :type witver: int
         :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding
         :type encoding: str
         :param witness_type: Specify 'legacy', 'segwit' or 'p2sh-segwit'. Legacy for old-style bitcoin addresses, segwit for native segwit addresses and p2sh-segwit for segwit embedded in a p2sh script. Leave empty to derive automatically from script type if possible
@@ -570,7 +572,7 @@ class Address(object):
         self.script_type = script_type
         self.encoding = encoding
         self.compressed = compressed
-        self.witver = 0
+        self.witver = witver
         if witness_type is None:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 witness_type = 'segwit'
@@ -578,7 +580,7 @@ class Address(object):
                 witness_type = 'p2sh-segwit'
             elif self.script_type == 'p2tr':
                 witness_type = 'taproot'
-                self.witver = 1
+                self.witver = 1 if self.witver == 0 else self.witver
         self.witness_type = witness_type
         self.depth = depth
         self.change = change

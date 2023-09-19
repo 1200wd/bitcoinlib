@@ -1,3 +1,33 @@
+RELEASE 0.6.12 - Prepare for Taproot
+====================================
+* Parse p2tr input scripts
+* Fix issues with coinbase segwit transactions
+* Ignore extra signatures when creating unlocking script
+* Clarify wording of amount parameter in clw
+* Add parsing taproot transactions unittests
+
+RELEASE 0.6.11 - Bugfix release
+===============================
+* Fix issues with mempool.space, bcoin, litecoind and bitcoind
+* Fix data type mixup in Service.getblock
+* Fix installation issues with old Python versions
+* Fix p2tr addresses with non-standard witness version
+
+RELEASE 0.6.10 - Field and database encryption
+==============================================
+* Allow to encrypt private key fields in database
+* Include examples/documentation for field and full database encryption
+* Fixed various provider issues
+* Fixed unittests fee issues
+* Fixed secure bitcoind connection
+
+RELEASE 0.6.9 - Bugfixes and service provider update
+====================================================
+* Remove Chainso provider
+* Add Blockbook providers
+* Fix litecoinblockexplorer, bitaps provider
+* Other bugfixes and unittest issues
+
 RELEASE 0.6.7 - Fix installation, dependencies and provider issues
 ==================================================================
 * Fix installation issues

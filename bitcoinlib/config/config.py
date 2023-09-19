@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CONFIG - Configuration settings
-#    © 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -44,12 +44,14 @@ BCL_LOG_FILE = ''
 # Main
 ENABLE_BITCOINLIB_LOGGING = True
 ALLOW_DATABASE_THREADS = None
+DATABASE_ENCRYPTION_ENABLED = False
+DB_FIELD_ENCRYPTION_KEY = None
 
 # Services
 TIMEOUT_REQUESTS = 5
 MAX_TRANSACTIONS = 20
 BLOCK_COUNT_CACHE_TIME = 3
-SERVICE_MAX_ERRORS = 3  # Fail service request when more then max errors occur for <SERVICE_MAX_ERRORS> providers
+SERVICE_MAX_ERRORS = 4  # Fail service request when more then max errors occur for <SERVICE_MAX_ERRORS> providers
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
@@ -233,7 +235,7 @@ def read_config():
     global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
-    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
+    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, DATABASE_ENCRYPTION_ENABLED, DB_FIELD_ENCRYPTION_KEY
     global SERVICE_MAX_ERRORS, BLOCK_COUNT_CACHE_TIME, MAX_TRANSACTIONS
 
     # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
@@ -264,6 +266,8 @@ def read_config():
         DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
     ALLOW_DATABASE_THREADS = config_get("common", "allow_database_threads", fallback=True, is_boolean=True)
     SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
+    DATABASE_ENCRYPTION_ENABLED = config_get('common', 'database_encryption_enabled', fallback=False, is_boolean=True)
+    DB_FIELD_ENCRYPTION_KEY = os.environ.get('DB_FIELD_ENCRYPTION_KEY')
 
     # Log settings
     ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
@@ -283,9 +287,8 @@ def read_config():
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
 
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
-    if full_db_test:
-        if full_db_test in [1, True, 'True', 'true', 'TRUE']:
-            UNITTESTS_FULL_DATABASE_TEST = True
+    if full_db_test in [1, True, 'True', 'true', 'TRUE']:
+        UNITTESTS_FULL_DATABASE_TEST = True
 
     if not data:
         return False

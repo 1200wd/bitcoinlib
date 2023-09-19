@@ -1,5 +1,5 @@
 requests>=2.25.0
 fastecdsa>=2.2.1
 SQLAlchemy>=1.4.24
-numpy>=1.21.0
+numpy>=1.22.0
 pycryptodome>=3.14.1

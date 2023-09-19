@@ -57,3 +57,11 @@ And assume you unwisely have chosen the password 'secret' you can use the databa
     db_uri = 'postgresql://bitcoinlib:secret@localhost:5432/'
     w = wallet_create_or_open('wallet_mysql', db_uri=db_uri)
     w.info()
+
+
+Encrypt database
+----------------
+
+If you are using wallets with private keys it is advised to use an encrypted database.
+
+Please read `Using Encrypted Databases <manuals.sqlcipher.html>`_ for more information.

@@ -541,7 +541,11 @@ class Service(object):
         is_last_page = False
         if block:
             # Block found get transactions from cache
-            block.transactions = self.cache.getblocktransactions(block.height, page, limit)
+            txs = self.cache.getblocktransactions(block.height, page, limit)
+            if parse_transactions:
+                block.transactions = txs
+            else:
+                block.transactions = [tx.txid for tx in txs]
             if block.transactions:
                 self.results_cache_n = 1
             is_last_page = page*limit > block.tx_count

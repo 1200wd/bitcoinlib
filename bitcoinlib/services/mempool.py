@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    mempool.space client
-#    © 2021-2022 - 1200 Web Development <http://1200wd.com/>
+#    © 2021-2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -130,13 +130,13 @@ class MempoolClient(BaseClient):
         prtxs = []
         before_txid = ''
         while True:
-            txs = self.compose_request('address', address, 'txs/chain', before_txid)
+            txs = self.compose_request('address', address, 'txs', before_txid)
             prtxs += txs
             if len(txs) == 25:
                 before_txid = txs[-1:][0]['txid']
             else:
                 break
-            if len(prtxs) > limit:
+            if len(prtxs) > 100:
                 break
         txs = []
         for tx in prtxs[::-1]:

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Client for Bcoin Node
-#    © 2019 June - 1200 Web Development <http://1200wd.com/>
+#    © 2019 - 2023 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -73,7 +73,7 @@ class BcoinClient(BaseClient):
         for address in addresslist:
             # First get all transactions for this address from the blockchain
             srv = Service(network=self.network.name, providers=['bcoin'])
-            txs = srv.gettransactions(address, limit=25)
+            txs = srv.gettransactions(address, limit=MAX_TRANSACTIONS)
 
             # Fail if large number of transactions are found
             if not srv.complete:

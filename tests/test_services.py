@@ -430,44 +430,45 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
-    def test_service_gettransaction_dash(self):
-        expected_dict = {'block_hash': '000000000000002eddff510f4f6c61243e350102c58bdf8c986430b405ce7a22',
-                         'network': 'dash', 'input_total': 2575500000, 'fee_per_kb': None, 'outputs': [
-                {'public_key_hash': 'de4b569d39f05bfc43f56a1b22d7783a7d0661d4', 'output_n': 0, 'spent': True,
-                 'public_key': '', 'address': 'XvxE6SRkZMbhBW34QfrgxPqcNmgTsRvyeJ', 'script_type': 'p2pkh',
-                 'script': '76a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488ac', 'value': 2500000000},
-                {'public_key_hash': '1495ac5ca428a17197c7cb5065614d8eabfcf8cb', 'output_n': 1, 'spent': True,
-                 'public_key': '', 'address': 'XcZgeaA4cwUqBqtKUPfZHUme8a5G3gA8LC', 'script_type': 'p2pkh',
-                 'script': '76a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac', 'value': 75300000}],
-                         'output_total': 2575300000, 'block_height': 900147, 'locktime': 0, 'flag': None,
-                         'coinbase': False,
-                         'status': 'confirmed', 'version': 1,
-                         'hash': '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf', 'size': 226,
-                         'fee': 200000, 'inputs': [
-                {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
-                 'sequence': 4294967295,
-                 'prev_txid': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
-                 'signatures': [
-                     'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
-                     '6067528fffca52292d803b75e53f7dfbf63d',
-                     'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
-                     '6067528fffca52292d803b75e53f7dfbf63d'],
-                 'public_key': '028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520edc21ed2', 'index_n': 0,
-                 'script_type': 'sig_pubkey',
-                 'script': '483045022100e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc'
-                           '0f33d036c1c60a7d561de06067528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a'
-                           '277ad1b331f78add78c6723eed00097520edc21ed2',
-                 'value': 2575500000}], 'date': datetime(2018, 7, 8, 21, 35, 58)}
-
-        srv = ServiceTest(network='dash', min_providers=3)
-
-        # Get transactions by hash
-        srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
-        for provider in srv.results:
-            print("Comparing provider %s" % provider)
-            self.assertTrue(srv.results[provider].verify())
-            self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
-                                    ['block_hash', 'block_height', 'spent', 'value'])
+    # FIXME: Disabled, not enough working providers
+    # def test_service_gettransaction_dash(self):
+    #     expected_dict = {'block_hash': '000000000000002eddff510f4f6c61243e350102c58bdf8c986430b405ce7a22',
+    #                      'network': 'dash', 'input_total': 2575500000, 'fee_per_kb': None, 'outputs': [
+    #             {'public_key_hash': 'de4b569d39f05bfc43f56a1b22d7783a7d0661d4', 'output_n': 0, 'spent': True,
+    #              'public_key': '', 'address': 'XvxE6SRkZMbhBW34QfrgxPqcNmgTsRvyeJ', 'script_type': 'p2pkh',
+    #              'script': '76a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488ac', 'value': 2500000000},
+    #             {'public_key_hash': '1495ac5ca428a17197c7cb5065614d8eabfcf8cb', 'output_n': 1, 'spent': True,
+    #              'public_key': '', 'address': 'XcZgeaA4cwUqBqtKUPfZHUme8a5G3gA8LC', 'script_type': 'p2pkh',
+    #              'script': '76a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac', 'value': 75300000}],
+    #                      'output_total': 2575300000, 'block_height': 900147, 'locktime': 0, 'flag': None,
+    #                      'coinbase': False,
+    #                      'status': 'confirmed', 'version': 1,
+    #                      'hash': '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf', 'size': 226,
+    #                      'fee': 200000, 'inputs': [
+    #             {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
+    #              'sequence': 4294967295,
+    #              'prev_txid': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
+    #              'signatures': [
+    #                  'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
+    #                  '6067528fffca52292d803b75e53f7dfbf63d',
+    #                  'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
+    #                  '6067528fffca52292d803b75e53f7dfbf63d'],
+    #              'public_key': '028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520edc21ed2', 'index_n': 0,
+    #              'script_type': 'sig_pubkey',
+    #              'script': '483045022100e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc'
+    #                        '0f33d036c1c60a7d561de06067528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a'
+    #                        '277ad1b331f78add78c6723eed00097520edc21ed2',
+    #              'value': 2575500000}], 'date': datetime(2018, 7, 8, 21, 35, 58)}
+    #
+    #     srv = ServiceTest(network='dash', min_providers=3)
+    #
+    #     # Get transactions by hash
+    #     srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
+    #     for provider in srv.results:
+    #         print("Comparing provider %s" % provider)
+    #         self.assertTrue(srv.results[provider].verify())
+    #         self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
+    #                                 ['block_hash', 'block_height', 'spent', 'value'])
 
     def test_service_gettransactions_litecoin(self):
         txid = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
@@ -671,14 +672,15 @@ class TestService(unittest.TestCase, CustomAssertions):
                                        msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
             n_blocks = srv.results[provider]
 
-        # Test Dash network
-        srv = ServiceTest(min_providers=3, network='dash')
-        n_blocks = None
-        for provider in srv.results:
-            if n_blocks is not None:
-                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
-                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
-            n_blocks = srv.results[provider]
+        # FIXME: Disabled, not enough working providers
+        # # Test Dash network
+        # srv = ServiceTest(min_providers=3, network='dash')
+        # n_blocks = None
+        # for provider in srv.results:
+        #     if n_blocks is not None:
+        #         self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
+        #                                msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
+        #     n_blocks = srv.results[provider]
 
     def test_service_max_providers(self):
         srv = ServiceTest(max_providers=1, cache_uri='')
@@ -705,12 +707,13 @@ class TestService(unittest.TestCase, CustomAssertions):
             # print("Mempool: Comparing ltc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])
 
-        txid = '15641a37e21a0cf7611a1633954be645512f1ab725a0d5077a9ad0aa0ca20bed'
-        srv = ServiceTest(min_providers=3, network='dash')
-        srv.mempool(txid)
-        for provider in srv.results:
-            # print("Mempool: Comparing dash provider %s" % provider)
-            self.assertListEqual(srv.results[provider], [])
+        # FIXME: Disabled, not enough working providers
+        # txid = '15641a37e21a0cf7611a1633954be645512f1ab725a0d5077a9ad0aa0ca20bed'
+        # srv = ServiceTest(min_providers=3, network='dash')
+        # srv.mempool(txid)
+        # for provider in srv.results:
+        #     # print("Mempool: Comparing dash provider %s" % provider)
+        #     self.assertListEqual(srv.results[provider], [])
 
     # FIXME: Disabled, not enough working providers
     # def test_service_dash(self):
@@ -743,7 +746,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                              '13e3167d46334600b59a5aa286dd02147ac33e64bfc2e188e1f0c0a442182584')
 
     def test_service_getblock_height(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
+        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
@@ -953,7 +956,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso', 'mempool'])
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
@@ -1007,7 +1010,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(txs), 5)
 
     def test_service_cache_correctly_update_spent_info(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso'])
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
         self.assertTrue(txs[0].outputs[0].spent)
@@ -1029,7 +1032,7 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
 
         for cache_db in DATABASES_CACHE:
-            srv = ServiceTest(cache_uri=cache_db, exclude_providers=['chainso', 'blockchair', 'bitcoind'])
+            srv = ServiceTest(cache_uri=cache_db, exclude_providers=['blockchair', 'bitcoind'])
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
             print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
             check_block_128594(b)

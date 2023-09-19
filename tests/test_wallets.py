@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2021 March - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2023 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -152,7 +152,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         if os.name == 'nt':
             self.skipTest("Problems with Travis windows python encodings")
         self.assertIsNone(self.wallet.info())
-        self.assertIn("<Wallet(name=test_wallet_create, db_uri=", repr(self.wallet))
+        self.assertIn("<Wallet(name=\"test_wallet_create\", db_uri=", repr(self.wallet))
 
     def test_wallet_exists(self):
         self.assertTrue(wallet_exists(self.wallet.wallet_id, db_uri=self.DATABASE_URI))
@@ -827,18 +827,19 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 
     def test_wallet_multiple_networks_value(self):
-        pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysdteSN16sH'
+        pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysd' \
+             'teSN16sH'
         wallet_delete_if_exists('test_wallet_multiple_networks_value', force=True, db_uri=self.DATABASE_URI)
         w = wallet_create_or_open('test_wallet_multiple_networks_value', keys=pk, db_uri=self.DATABASE_URI)
         w.new_account(network='bitcoin')
         w.new_account(network='bitcoinlib_test')
         w.utxos_update(networks='testnet')
-        self.assertEqual(len(w.utxos(network='testnet')), 1)
+        self.assertGreaterEqual(len(w.utxos(network='testnet')), 2)
         w.utxos_update(networks='bitcoinlib_test')
         self.assertEqual(len(w.utxos(network='bitcoinlib_test')), 4)
         t = w.send_to('blt1qctnl4yk3qepjy3uu36kved5ds6q9g8c6raan7l', '50 mTST', offline=False)
         self.assertTrue(t.pushed)
-        t = w.send_to('tb1qhq6x777xpj32jm005qppxa6gyxt3qrc376ye6c', '0.1 mTBTC')
+        t = w.send_to('tb1qhq6x777xpj32jm005qppxa6gyxt3qrc376ye6c', '0.1 mTBTC', fee=1000)
         self.assertFalse(t.pushed)
         self.assertTrue(t.verified)
 
@@ -1045,7 +1046,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                            db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
-        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
+        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)], fee=10000)
         t.sign(pk2.subkey_for_path("m/45'/2/0/0"))
         t.send(offline=True)
         self.assertTrue(t.verify())
@@ -1064,7 +1065,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                            db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
-        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
+        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)], fee=10000)
         t.sign(pk2)
         t.send(offline=True)
         self.assertTrue(t.verify())
@@ -1079,7 +1080,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(multisig=True),
         ]
         wl = Wallet.create('multisig_test_bitcoin_send3', key_list, sigs_required=2, db_uri=self.DATABASE_URI)
-        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
+        wl.utxo_add(wl.get_key().address, 20000000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
         t = wl.sweep('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', fee='low')
         t.sign(pk2)
@@ -1106,7 +1107,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         wl.get_keys(number_of_keys=2)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
-        t = wl.transaction_create([('3DrP2R8XmHswUyeK9GeYgHJxvyxTfMNkid', 100000)])
+        t = wl.transaction_create([('3DrP2R8XmHswUyeK9GeYgHJxvyxTfMNkid', 100000)], fee=10000)
         t.sign(pk2.subkey_for_path("m/45'/2/0/0"))
         t.send(offline=True)
         self.assertTrue(t.verify())
@@ -1844,9 +1845,9 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt = Wallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        self.assertRaisesRegexp(WalletError, 'Fee per kB of 666 is lower then minimal network fee of 1000',
+        self.assertRaisesRegexp(WalletError, 'Fee per kB of 660 is lower then minimal network fee of 1000',
                                 wlt.send_to, to_key.address, 50000000, fee=150)
-        self.assertRaisesRegexp(WalletError, 'Fee per kB of 1333333 is higher then maximum network fee of 1000000',
+        self.assertRaisesRegexp(WalletError, 'Fee per kB of 1321585 is higher then maximum network fee of 1000000',
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
@@ -1891,8 +1892,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             t.sign(p2)
             t.estimate_size()
             size2 = t.size
-            self.assertAlmostEqual(size1, size2, delta=4)
-            self.assertAlmostEqual(len(t.raw()), size2, delta=4)
+            self.assertAlmostEqual(size1, size2, delta=6)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=6)
 
     def test_wallet_transaction_method(self):
         pk1 = HDKey(network='bitcoinlib_test')

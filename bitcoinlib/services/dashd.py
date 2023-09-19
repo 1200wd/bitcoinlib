@@ -121,12 +121,6 @@ class DashdClient(BaseClient):
             bdc = self.from_config('', network)
             base_url = bdc.base_url
             network = bdc.network
-        if len(base_url.split(':')) != 4:
-            raise ConfigError("Dashd connection URL must be of format 'http(s)://user:password@host:port,"
-                              "current format is %s. Please set url in providers.json file" % base_url)
-        if 'password' in base_url:
-            raise ConfigError("Invalid password 'password' in dashd provider settings. "
-                              "Please set password and url in providers.json file")
         _logger.info("Connect to dashd")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
