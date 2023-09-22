@@ -132,7 +132,7 @@ elif locale.getpreferredencoding() != 'UTF-8':
 # Keys / Addresses
 SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
 ENCODING_BECH32_PREFIXES = ['bc', 'tb', 'ltc', 'tltc', 'tdash', 'tdash', 'blt']
-DEFAULT_WITNESS_TYPE = 'legacy'
+DEFAULT_WITNESS_TYPE = 'segwit'
 BECH32M_CONST = 0x2bc830a3
 
 # Wallets

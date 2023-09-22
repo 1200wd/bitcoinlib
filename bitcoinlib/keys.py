@@ -1401,9 +1401,7 @@ class HDKey(Key):
         :return HDKey:
         """
 
-        if not encoding and witness_type:
-            encoding = get_encoding_from_witness(witness_type)
-        self.script_type = script_type_default(witness_type, multisig)
+        script_type = None
 
         # if (key and not chain) or (not key and chain):
         #     raise BKeyError("Please specify both key and chain, use import_key attribute "
@@ -1431,10 +1429,9 @@ class HDKey(Key):
                 if kf['format'] == 'address':
                     raise BKeyError("Can not create HDKey object from address")
                 if len(kf['script_types']) == 1:
-                    self.script_type = kf['script_types'][0]
+                    script_type = kf['script_types'][0]
                 if len(kf['witness_types']) == 1 and not witness_type:
                     witness_type = kf['witness_types'][0]
-                    encoding = get_encoding_from_witness(witness_type)
                 if len(kf['multisig']) == 1:
                     multisig = kf['multisig'][0]
                 network = Network(check_network_and_key(import_key, network, kf["networks"]))
@@ -1463,7 +1460,10 @@ class HDKey(Key):
                     key_type = 'private' if is_private else 'public'
 
         if witness_type is None:
-            witness_type = DEFAULT_WITNESS_TYPE
+            witness_type = 'legacy' if network == 'dash' else DEFAULT_WITNESS_TYPE
+        self.script_type = script_type if script_type else script_type_default(witness_type, multisig)
+        if not encoding:
+            encoding = get_encoding_from_witness(witness_type)
 
         Key.__init__(self, key, network, compressed, password, is_private)
 

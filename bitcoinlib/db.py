@@ -44,7 +44,7 @@ class Db:
     Bitcoinlib Database object used by Service() and HDWallet() class. Initialize database and open session when
     creating database object.
 
-    Create new database if is doesn't exist yet
+    Create new database if it doesn't exist yet
 
     """
     def __init__(self, db_uri=None, password=None):
@@ -244,7 +244,8 @@ class DbWallet(Base):
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
-        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='wallet_constraint_allowed_types'),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit', 'p2tr', 'mixed']),
+                        name='wallet_constraint_allowed_types'),
     )
 
     def __repr__(self):

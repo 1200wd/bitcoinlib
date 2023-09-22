@@ -358,6 +358,7 @@ class WalletKey(object):
                 network = k.network.name
             elif network != k.network.name:
                 raise WalletError("Specified network and key network should be the same")
+            witness_type = k.witness_type
         elif isinstance(key, Address):
             k = key
             key_is_address = True
@@ -368,7 +369,7 @@ class WalletKey(object):
         else:
             if network is None:
                 network = DEFAULT_NETWORK
-            k = HDKey(import_key=key, network=network)
+            k = HDKey(import_key=key, network=network, witness_type=witness_type)
         if not encoding and witness_type:
             encoding = get_encoding_from_witness(witness_type)
         script_type = script_type_default(witness_type, multisig)
@@ -1225,7 +1226,7 @@ class Wallet(object):
                 if isinstance(key, str) and len(key.split(" ")) > 1:
                     if not network:
                         raise WalletError("Please specify network when using passphrase to create a key")
-                    key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
+                    key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network, witness_type=witness_type)
                 else:
                     try:
                         if isinstance(key, WalletKey):
@@ -1247,7 +1248,7 @@ class Wallet(object):
         if network is None:
             network = DEFAULT_NETWORK
         if witness_type is None:
-            witness_type = DEFAULT_WITNESS_TYPE
+            witness_type = DEFAULT_WITNESS_TYPE if network != 'dash' else 'legacy'
         if network in ['dash', 'dash_testnet', 'dogecoin', 'dogecoin_testnet'] and witness_type != 'legacy':
             raise WalletError("Segwit is not supported for %s wallets" % network.capitalize())
         elif network in ('dogecoin', 'dogecoin_testnet') and witness_type not in ('legacy', 'p2sh-segwit'):

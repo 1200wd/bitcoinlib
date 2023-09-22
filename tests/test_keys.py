@@ -62,9 +62,9 @@ class TestKeyClasses(unittest.TestCase):
         self.assertTrue(isinstance(k.as_dict(include_private=True), dict))
 
     def test_path_expand(self):
-        self.assertListEqual(path_expand([0]), ['m', "44'", "0'", "0'", '0', '0'])
-        self.assertListEqual(path_expand([10, 20]), ['m', "44'", "0'", "0'", '10', '20'])
-        self.assertListEqual(path_expand([10, 20], witness_type='segwit'), ['m', "84'", "0'", "0'", '10', '20'])
+        self.assertListEqual(path_expand([0], witness_type='legacy'), ['m', "44'", "0'", "0'", '0', '0'])
+        self.assertListEqual(path_expand([10, 20], witness_type='legacy'), ['m', "44'", "0'", "0'", '10', '20'])
+        self.assertListEqual(path_expand([10, 20]), ['m', "84'", "0'", "0'", '10', '20'])
         self.assertListEqual(path_expand([], witness_type='p2sh-segwit'), ['m', "49'", "0'", "0'", '0', '0'])
         self.assertListEqual(path_expand([99], witness_type='p2sh-segwit', multisig=True),
                              ['m', "48'", "0'", "0'", "1'", '0', '99'])
@@ -271,11 +271,11 @@ class TestPublicKeyUncompressed(unittest.TestCase):
 class TestHDKeysImport(unittest.TestCase):
 
     def setUp(self):
-        self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+        self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f', witness_type='legacy')
         self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a878'
-                                  '4817e7b7875726f6c696663605d5a5754514e4b484542')
+                                  '4817e7b7875726f6c696663605d5a5754514e4b484542', witness_type='legacy')
         self.xpub = HDKey('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqse'
-                          'fD265TMg7usUDFdp6W1EGMcet8')
+                          'fD265TMg7usUDFdp6W1EGMcet8', witness_type='legacy')
 
     def test_hdkey_import_seed_1(self):
 
@@ -290,9 +290,14 @@ class TestHDKeysImport(unittest.TestCase):
         self.assertEqual('xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJ'
                          'Y47LJhkJ8UB7WEGuduB', self.k2.wif_public())
 
+    def test_hdkey_random_legacy(self):
+        self.k = HDKey(witness_type='legacy')
+        self.assertEqual('xprv', self.k.wif(is_private=True)[:4])
+        self.assertEqual(111, len(self.k.wif(is_private=True)))
+
     def test_hdkey_random(self):
         self.k = HDKey()
-        self.assertEqual('xprv', self.k.wif(is_private=True)[:4])
+        self.assertEqual('zprv', self.k.wif(is_private=True)[:4])
         self.assertEqual(111, len(self.k.wif(is_private=True)))
 
     def test_hdkey_import_extended_private_key(self):
@@ -351,7 +356,7 @@ class TestHDKeysImport(unittest.TestCase):
     def test_hdkey_import_from_private_byte(self):
         keystr = b"fch\xe4w\xa8\xdd\xd4h\x08\xc5'\xcc<Pg\x19\xbb?R\xa9'\xb6\xc152\x98KqKV\xad\x91`G-a\xb1\xad\xd8eL" \
                  b"\xcc\x8an\x94\xa3\x93\xb5\xa5\xe6\xc3\xf1\x98\x91h6wt\xf0z=\x1f\x17"
-        hdkey = HDKey(keystr)
+        hdkey = HDKey(keystr, witness_type='legacy')
         self.assertEqual(hdkey.address(), '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd')
 
     def test_hdkey_import_private_uncompressed(self):
@@ -378,9 +383,9 @@ class TestHDKeysImport(unittest.TestCase):
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
 
     def setUp(self):
-        self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+        self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f', witness_type='legacy')
         self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8'
-                                  '784817e7b7875726f6c696663605d5a5754514e4b484542')
+                                  '784817e7b7875726f6c696663605d5a5754514e4b484542', witness_type='legacy')
 
     def test_hdkey_path_m_0h(self):
         sk = self.k.subkey_for_path('m/0H')
@@ -492,7 +497,7 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 class TestHDKeys(unittest.TestCase):
 
     def test_hdkey_testnet_random(self):
-        self.k = HDKey(network='testnet')
+        self.k = HDKey(network='testnet', witness_type='legacy')
 
         self.assertEqual('tprv', self.k.wif(is_private=True)[:4])
         self.assertEqual('tpub', self.k.wif_public()[:4])
