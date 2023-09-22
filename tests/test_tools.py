@@ -79,7 +79,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_delete = "%s %s test --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
-        output_wlt_create = "14guS7uQpEbgf1e8TDo1zTEURJW3NGPc9E"
+        output_wlt_create = "bc1qdv5tuzrluh4lzhnu59je9n83w4hkqjhgg44d5g"
         output_wlt_delete = "Wallet test has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
@@ -147,7 +147,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                               (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_delete = "%s %s test2 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
-        output_wlt_create = "21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
+        output_wlt_create = "blt1qj0mgwyhxuw9p0ngj5kqnxhlrx8ypecqekm2gr7"
         output_wlt_transaction = 'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
 
