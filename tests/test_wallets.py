@@ -1264,7 +1264,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         k2 = wl.new_key()
         k3 = wl.new_key_change()
         wl.utxos_update()
-        self.assertEqual(wl.public_master()[1].wif, keys[1].wif())
+        self.assertEqual(wl.public_master()[1].wif, keys[1].wif(multisig=True))
         key_names = [k.name for k in wl.keys(is_active=False)]
         self.assertListEqual(key_names, [k1.name, k2.name, k3.name])
 
@@ -1319,15 +1319,15 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         def _open_all_wallets():
             wl1 = wallet_create_or_open(
                 'multisigmulticur1_tst', sigs_required=2, network=network,
-                db_uri=self.DATABASE_URI, sort_keys=False, witness_type='legacy',
+                db_uri=self.DATABASE_URI, sort_keys=False, witness_type='segwit',
                 keys=[pk1, pk2.public_master(), pk3.public_master()])
             wl2 = wallet_create_or_open(
                 'multisigmulticur2_tst', sigs_required=2, network=network,
-                db_uri=self.DATABASE_URI, sort_keys=False, witness_type='legacy',
+                db_uri=self.DATABASE_URI, sort_keys=False, witness_type='segwit',
                 keys=[pk1.public_master(), pk2, pk3.public_master()])
             wl3 = wallet_create_or_open(
                 'multisigmulticur3_tst', sigs_required=2, network=network,
-                db_uri=self.DATABASE_URI, sort_keys=False, witness_type='legacy',
+                db_uri=self.DATABASE_URI, sort_keys=False, witness_type='segwit',
                 keys=[pk1.public_master(), pk2.public_master(), pk3])
             return wl1, wl2, wl3
 
@@ -1341,11 +1341,13 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         pk3 = HDKey.from_passphrase(phrase3, multisig=True, network=network)
         wallets = _open_all_wallets()
         for wlt in wallets:
-            self.assertEqual(wlt.get_key(cosigner_id=1).address, 'MQVt7KeRHGe35b9ziZo16T5y4fQPg6Up7q')
+            self.assertEqual(wlt.get_key(cosigner_id=1).address,
+                             'ltc1qmw3e97pgrwypr0378wjje984guu0jy3ye4n523lcymk3rctuef6q7t3sek')
         del wallets
         wallets2 = _open_all_wallets()
         for wlt in wallets2:
-            self.assertEqual(wlt.get_key(cosigner_id=1).address, 'MQVt7KeRHGe35b9ziZo16T5y4fQPg6Up7q')
+            self.assertEqual(wlt.get_key(cosigner_id=1).address,
+                             'ltc1qmw3e97pgrwypr0378wjje984guu0jy3ye4n523lcymk3rctuef6q7t3sek')
 
     def test_wallet_multisig_network_mixups(self):
         self.db_remove()
@@ -1937,10 +1939,10 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertTrue(wt.verified)
 
     def test_wallet_transaction_sign_with_wif(self):
-        wif = ('BC17qWy2RMw8AmwsqwTXpokwXXwhaWmUpqtAc5iGGzrFXs13PkKERJUyobB9YUbzT8hJ8EiCtcqdEpeRy7wyvE1esehD'
-               '8bVpgzzdEw9ndQbjyF5w')
-        wif2 = ('BC17qWy2RMw8AmwsqwTjmX2SwwSHBNA2c6KyGHs5Kghg3q6dPa4ajP1jwFBPCkoSeXWsPAiVD2iAcroVc6cJQmHrYatviN'
-                'Ck5jDM83DkbPGFxbCK')
+        wif = ('BC19UtECk2r9PVQYhZuLSVjB6M7QPkAQSJN59RJKZQuuuPxaxNBEwmnfpWYvrQTrJZCANKoXBm7HKY78dVHjTkqoqA67aUf'
+               'NSLZjuwNGDBMQD7uM')
+        wif2 = ('BC19UtECk2r9PVQYhYJrXwB3We4E9Xc6uJngAEoqBrntN1gpGZwAWKRdcupdf2iKFLfY3pYRxHAi99EZ7dyYcKLZ2a7999'
+                'Lu2NRSZzToFXib5kcE')
         w = wallet_create_or_open('test_wallet_transaction_sign_with_wif',
                                   keys=[wif, HDKey(wif2).public_master_multisig(witness_type='segwit')],
                                   witness_type='segwit', network='bitcoinlib_test',
