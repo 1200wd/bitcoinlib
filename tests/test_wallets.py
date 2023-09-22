@@ -185,7 +185,8 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertEqual(wallet_delete('wallet_to_remove', db_uri=self.DATABASE_URI), 1)
 
     def test_delete_wallet_no_private(self):
-        key = "YXsfembHRwpatrAVUFhHAd7mErqzPtfehhq5YEt4dFM2B6hVNtxnqj3JqiP4nAf9BZ9SRBmH8esrDamoA3ZFNdNshvYA8rf7bDxhEdUyuoPZ7HTF"
+        key = ("BC19UtECk2r9PVQYhZo2RsN5SJVTmTt6NjCqGh6KH7FoVGhV9oV3f6UdyMtSzWPUBPw2S313ZJqCCNd6kTV9xbNQWzPBUVufnp"
+               "sNKhh3vb3ut5bY")
         Wallet.create('delete_watch_only_wallet', keys=key, network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         self.assertEqual(wallet_delete('delete_watch_only_wallet', db_uri=self.DATABASE_URI), 1)
 
@@ -820,8 +821,8 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
-        pk_dashtest = 'YXsfembHRwpatrAVUGY8MBUuKwhUDf9EEWeZwGoEfE5appg5rLjSfZ1GwoaNB5DgUZ2aVuU1ezmg7zDefubuWkZ17et5o' \
-                      'KoMgKnjvAZ6a4Yn2QZg'
+        pk_dashtest = ('BC19UtECk2r9PVQYhZYzX3m4arsu6tCL5VMpKPbeGpZdpzd9FHweoSRreTFKo96FAEFsUWBrASfKussgoxTrNQfm'
+                       'jWFrVraLbiHf4gCkUvwHEocA')
         error_str = "Network bitcoinlib_test not available in this wallet, please create an account for this network " \
                     "first."
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
@@ -1123,10 +1124,10 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         self.db_remove()
 
         keys = [
-            HDKey('YXscyqNJ5YK411nwB4wzazXjJn9L9iLAR1zEMFcpLipDA25rZregBGgwXmprsvQLeQAsuTvemtbCWR1AHaPv2qmvkartoiFUU6'
-                  'qu1uafT2FETtXT', network='bitcoinlib_test', witness_type='legacy'),
-            HDKey('YXscyqNJ5YK411nwB4EyGbNZo9eQSUWb64vAFKHt7E2LYnbmoNz8Gyjs6xc7iYAudcnkgf127NPnaanuUgyRngAiwYBcXKGsSJ'
-                  'wadGhxByT2MnLd', network='bitcoinlib_test', witness_type='legacy')]
+            HDKey('BC12Se7KL1uS2bA6QQaWWrcA5kApD8UAM78dx91LrFvsvdvua3irnpQNjHUTCPJR7tZ72eGhMsy3mLPp5C'
+                  'SJcmKPchBvaf72i1mNY6yhrmY4RFSr', network='bitcoinlib_test', witness_type='legacy'),
+            HDKey('BC12Se7KL1uS2bA6QPiq4cdXWKfmQwuPPTXkRUJNBSLFZt9tPgLfgrRSfkVLRLYCYpgzsTmKybPHSX165w'
+                  '42VBjw4Neub1KyPBfNpjFfgx9SyynF', network='bitcoinlib_test', witness_type='legacy')]
 
         msw1 = Wallet.create('msw1', [keys[0], keys[1].subkey_for_path("m/45'").wif_public()],
                              network='bitcoinlib_test', sort_keys=False, sigs_required=2,
@@ -1157,10 +1158,10 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         self.db_remove()
 
         keys = [
-            HDKey('YXscyqNJ5YK411nwB4wzazXjJn9L9iLAR1zEMFcpLipDA25rZregBGgwXmprsvQLeQAsuTvemtbCWR1AHaPv2qmvkartoiFUU6'
-                  'qu1uafT2FETtXT', network='bitcoinlib_test'),
-            HDKey('YXscyqNJ5YK411nwB4EyGbNZo9eQSUWb64vAFKHt7E2LYnbmoNz8Gyjs6xc7iYAudcnkgf127NPnaanuUgyRngAiwYBcXKGsSJ'
-                  'wadGhxByT2MnLd', network='bitcoinlib_test')]
+            HDKey('BC12Se7KL1uS2bA6QQaWWrcA5kApD8UAM78dx91LrFvsvdvua3irnpQNjHUTCPJR7tZ72eGhMsy3mLPp5C'
+                  'SJcmKPchBvaf72i1mNY6yhrmY4RFSr', network='bitcoinlib_test', witness_type='legacy'),
+            HDKey('BC12Se7KL1uS2bA6QPiq4cdXWKfmQwuPPTXkRUJNBSLFZt9tPgLfgrRSfkVLRLYCYpgzsTmKybPHSX165w'
+                  '42VBjw4Neub1KyPBfNpjFfgx9SyynF', network='bitcoinlib_test', witness_type='legacy')]
 
         msw1 = Wallet.create('msw1', [keys[0], keys[1].public_master(multisig=True)], network='bitcoinlib_test',
                              sort_keys=False, sigs_required=2, db_uri=self.DATABASE_URI)
@@ -1352,8 +1353,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
         phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
-        pk2 = HDKey.from_passphrase(phrase2, multisig=True, network=network)
-        pk3 = HDKey.from_passphrase(phrase3, multisig=True, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, multisig=True, network=network, witness_type='legacy')
+        pk3 = HDKey.from_passphrase(phrase3, multisig=True, network=network, witness_type='legacy')
         wlt = wallet_create_or_open(
             'multisig_network_mixups', sigs_required=2, network=network, db_uri=self.DATABASE_URI,
             keys=[phrase1, pk2.public_master(), pk3.public_master()], witness_type='legacy',
@@ -1550,10 +1551,10 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
             self.assertTrue(wlt.cosigner[2].main_key.is_private)
 
     def test_wallet_import_private_for_known_public_p2sh_segwit(self):
-        pk1 = HDKey('YXscyqNJ5YK411nwB3VjLYgjht3dqfKxyLdGSqNMGKhYdcK4Gh1CRSJyxS2So8KXSQrxtysS1jAmHtLnxRKa47xEiAx6hP'
-                    'vrj8tuEzyeR8TQNu5e')
-        pk2 = HDKey('YXscyqNJ5YK411nwB4Jo3JCQ1GZNetf4BrLJjZiqdWKVzoXwPtyJ5xyNdZjuEWtqCeSZGtmg7SuQerERwniHLYL3aVcnyS'
-                    'ciEAxk7gLgDkoZC5Lq')
+        pk1 = HDKey('BC15gwSkKnLsWk3GmCxBwzdbij4fXUa5j6UB8bSYJt9a81aSUCVjg7tVJaEDpxRZ4X2dt3VKjuy8po1fbo6opZ6tCqxVAg'
+                    'XgQKUBwWi6EGh2eLRC')
+        pk2 = HDKey('BC15gwSkKnLsWk3GmCWRgmp2edaya3UgmQ4TqjiBfx2cuvMC5ASQwJ5N5wwKcMp627AucznuYvTzKnhYRERcPFnEAn1a7w'
+                    'VKQy7FMLXzMq7N2nQq')
         w = Wallet.create('segwit-p2sh-p2wsh-import',
                           [pk1, pk2.public_master(witness_type='p2sh-segwit', multisig=True)],
                           witness_type='p2sh-segwit', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
@@ -1803,8 +1804,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
     def test_wallet_transaction_import_raw_segwit_fee(self):
         wallet_delete_if_exists('bcltestwlt-size', force=True, db_uri=self.DATABASE_URI)
-        pk = 'YXscyqNJ5YK411nwB2peYdMeJPmkJmMJCfNdo9JuWkEKLZhVSoUjbRRinVqqtBN2GNC2A6L1Taz1e3LWApHkC84GgTp3vr7neD' \
-             'ZTxXnvGkUwVz4c'
+        pk = ('BC19UtECk2r9PVQYhZT9iJZvzK7jDgQXFQxRiguB28ESn53b8BjZjT4ZyQEStPD9yKAXBhTq6Wtb9zyPQiRU4chaTjEwvtpKW'
+              'EdrMscH3ZqPTtdV')
         wlt = Wallet.create('bcltestwlt-size', keys=pk, network='bitcoinlib_test', witness_type='segwit',
                             db_uri=self.DATABASE_URI)
         wlt.utxos_update()
@@ -1818,8 +1819,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_transaction_load_segwit_size(self):
-        pk = 'YXscyqNJ5YK411nwB2peYdMeJPmkJmMJCfNdo9JuWkEKLZhVSoUjbRRinVqqtBN2GNC2A6L1Taz1e3LWApHkC84GgTp3vr7neD' \
-             'ZTxXnvGkUwVz4c'
+        pk = ('BC19UtECk2r9PVQYhZT9iJZvzK7jDgQXFQxRiguB28ESn53b8BjZjT4ZyQEStPD9yKAXBhTq6Wtb9zyPQiRU4chaTjEwvtpKW'
+              'EdrMscH3ZqPTtdV')
         wlt = Wallet.create('bcltestwlt2-size', keys=pk, network='bitcoinlib_test', witness_type='segwit',
                             db_uri=self.DATABASE_URI)
         wlt.utxos_update()
@@ -1936,10 +1937,10 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertTrue(wt.verified)
 
     def test_wallet_transaction_sign_with_wif(self):
-        wif = 'YXscyqNJ5YK411nwB4eU6PmyGTJkBUHjgXEf53z4TTjHCDXPPXKJD2PyfXonwtT7VwSdqcZJS2oeDbvg531tEsx3yq4425Mfrb9aS' \
-              'PyNQ5bUGFwu'
-        wif2 = 'YXscyqNJ5YK411nwB4UK8ScMahPWewyKrTBjgM5BZKRkPg8B2HmKT3r8yc2GFg9GqgFXaWmxkTRhNkRGVxbzUREMH8L5HxoKGCY8' \
-               'WDdf1GcW2k8q'
+        wif = ('BC17qWy2RMw8AmwsqwTXpokwXXwhaWmUpqtAc5iGGzrFXs13PkKERJUyobB9YUbzT8hJ8EiCtcqdEpeRy7wyvE1esehD'
+               '8bVpgzzdEw9ndQbjyF5w')
+        wif2 = ('BC17qWy2RMw8AmwsqwTjmX2SwwSHBNA2c6KyGHs5Kghg3q6dPa4ajP1jwFBPCkoSeXWsPAiVD2iAcroVc6cJQmHrYatviN'
+                'Ck5jDM83DkbPGFxbCK')
         w = wallet_create_or_open('test_wallet_transaction_sign_with_wif',
                                   keys=[wif, HDKey(wif2).public_master_multisig(witness_type='segwit')],
                                   witness_type='segwit', network='bitcoinlib_test',
@@ -2029,8 +2030,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(len(wlt.select_inputs(150000000)), 2)
 
     def test_wallet_transaction_create_exceptions(self):
-        wif = 'YXscyqNJ5YK411nwB3kahnuWqF2KUJfJNRGG1n3zLPi3MSPCRcD2cmcVz1UKBjTMuMxAfXrbSAe5qJfu5nnSuRZKEtqJt' \
-              'FwNjcNknbseoKp1vR2h'
+        wif = ('BC17qWy2RMw8AmwsqwTjmX2SwwSHBNA2c6KyGHs5Kghg3q6dPa4ajP1jwFBPCkoSeXWsPAiVD2iAcroVc6cJQmHrYatvi'
+               'NCk5jDM83DkbPGFxbCK')
         wlt = Wallet.create('test_wallet_transaction_create_exceptions', keys=wif, db_uri=self.DATABASE_URI)
         wlt.utxos_update()
         self.assertRaisesRegexp(WalletError, "Output array must be a list of tuples with address and amount. "

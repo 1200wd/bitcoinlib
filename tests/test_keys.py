@@ -360,24 +360,28 @@ class TestHDKeysImport(unittest.TestCase):
         self.assertEqual(hdkey.address(), '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd')
 
     def test_hdkey_import_private_uncompressed(self):
-        wif = 'YXscyqNJ5YK411nwB2T35cvM1M4F4VDzbfpTxgBxFL3eDFcUrPGfGSzLG4DmwGyRY6nzRGqyBjMMnw9x7oq2mw2mUQWpCZyfopCUEvU458AMAhqj'
+        wif = ('BC12Se7KL1uS2bA6QNFneYit57Ac2wGdCrn5CTr94xr1NqLxvPozYzpm4d72ojPFnpLyAgpoXdad78PL9HaATYH2Y695hYcs8AF'
+               '1iLxUL5fk2jQv')
+        pk_hex = '681e34705a758455e75d761a8d33aaef6d0507e3750fb7c3848ab119438626a3'
+        pubkey_uncompressed = (
+            '04007d7ff2fbf9486746f8beffc34e7a68f06a4938edd3b1eed4a2fe23148423c7e8d714ef853988adc2fef434'
+            '3ccdcb07356cfd9b8f361e3c8ec43598210c946d')
+        pubkey_compressed = '03007d7ff2fbf9486746f8beffc34e7a68f06a4938edd3b1eed4a2fe23148423c7'
 
         k = HDKey(wif, compressed=False)
         self.assertFalse(k.compressed)
-        self.assertEqual(k.private_hex, '427ea8c9c286fc050b8ccd8d8a7a8de57322c519ba79b3fad745bc4e97ed5a37')
-        self.assertEqual(k.public_hex, '0403c6eb8873620ac55a6035b0fd527e623f7659c97f30cb8d6a3fe90e924da5fa197aa4'
-                                       '9ee663e360ac71dbb514e2f8b02a90301a0ae52e8014ec805fa36040d9')
+        self.assertEqual(k.private_hex, pk_hex)
+        self.assertEqual(k.public_hex, pubkey_uncompressed)
 
         k2 = HDKey.from_wif(wif, compressed=False)
         self.assertFalse(k2.compressed)
-        self.assertEqual(k2.private_hex, '427ea8c9c286fc050b8ccd8d8a7a8de57322c519ba79b3fad745bc4e97ed5a37')
-        self.assertEqual(k2.public_hex, '0403c6eb8873620ac55a6035b0fd527e623f7659c97f30cb8d6a3fe90e924da5fa197aa4'
-                                        '9ee663e360ac71dbb514e2f8b02a90301a0ae52e8014ec805fa36040d9')
+        self.assertEqual(k2.private_hex, pk_hex)
+        self.assertEqual(k2.public_hex, pubkey_uncompressed)
 
         k3 = HDKey.from_wif(wif)
         self.assertTrue(k3.compressed)
-        self.assertEqual(k3.private_hex, '427ea8c9c286fc050b8ccd8d8a7a8de57322c519ba79b3fad745bc4e97ed5a37')
-        self.assertEqual(k3.public_hex, '0303c6eb8873620ac55a6035b0fd527e623f7659c97f30cb8d6a3fe90e924da5fa')
+        self.assertEqual(k3.private_hex, pk_hex)
+        self.assertEqual(k3.public_hex, pubkey_compressed)
 
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
