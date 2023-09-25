@@ -212,8 +212,9 @@ class DbWallet(Base):
     purpose = Column(Integer,
                      doc="Wallet purpose ID. BIP-44 purpose field, indicating which key-scheme is used default is 44")
     scheme = Column(String(25), doc="Key structure type, can be BIP-32 or single")
-    witness_type = Column(String(20), default='legacy',
-                          doc="Wallet witness type. Can be 'legacy', 'segwit' or 'p2sh-segwit'. Default is legacy.")
+    witness_type = Column(String(20), default='segwit',
+                          doc="Wallet witness type. Can be 'legacy', 'segwit', 'p2sh-segwit' or 'mixed. Default is "
+                              "segwit.")
     encoding = Column(String(15), default='base58',
                       doc="Default encoding to use for address generation, i.e. base58 or bech32. Default is base58.")
     main_key_id = Column(Integer,
@@ -306,6 +307,9 @@ class DbKey(Base):
     network_name = Column(String(20), ForeignKey('networks.name'),
                           doc="Name of key network, i.e. bitcoin, litecoin, dash")
     latest_txid = Column(LargeBinary(32), doc="TxId of latest transaction downloaded from the blockchain")
+    witness_type = Column(String(20), default='segwit',
+                          doc="Key witness type, only specify when using mixed wallets. Can be 'legacy', 'segwit' or "
+                              "'p2sh-segwit'. Default is segwit.")
     network = relationship("DbNetwork", doc="DbNetwork object for this key")
     multisig_parents = relationship("DbKeyMultisigChildren", backref='child_key',
                                     primaryjoin=id == DbKeyMultisigChildren.child_id,
@@ -368,7 +372,7 @@ class DbTransaction(Base):
     account_id = Column(Integer, index=True, doc="ID of account")
     wallet = relationship("DbWallet", back_populates="transactions",
                           doc="Link to Wallet object which contains this transaction")
-    witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
+    witness_type = Column(String(20), default='segwit', doc="Is this a legacy or segwit transaction?")
     version = Column(BigInteger, default=1,
                      doc="Tranaction version. Default is 1 but some wallets use another version number")
     locktime = Column(BigInteger, default=0,
@@ -434,8 +438,8 @@ class DbTransactionInput(Base):
                      doc="Address string of input, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key or a redeemscript")
     witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
-    witness_type = Column(String(20), default='legacy',
-                          doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
+    witness_type = Column(String(20), default='segwit',
+                          doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is segwit")
     prev_txid = Column(LargeBinary(32),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
@@ -507,6 +511,14 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
         column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
                                                         "'p2sh-segwit'. Default is segwit.")
         add_column(db.engine, 'keys', column)
+        # TODO: Add to upgrade script, use alembic??
+        # - Add mixed to wallet_constraint_allowed_types
+        # - Wallet.witness_type default='segwit', doc="Wallet witness type. Can be 'legacy', 'segwit', 'p2sh-segwit' or
+        #   'mixed. Default is "  "segwit.")
+        # - Transaction.witness_type default='segwit'
+        # - Transaction.input: default='segwit', doc="Type of transaction, can be legacy,
+        #   segwit or p2sh-segwit. Default is segwit")
+
 
     version_db = db_update_version_id(db, code_version)
     return version_db
