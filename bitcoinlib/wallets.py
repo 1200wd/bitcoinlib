@@ -1157,7 +1157,8 @@ class Wallet(object):
         :type sort_keys: bool
         :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
         :type password: str
-        :param witness_type: Specify witness type, default is 'legacy'. Use 'segwit' for native segregated witness wallet, or 'p2sh-segwit' for legacy compatible wallets
+        :param witness_type: Specify witness type, default is 'segwit', for native segregated witness
+        wallet. Use 'legacy' for an old-style wallets or 'p2sh-segwit' for legacy compatible wallets
         :type witness_type: str
         :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
         :type encoding: str
@@ -1190,7 +1191,7 @@ class Wallet(object):
                 multisig = False
         if scheme not in ['bip32', 'single']:
             raise WalletError("Only bip32 or single key scheme's are supported at the moment")
-        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit']:
+        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit', 'mixed']:
             raise WalletError("Witness type %s not supported at the moment" % witness_type)
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
@@ -1255,12 +1256,13 @@ class Wallet(object):
             raise WalletError("Pure segwit addresses are not supported for Dogecoin wallets. "
                               "Please use p2sh-segwit instead")
 
+        witness_type_keys = witness_type if witness_type != 'mixed' else 'segwit'
         if not key_path:
             if scheme == 'single':
                 key_path = ['m']
                 purpose = 0
             else:
-                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
+                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type_keys and
                       k['multisig'] == multisig and k['purpose'] is not None]
                 if len(ks) > 1:
                     raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
@@ -1274,7 +1276,7 @@ class Wallet(object):
             if purpose is None:
                 purpose = 0
         if not encoding:
-            encoding = get_encoding_from_witness(witness_type)
+            encoding = get_encoding_from_witness(witness_type_keys)
 
         if multisig:
             key = ''

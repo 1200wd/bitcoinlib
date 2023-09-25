@@ -502,5 +502,11 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
         column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
         add_column(db.engine, 'transaction_inputs', column)
         # version_db = db_update_version_id(db, '0.6.4')
+    if True or version_db < '7.0.0' and code_version >= '7.0.0':
+        # Add witness_type to keys table so we can use mixed keys in a single wallet
+        column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
+                                                        "'p2sh-segwit'. Default is segwit.")
+        add_column(db.engine, 'keys', column)
+
     version_db = db_update_version_id(db, code_version)
     return version_db
