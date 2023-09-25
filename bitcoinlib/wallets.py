@@ -1039,9 +1039,6 @@ class Wallet(object):
             _logger.info("Create new wallet '%s'" % name)
         if not name:
             raise WalletError("Please enter wallet name")
-        wallet_witness_type = witness_type
-        if witness_type == 'mixed':
-            witness_type = DEFAULT_WITNESS_TYPE
 
         if not isinstance(key_path, list):
             key_path = key_path.split('/')
@@ -1065,7 +1062,7 @@ class Wallet(object):
             key_path = '/'.join(key_path)
         session.merge(DbNetwork(name=network))
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
-                              sort_keys=sort_keys, witness_type=wallet_witness_type, parent_id=parent_id, encoding=encoding,
+                              sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
                               key_path=key_path)
         session.add(new_wallet)
@@ -1194,11 +1191,8 @@ class Wallet(object):
                 multisig = False
         if scheme not in ['bip32', 'single']:
             raise WalletError("Only bip32 or single key scheme's are supported at the moment")
-        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit', 'mixed']:
+        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit']:
             raise WalletError("Witness type %s not supported at the moment" % witness_type)
-        wallet_witness_type = witness_type
-        if witness_type == 'mixed':
-            witness_type = DEFAULT_WITNESS_TYPE
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
 
@@ -1262,13 +1256,12 @@ class Wallet(object):
             raise WalletError("Pure segwit addresses are not supported for Dogecoin wallets. "
                               "Please use p2sh-segwit instead")
 
-        witness_type_keys = witness_type if witness_type != 'mixed' else 'segwit'
         if not key_path:
             if scheme == 'single':
                 key_path = ['m']
                 purpose = 0
             else:
-                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type_keys and
+                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
                       k['multisig'] == multisig and k['purpose'] is not None]
                 if len(ks) > 1:
                     raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
@@ -1282,7 +1275,7 @@ class Wallet(object):
             if purpose is None:
                 purpose = 0
         if not encoding:
-            encoding = get_encoding_from_witness(witness_type_keys)
+            encoding = get_encoding_from_witness(witness_type)
 
         if multisig:
             key = ''
@@ -1306,7 +1299,7 @@ class Wallet(object):
                 main_key_path = 'm'
 
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                           scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=wallet_witness_type,
+                           scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
                            key_path=main_key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
 
@@ -1396,10 +1389,7 @@ class Wallet(object):
                 self.main_key_id: self.main_key
             }
             self.providers = None
-            self.wallet_witness_type = db_wlt.witness_type
             self.witness_type = db_wlt.witness_type
-            if db_wlt.witness_type == 'mixed':
-                self.witness_type = DEFAULT_WITNESS_TYPE
             self.encoding = db_wlt.encoding
             self.multisig = db_wlt.multisig
             self.cosigner_id = db_wlt.cosigner_id
@@ -1726,7 +1716,7 @@ class Wallet(object):
         self._commit()
         return self.key(multisig_key.id)
 
-    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, witness_typenetwork=None):
+    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, network=None):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
@@ -4176,7 +4166,7 @@ class Wallet(object):
         if self.multisig:
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
             print(" Cosigner ID                    %s" % self.cosigner_id)
-        print(" Witness type                   %s" % self.wallet_witness_type)
+        print(" Witness type                   %s" % self.witness_type)
         print(" Main network                   %s" % self.network.name)
         print(" Latest update                  %s" % self.last_updated)
 
