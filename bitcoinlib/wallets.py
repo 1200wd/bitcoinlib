@@ -1716,7 +1716,7 @@ class Wallet(object):
         self._commit()
         return self.key(multisig_key.id)
 
-    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, network=None):
+    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, witness_type=None, network=None):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
@@ -2090,7 +2090,7 @@ class Wallet(object):
                            witness_type=self.witness_type, network=network)
 
     def key_for_path(self, path, level_offset=None, name=None, account_id=None, cosigner_id=None,
-                     address_index=0, change=0, network=None, recreate=False):
+                     address_index=0, change=0, witness_type=None, network=None, recreate=False):
         """
         Return key for specified path. Derive all wallet keys in path if they not already exists
 
@@ -2135,6 +2135,7 @@ class Wallet(object):
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        witness_type = self.witness_type if not witness_type else witness_type
         cosigner_id = cosigner_id if cosigner_id is not None else self.cosigner_id
         level_offset_key = level_offset
         if level_offset and self.main_key and level_offset > 0:
@@ -2145,7 +2146,7 @@ class Wallet(object):
             key_path = self.cosigner[cosigner_id].key_path
         fullpath = path_expand(path, key_path, level_offset_key, account_id=account_id, cosigner_id=cosigner_id,
                                purpose=self.purpose, address_index=address_index, change=change,
-                               witness_type=self.witness_type, network=network)
+                               witness_type=witness_type, network=network)
 
         if self.multisig and self.cosigner:
             public_keys = []
@@ -2201,7 +2202,7 @@ class Wallet(object):
                     key_name = key_name.replace("'", "").replace("_", " ")
                 nk = WalletKey.from_key(key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
                                         change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
-                                        encoding=self.encoding, witness_type=self.witness_type,
+                                        encoding=self.encoding, witness_type=witness_type,
                                         cosigner_id=cosigner_id, network=network, session=self._session)
                 self._key_objects.update({nk.key_id: nk})
                 parent_id = nk.key_id
