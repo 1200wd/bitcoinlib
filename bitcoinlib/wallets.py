@@ -1748,20 +1748,23 @@ class Wallet(object):
                     raise WalletError("Missing Cosigner ID value, cannot create new key")
                 cosigner_id = self.cosigner_id
         witness_type = self.witness_type if not witness_type else witness_type
+        purpose = self.purpose
+        if witness_type != self.witness_type:
+            _, purpose, encoding = get_key_structure_data(witness_type, self.multisig)
 
         address_index = 0
         if self.multisig and cosigner_id is not None and (len(self.cosigner) > cosigner_id and self.cosigner[cosigner_id].key_path == 'm' or self.cosigner[cosigner_id].key_path == ['m']):
             req_path = []
         else:
             prevkey = self._session.query(DbKey).\
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network, account_id=account_id,
+                filter_by(wallet_id=self.wallet_id, purpose=purpose, network_name=network, account_id=account_id,
                           witness_type=witness_type, change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
                 order_by(DbKey.address_index.desc()).first()
             if prevkey:
                 address_index = prevkey.address_index + 1
             req_path = [change, address_index]
 
-        return self.key_for_path(req_path, name=name, account_id=account_id, network=network,
+        return self.key_for_path(req_path, name=name, account_id=account_id, witness_type=witness_type, network=network,
                                  cosigner_id=cosigner_id, address_index=address_index)
 
     def new_key_change(self, name='', account_id=None, network=None):
@@ -1881,7 +1884,8 @@ class Wallet(object):
                 if not n_highest_updated:
                     break
 
-    def _get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0, as_list=False):
+    def _get_key(self, account_id=None, witness_type=None, network=None, cosigner_id=None, number_of_keys=1, change=0,
+                 as_list=False):
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if cosigner_id is None:
             cosigner_id = self.cosigner_id
@@ -1889,17 +1893,19 @@ class Wallet(object):
             raise WalletError("Cosigner ID (%d) can not be greater then number of cosigners for this wallet (%d)" %
                               (cosigner_id, len(self.cosigner)))
 
+        witness_type = witness_type if witness_type else self.witness_type
         last_used_qr = self._session.query(DbKey.id).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
-                      used=True, change=change, depth=self.key_depth).\
+                      used=True, change=change, depth=self.key_depth, witness_type=witness_type).\
             order_by(DbKey.id.desc()).first()
         last_used_key_id = 0
         if last_used_qr:
             last_used_key_id = last_used_qr.id
-        dbkey = self._session.query(DbKey).\
+        dbkey = (self._session.query(DbKey).
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
-                      used=False, change=change, depth=self.key_depth).filter(DbKey.id > last_used_key_id).\
-            order_by(DbKey.id.desc()).all()
+                      used=False, change=change, depth=self.key_depth, witness_type=witness_type).
+            filter(DbKey.id > last_used_key_id).
+            order_by(DbKey.id.desc()).all())
         key_list = []
         if self.scheme == 'single' and len(dbkey):
             number_of_keys = len(dbkey) if number_of_keys > len(dbkey) else number_of_keys
@@ -1908,14 +1914,15 @@ class Wallet(object):
                 dk = dbkey.pop()
                 nk = self.key(dk.id)
             else:
-                nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id, network=network)
+                nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id,
+                                  witness_type=witness_type, network=network)
             key_list.append(nk)
         if as_list:
             return key_list
         else:
             return key_list[0]
 
-    def get_key(self, account_id=None, network=None, cosigner_id=None, change=0):
+    def get_key(self, account_id=None, witness_type=None, network=None, cosigner_id=None, change=0):
         """
         Get a unused key / address or create a new one with :func:`new_key` if there are no unused keys.
         Returns a key from this wallet which has no transactions linked to it.
@@ -1939,7 +1946,7 @@ class Wallet(object):
 
         :return WalletKey:
         """
-        return self._get_key(account_id, network, cosigner_id, change=change, as_list=False)
+        return self._get_key(account_id, witness_type, network, cosigner_id, change=change, as_list=False)
 
     def get_keys(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """
@@ -1963,7 +1970,7 @@ class Wallet(object):
         """
         if self.scheme == 'single':
             raise WalletError("Single wallet has only one (master)key. Use get_key() or main_key() method")
-        return self._get_key(account_id, network, cosigner_id, number_of_keys, change, as_list=True)
+        return self._get_key(account_id, self.witness_type, network, cosigner_id, number_of_keys, change, as_list=True)
 
     def get_key_change(self, account_id=None, network=None):
         """
@@ -2142,9 +2149,8 @@ class Wallet(object):
         witness_type = witness_type if witness_type else self.witness_type
         purpose = self.purpose
         encoding = self.encoding
-        # if witness_type != self.witness_type:
-        #     purpose = 44
-        #     encoding = 'base58' if witness_type == 'legacy' else 'bech32'
+        if witness_type != self.witness_type:
+            _, purpose, encoding = get_key_structure_data(witness_type, self.multisig)
         if self.multisig and cosigner_id is not None and len(self.cosigner) > cosigner_id:
             key_path = self.cosigner[cosigner_id].key_path
         fullpath = path_expand(path, key_path, level_offset_key, account_id=account_id, cosigner_id=cosigner_id,
@@ -2471,8 +2477,6 @@ class Wallet(object):
 
         dbkey = None
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id)
-        if self.purpose:
-            qr = qr.filter_by(purpose=self.purpose)
         if isinstance(term, numbers.Number):
             dbkey = qr.filter_by(id=term).scalar()
         if not dbkey:
