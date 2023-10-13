@@ -319,6 +319,16 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         passphrase = "region kite swamp float card flag chalk click gadget share wage clever"
         k = HDKey().from_passphrase(passphrase, witness_type='legacy')
         ke = k.encrypt('hoihoi')
+        w = wallet_create_or_open('kewallet', ke, password='hoihoi', network='bitcoin', witness_type='legacy',
+                                  db_uri=self.DATABASE_URI)
+        self.assertEqual(k.private_hex, w.main_key.key_private.hex())
+
+    def test_wallet_create_bip38_segwit(self):
+        if not USING_MODULE_SCRYPT:
+            self.skipTest('Need scrypt module to test BIP38 wallets')
+        passphrase = "region kite swamp float card flag chalk click gadget share wage clever"
+        k = HDKey().from_passphrase(passphrase)
+        ke = k.encrypt('hoihoi')
         w = wallet_create_or_open('kewallet', ke, password='hoihoi', network='bitcoin', db_uri=self.DATABASE_URI)
         self.assertEqual(k.private_hex, w.main_key.key_private.hex())
 
@@ -602,7 +612,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_create_uncompressed_masterkey(self):
         wlt = wallet_create_or_open('uncompressed_test', keys='68vBWcBndYGLpd4KmeNTk1gS1A71zyDX6uVQKCxq6umYKyYUav5',
-                                    network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+                                    network='bitcoinlib_test', witness_type='legacy', db_uri=self.DATABASE_URI)
         wlt.get_key()
         wlt.utxos_update()
         self.assertIsNone(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY', offline=False).error)
@@ -611,7 +621,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         # Test for issue #206
         key_correct = HDKey(witness_type='segwit', network='testnet')
         key_invalid = HDKey(witness_type='segwit', network='testnet')
-        w = wallet_create_or_open('my-awesome-wallet55', keys=key_correct, witness_type='segwit', network='testnet',
+        wallet_create_or_open('my-awesome-wallet55', keys=key_correct, witness_type='segwit', network='testnet',
                                   db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(AssertionError, '', Wallet, 'my-awesome-wallet55', main_key_object=key_invalid,
                                 db_uri=self.DATABASE_URI)
@@ -783,7 +793,7 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         cls.pk = 'xprv9s21ZrQH143K4478MENLXpSXSvJSRYsjD2G3sY7s5sxAGubyujDmt9Qzfd1me5s1HokWGGKW9Uft8eB9dqryybAcFZ5JAs' \
                  'rg84jAVYwKJ8c'
         cls.wallet = Wallet.create(
-            keys=cls.pk, network='dash',
+            keys=cls.pk, network='dash', witness_type='legacy',
             name='test_wallet_multicurrency',
             db_uri=cls.DATABASE_URI)
 
@@ -1036,14 +1046,14 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_multisig_bitcoin_transaction_send_offline(self):
         self.db_remove()
-        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d')
+        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d', witness_type='legacy')
         key_list = [
-            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067'),
+            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', witness_type='legacy'),
             pk2.public_master(multisig=True).public(),
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(
-                multisig=True).public(),
+                multisig=True, witness_type='legacy').public(),
         ]
-        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
+        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, witness_type='legacy',
                            db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
@@ -1096,15 +1106,17 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
     def test_wallet_multisig_litecoin_transaction_send_offline(self):
         self.db_remove()
         network = 'litecoin_legacy'
-        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d', network=network)
+        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d', witness_type='legacy',
+                    network=network)
         key_list = [
-            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', network=network),
+            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', witness_type='legacy',
+                  network=network),
             pk2.public_master(multisig=True),
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6',
-                  network=network).public_master(multisig=True),
+                  witness_type='legacy', network=network).public_master(multisig=True),
         ]
         wl = Wallet.create('multisig_test_litecoin_send', key_list, sigs_required=2, network=network,
-                           db_uri=self.DATABASE_URI)
+                           witness_type='legacy', db_uri=self.DATABASE_URI)
         wl.get_keys(number_of_keys=2)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
                     0, 1)
@@ -1477,7 +1489,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             '2631ab1a4745f657f7216c636fb8ac708a3f6b63a6cd5cf773bfc9a3ebe6e1ba',
             '97a66126f42fd3241cf256846e58cd7049d4d395f84b1811f73a3f5d33ff833e',
         ]
-        key_list = [HDKey(pk, network=network) for pk in pk_hex_list]
+        key_list = [HDKey(pk, witness_type='legacy', network=network) for pk in pk_hex_list]
         key_list_cosigners = [k.public_master(multisig=True) for k in key_list if k is not key_list[0]]
         key_list_wallet = [key_list[0]] + key_list_cosigners
         w = wallet_create_or_open(wallet_name, keys=key_list_wallet, sigs_required=sigs_req, witness_type=witness_type,
@@ -1736,7 +1748,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
             "hJzfabX"
         wlt = Wallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
-                            db_uri=self.DATABASE_URI)
+                            witness_type='legacy', db_uri=self.DATABASE_URI)
         wlt.new_key()
         wlt.new_account(network='testnet')
         wlt.import_key(k)
@@ -1913,7 +1925,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
     def test_wallet_transaction_from_txid(self):
         w = Wallet.create('testwltbcl', keys='dda84e87df25f32d73a7f7d008ed2b89fc00d9d07fde588d1b8af0af297023de',
-                          network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+                          witness_type='legacy', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.utxos_update()
         wts = w.transactions()
         txid = wts[0].txid

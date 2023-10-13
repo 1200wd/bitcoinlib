@@ -1233,7 +1233,7 @@ class Wallet(object):
                         if isinstance(key, WalletKey):
                             key = key._hdkey_object
                         else:
-                            key = HDKey(key, password=password, network=network)
+                            key = HDKey(key, password=password, witness_type=witness_type, network=network)
                     except BKeyError:
                         try:
                             scheme = 'single'
@@ -1638,7 +1638,7 @@ class Wallet(object):
                 if network not in self.network_list():
                     raise WalletError("Network %s not available in this wallet, please create an account for this "
                                       "network first." % network)
-                hdkey = HDKey(key, network=network, key_type=key_type)
+                hdkey = HDKey(key, network=network, key_type=key_type, witness_type=self.witness_type)
 
         if not self.multisig:
             if self.main_key and self.main_key.depth == self.depth_public_master and \

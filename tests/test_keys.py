@@ -313,14 +313,14 @@ class TestHDKeysImport(unittest.TestCase):
         self.assertEqual(extkey, self.k.wif())
 
     def test_hdkey_import_simple_key(self):
-        self.k = HDKey('L45TpiVN3C8Q3MoosGDzug1acpnFjysseBLVboszztmEyotdSJ9g')
+        self.k = HDKey('L45TpiVN3C8Q3MoosGDzug1acpnFjysseBLVboszztmEyotdSJ9g', witness_type='legacy')
         self.assertEqual(
             'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAbeoRRpMHE67jGmBQKCr2YovK2G23x5uzaztRbEW9pc'
             'j6SqMFd', self.k.wif(is_private=True))
 
     def test_hdkey_import_bip38_key(self):
         if USING_MODULE_SCRYPT:
-            self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
+            self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', witness_type='legacy',
                            password='TestingOneTwoThree')
             self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
 
@@ -548,7 +548,7 @@ class TestHDKeys(unittest.TestCase):
 
     def test_hdkey_network_change(self):
         pk = '688e4b153100f6d4526a00a3fffb47d971a32a54950ec00fab8c22fa8480edfe'
-        k = HDKey(pk)
+        k = HDKey(pk, witness_type='legacy')
         k.network_change('litecoin')
         self.assertEqual(k.address(), 'LPsPTgctprGZ6FEc7QFAugr6qg8XV3X4tg')
 
@@ -596,7 +596,7 @@ class TestBip38(unittest.TestCase):
     def test_bip38_hdkey_method(self):
         pkwif = '5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5'
         bip38_wif = '6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq'
-        k = HDKey(pkwif)
+        k = HDKey(pkwif, witness_type='legacy')
         self.assertEqual(k.encrypt('Satoshi'), bip38_wif)
 
 

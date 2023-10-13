@@ -128,7 +128,7 @@ def get_key_format(key, is_private=None):
     key_format = ""
     networks = None
     script_types = []
-    witness_types = ['legacy']
+    witness_types = [DEFAULT_WITNESS_TYPE]
     multisig = [False]
 
     # if isinstance(key, bytes) and len(key) in [128, 130]:
@@ -528,9 +528,10 @@ class Address(object):
         if network is None:
             network = addr_dict['network']
         script_type = addr_dict['script_type']
+        witness_type = addr_dict['witness_type']
         return Address(hashed_data=public_key_hash_bytes, prefix=prefix, script_type=script_type,
-                       compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
-                       address_index=address_index, network=network, network_overrides=network_overrides)
+                       witness_type=witness_type, compressed=compressed, encoding=addr_dict['encoding'], depth=depth,
+                       change=change, address_index=address_index, network=network, network_overrides=network_overrides)
 
     def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
                  compressed=None, encoding=None, witness_type=None, witver=0, depth=None, change=None,
