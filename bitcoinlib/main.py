@@ -105,6 +105,23 @@ def get_encoding_from_witness(witness_type=None):
         raise ValueError("Unknown witness type %s" % witness_type)
 
 
+def get_key_structure_data(witness_type, multisig=False, purpose=None, encoding=None):
+    if not witness_type:
+        return None, None, None
+    ks = [k for k in WALLET_KEY_STRUCTURES if
+          k['witness_type'] == witness_type and k['multisig'] == multisig and k['purpose'] is not None]
+    if len(ks) > 1:
+        raise ValueError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                        "witness_type - multisig combination: %s, %s" % (witness_type, multisig))
+    if not ks:
+        raise ValueError("Please check definitions in WALLET_KEY_STRUCTURES. No options found for "
+                         "witness_type - multisig combination: %s, %s" % (witness_type, multisig))
+    purpose = ks[0]['purpose'] if not purpose else purpose
+    path_template = ks[0]['key_path']
+    encoding = ks[0]['encoding'] if not encoding else encoding
+    return path_template, purpose, encoding
+
+
 def deprecated(func):
     """
     This is a decorator which can be used to mark functions as deprecated. It will result in a warning being emitted when the function is used.

@@ -301,7 +301,7 @@ class WalletKey(object):
     """
 
     @staticmethod
-    def from_key(name, wallet_id, session, key, account_id=0, network=None, change=0, purpose=44, parent_id=0,
+    def from_key(name, wallet_id, session, key, account_id=0, network=None, change=0, purpose=84, parent_id=0,
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
                  cosigner_id=None):
         """
@@ -331,7 +331,7 @@ class WalletKey(object):
         :type network: str
         :param change: Use 0 for normal key, and 1 for change key (for returned payments)
         :type change: int
-        :param purpose: BIP0044 purpose field, default is 44
+        :param purpose: BIP0044 purpose field, default is 84
         :type purpose: int
         :param parent_id: Key ID of parent, default is 0 (no parent)
         :type parent_id: int
@@ -405,7 +405,8 @@ class WalletKey(object):
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
-                       key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
+                       key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id,
+                       witness_type=witness_type)
         else:
             keyexists = session.query(DbKey).\
                 filter(DbKey.wallet_id == wallet_id,
@@ -416,7 +417,8 @@ class WalletKey(object):
             nk = DbKey(name=name[:80], wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address=k.address,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
-                       key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
+                       key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id,
+                       witness_type=witness_type)
 
         session.merge(DbNetwork(name=network))
         session.add(nk)
@@ -1261,16 +1263,17 @@ class Wallet(object):
                 key_path = ['m']
                 purpose = 0
             else:
-                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
-                      k['multisig'] == multisig and k['purpose'] is not None]
-                if len(ks) > 1:
-                    raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                                      "witness_type - multisig combination")
-                if ks and not purpose:
-                    purpose = ks[0]['purpose']
-                if ks and not encoding:
-                    encoding = ks[0]['encoding']
-                key_path = ks[0]['key_path']
+                # ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
+                #       k['multisig'] == multisig and k['purpose'] is not None]
+                # if len(ks) > 1:
+                #     raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                #                       "witness_type - multisig combination")
+                # if ks and not purpose:
+                #     purpose = ks[0]['purpose']
+                # if ks and not encoding:
+                #     encoding = ks[0]['encoding']
+                # key_path = ks[0]['key_path']
+                key_path, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
         else:
             if purpose is None:
                 purpose = 0
@@ -1568,7 +1571,6 @@ class Wallet(object):
         if (self.main_key.depth != 1 and self.main_key.depth != 3 and self.main_key.depth != 4) or \
                 self.main_key.key_type != 'bip32':
             raise WalletError("Current main key is not a valid BIP32 public master key")
-        # pm = self.public_master()
         if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
@@ -1576,12 +1578,13 @@ class Wallet(object):
             raise WalletError("This key does not correspond to current public master key")
 
         hdkey.key_type = 'bip32'
-        ks = [k for k in WALLET_KEY_STRUCTURES if
-              k['witness_type'] == self.witness_type and k['multisig'] == self.multisig and k['purpose'] is not None]
-        if len(ks) > 1:
-            raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                              "witness_type - multisig combination")
-        self.key_path = ks[0]['key_path']
+        # ks = [k for k in WALLET_KEY_STRUCTURES if
+        #       k['witness_type'] == self.witness_type and k['multisig'] == self.multisig and k['purpose'] is not None]
+        # if len(ks) > 1:
+        #     raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+        #                       "witness_type - multisig combination")
+        # self.key_path = ks[0]['key_path']
+        self.key_path, _, _ = get_key_structure_data(self.witness_type, self.multisig)
         self.main_key = WalletKey.from_key(
             key=hdkey, name=name, session=self._session, wallet_id=self.wallet_id, network=network,
             account_id=account_id, purpose=self.purpose, key_type='bip32', witness_type=self.witness_type)
@@ -1599,7 +1602,7 @@ class Wallet(object):
         self._commit()
         return self.main_key
 
-    def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type=None):
+    def import_key(self, key, account_id=0, name='', network=None, purpose=84, key_type=None):
         """
         Add new single key to wallet.
 
@@ -1611,7 +1614,7 @@ class Wallet(object):
         :type name: str
         :param network: Network name, method will try to extract from key if not specified. Raises warning if network could not be detected
         :type network: str
-        :param purpose: BIP definition used, default is BIP44
+        :param purpose: BIP44 definition used, default is 84 (segwit)
         :type purpose: int
         :param key_type: Key type of imported key, can be single. Unrelated to wallet, bip32, bip44 or master for new or extra master key import. Default is 'single'
         :type key_type: str
@@ -1707,7 +1710,7 @@ class Wallet(object):
             name=name[:80], wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
             public=address.hash_bytes, wif='multisig-%s' % address, address=address.address, cosigner_id=cosigner_id,
-            key_type='multisig', network_name=network)
+            key_type='multisig', witness_type=self.witness_type, network_name=network)
         self._session.add(multisig_key)
         self._commit()
         for child_id in public_key_ids:
@@ -1716,7 +1719,7 @@ class Wallet(object):
         self._commit()
         return self.key(multisig_key.id)
 
-    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, network=None):
+    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, witness_type=None, network=None):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
@@ -1746,12 +1749,15 @@ class Wallet(object):
         if network != self.network.name and "coin_type'" not in self.key_path:
             raise WalletError("Multiple networks not supported by wallet key structure")
         if self.multisig:
+            # if witness_type:
+            # TODO: raise error
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
             if cosigner_id is None:
                 if self.cosigner_id is None:
                     raise WalletError("Missing Cosigner ID value, cannot create new key")
                 cosigner_id = self.cosigner_id
+        witness_type = self.witness_type if not witness_type else witness_type
 
         address_index = 0
         if self.multisig and cosigner_id is not None and (len(self.cosigner) > cosigner_id and self.cosigner[cosigner_id].key_path == 'm' or self.cosigner[cosigner_id].key_path == ['m']):
@@ -1759,7 +1765,7 @@ class Wallet(object):
         else:
             prevkey = self._session.query(DbKey).\
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network, account_id=account_id,
-                          change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
+                          witness_type=witness_type, change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
                 order_by(DbKey.address_index.desc()).first()
             if prevkey:
                 address_index = prevkey.address_index + 1
@@ -2090,7 +2096,7 @@ class Wallet(object):
                            witness_type=self.witness_type, network=network)
 
     def key_for_path(self, path, level_offset=None, name=None, account_id=None, cosigner_id=None,
-                     address_index=0, change=0, network=None, recreate=False):
+                     address_index=0, change=0, witness_type=None, network=None, recreate=False):
         """
         Return key for specified path. Derive all wallet keys in path if they not already exists
 
@@ -2141,11 +2147,17 @@ class Wallet(object):
             level_offset_key = level_offset - self.main_key.depth
 
         key_path = self.key_path
+        witness_type = witness_type if witness_type else self.witness_type
+        purpose = self.purpose
+        encoding = self.encoding
+        # if witness_type != self.witness_type:
+        #     purpose = 44
+        #     encoding = 'base58' if witness_type == 'legacy' else 'bech32'
         if self.multisig and cosigner_id is not None and len(self.cosigner) > cosigner_id:
             key_path = self.cosigner[cosigner_id].key_path
         fullpath = path_expand(path, key_path, level_offset_key, account_id=account_id, cosigner_id=cosigner_id,
-                               purpose=self.purpose, address_index=address_index, change=change,
-                               witness_type=self.witness_type, network=network)
+                               purpose=purpose, address_index=address_index, change=change,
+                               witness_type=witness_type, network=network)
 
         if self.multisig and self.cosigner:
             public_keys = []
@@ -2158,7 +2170,7 @@ class Wallet(object):
                 public_keys.append(wk)
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
 
-        # Check for closest ancestor in wallet\
+        # Check for closest ancestor in wallet
         wpath = fullpath
         if self.main_key.depth and fullpath and fullpath[0] != 'M':
             wpath = ["M"] + fullpath[self.main_key.depth + 1:]
@@ -2183,6 +2195,8 @@ class Wallet(object):
             nk = None
             parent_id = topkey.key_id
             ck = topkey.key()
+            ck.witness_type = witness_type
+            ck.encoding = encoding
             newpath = topkey.path
             n_items = len(str(dbkey.path).split('/'))
             for lvl in fullpath[n_items:]:
@@ -2200,8 +2214,8 @@ class Wallet(object):
                     key_name = "%s %s" % (self.key_path[len(newpath.split('/'))-1], lvl)
                     key_name = key_name.replace("'", "").replace("_", " ")
                 nk = WalletKey.from_key(key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
-                                        change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
-                                        encoding=self.encoding, witness_type=self.witness_type,
+                                        change=change, purpose=purpose, path=newpath, parent_id=parent_id,
+                                        encoding=encoding, witness_type=witness_type,
                                         cosigner_id=cosigner_id, network=network, session=self._session)
                 self._key_objects.update({nk.key_id: nk})
                 parent_id = nk.key_id

@@ -355,7 +355,7 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     return pubkeyhash_to_addr(pkh, prefix=prefix, encoding=to_encoding)
 
 
-def path_expand(path, path_template=None, level_offset=None, account_id=0, cosigner_id=0, purpose=44,
+def path_expand(path, path_template=None, level_offset=None, account_id=0, cosigner_id=0, purpose=84,
                 address_index=0, change=0, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, network=DEFAULT_NETWORK):
     """
     Create key path. Specify part of key path and path settings
@@ -391,11 +391,7 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
     if isinstance(path, TYPE_TEXT):
         path = path.split('/')
     if not path_template:
-        ks = [k for k in WALLET_KEY_STRUCTURES if
-              k['witness_type'] == witness_type and k['multisig'] == multisig and k['purpose'] is not None]
-        if ks:
-            purpose = ks[0]['purpose']
-            path_template = ks[0]['key_path']
+        path_template, purpose, _ = get_key_structure_data(witness_type, multisig)
     if not isinstance(path, list):
         raise BKeyError("Please provide path as list with at least 1 item. Wallet key path format is %s" %
                         path_template)
@@ -1785,14 +1781,8 @@ class HDKey(Key):
             self.multisig = multisig
         if witness_type:
             self.witness_type = witness_type
-        ks = [k for k in WALLET_KEY_STRUCTURES if
-              k['witness_type'] == self.witness_type and k['multisig'] == self.multisig and k['purpose'] is not None]
-        if len(ks) > 1:
-            raise BKeyError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                            "witness_type - multisig combination")
-        if ks and not purpose:
-            purpose = ks[0]['purpose']
-        path_template = ks[0]['key_path']
+
+        path_template, purpose, _ = get_key_structure_data(self.witness_type, self.multisig, purpose)
 
         # Use last hardened key as public master root
         pm_depth = path_template.index([x for x in path_template if x[-1:] == "'"][-1]) + 1
