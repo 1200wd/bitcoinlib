@@ -245,7 +245,7 @@ class DbWallet(Base):
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
-        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit', 'p2tr']),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit', 'p2tr', 'mixed']),
                         name='wallet_constraint_allowed_types'),
     )
 
