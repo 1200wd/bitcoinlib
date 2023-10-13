@@ -1263,16 +1263,6 @@ class Wallet(object):
                 key_path = ['m']
                 purpose = 0
             else:
-                # ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
-                #       k['multisig'] == multisig and k['purpose'] is not None]
-                # if len(ks) > 1:
-                #     raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                #                       "witness_type - multisig combination")
-                # if ks and not purpose:
-                #     purpose = ks[0]['purpose']
-                # if ks and not encoding:
-                #     encoding = ks[0]['encoding']
-                # key_path = ks[0]['key_path']
                 key_path, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
         else:
             if purpose is None:
@@ -2132,6 +2122,8 @@ class Wallet(object):
         :type address_index: int
         :param change: Change key = 1 or normal = 0, normally provided to 'path' argument
         :type change: int
+        :param witness_type: Use to create key with different witness_type
+        :type witness_type: str
         :param network: Network name. Leave empty for default network
         :type network: str
         :param recreate: Recreate key, even if already found in wallet. Can be used to update public key with private key info

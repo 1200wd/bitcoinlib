@@ -106,8 +106,23 @@ def get_encoding_from_witness(witness_type=None):
 
 
 def get_key_structure_data(witness_type, multisig=False, purpose=None, encoding=None):
+    """
+    Get data from wallet key structure. Provide witness_type and multisig to determine key path, purpose (BIP44
+    reference) and encoding.
+
+    :param witness_type: Witness type used for transaction validation
+    :type witness_type: str
+    :param multisig: Multisig or single keys wallet, default is False: single key / 1-of-1 wallet
+    :type multisig: bool
+    :param purpose: Overrule purpose found in wallet structure. Do not use unless you known what you are doing.
+    :type purpose: int
+    :param encoding: Overrule encoding found in wallet structure. Do not use unless you known what you are doing.
+    :type encoding: str
+
+    :return: (key_path, purpose, encoding)
+    """
     if not witness_type:
-        return None, None, None
+        return None, purpose, encoding
     ks = [k for k in WALLET_KEY_STRUCTURES if
           k['witness_type'] == witness_type and k['multisig'] == multisig and k['purpose'] is not None]
     if len(ks) > 1:
