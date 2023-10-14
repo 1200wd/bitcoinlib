@@ -1868,7 +1868,8 @@ class Wallet(object):
                     keys_to_scan = [self.key(k.id) for k in self.keys_addresses()[counter:counter+scan_gap_limit]]
                     counter += scan_gap_limit
                 else:
-                    keys_to_scan = self.get_keys(account_id, network, number_of_keys=scan_gap_limit, change=chg)
+                    keys_to_scan = self.get_keys(account_id, self.witness_type, network,
+                                                 number_of_keys=scan_gap_limit, change=chg)
                 n_highest_updated = 0
                 for key in keys_to_scan:
                     if key.key_id in keys_ignore:
@@ -1948,7 +1949,7 @@ class Wallet(object):
         """
         return self._get_key(account_id, witness_type, network, cosigner_id, change=change, as_list=False)
 
-    def get_keys(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
+    def get_keys(self, account_id=None, witness_type=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """
         Get a list of unused keys / addresses or create a new ones with :func:`new_key` if there are no unused keys.
         Returns a list of keys from this wallet which has no transactions linked to it.
@@ -1970,9 +1971,9 @@ class Wallet(object):
         """
         if self.scheme == 'single':
             raise WalletError("Single wallet has only one (master)key. Use get_key() or main_key() method")
-        return self._get_key(account_id, self.witness_type, network, cosigner_id, number_of_keys, change, as_list=True)
+        return self._get_key(account_id, witness_type, network, cosigner_id, number_of_keys, change, as_list=True)
 
-    def get_key_change(self, account_id=None, network=None):
+    def get_key_change(self, account_id=None, witness_type=None, network=None):
         """
         Get a unused change key or create a new one if there are no unused keys.
         Wrapper for the :func:`get_key` method
@@ -1985,9 +1986,9 @@ class Wallet(object):
         :return WalletKey:
         """
 
-        return self._get_key(account_id=account_id, network=network, change=1, as_list=False)
+        return self._get_key(account_id, witness_type, network, change=1, as_list=False)
 
-    def get_keys_change(self, account_id=None, network=None, number_of_keys=1):
+    def get_keys_change(self, account_id=None, witness_type=None, network=None, number_of_keys=1):
         """
         Get a unused change key or create a new one if there are no unused keys.
         Wrapper for the :func:`get_key` method
@@ -2002,8 +2003,7 @@ class Wallet(object):
         :return list of WalletKey:
         """
 
-        return self._get_key(account_id=account_id, network=network, change=1, number_of_keys=number_of_keys,
-                             as_list=True)
+        return self._get_key(account_id, witness_type, network, change=1, number_of_keys=number_of_keys, as_list=True)
 
     def new_account(self, name='', account_id=None, network=None):
         """
@@ -3716,9 +3716,9 @@ class Wallet(object):
                                   "or lower fees")
 
             if self.scheme == 'single':
-                change_keys = [self.get_key(account_id=account_id, network=network, change=1)]
+                change_keys = [self.get_key(account_id, self.witness_type, network, change=1)]
             else:
-                change_keys = self.get_keys(account_id=account_id, network=network, change=1,
+                change_keys = self.get_keys(account_id, self.witness_type, network, change=1,
                                             number_of_keys=number_of_change_outputs)
 
             if number_of_change_outputs > 1:
