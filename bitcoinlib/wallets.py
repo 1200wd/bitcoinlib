@@ -2005,7 +2005,7 @@ class Wallet(object):
 
         return self._get_key(account_id, witness_type, network, change=1, number_of_keys=number_of_keys, as_list=True)
 
-    def new_account(self, name='', account_id=None, network=None):
+    def new_account(self, name='', account_id=None, witness_type=None, network=None):
         """
         Create a new account with a child key for payments and 1 for change.
 
@@ -2040,21 +2040,23 @@ class Wallet(object):
             raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
                               (network, duplicate_cointypes))
 
+        witness_type = witness_type if witness_type else self.witness_type
         # Determine account_id and name
         if account_id is None:
             account_id = 0
             qr = self._session.query(DbKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network). \
+                filter_by(wallet_id=self.wallet_id, witness_type=witness_type, network_name=network). \
                 order_by(DbKey.account_id.desc()).first()
             if qr:
                 account_id = qr.account_id + 1
-        if self.keys(account_id=account_id, depth=self.depth_public_master, network=network):
+        if self.keys(account_id=account_id, depth=self.depth_public_master, witness_type=witness_type,
+                     network=network):
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
 
         acckey = self.key_for_path([], level_offset=self.depth_public_master-self.key_depth, account_id=account_id,
                                    name=name, network=network)
-        self.key_for_path([0, 0], network=network, account_id=account_id)
-        self.key_for_path([1, 0], network=network, account_id=account_id)
+        self.key_for_path([0, 0], witness_type=witness_type, network=network, account_id=account_id)
+        self.key_for_path([1, 0], witness_type=witness_type, network=network, account_id=account_id)
         return acckey
 
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=0, address_index=None, change=0,
@@ -2220,7 +2222,7 @@ class Wallet(object):
             return nk
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             has_balance=None, is_active=None, network=None, include_private=False, as_dict=False):
+             has_balance=None, is_active=None, witness_type=None, network=None, include_private=False, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
 
@@ -2262,6 +2264,8 @@ class Wallet(object):
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id).order_by(DbKey.id)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
+        if witness_type is not None:
+            qr = qr.filter(DbKey.witness_type == witness_type)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
             if self.scheme == 'bip32' and depth is None:
