@@ -4100,7 +4100,7 @@ class Wallet(object):
                 wiflist.append(cs.wif(is_private=is_private))
             return wiflist
 
-    def public_master(self, account_id=None, name=None, as_private=False, network=None):
+    def public_master(self, account_id=None, name=None, as_private=False, witness_type=None, network=None):
         """
         Return public master key(s) for this wallet. Use to import in other wallets to sign transactions or create keys.
 
@@ -4127,9 +4127,10 @@ class Wallet(object):
             key = self.main_key
             return key if as_private else key.public()
         elif not self.cosigner:
+            witness_type = witness_type if witness_type else self.witness_type
             depth = -self.key_depth + self.depth_public_master
             key = self.key_for_path([], depth, name=name, account_id=account_id, network=network,
-                                    cosigner_id=self.cosigner_id)
+                                    cosigner_id=self.cosigner_id, witness_type=witness_type)
             return key if as_private else key.public()
         else:
             pm_list = []
