@@ -2687,3 +2687,22 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         self.assertFalse(w.main_key.is_private)
         w.import_key(wif)
         self.assertTrue(w.main_key.is_private)
+
+
+@parameterized_class(*params)
+class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.db_remove()
+
+    def test_wallet_mixed_witness_types_address(self):
+        pk = 'a9b723d90282710036e06ec5b3d0c303817e486fa3e8bc117aec839deaedb961'
+        wmix = Wallet.create(name='wallet_witness_type_mixed', keys=pk, db_uri=self.DATABASE_URI)
+        wleg = Wallet.create(name='wallet_witness_type_legacy', keys=pk, witness_type='legacy',
+                             db_uri=self.DATABASE_URI)
+        wp2sh = Wallet.create(name='wallet_witness_type_p2sh', keys=pk, witness_type='p2sh-segwit',
+                              db_uri=self.DATABASE_URI)
+        self.assertEqual(wmix.get_key(witness_type='legacy').address, wleg.get_key().address)
+        self.assertEqual(wmix.get_key(witness_type='p2sh-segwit').address, wp2sh.get_key().address)
+        self.assertEqual(wleg.get_key(witness_type='segwit').address, wmix.get_key().address)
