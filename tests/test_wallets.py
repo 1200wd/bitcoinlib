@@ -2706,4 +2706,12 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
         self.assertEqual(wmix.get_key(witness_type='legacy').address, wleg.get_key().address)
         self.assertEqual(wmix.get_key(witness_type='p2sh-segwit').address, wp2sh.get_key().address)
         self.assertEqual(wleg.get_key(witness_type='segwit').address, wmix.get_key().address)
-        self.assertEqual(wmix.new_account(witness_type='legacy').address, wleg.new_account().address)
+        wmix_legkey = wmix.new_account(witness_type='legacy').address
+        self.assertEqual(wmix_legkey, '18nM5LxmzaEcf4rv9pK7FLiAtfmH1VgVWD')
+        self.assertEqual(wmix_legkey, wleg.new_account().address)
+        self.assertEqual(wmix.new_key(witness_type='p2sh-segwit').address, wp2sh.new_key().address)
+        self.assertEqual(wmix.new_key_change(witness_type='p2sh-segwit').address, wp2sh.new_key_change().address)
+        self.assertEqual(wleg.get_key_change(witness_type='segwit').address,
+                         wp2sh.get_key_change(witness_type='segwit').address)
+        self.assertEqual(wleg.new_key_change(witness_type='p2sh-segwit', account_id=111).address,
+                         wp2sh.new_key_change(account_id=111).address)

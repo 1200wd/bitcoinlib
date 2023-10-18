@@ -1767,7 +1767,7 @@ class Wallet(object):
         return self.key_for_path(req_path, name=name, account_id=account_id, witness_type=witness_type, network=network,
                                  cosigner_id=cosigner_id, address_index=address_index)
 
-    def new_key_change(self, name='', account_id=None, network=None):
+    def new_key_change(self, name='', account_id=None, witness_type=None, network=None):
         """
         Create new key to receive change for a transaction. Calls :func:`new_key` method with change=1.
 
@@ -1781,7 +1781,7 @@ class Wallet(object):
         :return WalletKey:
         """
 
-        return self.new_key(name=name, account_id=account_id, network=network, change=1)
+        return self.new_key(name=name, account_id=account_id, witness_type=witness_type, network=network, change=1)
 
     def scan_key(self, key):
         """
