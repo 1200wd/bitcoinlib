@@ -2054,7 +2054,7 @@ class Wallet(object):
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
 
         acckey = self.key_for_path([], level_offset=self.depth_public_master-self.key_depth, account_id=account_id,
-                                   name=name, network=network)
+                                   name=name, witness_type=witness_type, network=network)
         self.key_for_path([0, 0], witness_type=witness_type, network=network, account_id=account_id)
         self.key_for_path([1, 0], witness_type=witness_type, network=network, account_id=account_id)
         return acckey

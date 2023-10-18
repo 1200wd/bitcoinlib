@@ -2706,3 +2706,4 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
         self.assertEqual(wmix.get_key(witness_type='legacy').address, wleg.get_key().address)
         self.assertEqual(wmix.get_key(witness_type='p2sh-segwit').address, wp2sh.get_key().address)
         self.assertEqual(wleg.get_key(witness_type='segwit').address, wmix.get_key().address)
+        self.assertEqual(wmix.new_account(witness_type='legacy').address, wleg.new_account().address)
