@@ -2698,20 +2698,33 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_mixed_witness_types_address(self):
         pk = 'a9b723d90282710036e06ec5b3d0c303817e486fa3e8bc117aec839deaedb961'
-        wmix = Wallet.create(name='wallet_witness_type_mixed', keys=pk, db_uri=self.DATABASE_URI)
+        wseg = Wallet.create(name='wallet_witness_type_segwit', keys=pk, db_uri=self.DATABASE_URI)
         wleg = Wallet.create(name='wallet_witness_type_legacy', keys=pk, witness_type='legacy',
                              db_uri=self.DATABASE_URI)
         wp2sh = Wallet.create(name='wallet_witness_type_p2sh', keys=pk, witness_type='p2sh-segwit',
                               db_uri=self.DATABASE_URI)
-        self.assertEqual(wmix.get_key(witness_type='legacy').address, wleg.get_key().address)
-        self.assertEqual(wmix.get_key(witness_type='p2sh-segwit').address, wp2sh.get_key().address)
-        self.assertEqual(wleg.get_key(witness_type='segwit').address, wmix.get_key().address)
-        wmix_legkey = wmix.new_account(witness_type='legacy').address
+        self.assertEqual(wseg.get_key(witness_type='legacy').address, wleg.get_key().address)
+        self.assertEqual(wseg.get_key(witness_type='p2sh-segwit').address, wp2sh.get_key().address)
+        self.assertEqual(wleg.get_key(witness_type='segwit').address, wseg.get_key().address)
+        wmix_legkey = wseg.new_account(witness_type='legacy').address
         self.assertEqual(wmix_legkey, '18nM5LxmzaEcf4rv9pK7FLiAtfmH1VgVWD')
         self.assertEqual(wmix_legkey, wleg.new_account().address)
-        self.assertEqual(wmix.new_key(witness_type='p2sh-segwit').address, wp2sh.new_key().address)
-        self.assertEqual(wmix.new_key_change(witness_type='p2sh-segwit').address, wp2sh.new_key_change().address)
+        self.assertEqual(wseg.new_key(witness_type='p2sh-segwit').address, wp2sh.new_key().address)
+        self.assertEqual(wseg.new_key_change(witness_type='p2sh-segwit').address, wp2sh.new_key_change().address)
         self.assertEqual(wleg.get_key_change(witness_type='segwit').address,
                          wp2sh.get_key_change(witness_type='segwit').address)
         self.assertEqual(wleg.new_key_change(witness_type='p2sh-segwit', account_id=111).address,
                          wp2sh.new_key_change(account_id=111).address)
+
+    def test_wallet_mixed_witness_types_masterkeys(self):
+        pk = '5f5b1f7d8c023c4bf5deff1eefe7ee27c126879da7e65487cf9ff64bdc3a1518'
+        wseg = Wallet.create(name='wallet_witness_types_masterkey_segwit', keys=pk, db_uri=self.DATABASE_URI)
+        wleg = Wallet.create(name='wallet_witness_types_masterkey_legacy', keys=pk, witness_type='legacy',
+                             db_uri=self.DATABASE_URI)
+        wp2sh = Wallet.create(name='wallet_witness_types_masterkey_p2sh', keys=pk, witness_type='p2sh-segwit',
+                              db_uri=self.DATABASE_URI)
+        self.assertEqual(wseg.public_master().wif, wleg.public_master(witness_type='segwit').wif)
+        self.assertEqual(wseg.public_master(witness_type='p2sh-segwit').wif,
+                         wleg.public_master(witness_type='p2sh-segwit').wif)
+        self.assertEqual(wp2sh.public_master().wif, wleg.public_master(witness_type='p2sh-segwit').wif)
+        self.assertEqual(wleg.public_master().wif, wp2sh.public_master(witness_type='legacy').wif)
