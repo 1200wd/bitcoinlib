@@ -1190,7 +1190,7 @@ class Output(object):
                 self.encoding = 'bech32'
             self.public_hash = self.script.public_hash
             if self.script.keys:
-                self.public_key = self.script.keys[0].public_hex
+                self.public_key = self.script.keys[0].public_byte
             if self.script_type == 'p2tr':
                 self.witver = self.script.commands[0] - 80
 
