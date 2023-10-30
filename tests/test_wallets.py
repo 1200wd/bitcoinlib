@@ -2728,3 +2728,20 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
                          wleg.public_master(witness_type='p2sh-segwit').wif)
         self.assertEqual(wp2sh.public_master().wif, wleg.public_master(witness_type='p2sh-segwit').wif)
         self.assertEqual(wleg.public_master().wif, wp2sh.public_master(witness_type='legacy').wif)
+
+    def test_wallet_mixed_witness_types_send(self):
+        w = Wallet.create(name='wallet_mixed_bcltest', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        seg_key = w.get_key()
+        leg_key = w.new_key(witness_type='legacy')
+        p2sh_key = w.new_key(witness_type='p2sh-segwit')
+        self.assertEqual(seg_key.witness_type, 'segwit')
+        self.assertEqual(leg_key.witness_type, 'legacy')
+        self.assertEqual(p2sh_key.witness_type, 'p2sh-segwit')
+        w.utxos_update()
+        t = w.sweep('blt1qgk3zp30pnpggylp84enh0zpfpkdu63kv4xak4p', fee=30000)
+        self.assertEqual(len(t.inputs), len(w.addresslist()) * 2)
+        self.assertEqual(t.outputs[0].value, int(w.balance() - 30000))
+        self.assertEqual(t.verified)
+        t.send()
+        self.assertIsNone(t.error)
+
