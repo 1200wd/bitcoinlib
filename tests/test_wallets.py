@@ -2741,7 +2741,7 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
         t = w.sweep('blt1qgk3zp30pnpggylp84enh0zpfpkdu63kv4xak4p', fee=30000)
         self.assertEqual(len(t.inputs), len(w.addresslist()) * 2)
         self.assertEqual(t.outputs[0].value, int(w.balance() - 30000))
-        self.assertEqual(t.verified)
+        self.assertTrue(t.verified)
         t.send()
         self.assertIsNone(t.error)
 
