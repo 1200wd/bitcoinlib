@@ -56,7 +56,7 @@ class DashdClient(BaseClient):
     """
 
     @staticmethod
-    def from_config(configfile=None, network='dash'):
+    def from_config(configfile=None, network='dash', **kargs):
         """
         Read settings from dashd config file
 
@@ -104,9 +104,9 @@ class DashdClient(BaseClient):
         elif 'externalip' in config['rpc']:
             server = config.get('rpc', 'externalip')
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return DashdClient(network, url)
+        return DashdClient(network, url, **kargs)
 
-    def __init__(self, network='dash', base_url='', denominator=100000000, *args):
+    def __init__(self, network='dash', base_url='', denominator=100000000, **kargs):
         """
         Open connection to dashcore node
 
@@ -123,7 +123,7 @@ class DashdClient(BaseClient):
             network = bdc.network
         _logger.info("Connect to dashd")
         self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, **kargs)
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
