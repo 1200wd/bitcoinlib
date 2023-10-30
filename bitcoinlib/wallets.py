@@ -480,6 +480,7 @@ class WalletKey(object):
             self.encoding = wk.encoding
             self.cosigner_id = wk.cosigner_id
             self.used = wk.used
+            self.witness_type = wk.witness_type
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
