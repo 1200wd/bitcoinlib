@@ -2028,7 +2028,7 @@ class Wallet(object):
             raise WalletError("A master private key of depth 0 is needed to create new accounts (depth: %d)" %
                               self.main_key.depth)
         if "account'" not in self.key_path:
-            raise WalletError("Accounts are not supported for this wallet. Account not found in key path %s" %
+            raise WalletError("Accounts are not supported for this wallet. Account level not found in key path %s" %
                               self.key_path)
         if network is None:
             network = self.network.name
@@ -2147,9 +2147,11 @@ class Wallet(object):
         level_offset_key = level_offset
         if level_offset and self.main_key and level_offset > 0:
             level_offset_key = level_offset - self.main_key.depth
-
-        key_path = self.key_path
         witness_type = witness_type if witness_type else self.witness_type
+        if ((not self.main_key or not self.main_key.is_private or self.main_key.depth != 0) and
+                self.witness_type != witness_type):
+            raise WalletError("This wallet has no private key, cannot use multiple witness types")
+        key_path = self.key_path
         purpose = self.purpose
         encoding = self.encoding
         if witness_type != self.witness_type:

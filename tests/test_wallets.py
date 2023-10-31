@@ -2745,3 +2745,11 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
         t.send()
         self.assertIsNone(t.error)
 
+    def test_wallet_mixed_witness_no_private_key(self):
+        pub_master = ('zpub6qwhKTArtsgtCpVweSyJdVqmXTkmH3HXE2sc7RdhF5drnmcW2HXuFBqRPzVxhQkdaER3bSZeJbAbYxNGeShwUu'
+                      'T49JfJqZLHNAsEUHD76AR')
+        address = 'bc1qgf8fzfj65lcr5vae0sh77akurh4zc9s9m4uspm'
+        w = Wallet.create('wallet_mix_no_private', keys=pub_master, db_uri=self.DATABASE_URI)
+        self.assertEqual(address, w.get_key().address)
+        self.assertRaisesRegexp(WalletError, "This wallet has no private key, cannot use multiple witness types",
+                                w.get_key, witness_type='legacy')
