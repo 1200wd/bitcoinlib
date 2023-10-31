@@ -65,6 +65,15 @@ class TestKeyClasses(unittest.TestCase):
         kc = HDKey()
         self.assertTrue(((ka - kb) * kc) == ((ka * kc) - (kb * kc)))
 
+    def test_keys_inverse(self):
+        secret = 95695802915573022935630358993164660366922511389187789518108651759801046161623
+        inv_x = 18153291153288219155018628681705413538294494009875615719062204619491226452658
+        inv_y = 67935514921393906349711087930011707333238709725906400058836382320969451605430
+        k = Key(secret)
+        k_inv = -k
+        self.assertEqual(k_inv.x, inv_x)
+        self.assertEqual(k_inv.y, inv_y)
+
     def test_dict_and_json_outputs(self):
         k = HDKey()
         k.address(script_type='p2wsh', encoding='bech32')

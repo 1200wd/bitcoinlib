@@ -977,6 +977,10 @@ class Key(object):
     def __rmul__(self, other):
         return self * other
 
+    def __neg__(self):
+        assert self.secret
+        return HDKey(secp256k1_n - self.secret)
+
     def __len__(self):
         return len(self.public_byte)
 
