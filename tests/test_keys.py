@@ -32,21 +32,38 @@ BULKTESTCOUNT = 100
 class TestKeyClasses(unittest.TestCase):
 
     def test_keys_classes_dunder_methods(self):
-        pk = 'xprv9s21ZrQH143K4EDmQNMBqXwUTcrRoUctKkTegGsaBcMLnR1fJkMjVSRwVswjHzJspfWCUwzge1F521cY4wfWD54tzXVUqeo' \
-             'TFkZo17HiK2y'
-        k = HDKey(pk)
-        self.assertEqual(str(k), '03dc86716b2be27a0575558bac73279290ac22c3ea0240e42a2152d584f2b4006b')
-        self.assertEqual(len(k), 33)
-        self.assertEqual(int(k), 95796105828208927954168018443072630832764875640480247096632116413925408206516)
-        k2 = HDKey(pk)
-        self.assertTrue(k == k2)
-        pubk2 = HDKey(k.wif_public())
-        self.assertEqual(str(pubk2), '03dc86716b2be27a0575558bac73279290ac22c3ea0240e42a2152d584f2b4006b')
-        self.assertTrue(k.public() == pubk2)
-        self.assertEqual(k + k2, b'\x03\xdc\x86qk+\xe2z\x05uU\x8b\xacs\'\x92\x90\xac"\xc3\xea\x02@\xe4*!R\xd5'
-                                 b'\x84\xf2\xb4\x00k\x03\xdc\x86qk+\xe2z\x05uU\x8b\xacs\'\x92\x90\xac"'
-                                 b'\xc3\xea\x02@\xe4*!R\xd5\x84\xf2\xb4\x00k')
-        self.assertEqual(k + k2, k.public_byte + k2.public_byte)
+        secret_a = 91016841482436413813855602003356453732719866824300837492458390942862039054048
+        secret_b = 78671675202523181504169507283123166972338313435344626818080535590471773062636
+        secret_a_add_b = 53896427447643399894454124277791712852220615980570559927933763391815650622347
+        secret_a_min_b = 12345166279913232309686094720233286760381553388956210674377855352390265991412
+        ka = HDKey(secret_a)
+        ka2 = HDKey(secret_a)
+        kb = HDKey(secret_b)
+        self.assertEqual(str(ka), '02dff8866c7dc58055d9823dbc0ef098be76d8a1c87e545a13559460669b56a6a6')
+        self.assertEqual(len(ka), 33)
+        self.assertTrue(ka == ka2)
+        pub_ka = HDKey(ka.wif_public())
+        self.assertEqual(str(pub_ka), '02dff8866c7dc58055d9823dbc0ef098be76d8a1c87e545a13559460669b56a6a6')
+        self.assertTrue(ka.public() == pub_ka)
+        self.assertEqual((ka + kb).secret, secret_a_add_b)
+        self.assertEqual((kb + ka).secret, secret_a_add_b)
+        self.assertEqual((ka - kb).secret, secret_a_min_b)
+
+    def test_keys_classes_dunder_methods_mul(self):
+        secret_a = 101842203467542661703461476767681059717614296435193763347876672834253776929083
+        secret_b = 48056918761728599432510813046582785545807011954742048381717688544631745412510
+        secret_a_mul_b = 88863767166841201737805106153187292662619702602208852020796235484522800819015
+        ka = HDKey(secret_a)
+        kb = HDKey(secret_b)
+        self.assertEqual((ka * kb).secret, secret_a_mul_b)
+        self.assertEqual((kb * ka).secret, secret_a_mul_b)
+
+    def test_keys_proof_distributivity_of_scalar_operations(self):
+        # Proof: (a - b) * c == a * c - b * c over SECP256k1
+        ka = HDKey()
+        kb = HDKey()
+        kc = HDKey()
+        self.assertTrue(((ka - kb) * kc) == ((ka * kc) - (kb * kc)))
 
     def test_dict_and_json_outputs(self):
         k = HDKey()

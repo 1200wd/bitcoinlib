@@ -930,10 +930,52 @@ class Key(object):
         return self.public_byte
 
     def __add__(self, other):
-        return self.public_byte + other
+        """
+        Scalar addition over secp256k1 order of 2 keys secrets. Returns a new private key with network and compressed
+        attributes from first key.
 
-    def __radd__(self, other):
-        return other + self.public_byte
+        :param other: Private Key class
+        :type other: Key
+
+        :return: Key
+        """
+        assert self.is_private
+        assert isinstance(other, Key)
+        assert other.is_private
+        return Key((self.secret + other.secret) % secp256k1_n, self.network, self.compressed)
+
+    def __sub__(self, other):
+        """
+        Scalar substraction over secp256k1 order of 2 keys secrets. Returns a new private key with network and
+        compressed attributes from first key.
+
+        :param other: Private Key class
+        :type other: Key
+
+        :return: Key
+        """
+        assert self.is_private
+        assert isinstance(other, Key)
+        assert other.is_private
+        return Key((self.secret - other.secret) % secp256k1_n, self.network, self.compressed)
+
+    def __mul__(self, other):
+        """
+        Scalar multiplication over secp256k1 order of 2 keys secrets. Returns a new private key with network and
+        compressed attributes from first key.
+
+        :param other: Private Key class
+        :type other: Key
+
+        :return: Key
+        """
+        assert isinstance(other, Key)
+        assert self.secret
+        assert other.is_private
+        return Key((self.secret * other.secret) % secp256k1_n, self.network, self.compressed)
+
+    def __rmul__(self, other):
+        return self * other
 
     def __len__(self):
         return len(self.public_byte)

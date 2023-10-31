@@ -830,7 +830,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
                        '00bd217870a8b4f1f09f3a8e8353ae'
         self.assertEqual(expected_redeemscript, redeemscript.serialize().hex())
 
-        redeemscript3 = b'\x52' + b''.join([varstr(k) for k in keylist]) + b'\x53\xae'
+        redeemscript3 = b'\x52' + b''.join([varstr(k.public_byte) for k in keylist]) + b'\x53\xae'
         self.assertEqual(redeemscript3, redeemscript.serialize())
 
     def test_script_create_redeemscript_2(self):
