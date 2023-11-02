@@ -120,7 +120,7 @@ NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units, https://en
     1000000000000000000000000: 'Y',
 }
 
-if os.name == 'nt' and locale.getpreferredencoding() != 'UTF-8':
+if os.name == 'nt' and locale.getpreferredencoding().lower() != 'utf-8':
     # TODO: Find a better windows hack
     import _locale
     _locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
