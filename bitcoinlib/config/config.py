@@ -121,10 +121,12 @@ NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units, https://en
 }
 
 if os.name == 'nt' and locale.getpreferredencoding().lower() != 'utf-8':
-    # TODO: Find a better windows hack
+    # import _locale
+    # _locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
     import _locale
-    _locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
-elif locale.getpreferredencoding() != 'UTF-8':
+    _locale._gdl_bak = _locale._getdefaultlocale
+    _locale._getdefaultlocale = (lambda *args: (_locale._gdl_bak()[0], 'utf8'))
+elif locale.getpreferredencoding().lower() != 'utf-8':
     raise EnvironmentError("Locale is currently set to '%s'. "
                            "This library needs the locale set to UTF-8 to function properly" %
                            locale.getpreferredencoding())
