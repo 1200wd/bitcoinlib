@@ -108,6 +108,10 @@ for steps you could take to install this library.
 If you have problems with installing this library on Windows you could try to use the pycryptodome library instead of
 scrypt. The pycryptodome library is pure Python so it doesn't need any C compilers installed. But this will run slower.
 
+When using Python on Windows it needs to be set to UTF-8 mode. You can do this by adding the PYTHONUTF8=1 to the
+environment variables or use the -X utf8 command line option. Please see
+https://docs.python.org/3/using/windows.html#win-utf8-mode for more information.
+
 
 Update Bitcoinlib
 -----------------

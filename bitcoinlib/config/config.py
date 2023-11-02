@@ -121,8 +121,6 @@ NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units, https://en
 }
 
 if os.name == 'nt' and locale.getpreferredencoding().lower() != 'utf-8':
-    # import _locale
-    # _locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
     import _locale
     _locale._gdl_bak = _locale._getdefaultlocale
     _locale._getdefaultlocale = (lambda *args: (_locale._gdl_bak()[0], 'utf8'))
