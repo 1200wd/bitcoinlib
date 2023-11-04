@@ -2753,3 +2753,14 @@ class TestWalletMixedWitnessTypes(TestWalletMixin, unittest.TestCase):
         self.assertEqual(address, w.get_key().address)
         self.assertRaisesRegexp(WalletError, "This wallet has no private key, cannot use multiple witness types",
                                 w.get_key, witness_type='legacy')
+
+    def test_wallet_mixed_witness_type_create(self):
+        w = Wallet.create('test_wallet_mixed_witness_type_create', network='testnet', db_uri=self.DATABASE_URI)
+        w.get_key(witness_type='legacy')
+        w.new_account('test-account', 101, witness_type='p2sh-segwit')
+        w.get_key(account_id=101)
+        kltc = w.get_key(network='litecoin')
+        self.assertEqual(kltc.network, 'litecoin')
+        self.assertListEqual(sorted(w.witness_types()), ['legacy', 'p2sh-segwit', 'segwit'])
+        self.assertListEqual(sorted(w.witness_types(account_id=101)), ['p2sh-segwit', 'segwit'])
+        self.assertListEqual(w.witness_types(network='litecoin'), ['segwit'])

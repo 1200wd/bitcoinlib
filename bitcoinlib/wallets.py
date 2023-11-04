@@ -1869,8 +1869,11 @@ class Wallet(object):
                     keys_to_scan = [self.key(k.id) for k in self.keys_addresses()[counter:counter+scan_gap_limit]]
                     counter += scan_gap_limit
                 else:
-                    keys_to_scan = self.get_keys(account_id, self.witness_type, network,
-                                                 number_of_keys=scan_gap_limit, change=chg)
+                    keys_to_scan = []
+                    for witness_type in self.witness_types(network=network):
+                        keys_to_scan += self.get_keys(account_id, witness_type, network,
+                                                     number_of_keys=scan_gap_limit, change=chg)
+
                 n_highest_updated = 0
                 for key in keys_to_scan:
                     if key.key_id in keys_ignore:
@@ -2546,6 +2549,28 @@ class Wallet(object):
         if not accounts:
             accounts = [self.default_account_id]
         return list(dict.fromkeys(accounts))
+
+    def witness_types(self, account_id=None, network=None):
+        """
+        Get witness types in use by this wallet. For example 'legacy', 'segwit', 'p2sh-segwit'
+
+        :param account_id: Account ID. Leave empty for default account
+        :type account_id: int
+        :param network: Network name filter. Default filter is DEFAULT_NETWORK
+        :type network: str
+
+        :return list of str:
+        """
+
+        # network, account_id, _ = self._get_account_defaults(network, account_id)
+        qr = self._session.query(DbKey.witness_type).filter_by(wallet_id=self.wallet_id)
+        if network is not None:
+            qr = qr.filter(DbKey.network_name == network)
+        if account_id is not None:
+            qr = qr.filter(DbKey.account_id == account_id)
+        qr = qr.group_by(DbKey.witness_type).all()
+        return [x[0] for x in qr]
+
 
     def networks(self, as_dict=False):
         """
