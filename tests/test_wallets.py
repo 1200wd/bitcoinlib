@@ -2617,6 +2617,13 @@ class TestWalletKeyStructures(TestWalletMixin, unittest.TestCase):
         self.assertRaisesRegexp(WalletError, 'Could not parse path. Index is empty.', normalize_path,
                                 "m/44h/0p/100H//1201")
 
+    def test_wallet_accounts(self):
+        w = Wallet.create('test_litecoin_accounts', network='litecoin', account_id=1111, db_uri=self.DATABASE_URI)
+        w.new_account(account_id=2222)
+        w.new_account(account_id=5555, network='testnet')
+        self.assertListEqual(w.accounts(), [1111, 2222])
+        self.assertListEqual(w.accounts(network='testnet'), [5555])
+
 
 @parameterized_class(*params)
 class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):

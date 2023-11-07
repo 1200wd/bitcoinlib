@@ -2508,16 +2508,17 @@ class Wallet(object):
         key_id = qr.id
         return self.key(key_id)
 
-    def accounts(self, network=DEFAULT_NETWORK):
+    def accounts(self, network=None):
         """
         Get list of accounts for this wallet
 
-        :param network: Network name filter. Default filter is DEFAULT_NETWORK
+        :param network: Network name filter. Default filter is network of first main key
         :type network: str
 
         :return list of integers: List of accounts IDs
         """
 
+        network, _, _ = self._get_account_defaults(network)
         if self.multisig and self.cosigner:
             if self.cosigner_id is None:
                 raise WalletError("Missing Cosigner ID value for this wallet, cannot fetch account ID")
