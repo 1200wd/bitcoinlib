@@ -3613,12 +3613,13 @@ class Wallet(object):
                 amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
                 multisig = False if isinstance(inp_keys, list) and len(inp_keys) < 2 else True
-                unlock_script_type = get_unlocking_script_type(utxo.script_type, self.witness_type, multisig=multisig)
+                unlock_script_type = get_unlocking_script_type(utxo.script_type, utxo.key.witness_type,
+                                                               multisig=multisig)
                 transaction.add_input(utxo.transaction.txid, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
                                       address=utxo.key.address, sequence=sequence,
-                                      key_path=utxo.key.path, witness_type=self.witness_type)
+                                      key_path=utxo.key.path, witness_type=utxo.key.witness_type)
                 # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
         else:
             for inp in input_arr:
@@ -3639,6 +3640,7 @@ class Wallet(object):
                     sequence = inp.sequence
                     locktime_cltv = inp.locktime_cltv
                     locktime_csv = inp.locktime_csv
+                    witness_type = inp.witness_type
                 # elif isinstance(inp, DbTransactionOutput):
                 #     prev_txid = inp.transaction.txid
                 #     output_n = inp.output_n
@@ -3657,6 +3659,7 @@ class Wallet(object):
                     signatures = None if len(inp) <= 4 else inp[4]
                     unlocking_script = b'' if len(inp) <= 5 else inp[5]
                     address = '' if len(inp) <= 6 else inp[6]
+                    witness_type = self.witness_type
                 # Get key_ids, value from Db if not specified
                 if not (key_id and value and unlocking_script_type):
                     if not isinstance(output_n, TYPE_INT):
@@ -3670,7 +3673,7 @@ class Wallet(object):
                         value = inp_utxo.value
                         address = inp_utxo.key.address
                         unlocking_script_type = get_unlocking_script_type(inp_utxo.script_type, multisig=self.multisig)
-                        # witness_type = inp_utxo.witness_type
+                        witness_type = inp_utxo.key.witness_type
                     else:
                         _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
                                      "offline wallet" % to_hexstring(prev_txid))
@@ -3691,7 +3694,7 @@ class Wallet(object):
                                       unlocking_script=unlocking_script, address=address,
                                       unlocking_script_unsigned=unlocking_script_unsigned,
                                       sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv,
-                                      witness_type=self.witness_type, key_path=key.path)
+                                      witness_type=witness_type, key_path=key.path)
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None
