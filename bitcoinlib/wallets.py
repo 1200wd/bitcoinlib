@@ -1229,7 +1229,7 @@ class Wallet(object):
                 # If key consists of several words assume it is a passphrase and convert it to a HDKey object
                 if isinstance(key, str) and len(key.split(" ")) > 1:
                     if not network:
-                        raise WalletError("Please specify network when using passphrase to create a key")
+                        network = DEFAULT_NETWORK
                     key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network, witness_type=witness_type)
                 else:
                     try:

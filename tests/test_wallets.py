@@ -276,10 +276,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
                                 "Network from key \(dash\) is different then specified network \(bitcoin\)",
                                 Wallet.create, 'test_wallet_create_errors_multisig4',
                                 keys=[HDKey(), HDKey(network='dash')], db_uri=self.DATABASE_URI)
-        passphrase = 'usual olympic ride small mix follow trend baby stereo sweet lucky lend'
-        self.assertRaisesRegexp(WalletError, "Please specify network when using passphrase to create a key",
-                                Wallet.create, 'test_wallet_create_errors3', keys=passphrase,
-                                db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
                                 Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
