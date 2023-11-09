@@ -1672,7 +1672,8 @@ class Wallet(object):
                     return w.import_master_key(hdkey)
             raise WalletError("Unknown key: Can only import a private key for a known public key in multisig wallets")
 
-    def _new_key_multisig(self, public_keys, name, account_id, change, cosigner_id, network, address_index):
+    def _new_key_multisig(self, public_keys, name, account_id, change, cosigner_id, network, address_index,
+                          witness_type):
         if self.sort_keys:
             public_keys.sort(key=lambda pubk: pubk.key_public)
         public_key_list = [pubk.key_public for pubk in public_keys]
@@ -1685,9 +1686,9 @@ class Wallet(object):
         redeemscript = Script(script_types=['multisig'], keys=public_key_list,
                               sigs_required=self.multisig_n_required).serialize()
         script_type = 'p2sh'
-        if self.witness_type == 'p2sh-segwit':
+        if witness_type == 'p2sh-segwit':
             script_type = 'p2sh_p2wsh'
-        address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=network)
+        address = Address(redeemscript, script_type=script_type, network=network, witness_type=witness_type)
         already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
                                                                  address=address.address).first()
         if already_found_key:
@@ -1701,7 +1702,7 @@ class Wallet(object):
             name=name[:80], wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
             public=address.hash_bytes, wif='multisig-%s' % address, address=address.address, cosigner_id=cosigner_id,
-            key_type='multisig', witness_type=self.witness_type, network_name=network)
+            key_type='multisig', witness_type=witness_type, network_name=network)
         self._session.add(multisig_key)
         self._commit()
         for child_id in public_key_ids:
@@ -2152,7 +2153,7 @@ class Wallet(object):
             level_offset_key = level_offset - self.main_key.depth
         witness_type = witness_type if witness_type else self.witness_type
         if ((not self.main_key or not self.main_key.is_private or self.main_key.depth != 0) and
-                self.witness_type != witness_type):
+                self.witness_type != witness_type) and not self.multisig:
             raise WalletError("This wallet has no private key, cannot use multiple witness types")
         key_path = self.key_path
         purpose = self.purpose
@@ -2172,9 +2173,11 @@ class Wallet(object):
                     wk = wlt.main_key
                 else:
                     wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
-                                          cosigner_id=cosigner_id, network=network, recreate=recreate)
+                                          cosigner_id=cosigner_id, network=network, recreate=recreate,
+                                          witness_type=witness_type)
                 public_keys.append(wk)
-            return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
+            return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index,
+                                          witness_type)
 
         # Check for closest ancestor in wallet
         wpath = fullpath

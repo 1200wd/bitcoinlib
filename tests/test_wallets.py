@@ -2570,8 +2570,10 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertListEqual(sorted([nw.name for nw in wallet.networks()]), networks_expected)
         self.assertListEqual([k.path for k in wallet.keys_accounts(network='litecoin')],
                              ["m/48'/2'/0'/2'", "m/48'/2'/1'/2'"])
-        self.assertEqual(wallet.keys(network='litecoin')[0].address, "MQNA8FYrN2fvD7SSYny3Ccvpapvsu9cVJH")
-        self.assertEqual(wallet.keys(network='bitcoin')[0].address, "3L6XFzC6RPeXSFpZS8v4S86v4gsNmKFnFT")
+        self.assertEqual(wallet.keys(network='litecoin')[0].address,
+                         "ltc1qcu83hcdwy46dv85vmwnnfgzeu8d9arfy7kfyct52dxqcyvq2q6ds5kq2ah")
+        self.assertEqual(wallet.keys(network='bitcoin')[0].address,
+                         "bc1qd0f952amxkmqc9e60u4g8w4r5a3cx22lt5vqeeyljllacxq8ezusclkwa0")
 
 
 @parameterized_class(*params)
