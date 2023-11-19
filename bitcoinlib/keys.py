@@ -978,8 +978,7 @@ class Key(object):
         return self * other
 
     def __neg__(self):
-        assert self.secret
-        return HDKey(secp256k1_n - self.secret)
+        return self.inverse()
 
     def __len__(self):
         return len(self.public_byte)
@@ -1003,6 +1002,13 @@ class Key(object):
             return self.secret
         else:
             return None
+
+    def inverse(self):
+        if self.is_private:
+            return HDKey(secp256k1_n - self.secret)
+        else:
+            # Inverse y in init: self._y = secp256k1_p - self._y
+            return Key(('02' if self._y % 2 else '03') + self.x_hex)
 
     @property
     def x(self):
