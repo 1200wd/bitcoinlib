@@ -99,6 +99,13 @@ class TestKeyClasses(unittest.TestCase):
         self.assertRaisesRegexp(BKeyError, "Please provide path as list with at least 1 item",
                                 path_expand, 5)
 
+    def test_key_inverse(self):
+        k = HDKey()
+        pub_k = k.public()
+        self.assertEqual(k.address(), pub_k.address())
+        self.assertEqual((-k).address(), pub_k.inverse().address())
+        self.assertEqual((-k).address(), k.inverse().address())
+
 
 class TestGetKeyFormat(unittest.TestCase):
 
