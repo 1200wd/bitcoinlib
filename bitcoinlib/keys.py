@@ -150,6 +150,9 @@ def get_key_format(key, is_private=None):
     elif isinstance(key, bytes) and len(key) == 32:
         key_format = 'bin'
         is_private = True
+    elif isinstance(key, tuple):
+        key_format = 'point'
+        is_private = False
     elif len(key) == 130 and key[:2] == '04' and not is_private:
         key_format = 'public_uncompressed'
         is_private = False
@@ -737,7 +740,7 @@ class Key(object):
         12127227708610754620337553985245292396444216111803695028419544944213442390363
 
         :param import_key: If specified import given private or public key. If not specified a new private key is generated.
-        :type import_key: str, int, bytes
+        :type import_key: str, int, bytes, tuple
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str, Network
         :param compressed: Is key compressed or not, default is True
@@ -807,32 +810,46 @@ class Key(object):
 
         if not self.is_private:
             self.secret = None
-            pub_key = to_hexstring(import_key)
-            if len(pub_key) == 130:
-                self._public_uncompressed_hex = pub_key
-                self.x_hex = pub_key[2:66]
-                self.y_hex = pub_key[66:130]
-                self._y = int(self.y_hex, 16)
-                self.compressed = False
-                if self._y % 2:
-                    prefix = '03'
-                else:
-                    prefix = '02'
-                self.public_hex = pub_key
-                self.public_compressed_hex = prefix + self.x_hex
-            else:
-                self.public_hex = pub_key
-                self.x_hex = pub_key[2:66]
+            if self.key_format == 'point':
                 self.compressed = True
-                self._x = int(self.x_hex, 16)
-                self.public_compressed_hex = pub_key
-            self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
-            if self._public_uncompressed_hex:
-                self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
-            if self.compressed:
-                self.public_byte = self.public_compressed_byte
+                self._x = import_key[0]
+                self._y = import_key[1]
+                self.x_bytes = self._x.to_bytes(32, 'big')
+                self.y_bytes = self._y.to_bytes(32, 'big')
+                self.x_hex = self.x_bytes.hex()
+                self.y_hex = self.y_bytes.hex()
+                prefix = '03' if self._y % 2 else '02'
+                self.public_hex = prefix + self.x_hex
+                self.public_compressed_hex = prefix + self.x_hex
+                self.public_byte = (b'\3' if self._y % 2 else b'\2') + self.x_bytes
             else:
-                self.public_byte = self.public_uncompressed_byte
+                pub_key = to_hexstring(import_key)
+                if len(pub_key) == 130:
+                    self._public_uncompressed_hex = pub_key
+                    self.x_hex = pub_key[2:66]
+                    self.y_hex = pub_key[66:130]
+                    self._y = int(self.y_hex, 16)
+                    self.compressed = False
+                    if self._y % 2:
+                        prefix = '03'
+                    else:
+                        prefix = '02'
+                    self.public_hex = pub_key
+                    self.public_compressed_hex = prefix + self.x_hex
+                else:
+                    self.public_hex = pub_key
+                    self.x_hex = pub_key[2:66]
+                    self.compressed = True
+                    self._x = int(self.x_hex, 16)
+                    self.public_compressed_hex = pub_key
+                self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
+                if self._public_uncompressed_hex:
+                    self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
+                if self.compressed:
+                    self.public_byte = self.public_compressed_byte
+                else:
+                    self.public_byte = self.public_uncompressed_byte
+
         elif self.is_private and self.key_format == 'decimal':
             self.secret = int(import_key)
             self.private_hex = change_base(self.secret, 10, 16, 64)
@@ -1422,7 +1439,7 @@ class HDKey(Key):
         <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW, network=bitcoin)>
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
-        :type import_key: str, bytes, int
+        :type import_key: str, bytes, int, tuple
         :param key: Private or public key (length 32)
         :type key: bytes
         :param chain: A chain code (length 32)

@@ -74,6 +74,13 @@ class TestKeyClasses(unittest.TestCase):
         self.assertEqual(k_inv.x, inv_x)
         self.assertEqual(k_inv.y, inv_y)
 
+    def test_keys_inverse2(self):
+        k = HDKey()
+        pub_k = k.public()
+        self.assertEqual(k.address(), pub_k.address())
+        self.assertEqual((-k).address(), pub_k.inverse().address())
+        self.assertEqual((-k).address(), k.inverse().address())
+
     def test_dict_and_json_outputs(self):
         k = HDKey()
         k.address(script_type='p2wsh', encoding='bech32')
@@ -99,12 +106,13 @@ class TestKeyClasses(unittest.TestCase):
         self.assertRaisesRegexp(BKeyError, "Please provide path as list with at least 1 item",
                                 path_expand, 5)
 
-    def test_key_inverse(self):
+    def test_keys_create_public_point(self):
         k = HDKey()
-        pub_k = k.public()
-        self.assertEqual(k.address(), pub_k.address())
-        self.assertEqual((-k).address(), pub_k.inverse().address())
-        self.assertEqual((-k).address(), k.inverse().address())
+        p = (k.x, k.y)
+        k2 = HDKey(p)
+        self.assertEqual(k, k2)
+        self.assertEqual(k.public(), k2)
+        self.assertEqual(k.address(), k2.address())
 
 
 class TestGetKeyFormat(unittest.TestCase):
