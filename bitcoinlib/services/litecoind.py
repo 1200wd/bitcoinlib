@@ -53,7 +53,7 @@ class LitecoindClient(BaseClient):
     """
 
     @staticmethod
-    def from_config(configfile=None, network='litecoin'):
+    def from_config(configfile=None, network='litecoin', **kargs):
         """
         Read settings from litecoind config file
 
@@ -112,9 +112,9 @@ class LitecoindClient(BaseClient):
         server = _read_from_config(config, 'rpc', 'bind', server)
         server = _read_from_config(config, 'rpc', 'externalip', server)
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return LitecoindClient(network, url)
+        return LitecoindClient(network, url, **kargs)
 
-    def __init__(self, network='litecoin', base_url='', denominator=100000000, *args):
+    def __init__(self, network='litecoin', base_url='', denominator=100000000, **kargs):
         """
         Open connection to litecoin node
 
@@ -133,7 +133,7 @@ class LitecoindClient(BaseClient):
             network = bdc.network
         _logger.info("Connect to litecoind")
         self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, **kargs)
 
     def getbalance(self, addresslist):
         balance = 0
