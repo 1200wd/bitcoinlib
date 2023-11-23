@@ -47,6 +47,7 @@ class TestKeyClasses(unittest.TestCase):
                                  b'\x84\xf2\xb4\x00k\x03\xdc\x86qk+\xe2z\x05uU\x8b\xacs\'\x92\x90\xac"'
                                  b'\xc3\xea\x02@\xe4*!R\xd5\x84\xf2\xb4\x00k')
         self.assertEqual(k + k2, k.public_byte + k2.public_byte)
+        self.assertEqual(hash(k), hash(k))
 
     def test_dict_and_json_outputs(self):
         k = HDKey()
