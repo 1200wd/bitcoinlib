@@ -53,7 +53,7 @@ class BitcoindClient(BaseClient):
     """
 
     @staticmethod
-    def from_config(configfile=None, network='bitcoin', **kwargs):
+    def from_config(configfile=None, network='bitcoin', *args):
         """
         Read settings from bitcoind config file
 
@@ -113,9 +113,9 @@ class BitcoindClient(BaseClient):
         server = _read_from_config(config, 'rpc', 'externalip', server)
 
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return BitcoindClient(network, url, **kwargs)
+        return BitcoindClient(network, url, *args)
 
-    def __init__(self, network='bitcoin', base_url='', denominator=100000000, **kwargs):
+    def __init__(self, network='bitcoin', base_url='', denominator=100000000, *args):
         """
         Open connection to bitcoin node
 
@@ -134,7 +134,7 @@ class BitcoindClient(BaseClient):
             network = bdc.network
         _logger.info("Connect to bitcoind")
         self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, **kwargs)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def getbalance(self, addresslist):
         balance = 0
