@@ -859,7 +859,7 @@ class Input(object):
                 b'\0' not in self.witnesses:
             self.signatures = [Signature.parse_bytes(self.witnesses[0])]
             self.hash_type = self.signatures[0].hash_type
-            self.keys = [Key(self.witnesses[1], network=self.network)]
+            self.keys = [Key(self.witnesses[1], network=self.network, strict=self.strict)]
 
         self.update_scripts(hash_type=self.hash_type)
 
