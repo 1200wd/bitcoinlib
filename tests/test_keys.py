@@ -731,6 +731,12 @@ class TestKeysAddress(unittest.TestCase):
         address = 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'
         self.assertEqual(Address(hashed_data=public_hash, script_type='p2tr', encoding='bech32').address, address)
 
+    def test_keys_address_p2tr_bcrt(self):
+        # Compared with taproot-workshop p2tr address generation
+        hashed_data = '07bd8d4b39db0ee37e17a5e814b41a8aa33ef3a72742bcc65c716e4ce0f1d8cf'
+        addr = Address(hashed_data=hashed_data, script_type='p2tr', prefix='bcrt',
+                       encoding='bech32').address
+        self.assertEqual(addr, 'bcrt1pq77c6jeemv8wxlsh5h5pfdq6323naua8yapte3juw9hyec83mr8sw2eggg')
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):
