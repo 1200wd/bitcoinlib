@@ -24,8 +24,8 @@ Create a virtual environment for instance on linux with virtualenv:
 
 .. code-block:: bash
 
-    $ virtualenv -p python3 venv/bitcoinlib
-    $ source venv/bitcoinlib/bin/activate
+    $ virtualenv -p ~/.virtualenvs/bitcoinlib
+    $ source ~/.virtualenvs/bitcoinlib/bin/activate
 
 Then clone the repository and install dependencies:
 
@@ -33,7 +33,13 @@ Then clone the repository and install dependencies:
 
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ pip install -r requirements-dev.txt
+    $ python -m pip install .[dev]
+
+You can test your local installation by running all unittests:
+
+.. code-block:: bash
+
+    $ python -m unittest
 
 
 
