@@ -33,14 +33,13 @@ Then clone the repository and install dependencies:
 
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ python -m pip install .[dev]
+    $ python -m pip install .
 
 You can test your local installation by running all unittests:
 
 .. code-block:: bash
 
     $ python -m unittest
-
 
 
 Package dependencies
@@ -53,10 +52,6 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * requests
 * numpy
 * pycryptodome
-
-If you want to use BIP38 encrypted private keys, it is strongly advised to install the much faster scrypt library.
-
-``pip install scrypt``
 
 
 Other requirements Linux
@@ -92,11 +87,11 @@ Check for the latest version of the PostgreSQL dev server:
 
 From library root directory install the Python requirements
 
-``pip install -r requirements-dev.txt``
+``python -m pip install .[dev]``
 
 Then run the unittests to see if everything works
 
-``python setup.py test``
+``python -m unittest``
 
 
 
@@ -110,9 +105,6 @@ https://visualstudio.microsoft.com/downloads. Also see https://wiki.python.org/m
 The fastecdsa library is not enabled at this moment in the windows install, the slower ecdsa library is installed.
 Installation of fastecdsa on Windows is possible but not easy, read https://github.com/AntonKueltz/fastecdsa/issues/11
 for steps you could take to install this library.
-
-If you have problems with installing this library on Windows you could try to use the pycryptodome library instead of
-scrypt. The pycryptodome library is pure Python so it doesn't need any C compilers installed. But this will run slower.
 
 When using Python on Windows it needs to be set to UTF-8 mode. You can do this by adding the PYTHONUTF8=1 to the
 environment variables or use the -X utf8 command line option. Please see
@@ -157,20 +149,11 @@ of database changes. So backup database / private keys first and use at your own
 Troubleshooting
 ---------------
 
-When you experience issues with the scrypt package when installing you can try to solve this by installing
-scrypt separately:
-
-.. code-block:: bash
-
-    $ pip uninstall scrypt
-    $ pip install scrypt
-
-Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
+Please make sure you have the Python development and SSL development packages installed, see 'Other requirements'
 above.
 
-You can also use pycryptodome or pyscrypt instead of scrypt. Pycryptodome is a pure Python scrypt password-based key
+You can also use pycryptodome, pyscrypt or scrypt. pyscript is a pure Python scrypt password-based key
 derivation library. It works but it is slow when using BIP38 password protected keys.
-
 
 If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
