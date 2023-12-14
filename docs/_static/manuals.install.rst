@@ -16,9 +16,9 @@ Package can be found at https://pypi.org/project/bitcoinlib/
 Install from source
 ~~~~~~~~~~~~~~~~~~~
 
-Required packages:
+Required packages for Ubuntu, for other systems see below:
 
-``sudo apt install -y postgresql postgresql-contrib mysql-server libpq-dev libmysqlclient-dev``
+``apt install build-essential python3-dev libgmp3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
 
 Create a virtual environment for instance on linux with virtualenv:
 
@@ -59,19 +59,19 @@ Other requirements Linux
 
 On Debian, Ubuntu or their derivatives:
 
-``sudo apt install build-essential python3-dev libgmp3-dev``
+``apt install build-essential python3-dev libgmp3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
 
 On Fedora, CentOS or RHEL:
 
-``sudo dnf install python3-devel gmp-devel``
+``dnf install python3-devel gmp-devel``
 
-To install OpenSSL development package on Debian, Ubuntu or their derivatives
+On Alpine Linux, lightweight Linux used for Docker images:
 
-``sudo apt install libssl-dev``
+``apk add python3-dev gmp-dev py3-pip gcc musl-dev libpq-dev postgresql postgresql-contrib mariadb-dev mysql-client``
 
-To install OpenSSL development package on Fedora, CentOS or RHEL
+On Kali linux:
 
-``sudo yum install gcc openssl-devel``
+``apt install libgmp3-dev postgresql postgresql-contrib libpq-dev pkg-config default-libmysqlclient-dev default-mysql-server``
 
 
 Development environment
@@ -79,11 +79,11 @@ Development environment
 
 Install database packages for MySQL and PostgreSQL
 
-``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev``
+``apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev pkg-config libpq-dev``
 
 Check for the latest version of the PostgreSQL dev server:
 
-``sudo apt install postgresql-server-dev-<version>``
+``apt install postgresql-server-dev-<version>``
 
 From library root directory install the Python requirements
 
