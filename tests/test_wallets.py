@@ -202,21 +202,21 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertEqual(len(w2.keys()), 1)
         self.assertEqual(len(w3.keys()), 1)
         # Test exceptions
-        self.assertRaisesRegexp(WalletError, "Wallet 'unknown_wallet_2' not found", wallet_empty, 'unknown_wallet_2',
+        self.assertRaisesRegex(WalletError, "Wallet 'unknown_wallet_2' not found", wallet_empty, 'unknown_wallet_2',
                                 db_uri=self.DATABASE_URI)
 
     def test_wallet_delete_not_empty(self):
         w = Wallet.create('unempty_wallet_test', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.utxos_update()
-        self.assertRaisesRegexp(WalletError, "still has unspent outputs. Use 'force=True' to delete this wallet",
+        self.assertRaisesRegex(WalletError, "still has unspent outputs. Use 'force=True' to delete this wallet",
                                 wallet_delete, 'unempty_wallet_test', db_uri=self.DATABASE_URI)
         self.assertTrue(wallet_delete('unempty_wallet_test', db_uri=self.DATABASE_URI, force=True))
 
     def test_delete_wallet_exception(self):
-        self.assertRaisesRegexp(WalletError, '', wallet_delete, 'unknown_wallet', db_uri=self.DATABASE_URI)
+        self.assertRaisesRegex(WalletError, '', wallet_delete, 'unknown_wallet', db_uri=self.DATABASE_URI)
 
     def test_wallet_unknown_error(self):
-        self.assertRaisesRegexp(WalletError, "Wallet 'test_wallet_create_errors10' not found",
+        self.assertRaisesRegex(WalletError, "Wallet 'test_wallet_create_errors10' not found",
                                 Wallet, 'test_wallet_create_errors10', db_uri=self.DATABASE_URI)
 
     def test_wallet_duplicate_key_for_path(self):
@@ -251,49 +251,49 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_create_errors(self):
         Wallet.create('test_wallet_create_errors', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_create_errors' already exists",
+        self.assertRaisesRegex(WalletError, "Wallet with name 'test_wallet_create_errors' already exists",
                                 Wallet.create, 'test_wallet_create_errors', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Only bip32 or single key scheme's are supported at the moment",
+        self.assertRaisesRegex(WalletError, "Only bip32 or single key scheme's are supported at the moment",
                                 Wallet.create, 'test_wallet_create_errors2', scheme='raar',
                                 db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Wallet name '123' invalid, please include letter characters",
+        self.assertRaisesRegex(WalletError, "Wallet name '123' invalid, please include letter characters",
                                 Wallet.create, '123', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Please enter wallet name",
+        self.assertRaisesRegex(WalletError, "Please enter wallet name",
                                 Wallet.create, '', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Witness type unknown not supported at the moment",
+        self.assertRaisesRegex(WalletError, "Witness type unknown not supported at the moment",
                                 Wallet.create, '', witness_type='unknown', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Multisig wallets should use bip32 scheme not single",
+        self.assertRaisesRegex(WalletError, "Multisig wallets should use bip32 scheme not single",
                                 Wallet.create, 'test_wallet_create_errors_multisig', keys=[HDKey(), HDKey()],
                                 scheme='single', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Password protected multisig wallets not supported",
+        self.assertRaisesRegex(WalletError, "Password protected multisig wallets not supported",
                                 Wallet.create, 'test_wallet_create_errors_multisig2', keys=[HDKey(), HDKey()],
                                 password='geheim', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Number of keys required to sign is greater then number of keys provided",
+        self.assertRaisesRegex(WalletError, "Number of keys required to sign is greater then number of keys provided",
                                 Wallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
                                 sigs_required=3, db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError,
+        self.assertRaisesRegex(WalletError,
                                 "Network from key \(dash\) is different then specified network \(bitcoin\)",
                                 Wallet.create, 'test_wallet_create_errors_multisig4',
                                 keys=[HDKey(), HDKey(network='dash')], db_uri=self.DATABASE_URI)
         passphrase = 'usual olympic ride small mix follow trend baby stereo sweet lucky lend'
-        self.assertRaisesRegexp(WalletError, "Please specify network when using passphrase to create a key",
+        self.assertRaisesRegex(WalletError, "Please specify network when using passphrase to create a key",
                                 Wallet.create, 'test_wallet_create_errors3', keys=passphrase,
                                 db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
+        self.assertRaisesRegex(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
                                 Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
+        self.assertRaisesRegex(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
                                 Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
         k = HDKey(network='litecoin').wif_private()
-        self.assertRaisesRegexp(WalletError, "Invalid key or address",
+        self.assertRaisesRegex(WalletError, "Invalid key or address",
                                 Wallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
                                 db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Segwit is not supported for Dash wallets",
+        self.assertRaisesRegex(WalletError, "Segwit is not supported for Dash wallets",
                                 Wallet.create, 'test_wallet_create_errors6', keys=HDKey(network='dash'),
                                 witness_type='segwit', db_uri=self.DATABASE_URI)
         k = HDKey().subkey_for_path('m/1/2/3/4/5/6/7')
-        self.assertRaisesRegexp(WalletError, "Depth of provided public master key 7 does not correspond with key path",
+        self.assertRaisesRegex(WalletError, "Depth of provided public master key 7 does not correspond with key path",
                                 Wallet.create, 'test_wallet_create_errors7', keys=k,
                                 db_uri=self.DATABASE_URI)
 
@@ -304,7 +304,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         def test_func():
             w2.name = 'test_wallet_rename_duplicate1'
 
-        self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_rename_duplicate1' already exists",
+        self.assertRaisesRegex(WalletError, "Wallet with name 'test_wallet_rename_duplicate1' already exists",
                                 test_func)
 
     def test_wallet_as_dict_json(self):
@@ -405,7 +405,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         w = Wallet.create(
             name='Wallet Error',
             db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError,
+        self.assertRaisesRegex(WalletError,
                                 "Network litecoin not available in this wallet, please create an account "
                                 "for this network first.",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp',
@@ -459,12 +459,12 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         w = Wallet.create('test_wallet_import_master_key', keys=k.public_master(),
                           db_uri=self.DATABASE_URI)
         self.assertFalse(w.main_key.is_private)
-        self.assertRaisesRegexp(WalletError, "Please supply a valid private BIP32 master key with key depth 0",
+        self.assertRaisesRegex(WalletError, "Please supply a valid private BIP32 master key with key depth 0",
                                 w.import_master_key, k.public())
-        self.assertRaisesRegexp(WalletError, "Network of Wallet class, main account key and the imported private "
+        self.assertRaisesRegex(WalletError, "Network of Wallet class, main account key and the imported private "
                                              "key must use the same network",
                                 w.import_master_key, HDKey(network='litecoin'))
-        self.assertRaisesRegexp(WalletError, "This key does not correspond to current public master key",
+        self.assertRaisesRegex(WalletError, "This key does not correspond to current public master key",
                                 w.import_master_key, HDKey())
         w.import_master_key(k.wif_private())
         self.assertTrue(w.main_key.is_private)
@@ -472,16 +472,16 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         k2 = HDKey()
         w2 = Wallet.create('test_wallet_import_master_key2', keys=k2.subkey_for_path("m/32'"), scheme='single',
                            db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Main key is already a private key, cannot import key",
+        self.assertRaisesRegex(WalletError, "Main key is already a private key, cannot import key",
                                 w2.import_master_key, k2)
         w2.main_key = None
-        self.assertRaisesRegexp(WalletError, "Main wallet key is not an WalletKey instance",
+        self.assertRaisesRegex(WalletError, "Main wallet key is not an WalletKey instance",
                                 w2.import_master_key, k2)
 
         k3 = HDKey()
         w3 = Wallet.create('test_wallet_import_master_key3', keys=k3.subkey_for_path("m/32'").public(),
                            scheme='single', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "Current main key is not a valid BIP32 public master key",
+        self.assertRaisesRegex(WalletError, "Current main key is not a valid BIP32 public master key",
                                 w3.import_master_key, k3)
 
 
@@ -595,7 +595,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
              'ujRHzmBMxE'
         w = Wallet.create('test_wallet_keys_single_key', wk, scheme='single', db_uri=self.DATABASE_URI)
         self.assertEqual(w.new_key(), w.new_key())
-        self.assertRaisesRegexp(WalletError,
+        self.assertRaisesRegex(WalletError,
                                 "Single wallet has only one \(master\)key. Use get_key\(\) or main_key\(\) method",
                                 w.get_keys)
 
@@ -612,7 +612,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         key_invalid = HDKey(witness_type='segwit', network='testnet')
         w = wallet_create_or_open('my-awesome-wallet55', keys=key_correct, witness_type='segwit', network='testnet',
                                   db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(AssertionError, '', Wallet, 'my-awesome-wallet55', main_key_object=key_invalid,
+        self.assertRaisesRegex(AssertionError, '', Wallet, 'my-awesome-wallet55', main_key_object=key_invalid,
                                 db_uri=self.DATABASE_URI)
 
     def test_wallet_single_key(self):
@@ -684,13 +684,13 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         w1 = Wallet.create('network_mixup_test_wallet', network='litecoin', db_uri=self.DATABASE_URI)
         wk1 = WalletKey.from_key('key1', w1.wallet_id, w1._session, key=k1.address_obj)
         self.assertEqual(wk1.network.name, 'dash')
-        self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
+        self.assertRaisesRegex(WalletError, "Specified network and key network should be the same",
                                 WalletKey.from_key, 'key2', w1.wallet_id, w1._session, key=k2.address_obj,
                                 network='bitcoin')
         w2 = Wallet.create('network_mixup_test_wallet2', network='litecoin', db_uri=self.DATABASE_URI)
         wk2 = WalletKey.from_key('key1', w2.wallet_id, w2._session, key=k1)
         self.assertEqual(wk2.network.name, 'dash')
-        self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
+        self.assertRaisesRegex(WalletError, "Specified network and key network should be the same",
                                 WalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
                                 network='bitcoin')
         wk3 = WalletKey.from_key('key3', w2.wallet_id, w2._session, key=k1)
@@ -709,12 +709,12 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_key_exceptions(self):
         w = Wallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', WalletKey, 1000000, w._session)
-        self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
+        self.assertRaisesRegex(WalletError, 'Key with id 1000000 not found', WalletKey, 1000000, w._session)
+        self.assertRaisesRegex(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
                                            "network then specified: bitcoin",
                                 WalletKey.from_key, '', w.wallet_id, w._session,
                                 'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
-        self.assertRaisesRegexp(WalletError, "", w.get_key, cosigner_id=10)
+        self.assertRaisesRegex(WalletError, "", w.get_key, cosigner_id=10)
 
     def test_wallet_key_public_leaks(self):
         w = wallet_create_or_open("wallet_private", network='testnet', db_uri=self.DATABASE_URI)
@@ -824,7 +824,7 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
                       'KoMgKnjvAZ6a4Yn2QZg'
         error_str = "Network bitcoinlib_test not available in this wallet, please create an account for this network " \
                     "first."
-        self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
+        self.assertRaisesRegex(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 
     def test_wallet_multiple_networks_value(self):
         pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysd' \
@@ -888,7 +888,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
     def test_wallet_multi_networks_account_bip44_code_error(self):
         wlt = Wallet.create("wallet-bip44-code-error", network='testnet', db_uri=self.DATABASE_URI)
         error_str = "Can not create new account for network litecoin_testnet with same BIP44 cointype"
-        self.assertRaisesRegexp(WalletError, error_str, wlt.new_account, network='litecoin_testnet')
+        self.assertRaisesRegex(WalletError, error_str, wlt.new_account, network='litecoin_testnet')
 
     def test_wallet_get_account_defaults(self):
         w = wallet_create_or_open("test_wallet_get_account_defaults", witness_type='segwit',
@@ -953,7 +953,7 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         w.new_key()
         w.utxos_update()
         balance = w.balance()
-        self.assertRaisesRegexp(WalletError, "Not enough unspent transaction outputs found",
+        self.assertRaisesRegex(WalletError, "Not enough unspent transaction outputs found",
                                 w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance, offline=False)
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
@@ -967,7 +967,7 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         w.utxos_update()
         self.assertIsNone(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', offline=False).error)
         self.assertEqual(w.utxos(), [])
-        self.assertRaisesRegexp(WalletError, "Cannot sweep wallet, no UTXO's found",
+        self.assertRaisesRegex(WalletError, "Cannot sweep wallet, no UTXO's found",
                                 w.sweep, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', offline=False)
 
 
@@ -1009,7 +1009,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         wl1_key = wl1.new_key()
         wl2_key = wl2.new_key(cosigner_id=wl1.cosigner_id)
         self.assertEqual(wl1_key.address, wl2_key.address)
-        self.assertRaisesRegexp(WalletError, "Accounts are not supported for this wallet", wl1.account, 10)
+        self.assertRaisesRegex(WalletError, "Accounts are not supported for this wallet", wl1.account, 10)
 
     def test_wallet_multisig_bitcoinlib_testnet_transaction_send(self):
         self.db_remove()
@@ -1378,7 +1378,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         hdkey0 = HDKey(k0).public_master_multisig()
         hdkey1 = HDKey(k1, key_type='single')
         hdkey2 = HDKey(k2, key_type='single')
-        self.assertRaisesRegexp(WalletError,
+        self.assertRaisesRegex(WalletError,
                                 "This wallet does not contain any private keys, please specify cosigner_id for "
                                 "this wallet", wallet_create_or_open,
                                 'test_wallets_multisig_missing_private_and_cosigner',
@@ -1456,7 +1456,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         pk_n = random.randint(0, n_keys - 1)
         key_list_cosigners = [k.public_master(multisig=True) for k in key_list if k is not key_list[pk_n]]
         key_list_wallet = [key_list[pk_n]] + key_list_cosigners
-        self.assertRaisesRegexp(WalletError, 'Redeemscripts with more then 15 keys are non-standard and could '
+        self.assertRaisesRegex(WalletError, 'Redeemscripts with more then 15 keys are non-standard and could '
                                              'result in locked up funds',
                                 Wallet.create, wallet_name, keys=key_list_wallet, sigs_required=sigs_req,
                                 network=network, db_uri=self.DATABASE_URI)
@@ -1845,9 +1845,9 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt = Wallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        self.assertRaisesRegexp(WalletError, 'Fee per kB of 660 is lower then minimal network fee of 1000',
+        self.assertRaisesRegex(WalletError, 'Fee per kB of 660 is lower then minimal network fee of 1000',
                                 wlt.send_to, to_key.address, 50000000, fee=150)
-        self.assertRaisesRegexp(WalletError, 'Fee per kB of 1321585 is higher then maximum network fee of 1000000',
+        self.assertRaisesRegex(WalletError, 'Fee per kB of 1321585 is higher then maximum network fee of 1000000',
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
@@ -1985,7 +1985,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                       offline=False)
         self.assertEqual(t.inputs[0].address, keys[1].address)
         self.assertTrue(t.verified)
-        self.assertRaisesRegexp(WalletError, "Not enough unspent transaction outputs found", w.send_to,
+        self.assertRaisesRegex(WalletError, "Not enough unspent transaction outputs found", w.send_to,
                                 'blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
                                 input_key_id=keys[0].key_id)
 
@@ -2031,15 +2031,15 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
               'FwNjcNknbseoKp1vR2h'
         wlt = Wallet.create('test_wallet_transaction_create_exceptions', keys=wif, db_uri=self.DATABASE_URI)
         wlt.utxos_update()
-        self.assertRaisesRegexp(WalletError, "Output array must be a list of tuples with address and amount. "
+        self.assertRaisesRegex(WalletError, "Output array must be a list of tuples with address and amount. "
                                              "Use 'send_to' method to send to one address",
                                 wlt.transaction_create, '217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ')
         inps = wlt.select_inputs(150000000)
-        self.assertRaisesRegexp(WalletError, "Input array contains 2 UTXO's but max_utxos=1 parameter specified",
+        self.assertRaisesRegex(WalletError, "Input array contains 2 UTXO's but max_utxos=1 parameter specified",
                                 wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
                                 inps, max_utxos=1)
         wallet_empty('test_wallet_transaction_create_exceptions', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "UTXO",
+        self.assertRaisesRegex(WalletError, "UTXO",
                                 wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
                                 inps)
 
@@ -2211,7 +2211,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             }
         ]
         w.utxos_update(utxos=utxos)
-        self.assertRaisesRegexp(WalletError, "", w.send_to, 'bc1qx76mfmrgvejprscpk8e76d90h94xdhhgnr3jfk', 200001,
+        self.assertRaisesRegex(WalletError, "", w.send_to, 'bc1qx76mfmrgvejprscpk8e76d90h94xdhhgnr3jfk', 200001,
                                 fee=150)
 
     def test_wallet_transactions_delete(self):
@@ -2413,7 +2413,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_segwit_uncompressed_error(self):
         k = HDKey(compressed=False, network='bitcoinlib_test')
-        self.assertRaisesRegexp(BKeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
+        self.assertRaisesRegex(BKeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
                                 'segwit_uncompressed_error', k, witness_type='segwit', network='bitcoinlib_test',
                                 db_uri=self.DATABASE_URI)
 
@@ -2528,9 +2528,9 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         w.new_account()
         w.new_account()
         w.new_account(account_id=100)
-        self.assertRaisesRegexp(WalletError, "Account with ID 100 already exists for this wallet",
+        self.assertRaisesRegex(WalletError, "Account with ID 100 already exists for this wallet",
                                 w.new_account, 'test', 100)
-        self.assertRaisesRegexp(WalletError, "Account with ID 1001 not found in this wallet",
+        self.assertRaisesRegex(WalletError, "Account with ID 1001 not found in this wallet",
                                 w.account, 1001)
 
         paths = ["m/48'/0'/0'/2'", "m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'", "m/48'/0'/1'/2'/0/0",
@@ -2580,9 +2580,9 @@ class TestWalletKeyStructures(TestWalletMixin, unittest.TestCase):
         self.assertListEqual(wlt.path_expand(['m', "purpose", "coin_type'", "1", 2, 3]),
                              ['m', "44'", "0'", "1'", '2', '3'])
         self.assertListEqual(wlt.path_expand([100], -2), ['m', "44'", "0'", "100'"])
-        self.assertRaisesRegexp(BKeyError, "Please provide value for 'address_index'",
+        self.assertRaisesRegex(BKeyError, "Please provide value for 'address_index'",
                                 wlt.path_expand, ['m', 45, "cosigner_index", 55, "address_index"])
-        self.assertRaisesRegexp(BKeyError, "Variable bestaatnie not found in Key structure definitions in main.py",
+        self.assertRaisesRegex(BKeyError, "Variable bestaatnie not found in Key structure definitions in main.py",
                                 wlt.path_expand, ['m', "bestaatnie'", "coin_type'", "1", 2, 3])
 
     def test_wallet_exotic_key_paths(self):
@@ -2614,7 +2614,7 @@ class TestWalletKeyStructures(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_normalize_path(self):
         self.assertEqual(normalize_path("m/48h/0p/100H/1200'/1234555"), "m/48'/0'/100'/1200'/1234555")
-        self.assertRaisesRegexp(WalletError, 'Could not parse path. Index is empty.', normalize_path,
+        self.assertRaisesRegex(WalletError, 'Could not parse path. Index is empty.', normalize_path,
                                 "m/44h/0p/100H//1201")
 
     def test_wallet_accounts(self):
@@ -2642,7 +2642,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN'])
         self.assertGreaterEqual(w.balance(), 4532991)
-        self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
+        self.assertRaisesRegex(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
         self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
                          '22965c151d850b5c7d98561e5432459141b1321a299cdcac1764f540eef56451')
 

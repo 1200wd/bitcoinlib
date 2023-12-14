@@ -326,7 +326,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(res[0].txid, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
 
     def test_service_gettransactions_addresslist_error(self):
-        self.assertRaisesRegexp(ServiceError, "Address parameter must be of type text",
+        self.assertRaisesRegex(ServiceError, "Address parameter must be of type text",
                                ServiceTest().gettransactions,
                                 ['1LGJzocooaciEtsxEVAajLhCymCXNvPoLh', '19KedreX9aR64fN7tnNzVLVFHQAUL6dLzr'])
 
@@ -689,7 +689,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(srv.resultcount, 1)
 
     def test_service_errors(self):
-        self.assertRaisesRegexp(ServiceError, "Provider 'unknown_provider' not found in provider definitions",
+        self.assertRaisesRegex(ServiceError, "Provider 'unknown_provider' not found in provider definitions",
                                 Service, providers='unknown_provider')
 
     def test_service_mempool(self):
