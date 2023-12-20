@@ -20,6 +20,7 @@
 
 import configparser
 from bitcoinlib.main import *
+from datetime import datetime, timezone
 from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -203,7 +204,7 @@ class LitecoindClient(BaseClient):
             t.verified = True
         t.version = tx['version'].to_bytes(4, 'big')
         t.version_int = tx['version']
-        t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
+        t.date = None if 'time' not in tx else datetime.fromtimestamp(tx['time'], timezone.utc)
         t.update_totals()
         return t
 

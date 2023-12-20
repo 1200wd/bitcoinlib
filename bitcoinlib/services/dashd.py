@@ -142,7 +142,7 @@ class DashdClient(BaseClient):
             o.spent = None
         t.block_height = block_height
         t.version = tx['version'].to_bytes(4, 'big')
-        t.date = datetime.utcfromtimestamp(tx['blocktime'])
+        t.date = datetime.fromtimestamp(tx['blocktime'], timezone.utc)
         t.update_totals()
         return t
 

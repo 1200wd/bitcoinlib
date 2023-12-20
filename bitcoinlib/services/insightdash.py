@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
@@ -56,7 +56,7 @@ class InsightDashClient(BaseClient):
             isCoinbase = True
         txdate = None
         if 'blocktime' in tx:
-            txdate = datetime.utcfromtimestamp(tx['blocktime'])
+            txdate = datetime.fromtimestamp(tx['blocktime'], timezone.utc)
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], txid=tx['txid'],
                         date=txdate, confirmations=tx['confirmations'],
@@ -171,7 +171,7 @@ class InsightDashClient(BaseClient):
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
+            'time': datetime.fromtimestamp(bd['time'], timezone.utc),
             'total_txs': len(bd['tx']),
             'txs': txs,
             'version': bd['version'],

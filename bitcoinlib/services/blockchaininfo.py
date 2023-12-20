@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
@@ -91,7 +91,7 @@ class BlockchainInfoClient(BaseClient):
             if not self.latest_block:
                 self.latest_block = self.blockcount()
             t.status = 'confirmed'
-            t.date = datetime.utcfromtimestamp(tx['time'])
+            t.date = datetime.fromtimestamp(tx['time'], timezone.utc)
             t.block_height = tx['block_height']
             t.confirmations = 1
             if self.latest_block > t.block_height:

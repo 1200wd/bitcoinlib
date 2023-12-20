@@ -204,7 +204,7 @@ class BitcoindClient(BaseClient):
             t.verified = True
         t.version = tx['version'].to_bytes(4, 'big')
         t.version_int = tx['version']
-        t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
+        t.date = None if 'time' not in tx else datetime.fromtimestamp(tx['time'], timezone.utc)
         t.update_totals()
         return t
 

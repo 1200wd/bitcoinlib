@@ -24,7 +24,7 @@ import platform
 import configparser
 import enum
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 # General defaults
 TYPE_TEXT = str

@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
@@ -53,7 +53,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         value_in = 0 if 'valueIn' not in tx else int(round(float(tx['valueIn']) * self.units, 0))
         txdate = None
         if 'blocktime' in tx:
-            txdate = datetime.utcfromtimestamp(tx['blocktime'])
+            txdate = datetime.fromtimestamp(tx['blocktime'], timezone.utc)
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.fee = fees
         t.input_total = value_in

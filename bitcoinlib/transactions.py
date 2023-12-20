@@ -1803,7 +1803,7 @@ class Transaction(object):
             if self.locktime < 500000000:
                 print("Locktime: Until block %d" % self.locktime)
             else:
-                print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
+                print("Locktime: Until %s UTC" % datetime.fromtimestamp(self.locktime, timezone.utc))
         print("Version: %d" % self.version_int)
         print("Witness type: %s" % self.witness_type)
         print("Status: %s" % self.status)

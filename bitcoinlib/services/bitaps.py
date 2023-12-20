@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -52,9 +52,9 @@ class BitapsClient(BaseClient):
             status = 'confirmed'
         date = None
         if 'timestamp' in tx and tx['timestamp']:
-            date = datetime.utcfromtimestamp(tx['timestamp'])
+            date = datetime.fromtimestamp(tx['timestamp'], timezone.utc)
         elif 'blockTime' in tx and tx['blockTime']:
-            date = datetime.utcfromtimestamp(tx['blockTime'])
+            date = datetime.fromtimestamp(tx['blockTime'], timezone.utc)
         block_height = None
         if 'blockHeight' in tx:
             block_height = tx['blockHeight']
@@ -128,7 +128,7 @@ class BitapsClient(BaseClient):
                             'size': 0,
                             'value': utxo['value'],
                             'script': utxo['scriptPubKey'],
-                            'date': datetime.utcfromtimestamp(tx['timestamp'])
+                            'date': datetime.fromtimestamp(tx['timestamp'], timezone.utc)
                          }
                     )
                 if tx['txId'] == after_txid:
@@ -211,7 +211,7 @@ class BitapsClient(BaseClient):
     #         'merkle_root': bd['merkleRoot'],
     #         'nonce': bd['nonce'],
     #         'prev_block': bd['previousBlockHash'],
-    #         'time': datetime.utcfromtimestamp(bd['blockTime']),
+    #         'time': datetime.fromtimestamp(bd['blockTime'], timezone.utc),
     #         'total_txs': bd['transactionsCount'],
     #         'txs': txs,
     #         'version': bd['version'],
