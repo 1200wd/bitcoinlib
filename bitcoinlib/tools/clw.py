@@ -56,7 +56,7 @@ def parse_args():
                               " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
                               help="Export private key for this wallet and exit")
-    group_wallet.add_argument('--import-private', '-k',
+    group_wallet.add_argument('--import-private', '-v',
                               help="Import private key in this wallet")
 
     group_wallet2 = parser.add_argument_group("Wallet Setup")
@@ -83,13 +83,22 @@ def parse_args():
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
     group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
                                help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
-    group_wallet2.add_argument('--cosigner-id', '-s', type=int, default=0,
+    group_wallet2.add_argument('--cosigner-id', '-o', type=int, default=0,
                                help='Set this if wallet contains only public keys, more then one private key or if '
                                     'you would like to create keys for other cosigners.')
     group_transaction = parser.add_argument_group("Transactions")
+    # TODO: Add simple send address + amount
+    group_transaction.add_argument('--send', '-s', metavar=('ADDRESS', 'AMOUNT'), nargs=2,
+                                   help="Create transaction to send amount to specified address")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
-                                   help="Create transaction. Specify address followed by amount in satoshis. Repeat for multiple "
-                                   "outputs", nargs='*')
+                                   help="Create transaction and send to multiple addresses. "
+                                        "Specify address followed by amount in satoshis. Repeat for multiple "
+                                        "outputs. Use -p to push to network, otherwise returns a dictionary which"
+                                        "can be used to export",
+                                   nargs='*')
+    # TDDO: Add --create-raw-transaction
+    # TODO: Add -k use specific key for inputs / scan
+    # TODO: Add number_of_change_outputs
     group_transaction.add_argument('--sweep', metavar="ADDRESS",
                                    help="Sweep wallet, transfer all funds to specified address")
     group_transaction.add_argument('--fee', '-f', type=int, help="Transaction fee")
