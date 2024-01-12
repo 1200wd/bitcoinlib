@@ -29,17 +29,58 @@ DEFAULT_NETWORK = 'bitcoin'
 
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib command line wallet')
-    parser.add_argument('wallet_name', nargs='?', default='',
-                        help="Name of wallet to create or open. Used to store your all your wallet keys "
-                             "and will be printed on each paper wallet")
+    parser.add_argument('--list-wallets', '-l', action='store_true',
+                        help="List all known wallets in database")
+    parser.add_argument('--generate-key', '-g', type=int, metavar="STRENGTH", help="Generate a new masterkey, and "
+                        "show passphrase, WIF and public account key. Can be used to create a new (multisig) wallet")
+    # parser_new.add_argument('--passphrase-strength', type=int, default=128,
+    #                         help="Number of bits for passphrase key. Default is 128, lower is not adviced but can "
+    #                         "be used for testing. Set to 256 bits for more future proof passphrases")
+    parser.add_argument('--database', '-d',
+                        help="URI of the database to use",)
+    # TODO: use first wallet if only 1 wallet exists and no argument is provided
+    parser.add_argument('--wallet_name', '-w', nargs='?', default='',
+                        help="Name of wallet to create or open. Provide wallet name or number when running wallet "
+                             "actions")
+    parser.add_argument('--password', help='Password to protect private key, use to open and close wallet')
+    parser.add_argument('--network', '-n',
+                        help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
+
+    subparsers = parser.add_subparsers(required=False)
+    parser_new = subparsers.add_parser('new', description="Create new wallet")
+    parser_new.add_argument('--wallet_name', '-w', nargs='?', default='', required=True,
+                        help="Name of wallet to create or open. Provide wallet name or number when running wallet "
+                             "actions")
+    parser_new.add_argument('--password', help='Password to protect private key, use to open and close wallet')
+    parser_new.add_argument('--network', '-n',
+                        help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
+    parser_new.add_argument('--passphrase', nargs="*", default=None,
+                            help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
+    parser_new.add_argument('--create-from-key', '-c', metavar='KEY',
+                               help="Create a new wallet from specified key")
+    parser_new.add_argument('--create-multisig', '-m', nargs='*',
+                            metavar='.',
+                            help='[NUMBER_OF_SIGNATURES, NUMBER_OF_SIGNATURES_REQUIRED, [KEY1, KEY2, ... KEY3]]'
+                            'Specify number of signatures followed by the number of signatures required and '
+                            'then a list of public or private keys for this wallet. Private keys will be '
+                            'created if not provided in key list.'
+                            '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another '
+                            'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
+                            'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
+                            'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
+    parser_new.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
+                            help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
+    parser_new.add_argument('--cosigner-id', '-o', type=int, default=0,
+                            help='Set this if wallet contains only public keys, more then one private key or if '
+                            'you would like to create keys for other cosigners.')
+    parser_new.add_argument('--database', '-d',
+                        help="URI of the database to use",)
 
     group_wallet = parser.add_argument_group("Wallet Actions")
     group_wallet.add_argument('--wallet-remove', action='store_true',
                               help="Name or ID of wallet to remove, all keys and transactions will be deleted")
-    group_wallet.add_argument('--list-wallets', '-l', action='store_true',
-                              help="List all known wallets in BitcoinLib database")
-    group_wallet.add_argument('--wallet-info', '-w', action='store_true',
-                              help="Show wallet information")
+    # group_wallet.add_argument('--wallet-info', '-w', action='store_true',
+    #                           help="Show wallet information")
     group_wallet.add_argument('--update-utxos', '-x', action='store_true',
                               help="Update unspent transaction outputs (UTXO's) for this wallet")
     group_wallet.add_argument('--update-transactions', '-u', action='store_true',
@@ -52,45 +93,22 @@ def parse_args():
                               help="Show unused address to receive funds. Specify cosigner-id to generate address for "
                                    "specific cosigner. Default is -1 for own wallet",
                               const=-1, metavar='COSIGNER_ID')
-    group_wallet.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and show"
-                              " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
                               help="Export private key for this wallet and exit")
     group_wallet.add_argument('--import-private', '-v',
                               help="Import private key in this wallet")
 
-    group_wallet2 = parser.add_argument_group("Wallet Setup")
-    group_wallet2.add_argument('--passphrase', nargs="*", default=None,
-                               help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
-    group_wallet2.add_argument('--passphrase-strength', type=int, default=128,
-                               help="Number of bits for passphrase key. Default is 128, lower is not adviced but can "
-                                    "be used for testing. Set to 256 bits for more future proof passphrases")
-    group_wallet2.add_argument('--network', '-n',
-                               help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
-    group_wallet2.add_argument('--database', '-d',
-                               help="URI of the database to use",)
-    group_wallet2.add_argument('--create-from-key', '-c', metavar='KEY',
-                               help="Create a new wallet from specified key")
-    group_wallet2.add_argument('--create-multisig', '-m', nargs='*',
-                               metavar='.',
-                               help='[NUMBER_OF_SIGNATURES, NUMBER_OF_SIGNATURES_REQUIRED, [KEY1, KEY2, ... KEY3]]'
-                                    'Specificy number of signatures followed by the number of signatures required and '
-                                    'then a list of public or private keys for this wallet. Private keys will be '
-                                    'created if not provided in key list.'
-                                    '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another '
-                                    'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
-                                    'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
-                                    'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
-    group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
-                               help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
-    group_wallet2.add_argument('--cosigner-id', '-o', type=int, default=0,
-                               help='Set this if wallet contains only public keys, more then one private key or if '
-                                    'you would like to create keys for other cosigners.')
-    group_transaction = parser.add_argument_group("Transactions")
-    # TODO: Add simple send address + amount
-    group_transaction.add_argument('--send', '-s', metavar=('ADDRESS', 'AMOUNT'), nargs=2,
+    # group_transaction = parser.add_argument_group("Transactions")
+    parser_tx = subparsers.add_parser('tx', description="Create transactions / send coins")
+    parser_tx.add_argument('--wallet_name', '-w', nargs='?', default='',
+                        help="Name of wallet to create or open. Provide wallet name or number when running wallet "
+                             "actions")
+    parser_tx.add_argument('--password', help='Password to protect private key, use to open and close wallet')
+    parser_tx.add_argument('--network', '-n',
+                        help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
+    parser_tx.add_argument('--send', '-s', metavar=('ADDRESS', 'AMOUNT'), nargs=2,
                                    help="Create transaction to send amount to specified address")
-    group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
+    parser_tx.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                                    help="Create transaction and send to multiple addresses. "
                                         "Specify address followed by amount in satoshis. Repeat for multiple "
                                         "outputs. Use -p to push to network, otherwise returns a dictionary which"
@@ -99,32 +117,32 @@ def parse_args():
     # TDDO: Add --create-raw-transaction
     # TODO: Add -k use specific key for inputs / scan
     # TODO: Add number_of_change_outputs
-    group_transaction.add_argument('--sweep', metavar="ADDRESS",
+    parser_tx.add_argument('--sweep', metavar="ADDRESS",
                                    help="Sweep wallet, transfer all funds to specified address")
-    group_transaction.add_argument('--fee', '-f', type=int, help="Transaction fee")
-    group_transaction.add_argument('--fee-per-kb', type=int,
+    parser_tx.add_argument('--fee', '-f', type=int, help="Transaction fee")
+    parser_tx.add_argument('--fee-per-kb', type=int,
                                    help="Transaction fee in sathosis (or smallest denominator) per kilobyte")
-    group_transaction.add_argument('--push', '-p', action='store_true', help="Push created transaction to the network")
-    group_transaction.add_argument('--import-tx', '-i', metavar="TRANSACTION",
+    parser_tx.add_argument('--push', '-p', action='store_true', help="Push created transaction to the network")
+    parser_tx.add_argument('--import-tx', '-i', metavar="TRANSACTION",
                                    help="Import raw transaction hash or transaction dictionary in wallet and sign "
                                         "it with available key(s)")
-    group_transaction.add_argument('--import-tx-file', '-a', metavar="FILENAME_TRANSACTION",
+    parser_tx.add_argument('--import-tx-file', '-a', metavar="FILENAME_TRANSACTION",
                                    help="Import transaction dictionary or raw transaction string from specified "
                                         "filename and sign it with available key(s)")
 
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
         parser.error("Please select receive or create transaction option not both")
-    if pa.wallet_name:
-        pa.wallet_info = True
-    else:
-        pa.list_wallets = True
+    # if pa.wallet_name:
+    #     pa.wallet_info = True
+    # else:
+    #     pa.list_wallets = True
     return pa
 
 
 def get_passphrase(args):
-    inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
-    print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
+    inp_passphrase = Mnemonic('english').generate(args.generate_key)
+    print("\nPassphrase: %s" % inp_passphrase)
     print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
     passphrase = inp_passphrase.split(' ')
     inp = input("\nType 'yes' if you understood and wrote down your key: ")
@@ -246,7 +264,7 @@ def main():
         clw_exit()
 
     # List wallets, then exit
-    if args.list_wallets:
+    elif args.list_wallets:
         print("BitcoinLib wallets:")
         for w in wallets_list(db_uri=db_uri):
             if 'parent_id' in w and w['parent_id']:
@@ -279,10 +297,10 @@ def main():
     else:
         try:
             wlt = Wallet(args.wallet_name, db_uri=db_uri)
-            if args.passphrase is not None:
-                print("WARNING: Using passphrase option for existing wallet ignored")
-            if args.create_from_key is not None:
-                print("WARNING: Using create_from_key option for existing wallet ignored")
+            # if args.passphrase is not None:
+            #     print("WARNING: Using passphrase option for existing wallet ignored")
+            # if args.create_from_key is not None:
+            #     print("WARNING: Using create_from_key option for existing wallet ignored")
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
 
@@ -364,7 +382,7 @@ def main():
         clw_exit()
     if args.create_transaction == []:
         clw_exit("Missing arguments for --create-transaction/-t option")
-    if args.create_transaction:
+    if args.create_transaction or args.send:
         if args.fee_per_kb:
             clw_exit("Fee-per-kb option not allowed with --create-transaction")
         try:
