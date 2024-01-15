@@ -1,3 +1,11 @@
+RELEASE 0.6.14 - Update installation instruction, docker & bugfixes
+===================================================================
+* Update installation instructions
+* Add Docker files for testing and installation testing
+* Fix Bitcoind constructors
+* Fix issue with hexadecimal passwords for Mnemonics
+* Fix regtest address prefix
+
 RELEASE 0.6.13 - Update config & fix some bugs
 ==============================================
 * Rewrite configuration files for easier installation
