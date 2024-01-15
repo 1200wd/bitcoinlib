@@ -1498,7 +1498,7 @@ class Transaction(object):
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
-                if not script.signatures:
+                if not script.script_types:
                     inputs[n].script_type = 'unknown'
                 elif script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
                     inputs[n].script_type = 'p2sh_multisig'
