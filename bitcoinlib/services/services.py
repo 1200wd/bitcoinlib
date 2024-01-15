@@ -25,7 +25,7 @@ from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr, varbyteint_to_int
+from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block

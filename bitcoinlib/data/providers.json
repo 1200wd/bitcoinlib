@@ -405,27 +405,5 @@
     "priority": 10,
     "denominator": 1,
     "network_overrides": null
-  },
-    "blocksmurfer": {
-    "provider": "blocksmurfer",
-    "network": "bitcoin",
-    "client_class": "BlocksmurferClient",
-    "provider_coin_id": "",
-    "url": "https://harari.blocksmurfer.io/api/v1/btc/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "blocksmurfer.testnet": {
-    "provider": "blocksmurfer",
-    "network": "testnet",
-    "client_class": "BlocksmurferClient",
-    "provider_coin_id": "",
-    "url": "https://harari.blocksmurfer.io/api/v1/tbtc/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
   }
 }
