@@ -144,12 +144,6 @@ class Service(object):
         else:
             self._blockcount = self.blockcount()
 
-    def __exit__(self):
-        try:
-            self.cache.session.close()
-        except Exception:
-            pass
-
     def _reset_results(self):
         self.results = {}
         self.errors = {}
@@ -693,12 +687,6 @@ class Cache(object):
         if SERVICE_CACHING_ENABLED:
             self.session = DbCache(db_uri=db_uri).session
         self.network = network
-
-    def __exit__(self):
-        try:
-            self.session.close()
-        except Exception:
-            pass
 
     def cache_enabled(self):
         """

@@ -54,7 +54,7 @@ class TestDb(unittest.TestCase):
     def test_database_create_drop(self):
         dbtmp = Db(DATABASEFILE_TMP)
         Wallet.create("tmpwallet", db_uri=DATABASEFILE_TMP)
-        self.assertRaisesRegexp(WalletError, "Wallet with name 'tmpwallet' already exists",
+        self.assertRaisesRegex(WalletError, "Wallet with name 'tmpwallet' already exists",
                                 Wallet.create, 'tmpwallet', db_uri=DATABASEFILE_TMP)
         dbtmp.drop_db(yes_i_am_sure=True)
         Wallet.create("tmpwallet", db_uri=DATABASEFILE_TMP)

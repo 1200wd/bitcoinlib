@@ -16,16 +16,16 @@ Package can be found at https://pypi.org/project/bitcoinlib/
 Install from source
 ~~~~~~~~~~~~~~~~~~~
 
-Required packages:
+Required packages for Ubuntu, for other systems see below:
 
-``sudo apt install -y postgresql postgresql-contrib mysql-server libpq-dev libmysqlclient-dev``
+``apt install build-essential python3-dev libgmp3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
 
 Create a virtual environment for instance on linux with virtualenv:
 
 .. code-block:: bash
 
-    $ virtualenv -p python3 venv/bitcoinlib
-    $ source venv/bitcoinlib/bin/activate
+    $ virtualenv -p ~/.virtualenvs/bitcoinlib
+    $ source ~/.virtualenvs/bitcoinlib/bin/activate
 
 Then clone the repository and install dependencies:
 
@@ -33,8 +33,13 @@ Then clone the repository and install dependencies:
 
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ pip install -r requirements-dev.txt
+    $ python -m pip install .
 
+You can test your local installation by running all unittests:
+
+.. code-block:: bash
+
+    $ python -m unittest
 
 
 Package dependencies
@@ -48,29 +53,25 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * numpy
 * pycryptodome
 
-If you want to use BIP38 encrypted private keys, it is strongly advised to install the much faster scrypt library.
-
-``pip install scrypt``
-
 
 Other requirements Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 On Debian, Ubuntu or their derivatives:
 
-``sudo apt install build-essential python3-dev libgmp3-dev``
+``apt install build-essential python3-dev libgmp3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
 
 On Fedora, CentOS or RHEL:
 
-``sudo dnf install python3-devel gmp-devel``
+``dnf install python3-devel gmp-devel``
 
-To install OpenSSL development package on Debian, Ubuntu or their derivatives
+On Alpine Linux, lightweight Linux used for Docker images:
 
-``sudo apt install libssl-dev``
+``apk add python3-dev gmp-dev py3-pip gcc musl-dev libpq-dev postgresql postgresql-contrib mariadb-dev mysql-client``
 
-To install OpenSSL development package on Fedora, CentOS or RHEL
+On Kali linux:
 
-``sudo yum install gcc openssl-devel``
+``apt install libgmp3-dev postgresql postgresql-contrib libpq-dev pkg-config default-libmysqlclient-dev default-mysql-server``
 
 
 Development environment
@@ -78,19 +79,19 @@ Development environment
 
 Install database packages for MySQL and PostgreSQL
 
-``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev``
+``apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev pkg-config libpq-dev``
 
 Check for the latest version of the PostgreSQL dev server:
 
-``sudo apt install postgresql-server-dev-<version>``
+``apt install postgresql-server-dev-<version>``
 
 From library root directory install the Python requirements
 
-``pip install -r requirements-dev.txt``
+``python -m pip install .[dev]``
 
 Then run the unittests to see if everything works
 
-``python setup.py test``
+``python -m unittest``
 
 
 
@@ -104,9 +105,6 @@ https://visualstudio.microsoft.com/downloads. Also see https://wiki.python.org/m
 The fastecdsa library is not enabled at this moment in the windows install, the slower ecdsa library is installed.
 Installation of fastecdsa on Windows is possible but not easy, read https://github.com/AntonKueltz/fastecdsa/issues/11
 for steps you could take to install this library.
-
-If you have problems with installing this library on Windows you could try to use the pycryptodome library instead of
-scrypt. The pycryptodome library is pure Python so it doesn't need any C compilers installed. But this will run slower.
 
 When using Python on Windows it needs to be set to UTF-8 mode. You can do this by adding the PYTHONUTF8=1 to the
 environment variables or use the -X utf8 command line option. Please see
@@ -151,20 +149,11 @@ of database changes. So backup database / private keys first and use at your own
 Troubleshooting
 ---------------
 
-When you experience issues with the scrypt package when installing you can try to solve this by installing
-scrypt separately:
-
-.. code-block:: bash
-
-    $ pip uninstall scrypt
-    $ pip install scrypt
-
-Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
+Please make sure you have the Python development and SSL development packages installed, see 'Other requirements'
 above.
 
-You can also use pycryptodome or pyscrypt instead of scrypt. Pycryptodome is a pure Python scrypt password-based key
+You can also use pycryptodome, pyscrypt or scrypt. pyscript is a pure Python scrypt password-based key
 derivation library. It works but it is slow when using BIP38 password protected keys.
-
 
 If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
