@@ -107,7 +107,7 @@
     "currency_code": "rBTC",
     "prefix_address": "00",
     "prefix_address_p2sh": "05",
-    "prefix_bech32": "bc",
+    "prefix_bech32": "bcrt",
     "prefix_wif": "80",
     "prefixes_wif": [
       ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],

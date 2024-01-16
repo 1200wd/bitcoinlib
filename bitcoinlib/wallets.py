@@ -56,7 +56,6 @@ def wallets_list(db_uri=None, include_cosigners=False, db_password=None):
 
     :param db_uri: URI of the database
     :type db_uri: str
-
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
     :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see
@@ -2533,16 +2532,17 @@ class Wallet(object):
         key_id = qr.id
         return self.key(key_id)
 
-    def accounts(self, network=DEFAULT_NETWORK):
+    def accounts(self, network=None):
         """
         Get list of accounts for this wallet
 
-        :param network: Network name filter. Default filter is DEFAULT_NETWORK
+        :param network: Network name filter. Default filter is network of first main key
         :type network: str
 
         :return list of integers: List of accounts IDs
         """
 
+        network, _, _ = self._get_account_defaults(network)
         if self.multisig and self.cosigner:
             if self.cosigner_id is None:
                 raise WalletError("Missing Cosigner ID value for this wallet, cannot fetch account ID")

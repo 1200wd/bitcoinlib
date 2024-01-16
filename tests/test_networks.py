@@ -49,7 +49,7 @@ class TestNetworks(unittest.TestCase):
     def test_network_defined(self):
         self.assertTrue(network_defined('bitcoin'))
         self.assertFalse(network_defined('bitcoiiin'))
-        self.assertRaisesRegexp(NetworkError, "Network bitcoiin not found in network definitions", Network, 'bitcoiin')
+        self.assertRaisesRegex(NetworkError, "Network bitcoiin not found in network definitions", Network, 'bitcoiin')
 
     def test_wif_prefix_search(self):
         exp_dict = {

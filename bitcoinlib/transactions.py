@@ -859,7 +859,7 @@ class Input(object):
                 b'\0' not in self.witnesses:
             self.signatures = [Signature.parse_bytes(self.witnesses[0])]
             self.hash_type = self.signatures[0].hash_type
-            self.keys = [Key(self.witnesses[1], network=self.network)]
+            self.keys = [Key(self.witnesses[1], network=self.network, strict=self.strict)]
 
         self.update_scripts(hash_type=self.hash_type)
 
@@ -1190,7 +1190,7 @@ class Output(object):
                 self.encoding = 'bech32'
             self.public_hash = self.script.public_hash
             if self.script.keys:
-                self.public_key = self.script.keys[0].public_hex
+                self.public_key = self.script.keys[0].public_byte
             if self.script_type == 'p2tr':
                 self.witver = self.script.commands[0] - 80
 
@@ -1498,7 +1498,9 @@ class Transaction(object):
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
-                if script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
+                if not script.script_types:
+                    inputs[n].script_type = 'unknown'
+                elif script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
                     inputs[n].script_type = 'p2sh_multisig'
                     inputs[n].redeemscript = inputs[n].witnesses[-1]
                 elif script.script_types[0] == 'p2tr_unlock':

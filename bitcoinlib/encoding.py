@@ -33,7 +33,7 @@ USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False",
 try:
     from Crypto.Hash import RIPEMD160
 except ImportError as err:
-    _logger.warning("Could not import RIPEMD160 from cryptodome, will try do use hashlib but this could lead to errors")
+    _logger.warning("Could not import RIPEMD160 from cryptodome, will try to use hashlib but this could lead to errors")
 
 try:
     from Crypto.Cipher import AES
@@ -962,12 +962,20 @@ def bip38_decrypt(encrypted_privkey, password):
 
     :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
     """
-    d = change_base(encrypted_privkey, 58, 256)[2:]
-    flagbyte = d[0:1]
-    d = d[1:]
+    d = change_base(encrypted_privkey, 58, 256)
+    identifier = d[0:2]
+    flagbyte = d[2:3]
+    d = d[3:]
+    # ec_multiply = False
+    if identifier  == b'\x01\x43':
+        # ec_multiply = True
+        raise EncodingError("EC multiply BIP38 keys are not supported at the moment")
+    elif identifier != b'\x01\x42':
+        raise EncodingError("Unknown BIP38 identifier, value must be 0x0142 (non-EC-multiplied) or "
+                            "0x0143 (EC-multiplied)")
     if flagbyte == b'\xc0':
         compressed = False
-    elif flagbyte == b'\xe0':
+    elif flagbyte == b'\xe0' or flagbyte == b'\x20':
         compressed = True
     else:
         raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")

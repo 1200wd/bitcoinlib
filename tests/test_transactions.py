@@ -213,7 +213,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_deserialize_errors(self):
         rawtx = '01000000000102c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff'
-        self.assertRaisesRegexp(TransactionError,
+        self.assertRaisesRegex(TransactionError,
                                 'Input transaction hash not found. Probably malformed raw transaction',
                                 Transaction.parse_hex, rawtx)
         # FIXME: tx.parse_hex() should check remaining size
@@ -225,7 +225,7 @@ class TestTransactions(unittest.TestCase):
         #         '3c12b67ddd3cf8127fe054dec971c858252c004bf8016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea36' \
         #         '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5' \
         #         'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae000000'
-        # self.assertRaisesRegexp(TransactionError,
+        # self.assertRaisesRegex(TransactionError,
         #                         'Error when deserializing raw transaction, bytes left for locktime must be 4 not 3',
         #                         Transaction.parse, rawtx)
         # rawtx = '01000000000101c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff0200' \
@@ -236,7 +236,7 @@ class TestTransactions(unittest.TestCase):
         #         '3c12b67ddd3cf8127fe054dec971c858252c004bf8016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea36' \
         #         '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70f01874496feff2103c96d495bfdd5' \
         #         'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000'
-        # self.assertRaisesRegexp(TransactionError,
+        # self.assertRaisesRegex(TransactionError,
         #                         "Error when deserializing raw transaction, bytes left for locktime must be 4 not 3",
         #                         Transaction.parse, rawtx)
 
@@ -1029,7 +1029,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transaction_sendto_wrong_address(self):
         t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(BKeyError, 'Network bitcoin not found in extracted networks*',
+        self.assertRaisesRegex(BKeyError, 'Network bitcoin not found in extracted networks*',
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
     def test_transaction_create_with_address_objects(self):
@@ -1052,7 +1052,7 @@ class TestTransactions(unittest.TestCase):
         self.assertIsNone(t.info())
 
     def test_transaction_errors(self):
-        self.assertRaisesRegexp(TransactionError, "Please specify a valid witness type: legacy or segwit",
+        self.assertRaisesRegex(TransactionError, "Please specify a valid witness type: legacy or segwit",
                                 Transaction, witness_type='error')
 
 
@@ -1178,7 +1178,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
     def test_transaction_get_unlocking_script_type(self):
         self.assertEqual(get_unlocking_script_type('p2pk'), 'signature')
-        self.assertRaisesRegexp(TransactionError, "Unknown locking script type troep", get_unlocking_script_type,
+        self.assertRaisesRegex(TransactionError, "Unknown locking script type troep", get_unlocking_script_type,
                                 'troep')
 
     def test_transaction_equal(self):

@@ -113,21 +113,21 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
         self.assertEqual('c8e90996c7c6080ee06284600c684ed904d14c5c', change_base(s, 256, 16))
 
     def test_change_base_decimal_input_lenght_exception(self):
-        self.assertRaisesRegexp(EncodingError, "For a decimal input a minimum output length is required",
+        self.assertRaisesRegex(EncodingError, "For a decimal input a minimum output length is required",
                                 change_base, 100, 10, 2)
 
     def test_encoding_exceptions(self):
-        self.assertRaisesRegexp(EncodingError, "Unknown input format {}",
+        self.assertRaisesRegex(EncodingError, "Unknown input format {}",
                                 change_base, {}, 4, 2)
-        self.assertRaisesRegexp(EncodingError, "Byteint must be a list or defined as bytes",
+        self.assertRaisesRegex(EncodingError, "Byteint must be a list or defined as bytes",
                                 varbyteint_to_int, 'fd1027')
-        self.assertRaisesRegexp(EncodingError, "Input must be a number type",
+        self.assertRaisesRegex(EncodingError, "Input must be a number type",
                                 int_to_varbyteint, '1000')
-        self.assertRaisesRegexp(TypeError, "String value expected", normalize_string, 100)
-        self.assertRaisesRegexp(EncodingError, "Encoding base32 not supported", pubkeyhash_to_addr, '123',
+        self.assertRaisesRegex(TypeError, "String value expected", normalize_string, 100)
+        self.assertRaisesRegex(EncodingError, "Encoding base32 not supported", pubkeyhash_to_addr, '123',
                                 encoding='base32')
         addr = 'qc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84'
-        self.assertRaisesRegexp(EncodingError, "Invalid bech32 address. Prefix 'qc', prefix expected is 'bc'",
+        self.assertRaisesRegex(EncodingError, "Invalid bech32 address. Prefix 'qc', prefix expected is 'bc'",
                                 addr_bech32_to_pubkeyhash, addr, prefix='bc')
 
 
@@ -169,7 +169,7 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
         self.assertEqual(change_base('0000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d', 16, 58), '111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
         self.assertEqual(change_base('1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk', 58, 256).hex(),
                          '000000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d')
-        self.assertRaisesRegexp(EncodingError, "Invalid address hash160 length, should be 25 characters not",
+        self.assertRaisesRegex(EncodingError, "Invalid address hash160 length, should be 25 characters not",
                                 addr_base58_to_pubkeyhash, '1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
 
 

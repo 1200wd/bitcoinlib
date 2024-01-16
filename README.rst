@@ -44,6 +44,7 @@ Then install using pip
 
 For more detailed installation instructions, how to install on other systems or troubleshooting please read https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.install.html
 
+If you are using docker you can check some Dockerfiles to create images in the docker directory.
 
 Documentation
 -------------

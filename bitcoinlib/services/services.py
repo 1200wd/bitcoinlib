@@ -25,7 +25,7 @@ from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr, varbyteint_to_int
+from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -143,12 +143,6 @@ class Service(object):
             self._blockcount = Service(network=network, cache_uri=cache_uri).blockcount()
         else:
             self._blockcount = self.blockcount()
-
-    def __exit__(self):
-        try:
-            self.cache.session.close()
-        except Exception:
-            pass
 
     def _reset_results(self):
         self.results = {}
@@ -693,12 +687,6 @@ class Cache(object):
         if SERVICE_CACHING_ENABLED:
             self.session = DbCache(db_uri=db_uri).session
         self.network = network
-
-    def __exit__(self):
-        try:
-            self.session.close()
-        except Exception:
-            pass
 
     def cache_enabled(self):
         """

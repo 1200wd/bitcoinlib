@@ -82,8 +82,8 @@ class Mnemonic(object):
         # Check if passphrase is valid
         if validate:
             self.to_entropy(words)
-        mnemonic = to_bytes(words)
-        password = to_bytes(password)
+        mnemonic = bytes(words, 'utf8')
+        password = bytes(password, 'utf8')
         return hashlib.pbkdf2_hmac(hash_name='sha512', password=mnemonic, salt=b'mnemonic' + password,
                                    iterations=2048)
 
