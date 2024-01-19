@@ -168,7 +168,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
     def test_tools_clw_create_litecoin_segwit_wallet(self):
         cmd_wlt_create = '%s %s new -w ltcsw --passphrase "lounge chief tip frog camera build trouble write end ' \
-                         'sword order share" -d %s -y segwit -n litecoin -r' % \
+                         'sword order share" -d %s -j segwit -n litecoin -r' % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_delete = "%s %s -w ltcsw --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
@@ -191,7 +191,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'YprvANkMzkodih9AKQ8evAkiDWCzpQsU6N1uasNtWznNj44Y2X6FJqkv9wcfavxVEkz9qru7VKRhzmQXqy562b9Tk4JGdsaVazByzmX'
             '7FW6wpKW'
         ]
-        cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 3 2 %s -r -y p2sh-segwit -d %s" % \
+        cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 3 2 %s -r -j p2sh-segwit -d %s" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s -w testms-p2sh-segwit --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
