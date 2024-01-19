@@ -153,7 +153,12 @@ class MempoolClient(BaseClient):
         return self.compose_request('tx', txid, 'hex')
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('tx', post_data=rawtx, method='post')
+        res = self.compose_request('tx', post_data=rawtx, method='post')
+        _logger.debug('mempool response: %s', res)
+        return {
+            'txid': res,
+            'response_dict': {}
+        }
 
     def estimatefee(self, blocks):
         estimates = self.compose_request('v1/fees', 'recommended')
