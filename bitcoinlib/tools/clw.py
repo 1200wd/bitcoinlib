@@ -5,10 +5,11 @@
 #    CLW - Command Line Wallet manager.
 #    Create and manage BitcoinLib legacy/segwit single and multisignatures wallets from the commandline
 #
-#    © 2019 November - 1200 Web Development <http://1200wd.com/>
+#    © 2019 - 2024 January - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
+import os
 import argparse
 import ast
 from pprint import pprint
@@ -28,6 +29,7 @@ except ImportError:
 def exception_handler(exception_type, exception, traceback):
     print("%s: %s" % (exception_type.__name__, exception))
 
+
 sys.excepthook = exception_handler
 
 
@@ -38,8 +40,8 @@ def parse_args():
     parser.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and"
                         " show passphrase, WIF and public account key. Can be used to create a new (multisig) wallet")
     parser.add_argument('--passphrase-strength', type=int, default=128,
-                            help="Number of bits for passphrase key. Default is 128, lower is not advised but can "
-                            "be used for testing. Set to 256 bits for more future-proof passphrases")
+                        help="Number of bits for passphrase key. Default is 128, lower is not advised but can "
+                        "be used for testing. Set to 256 bits for more future-proof passphrases")
     parser.add_argument('--database', '-d',
                         help="URI of the database to use",)
     parser.add_argument('--wallet_name', '-w', nargs='?', default='',
@@ -80,19 +82,17 @@ def parse_args():
                             'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
     parser_new.add_argument('--witness-type', '-j', metavar='WITNESS_TYPE', default=None,
                             help='Witness type of wallet: legacy, p2sh-segwit or segwit (default)')
-    parser_new.add_argument('--cosigner-id', type=int, default=0,
+    parser_new.add_argument('--cosigner-id', '-o', type=int, default=None,
                             help='Set this if wallet contains only public keys, more then one private key or if '
                             'you would like to create keys for other cosigners.')
     parser_new.add_argument('--database', '-d',
-                        help="URI of the database to use",)
-    parser_new.add_argument('--receive', '-r', nargs='?', type=int,
-                              help="Show unused address to receive funds. Specify cosigner-id to generate address for "
-                                   "specific cosigner. Default is -1 for own wallet",
-                              const=-1, metavar='COSIGNER_ID')
+                            help="URI of the database to use",)
+    parser_new.add_argument('--receive', '-r', action='store_true',
+                            help="Show unused address to receive funds.")
     parser_new.add_argument('--yes', '-y', action='store_true', default=False,
-                        help='Non-interactive mode, does not prompt for confirmation')
+                            help='Non-interactive mode, does not prompt for confirmation')
     parser_new.add_argument('--quiet', '-q', action='store_true',
-                        help='Quit mode, no output writen to console.')
+                            help='Quit mode, no output writen to console.')
 
     group_wallet = parser.add_argument_group("Wallet Actions")
     group_wallet.add_argument('--wallet-remove', action='store_true',
@@ -107,10 +107,11 @@ def parse_args():
                               help="Delete all keys and transactions from wallet, except for the masterkey(s). "
                                    "Use when updating fails or other errors occur. Please backup your database and "
                                    "masterkeys first. Update empty wallet again to restore your wallet.")
-    group_wallet.add_argument('--receive', '-r', nargs='?', type=int,
-                              help="Show unused address to receive funds. Specify cosigner-id to generate address for "
-                                   "specific cosigner. Default is -1 for own wallet",
-                              const=-1, metavar='COSIGNER_ID')
+    group_wallet.add_argument('--receive', '-r', action='store_true',
+                              help="Show unused address to receive funds.")
+    group_wallet.add_argument('--cosigner-id', '-o', type=int, default=None,
+                              help='Set this if wallet contains only public keys, more then one private key or if '
+                              'you would like to create keys for other cosigners.')
     group_wallet.add_argument('--export-private', '-e', action='store_true',
                               help="Export private key for this wallet and exit")
     group_wallet.add_argument('--import-private', '-v',
@@ -147,25 +148,26 @@ def parse_args():
     return pa
 
 
-def get_passphrase(strength, interactive=False):
+def get_passphrase(strength, interactive=False, quiet=False):
     passphrase = Mnemonic().generate(strength)
-    print("Passphrase: %s" % passphrase)
-    print("Please write down on paper and backup. With this key you can restore your wallet and all keys")
-    if not interactive and input("\nType 'yes' if you understood and wrote down your key: ") not in ['yes', 'Yes', 'YES']:
-        print("Exiting...")
-        sys.exit()
+    if not quiet:
+        print("Passphrase: %s" % passphrase)
+        print("Please write down on paper and backup. With this key you can restore your wallet and all keys")
+        if not interactive and input("\nType 'yes' if you understood and wrote down your key: ") not in ['yes', 'Yes', 'YES']:
+            print("Exiting...")
+            sys.exit()
     return passphrase
 
 
-def create_wallet(wallet_name, args, db_uri):
+def create_wallet(wallet_name, args, db_uri, output_to):
     if args.network is None:
         args.network = DEFAULT_NETWORK
-    print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
+    print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network), file=output_to)
     if args.create_multisig:
         if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 2:
             raise WalletError("Please enter multisig creation parameter in the following format: "
-                     "<number-of-signatures> <number-of-signatures-required> "
-                     "<key-0> <key-1> [<key-2> ... <key-n>]")
+                              "<number-of-signatures> <number-of-signatures-required> "
+                              "<key-0> <key-1> [<key-2> ... <key-n>]")
         try:
             sigs_total = int(args.create_multisig[0])
         except ValueError:
@@ -180,9 +182,9 @@ def create_wallet(wallet_name, args, db_uri):
         keys_missing = sigs_total - len(key_list)
         assert(keys_missing >= 0)
         if keys_missing:
-            print("Not all keys provided, creating %d additional key(s)" % keys_missing)
+            print("Not all keys provided, creating %d additional key(s)" % keys_missing, file=output_to)
             for _ in range(keys_missing):
-                passphrase = get_passphrase(args.passphrase_strength, args.yes)
+                passphrase = get_passphrase(args.passphrase_strength, args.yes, args.quiet)
                 key_list.append(HDKey.from_passphrase(passphrase, network=args.network))
         return Wallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
                              cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
@@ -240,25 +242,30 @@ def print_transaction(wt):
 
 
 def main():
-    print("Command Line Wallet - BitcoinLib %s\n" % BITCOINLIB_VERSION)
     args = parse_args()
 
     db_uri = args.database
+    output_to = open(os.devnull, 'w') if args.quiet else sys.stdout
     wlt = None
+
+    print("Command Line Wallet - BitcoinLib %s\n" % BITCOINLIB_VERSION, file=output_to)
 
     # --- General arguments ---
     # Generate key
     if args.generate_key:
-        passphrase = get_passphrase(args.passphrase_strength, args.yes)
+        passphrase = get_passphrase(args.passphrase_strength, args.yes, args.quiet)
         hdkey = HDKey.from_passphrase(passphrase, witness_type=args.witness_type, network=args.network)
-        print("Private Master key, to create multisig wallet on this machine:\n%s" % hdkey.wif_private())
+        if args.quiet:
+            print(passphrase)
+        else:
+            print("Private Master key, to create multisig wallet on this machine:\n%s" % hdkey.wif_private())
         print("Public Master key, to share with other cosigner multisig wallets:\n%s" %
-              hdkey.public_master(witness_type=args.witness_type, multisig=True).wif())
-        print("Network: %s" % hdkey.network.name)
+              hdkey.public_master(witness_type=args.witness_type, multisig=True).wif(), file=output_to)
+        print("Network: %s" % hdkey.network.name, file=output_to)
 
     # List wallets
     elif args.list_wallets:
-        print("BitcoinLib wallets:")
+        print("BitcoinLib wallets:", file=sys.stdout)
         wallets = wallets_list(db_uri=db_uri)
         if not wallets:
             print("No wallets defined yet, use 'new' argument to create a new wallet. See clw new --help "
@@ -274,32 +281,32 @@ def main():
         if args.wallet_name.isdigit():
             wallet_name = int(args.wallet_name)
         if not wallet_exists(wallet_name, db_uri=db_uri):
-            print("Wallet '%s' not found" % args.wallet_name)
+            print("Wallet '%s' not found" % args.wallet_name, file=output_to)
         else:
-            inp = wallet_name if args.yes else (
+            inp = wallet_name if (args.quiet or args.yes) else (
                 input("Wallet '%s' with all keys and will be removed, without private key it cannot be restored."
-                        "\nPlease retype exact name of wallet to proceed: " % args.wallet_name))
+                      "\nPlease retype exact name of wallet to proceed: " % args.wallet_name))
             if str(inp) == str(wallet_name):
                 if wallet_delete(wallet_name, force=True, db_uri=db_uri):
-                    print("Wallet %s has been removed" % wallet_name)
+                    print("Wallet %s has been removed" % wallet_name, file=output_to)
                 else:
-                    print("Error when deleting wallet")
+                    print("Error when deleting wallet", file=output_to)
             else:
-                print("Specified wallet name incorrect")
+                print("Specified wallet name incorrect", file=output_to)
 
     # Create or open wallet
     elif args.wallet_name:
         if args.subparser_name == 'new':
             if wallet_exists(args.wallet_name, db_uri=db_uri):
-              print("Wallet with name '%s' already exists" % args.wallet_name)
+                print("Wallet with name '%s' already exists" % args.wallet_name, file=output_to)
             else:
-                wlt = create_wallet(args.wallet_name, args, db_uri)
+                wlt = create_wallet(args.wallet_name, args, db_uri, output_to)
                 args.wallet_info = True
         else:
             try:
                 wlt = Wallet(args.wallet_name, db_uri=db_uri)
             except WalletError as e:
-                print("Error: %s" % e.msg)
+                print("Error: %s" % e.msg, file=output_to)
 
     if wlt is None:
         sys.exit()
@@ -312,16 +319,19 @@ def main():
 
         if args.import_private:
             if wlt.import_key(args.import_private):
-                print("Private key imported")
+                print("Private key imported", file=output_to)
             else:
-                print("Failed to import key")
+                print("Failed to import key", file=output_to)
 
         elif args.wallet_empty:
             wallet_empty(args.wallet_name)
-            print("Removed transactions and emptied wallet. Use --update-wallet option to update again.")
+            print("Removed transactions and emptied wallet. Use --update-wallet option to update again.",
+                  file=output_to)
         elif args.update_utxos:
+            print("Updating wallet utxo's", file=output_to)
             wlt.utxos_update()
         elif args.update_transactions:
+            print("Updating wallet transactions", file=output_to)
             wlt.scan(scan_gap_limit=3)
         elif args.export_private:
             if wlt.scheme == 'multisig':
@@ -329,7 +339,7 @@ def main():
                     if w.main_key and w.main_key.is_private:
                         print(w.main_key.wif)
             elif not wlt.main_key or not wlt.main_key.is_private:
-                print("No private key available for this wallet")
+                print("No private key available for this wallet", file=output_to)
             else:
                 print(wlt.main_key.wif)
         elif args.import_tx_file or args.import_tx:
@@ -338,7 +348,7 @@ def main():
                     fn = args.import_tx_file
                     f = open(fn, "r")
                 except FileNotFoundError:
-                    print("File %s not found" % args.import_tx_file)
+                    print("File %s not found" % args.import_tx_file, file=output_to)
                     sys.exit()
                 try:
                     tx_import = ast.literal_eval(f.read())
@@ -358,12 +368,16 @@ def main():
                 if args.push:
                     res = wt.send()
                     if res:
-                        print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
+                        if args.quiet:
+                            print(wt.txid)
+                        else:
+                            print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
                     else:
-                        print("Error creating transaction: %s" % wt.error)
+                        print("Error creating transaction: %s" % wt.error, file=output_to)
                 wt.info()
-                print("Signed transaction:")
-                print_transaction(wt)
+                print("Signed transaction:", file=output_to)
+                if not args.quiet:
+                    print_transaction(wt)
         elif args.send:
             if args.fee_per_kb:
                 raise WalletError("Fee-per-kb option not allowed with --send")
@@ -372,20 +386,24 @@ def main():
             except WalletError as e:
                 raise WalletError("Cannot create transaction: %s" % e.msg)
             wt.sign()
-            print("Transaction created")
+            print("Transaction created", file=output_to)
             wt.info()
             if args.push:
                 wt.send()
                 if wt.pushed:
-                    print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
+                    if args.quiet:
+                        print(wt.txid)
+                    else:
+                        print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
                 else:
-                    print("Error creating transaction: %s" % wt.error)
+                    print("Error creating transaction: %s" % wt.error, file=output_to)
             else:
-                print("\nTransaction created but not sent yet. Transaction dictionary for export: ")
-                print_transaction(wt)
+                print("\nTransaction created but not sent yet. Transaction dictionary for export: ", file=output_to)
+                if not args.quiet:
+                    print_transaction(wt)
         elif args.sweep:
             offline = True
-            print("Sweep wallet. Send all funds to %s" % args.sweep)
+            print("Sweep wallet. Send all funds to %s" % args.sweep, file=output_to)
             if args.push:
                 offline = False
             wt = wlt.sweep(args.sweep, offline=offline, network=args.network, fee_per_kb=args.fee_per_kb, fee=args.fee)
@@ -394,32 +412,37 @@ def main():
             wt.info()
             if args.push:
                 if wt.pushed:
-                    print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
+                    if args.quiet:
+                        print(wt.txid)
+                    else:
+                        print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
                 elif not wt:
-                    print("Cannot sweep wallet, are UTXO's updated and available?")
+                    print("Cannot sweep wallet, are UTXO's updated and available?", file=output_to)
                 else:
-                    print("Error sweeping wallet: %s" % wt.error)
+                    print("Error sweeping wallet: %s" % wt.error, file=output_to)
             else:
-                print("\nTransaction created but not sent yet. Transaction dictionary for export: ")
+                print("\nTransaction created but not sent yet. Transaction dictionary for export: ", file=output_to)
                 print_transaction(wt)
         else:
-            print("Please provide an argument. Use -h or --help for more information")
-
+            print("Please provide an argument. Use -h or --help for more information", file=output_to)
 
     if args.receive and not (args.send or args.sweep):
-        cosigner_id = args.receive
-        if args.receive == -1:
-            cosigner_id = None
-        key = wlt.get_key(network=args.network, cosigner_id=cosigner_id)
-        print("Receive address: %s" % key.address)
+        key = wlt.get_key(network=args.network, cosigner_id=args.cosigner_id)
+        if args.quiet:
+            print(key.address)
+        else:
+            print("Receive address: %s" % key.address)
         if QRCODES_AVAILABLE:
             qrcode = pyqrcode.create(key.address)
-            print(qrcode.terminal())
+            print(qrcode.terminal(), file=output_to)
         else:
-            print("Install qr code module to show QR codes: pip install pyqrcode")
+            print("Install qr code module to show QR codes: pip install pyqrcode", file=output_to)
     elif args.wallet_info:
-        print("Wallet info for %s" % wlt.name)
-        wlt.info()
+        print("Wallet info for %s" % wlt.name, file=output_to)
+        if not args.quiet:
+            wlt.info()
+        else:
+            pprint(wlt.as_dict())
 
 
 if __name__ == '__main__':

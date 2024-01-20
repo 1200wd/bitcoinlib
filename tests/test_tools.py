@@ -96,7 +96,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
             'MeQHdWDp'
         ]
-        cmd_wlt_create = "%s %s new -w testms -m 2 2 %s -r -n testnet -d %s" % \
+        cmd_wlt_create = "%s %s new -w testms -m 2 2 %s -r -n testnet -d %s -o 0" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s -w testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
@@ -115,7 +115,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'
             '5zNYeiX8'
         ]
-        cmd_wlt_create = "%s %s new -w testms1 -m 2 2 %s -r -n testnet -d %s" % \
+        cmd_wlt_create = "%s %s new -w testms1 -m 2 2 %s -r -n testnet -d %s -o 0" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s -w testms1 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
@@ -191,7 +191,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'YprvANkMzkodih9AKQ8evAkiDWCzpQsU6N1uasNtWznNj44Y2X6FJqkv9wcfavxVEkz9qru7VKRhzmQXqy562b9Tk4JGdsaVazByzmX'
             '7FW6wpKW'
         ]
-        cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 3 2 %s -r -j p2sh-segwit -d %s" % \
+        cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 3 2 %s -r -j p2sh-segwit -d %s -o 0" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s -w testms-p2sh-segwit --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
