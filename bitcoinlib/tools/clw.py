@@ -2,8 +2,8 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    CLW - Command Line Wallet manager.
-#    Create and manage BitcoinLib legacy/segwit single and multisignatures wallets from the commandline
+#    CLW - Command Line Wallet manager
+#    Create and manage BitcoinLib legacy, segwit single and multi-signature wallets from the commandline
 #
 #    © 2019 - 2024 January - 1200 Web Development <http://1200wd.com/>
 #
@@ -47,8 +47,6 @@ def parse_args():
     parser.add_argument('--wallet_name', '-w', nargs='?', default='',
                         help="Name of wallet to create or open. Provide wallet name or number when running wallet "
                              "actions")
-    parser.add_argument('--password',
-                        help='Password to protect private key, use to open and close wallet')
     parser.add_argument('--network', '-n',
                         help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
     parser.add_argument('--witness-type', '-j', metavar='WITNESS_TYPE', default=None,
@@ -61,16 +59,16 @@ def parse_args():
     subparsers = parser.add_subparsers(required=False, dest='subparser_name')
     parser_new = subparsers.add_parser('new', description="Create new wallet")
     parser_new.add_argument('--wallet_name', '-w', nargs='?', default='', required=True,
-                        help="Name of wallet to create or open. Provide wallet name or number when running wallet "
-                             "actions")
+                            help="Name of wallet to create or open. Provide wallet name or number when running wallet "
+                            "actions")
     parser_new.add_argument('--password',
-                            help='Password to protect private key, use to open and close wallet')
+                            help='Password to protect private key, use to create a wallet with a protected key')
     parser_new.add_argument('--network', '-n',
-                        help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
+                            help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
     parser_new.add_argument('--passphrase', default=None, metavar="PASSPHRASE",
                             help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
     parser_new.add_argument('--create-from-key', '-c', metavar='KEY',
-                               help="Create a new wallet from specified key")
+                            help="Create a new wallet from specified key")
     parser_new.add_argument('--create-multisig', '-m', nargs='*', metavar='.',
                             help='[NUMBER_OF_SIGNATURES, NUMBER_OF_SIGNATURES_REQUIRED, KEY-1, KEY-2, ... KEY-N]'
                             'Specify number of signatures followed by the number of signatures required and '
@@ -195,7 +193,7 @@ def create_wallet(wallet_name, args, db_uri, output_to):
         if kf['format'] == 'wif_protected':
             if not args.password:
                 raise WalletError("This is a WIF protected key, please provide a password with the --password argument.")
-            import_key, _ = HDKey._bip38_decrypt(import_key, args.password)
+            import_key, _ = HDKey._bip38_decrypt(import_key, args.password, args.network, args.witness_type)
         return Wallet.create(wallet_name, import_key, network=args.network, db_uri=db_uri,
                              witness_type=args.witness_type)
     else:
