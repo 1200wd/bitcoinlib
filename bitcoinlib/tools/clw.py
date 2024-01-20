@@ -208,7 +208,7 @@ def create_wallet(wallet_name, args, db_uri, output_to):
 
 
 def create_transaction(wlt, send_args, args):
-    output_arr = [(address, int(value)) for [address, value] in send_args]
+    output_arr = [(address, value) for [address, value] in send_args]
     return wlt.transaction_create(output_arr=output_arr, network=args.network, fee=args.fee, min_confirms=0,
                                   input_key_id=args.input_key_id,
                                   number_of_change_outputs=args.number_of_change_outputs)

@@ -34,7 +34,10 @@ def value_to_satoshi(value, network=None):
     :return int:
     """
     if isinstance(value, str):
-        value = Value(value)
+        if network:
+            value = Value(value, network=network)
+        else:
+            value = Value(value)
     if isinstance(value, Value):
         if network and value.network != network:
             raise ValueError("Value uses different network (%s) then supplied network: %s" % (value.network.name, network))
