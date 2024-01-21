@@ -199,7 +199,7 @@ def create_wallet(wallet_name, args, db_uri, output_to):
     else:
         passphrase = args.passphrase
         if passphrase is None:
-            passphrase = get_passphrase(args.passphrase_strength, args.yes)
+            passphrase = get_passphrase(args.passphrase_strength, args.yes, args.quiet)
         if len(passphrase.split(' ')) < 3:
             raise WalletError("Please specify passphrase with 3 words or more. However less than 12 words is insecure!")
         hdkey = HDKey.from_passphrase(passphrase, network=args.network)
@@ -322,7 +322,7 @@ def main():
                 print("Failed to import key", file=output_to)
 
         elif args.wallet_empty:
-            wallet_empty(args.wallet_name)
+            wallet_empty(args.wallet_name, args.database)
             print("Removed transactions and emptied wallet. Use --update-wallet option to update again.",
                   file=output_to)
         elif args.update_utxos:
@@ -439,8 +439,6 @@ def main():
         print("Wallet info for %s" % wlt.name, file=output_to)
         if not args.quiet:
             wlt.info()
-        else:
-            pprint(wlt.as_dict())
 
 
 if __name__ == '__main__':
