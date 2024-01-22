@@ -54,7 +54,7 @@ def parse_args():
     parser.add_argument('--yes', '-y', action='store_true', default=False,
                         help='Non-interactive mode, does not prompt for confirmation')
     parser.add_argument('--quiet', '-q', action='store_true',
-                        help='Quit mode, no output writen to console.')
+                        help='Quiet mode, no output writen to console')
 
     subparsers = parser.add_subparsers(required=False, dest='subparser_name')
     parser_new = subparsers.add_parser('new', description="Create new wallet")
@@ -62,7 +62,7 @@ def parse_args():
                             help="Name of wallet to create or open. Provide wallet name or number when running wallet "
                             "actions")
     parser_new.add_argument('--password',
-                            help='Password to protect private key, use to create a wallet with a protected key')
+                            help='Password for BIP38 encrypted key. Use to create a wallet with a protected key')
     parser_new.add_argument('--network', '-n',
                             help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
     parser_new.add_argument('--passphrase', default=None, metavar="PASSPHRASE",
@@ -294,13 +294,11 @@ def main():
 
     tx_import = None
     if not args.subparser_name:
-
         if args.import_private:
             if wlt.import_key(args.import_private):
                 print("Private key imported", file=output_to)
             else:
                 print("Failed to import key", file=output_to)
-
         elif args.wallet_empty:
             wallet_empty(args.wallet_name, args.database)
             print("Removed transactions and emptied wallet. Use --update-wallet option to update again.",
@@ -401,8 +399,6 @@ def main():
             else:
                 print("\nTransaction created but not sent yet. Transaction dictionary for export: ", file=output_to)
                 print_transaction(wt)
-        else:
-            print("Please provide an argument. Use -h or --help for more information", file=output_to)
 
     if args.receive and not (args.send or args.sweep):
         key = wlt.get_key(network=args.network, cosigner_id=args.cosigner_id)

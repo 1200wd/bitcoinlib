@@ -324,8 +324,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertIn('Signed transaction', response)
         self.assertIn("'verified': True,", response)
 
-        sign_import_tx_file =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx-file import_test.tx" % \
-            (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'import_test.tx')
+        sign_import_tx_file =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx-file %s" % \
+            (self.python_executable, self.clw_executable, self.DATABASE_URI, filename)
         output = Popen(sign_import_tx_file, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         response2 = normalize_string(output[0])
         self.assertIn('2e07be62d933f5b257ac066b874df651cd6e6763795c24036904024a2b44180b', response2)
