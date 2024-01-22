@@ -835,7 +835,7 @@ class WalletTransaction(Transaction):
         if offline:
             return None
 
-        srv = Service(network=self.network.name, providers=self.hdwallet.providers,
+        srv = Service(network=self.network.name, wallet_name=self.hdwallet.name, providers=self.hdwallet.providers,
                       cache_uri=self.hdwallet.db_cache_uri)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
@@ -2801,7 +2801,7 @@ class Wallet(object):
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         balance = srv.getbalance(self.addresslist(account_id=account_id, network=network))
         if srv.results:
             new_balance = {
@@ -3025,7 +3025,7 @@ class Wallet(object):
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
-                    srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+                    srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
                     utxos = []
                     for address in addresslist:
                         if rescan_all:
@@ -3226,7 +3226,7 @@ class Wallet(object):
         :return:
         """
         network = self.network.name
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         blockcount = srv.blockcount()
         self.session.query(DbTransaction).\
             filter(DbTransaction.wallet_id == self.wallet_id,
@@ -3249,7 +3249,7 @@ class Wallet(object):
         txids = list(dict.fromkeys(txids))
 
         txs = []
-        srv = Service(network=self.network.name, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=self.network.name, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         for txid in txids:
             tx = srv.gettransaction(to_hexstring(txid))
             if tx:
@@ -3304,7 +3304,7 @@ class Wallet(object):
         # Update number of confirmations and status for already known transactions
         self.transactions_update_confirmations()
 
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
 
         # Get transactions for wallet's addresses
         txs = []
@@ -3545,6 +3545,11 @@ class Wallet(object):
         if qr:
             return qr.transaction.txid.hex()
 
+
+    def update_transactions_from_block(block, network=None):
+        pass
+
+
     def _objects_by_key_id(self, key_id):
         key = self.session.query(DbKey).filter_by(id=key_id).scalar()
         if not key:
@@ -3737,7 +3742,7 @@ class Wallet(object):
                     addr = addr.key()
                 transaction.add_output(value, addr)
 
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
 
         if not locktime and self.anti_fee_sniping:
             srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
@@ -4244,7 +4249,7 @@ class Wallet(object):
                 continue
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
 
         if isinstance(fee, str):
             n_outputs = 1 if not isinstance(to_address, list) else len(to_address)
