@@ -337,14 +337,14 @@ class TestTransactions(unittest.TestCase):
         self.assertTrue(t.verify())
 
     def test_transactions_estimate_size_p2pkh(self):
-        t = Transaction()
+        t = Transaction(witness_type='legacy')
         t.add_output(2710000, '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
         self.assertEqual(t.estimate_size(), 227)
 
     def test_transactions_estimate_size_nulldata(self):
-        t = Transaction()
+        t = Transaction(witness_type='legacy')
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
         t.add_output(0, lock_script=lock_script)
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
@@ -1117,7 +1117,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
         inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
         outp = Output(7000, k, network='testnet', script_type='p2pk')
-        t = Transaction([inp], [outp], network='testnet')
+        t = Transaction([inp], [outp], network='testnet', witness_type='legacy')
         t.sign(k.private_byte)
         self.assertTrue(t.verify())
         self.assertEqual(t.signature_hash(sign_id=0).hex(),
@@ -1134,7 +1134,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
         inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
         outp = Output(value - fee, k, network='testnet', script_type='p2pk')
-        t = Transaction([inp], [outp], network='testnet')
+        t = Transaction([inp], [outp], network='testnet', witness_type='legacy')
         t.sign(k.private_byte)
         self.assertTrue(t.verify())
         self.assertEqual(t.signature_hash(sign_id=0).hex(),
@@ -1429,7 +1429,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         pk2 = HDKey.from_passphrase(phrase2, network=network)
         pk3 = HDKey.from_passphrase(phrase3, network=network)
 
-        t = Transaction(network=network)
+        t = Transaction(network=network, witness_type='legacy')
         t.add_input(prev_txid, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')

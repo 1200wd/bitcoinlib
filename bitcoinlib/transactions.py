@@ -171,7 +171,7 @@ class Input(object):
         :type script_type: str
         :param address: Address string or object for input
         :type address: str, Address
-        :param sequence: Sequence part of input, you normally do not have to touch this
+        :param sequence: Sequence part of input, used for locktime setting and replace by fee. No need to set directly normally.
         :type sequence: bytes, int
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool
@@ -1065,7 +1065,7 @@ class Transaction(object):
     def __init__(self, inputs=None, outputs=None, locktime=0, version=None,
                  network=DEFAULT_NETWORK, fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None,
                  confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
-                 status='new', coinbase=False, verified=False, witness_type='legacy', flag=None):
+                 status='new', coinbase=False, verified=False, witness_type='segwit', flag=None, replace_by_fee=False):
         """
         Create a new transaction class with provided inputs and outputs.
 
@@ -1176,6 +1176,7 @@ class Transaction(object):
         self.status = status
         self.verified = verified
         self.witness_type = witness_type
+        self.replace_by_fee = replace_by_fee
         self.change = 0
         self.calc_weight_units()
         if self.witness_type not in ['legacy', 'segwit']:
@@ -1409,7 +1410,7 @@ class Transaction(object):
         if blocks != 0 and blocks != 0xffffffff:
             for i in self.inputs:
                 if i.sequence == 0xffffffff:
-                    i.sequence = 0xfffffffd
+                    i.sequence = SEQUENCE_ENABLE_LOCKTIME
         self.sign_and_update()
 
     def set_locktime_time(self, timestamp):
@@ -1434,7 +1435,7 @@ class Transaction(object):
         # Input sequence value must be below 0xffffffff
         for i in self.inputs:
             if i.sequence == 0xffffffff:
-                i.sequence = 0xfffffffd
+                i.sequence = SEQUENCE_ENABLE_LOCKTIME
         self.sign_and_update()
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
@@ -1818,6 +1819,8 @@ class Transaction(object):
 
         if index_n is None:
             index_n = len(self.inputs)
+        if self.replace_by_fee and sequence == 0xffffffff:
+            sequence = SEQUENCE_REPLACE_BY_FEE
         sequence_int = sequence
         if isinstance(sequence, bytes):
             sequence_int = int.from_bytes(sequence, 'little')

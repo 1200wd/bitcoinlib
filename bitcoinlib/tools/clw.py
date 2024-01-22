@@ -138,6 +138,9 @@ def parse_args():
     group_transaction.add_argument('--import-tx-file', '-a', metavar="FILENAME_TRANSACTION",
                                    help="Import transaction dictionary or raw transaction string from specified "
                                         "filename and sign it with available key(s)")
+    group_transaction.add_argument('--rbf', action='store_true',
+                                   help="Enable replace-by-fee flag. Allow to replace transaction with a new one "
+                                        "with higher fees, to avoid transactions taking to long to confirm.")
 
     pa = parser.parse_args()
 
@@ -212,7 +215,8 @@ def create_transaction(wlt, send_args, args):
     output_arr = [(address, value) for [address, value] in send_args]
     return wlt.transaction_create(output_arr=output_arr, network=args.network, fee=args.fee, min_confirms=0,
                                   input_key_id=args.input_key_id,
-                                  number_of_change_outputs=args.number_of_change_outputs)
+                                  number_of_change_outputs=args.number_of_change_outputs,
+                                  replace_by_fee=args.rbf)
 
 
 def print_transaction(wt):
@@ -382,7 +386,8 @@ def main():
             print("Sweep wallet. Send all funds to %s" % args.sweep, file=output_to)
             if args.push:
                 offline = False
-            wt = wlt.sweep(args.sweep, offline=offline, network=args.network, fee_per_kb=args.fee_per_kb, fee=args.fee)
+            wt = wlt.sweep(args.sweep, offline=offline, network=args.network, fee_per_kb=args.fee_per_kb, fee=args.fee,
+                           replace_by_fee=args.rbf)
             if not wt:
                 raise WalletError("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
             wt.info()

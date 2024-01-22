@@ -3513,7 +3513,7 @@ class Wallet(object):
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
                            min_confirms=1, max_utxos=None, locktime=0, number_of_change_outputs=1,
-                           random_output_order=True):
+                           random_output_order=True, replace_by_fee=False):
         """
         Create new transaction with specified outputs.
 
@@ -3550,6 +3550,8 @@ class Wallet(object):
         :type number_of_change_outputs: int
         :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
         :type random_output_order: bool
+        :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
+        :type replace_by_fee: bool
 
         :return WalletTransaction: object
         """
@@ -3570,7 +3572,8 @@ class Wallet(object):
 
         # Create transaction and add outputs
         amount_total_output = 0
-        transaction = WalletTransaction(hdwallet=self, account_id=account_id, network=network, locktime=locktime)
+        transaction = WalletTransaction(hdwallet=self, account_id=account_id, network=network, locktime=locktime,
+                                        replace_by_fee=replace_by_fee)
         transaction.outgoing_tx = True
         for o in output_arr:
             if isinstance(o, Output):
@@ -3605,7 +3608,9 @@ class Wallet(object):
         # Add inputs
         sequence = 0xffffffff
         if 0 < transaction.locktime < 0xffffffff:
-            sequence = 0xfffffffe
+            sequence = SEQUENCE_ENABLE_LOCKTIME
+        elif replace_by_fee:
+            sequence = SEQUENCE_REPLACE_BY_FEE
         amount_total_input = 0
         if input_arr is None:
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,
@@ -3616,13 +3621,14 @@ class Wallet(object):
                 amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
                 multisig = False if isinstance(inp_keys, list) and len(inp_keys) < 2 else True
-                unlock_script_type = get_unlocking_script_type(utxo.script_type, utxo.key.witness_type,
+                witness_type = utxo.key.witness_type if utxo.key.witness_type else self.witness_type
+                unlock_script_type = get_unlocking_script_type(utxo.script_type, witness_type,
                                                                multisig=multisig)
                 transaction.add_input(utxo.transaction.txid, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
                                       address=utxo.key.address, sequence=sequence,
-                                      key_path=utxo.key.path, witness_type=utxo.key.witness_type)
+                                      key_path=utxo.key.path, witness_type=witness_type)
                 # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
         else:
             for inp in input_arr:
@@ -3899,7 +3905,8 @@ class Wallet(object):
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=True, number_of_change_outputs=1):
+             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=True, number_of_change_outputs=1,
+             replace_by_fee=False):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3938,6 +3945,8 @@ class Wallet(object):
         :type offline: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
+        :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
+        :type replace_by_fee: bool
 
         :return WalletTransaction:
         """
@@ -3947,7 +3956,8 @@ class Wallet(object):
                               (len(input_arr), max_utxos))
 
         transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
-                                              min_confirms, max_utxos, locktime, number_of_change_outputs)
+                                              min_confirms, max_utxos, locktime, number_of_change_outputs, True,
+                                              replace_by_fee)
         transaction.sign(priv_keys)
         # Calculate exact fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
@@ -3959,7 +3969,7 @@ class Wallet(object):
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network,
                                                       fee_exact, min_confirms, max_utxos, locktime,
-                                                      number_of_change_outputs)
+                                                      number_of_change_outputs, True, replace_by_fee)
                 transaction.sign(priv_keys)
 
         transaction.rawtx = transaction.raw()
@@ -3971,7 +3981,7 @@ class Wallet(object):
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
-                priv_keys=None, locktime=0, offline=True, number_of_change_outputs=1):
+                priv_keys=None, locktime=0, offline=True, number_of_change_outputs=1, replace_by_fee=False):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
@@ -4006,6 +4016,8 @@ class Wallet(object):
         :type offline: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
+        :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
+        :type replace_by_fee: bool
 
         :return WalletTransaction:
         """
@@ -4013,10 +4025,10 @@ class Wallet(object):
         outputs = [(to_address, amount)]
         return self.send(outputs, input_key_id=input_key_id, account_id=account_id, network=network, fee=fee,
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline,
-                         number_of_change_outputs=number_of_change_outputs)
+                         number_of_change_outputs=number_of_change_outputs, replace_by_fee=replace_by_fee)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
-              fee_per_kb=None, fee=None, locktime=0, offline=True):
+              fee_per_kb=None, fee=None, locktime=0, offline=True, replace_by_fee=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
 
@@ -4055,6 +4067,8 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is True
         :type offline: bool
+        :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
+        :type replace_by_fee: bool
 
         :return WalletTransaction:
         """
@@ -4106,7 +4120,7 @@ class Wallet(object):
                               "outputs, use amount value = 0 to indicate a change/rest output")
 
         return self.send(to_list, input_arr, network=network, fee=fee, min_confirms=min_confirms, locktime=locktime,
-                         offline=offline)
+                         offline=offline, replace_by_fee=replace_by_fee)
 
     def wif(self, is_private=False, account_id=0):
         """

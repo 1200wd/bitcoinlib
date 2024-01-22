@@ -2272,6 +2272,18 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(t1.output_total + t2.output_total, t.output_total)
         self.assertEqual(t1.fee + t2.fee, t.fee)
 
+    def test_wallet_transaction_replace_by_fee(self):
+        w = wallet_create_or_open('wallet_transaction_rbf', network='bitcoinlib_test',
+                                  db_uri=self.DATABASE_URI)
+        w.utxos_update()
+        address = w.get_key()
+        t = w.send_to(address, 10000, fee=500, replace_by_fee=True)
+        self.assertTrue(t.verify())
+        t2 = w.send_to(address, 10000, fee=1000, replace_by_fee=True)
+        self.assertTrue(t2.verify())
+        self.assertTrue(t2.replace_by_fee)
+        self.assertEqual(t2.inputs[0].sequence, SEQUENCE_REPLACE_BY_FEE)
+
 
 @parameterized_class(*params)
 class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
