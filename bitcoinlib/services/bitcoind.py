@@ -53,7 +53,7 @@ class BitcoindClient(BaseClient):
     """
 
     @staticmethod
-    def from_config(configfile=None, network='bitcoin', *args):
+    def from_config(configfile=None, network='bitcoin', **kwargs):
         """
         Read settings from bitcoind config file
 
@@ -113,7 +113,7 @@ class BitcoindClient(BaseClient):
         server = _read_from_config(config, 'rpc', 'externalip', server)
 
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return BitcoindClient(network, url, *args)
+        return BitcoindClient(network, url, **kwargs)
 
     def __init__(self, network='bitcoin', base_url='', denominator=100000000, *args):
         """
