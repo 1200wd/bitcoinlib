@@ -273,8 +273,8 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         process = Popen(cmd_wlt_send, stdin=PIPE, stdout=PIPE, shell=True)
         self.assertIn(b"Transaction pushed to network", process.communicate()[0])
         process = Popen(cmd_wlt_info, stdin=PIPE, stdout=PIPE, shell=True)
-        self.assertIn(b"-1.00000000 T   \n\n= Balance Totals (includes unconfirmed) =\n\n\n",
-                      process.communicate()[0])
+        self.assertIn("-1.00000000 T   = Balance Totals (includes unconfirmed) =",
+                      normalize_string(process.communicate()[0]).replace('\n', '').replace('\r', ''))
 
     def test_tools_wallet_multisig_cosigners(self):
         pk1 = ('BC12Se7KL1uS2bA6QNjPAjFirwyoB8bDA3EPLMwDex7D3fZrWG4pP2zUcyEPKpgXfcoxxhZQqWX7b57MBWVxjjioNvsfvnpJVT9'
@@ -317,7 +317,8 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         output = Popen(create_tx, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         tx_dict_str = '{' + normalize_string(output[0]).split('{', 1)[1]
         sign_tx =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx \"%s\"" % \
-                   (self.python_executable, self.clw_executable, self.DATABASE_URI, tx_dict_str)
+                   (self.python_executable, self.clw_executable, self.DATABASE_URI,
+                    tx_dict_str.replace('\r', '').replace('\n', ''))
         output = Popen(sign_tx, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         response = normalize_string(output[0])
         self.assertIn('12821f8ac330e4eddb9f87ea29456b31ec300e232d2c63880f669a9b15e3741f', response)
@@ -346,7 +347,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         Popen(cmd_wlt_update, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         output = normalize_string(Popen(cmd_wlt_send, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
         tx_dict_str = '{' + output.split('{', 1)[1]
-        tx_dict = ast.literal_eval(tx_dict_str)
+        tx_dict = ast.literal_eval(tx_dict_str.replace('\r', '').replace('\n', ''))
         self.assertEqual(len(tx_dict['outputs']), 6)
         self.assertTrue(tx_dict['verified'])
 
