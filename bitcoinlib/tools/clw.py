@@ -70,7 +70,7 @@ def parse_args():
     parser_new.add_argument('--create-from-key', '-c', metavar='KEY',
                             help="Create a new wallet from specified key")
     parser_new.add_argument('--create-multisig', '-m', nargs='*', metavar='.',
-                            help='[NUMBER_OF_SIGNATURES, NUMBER_OF_SIGNATURES_REQUIRED, KEY-1, KEY-2, ... KEY-N]'
+                            help='[NUMBER_OF_SIGNATURES_REQUIRED, NUMBER_OF_SIGNATURES, KEY-1, KEY-2, ... KEY-N]'
                             'Specify number of signatures followed by the number of signatures required and '
                             'then a list of public or private keys for this wallet. Private keys will be '
                             'created if not provided in key list.'
@@ -160,25 +160,26 @@ def get_passphrase(strength, interactive=False, quiet=False):
 def create_wallet(wallet_name, args, db_uri, output_to):
     if args.network is None:
         args.network = DEFAULT_NETWORK
-    print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network), file=output_to)
+    print("CREATE wallet '%s' (%s network)" % (wallet_name, args.network), file=output_to)
     if args.create_multisig:
         if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 2:
             raise WalletError("Please enter multisig creation parameter in the following format: "
                               "<number-of-signatures> <number-of-signatures-required> "
                               "<key-0> <key-1> [<key-2> ... <key-n>]")
         try:
-            sigs_total = int(args.create_multisig[0])
+            sigs_required = int(args.create_multisig[0])
         except ValueError:
-            raise WalletError("Number of total signatures (first argument) must be a numeric value. %s" %
+            raise WalletError("Number of signatures required (first argument) must be a numeric value. %s" %
                      args.create_multisig[0])
         try:
-            sigs_required = int(args.create_multisig[1])
+            sigs_total = int(args.create_multisig[1])
         except ValueError:
-            raise WalletError("Number of signatures required (second argument) must be a numeric value. %s" %
+            raise WalletError("Number of total signatures (second argument) must be a numeric value. %s" %
                      args.create_multisig[1])
         key_list = args.create_multisig[2:]
         keys_missing = sigs_total - len(key_list)
-        assert(keys_missing >= 0)
+        if keys_missing < 0:
+            raise WalletError("Invalid number of keys (%d required)" % sigs_total)
         if keys_missing:
             print("Not all keys provided, creating %d additional key(s)" % keys_missing, file=output_to)
             for _ in range(keys_missing):
@@ -215,28 +216,7 @@ def create_transaction(wlt, send_args, args):
 
 
 def print_transaction(wt):
-    tx_dict = {
-        'txid': wt.txid,
-        'network': wt.network.name,
-        'fee': wt.fee,
-        'raw': wt.raw_hex(),
-        'witness_type': wt.witness_type,
-        'outputs': [{
-            'address': o.address,
-            'value': o.value
-        } for o in wt.outputs],
-        'inputs': [{
-            'prev_hash': i.prev_txid.hex(),
-            'output_n': int.from_bytes(i.output_n, 'big'),
-            'address': i.address,
-            'signatures': [{
-                'signature': s.hex(),
-                'sig_der': s.as_der_encoded(as_hex=True),
-                'pub_key': s.public_key.public_hex,
-            } for s in i.signatures], 'value': i.value
-        } for i in wt.inputs]
-    }
-    pprint(tx_dict)
+    pprint(wt.as_dict())
 
 
 def main():

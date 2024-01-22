@@ -1786,7 +1786,7 @@ class Transaction(object):
 
     def as_json(self):
         """
-        Get current key as json formatted string
+        Get current transaction as json formatted string
 
         :return str:
         """

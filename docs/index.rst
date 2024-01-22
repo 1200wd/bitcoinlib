@@ -149,16 +149,39 @@ To create a new Bitcoin wallet
 
 .. code-block:: bash
 
-    $ clw newwallet
-    Command Line Wallet for BitcoinLib
+   $ python bitcoinlib/tools/clw.py new -w newwallet
+   Command Line Wallet - BitcoinLib 0.6.14
 
-    Wallet newwallet does not exist, create new wallet [yN]? y
+   CREATE wallet 'newwallet' (bitcoin network)
+   Passphrase: sibling undo gift cat garage survey taxi index admit odor surface waste
+   Please write down on paper and backup. With this key you can restore your wallet and all keys
 
-    CREATE wallet 'newwallet' (bitcoin network)
+   Type 'yes' if you understood and wrote down your key: yes
+   Wallet info for newwallet
+   === WALLET ===
+    ID                             21
+    Name                           newwallet
+    Owner
+    Scheme                         bip32
+    Multisig                       False
+    Witness type                   segwit
+    Main network                   bitcoin
+    Latest update                  None
 
-    Your mnemonic private key sentence is: force humble chair kiss season ready elbow cool awake divorce famous tunnel
+   = Wallet Master Key =
+    ID                             177
+    Private                        True
+    Depth                          0
 
-    Please write down on paper and backup. With this key you can restore your wallet and all keys
+   - NETWORK: bitcoin -
+   - - Keys
+     182 m/84'/0'/0'/0/0              bc1qza24j7snqlmx7603z8qplm4rzfkr0p0mneraqv    address index 0                        0.00000000 ₿
+
+   - - Transactions Account 0 (0)
+
+   = Balance Totals (includes unconfirmed) =
+
+
 
 You can use the command line wallet 'clw' to create simple or multisig wallets for various networks,
 manage public and private keys and managing transactions.

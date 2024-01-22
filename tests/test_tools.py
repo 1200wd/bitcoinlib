@@ -4,7 +4,7 @@
 #    Unit Tests for Bitcoinlib Tools
 #    © 2018 - 2024 January - 1200 Web Development <http://1200wd.com/>
 #
-
+import ast
 import os
 import sys
 import unittest
@@ -134,7 +134,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
     def test_tools_clw_create_multisig_wallet_error(self):
         cmd_wlt_create = "%s %s new -w testms2 -m 2 a -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
-        output_wlt_create = "Number of signatures required (second argument) must be a numeric value"
+        output_wlt_create = "Number of total signatures (second argument) must be a numeric value"
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
         poutput = process.communicate(input=b'y')
         self.assertIn(output_wlt_create, normalize_string(poutput[0]))
@@ -193,7 +193,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'YprvANkMzkodih9AKQ8evAkiDWCzpQsU6N1uasNtWznNj44Y2X6FJqkv9wcfavxVEkz9qru7VKRhzmQXqy562b9Tk4JGdsaVazByzmX'
             '7FW6wpKW'
         ]
-        cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 3 2 %s -r -j p2sh-segwit -d %s -o 0" % \
+        cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 2 3 %s -r -j p2sh-segwit -d %s -o 0" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s -w testms-p2sh-segwit --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
@@ -258,6 +258,109 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         poutput = Popen(cmd_wlt_info, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         self.assertIn("- - Transactions Account 0 (0)", normalize_string(poutput[0]))
         self.assertNotIn(output_wlt_create, normalize_string(poutput[0]))
+
+    def test_tools_wallet_sweep(self):
+        cmd_wlt_create = "%s %s new -w wlt_sweep -d %s -n bitcoinlib_test -yq" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        cmd_wlt_update = "%s %s -w wlt_sweep -d %s -x" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        cmd_wlt_send = "%s %s -w wlt_sweep -d %s --sweep blt1qzt90vqqjsqspuaegu9fh4e2htaxrgt0l76d9gz -p" % \
+                        (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        cmd_wlt_info = "%s %s -w wlt_sweep -d %s -i" % \
+                        (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        Popen(cmd_wlt_update, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        process = Popen(cmd_wlt_send, stdin=PIPE, stdout=PIPE, shell=True)
+        self.assertIn(b"Transaction pushed to network", process.communicate()[0])
+        process = Popen(cmd_wlt_info, stdin=PIPE, stdout=PIPE, shell=True)
+        self.assertIn(b"-1.00000000 T   \n\n= Balance Totals (includes unconfirmed) =\n\n\n",
+                      process.communicate()[0])
+
+    def test_tools_wallet_multisig_cosigners(self):
+        pk1 = ('BC12Se7KL1uS2bA6QNjPAjFirwyoB8bDA3EPLMwDex7D3fZrWG4pP2zUcyEPKpgXfcoxxhZQqWX7b57MBWVxjjioNvsfvnpJVT9'
+               'XWVvHtmdyowDz')
+        pk2 = ('BC12Se7KL1uS2bA6QQH1M6YkFGbNXoFSUavaE6EfMEmTrtSERw1JRCWf6Jj5tfoLhZopA4s2FSzqZqYTMpChvUvV9KdgtnJ1sFi'
+               'B7SZVyHC31ybq')
+        pk3 = ('BC12Se7KL1uS2bA6QNjZ8T9CzaubwGjTH3WTaZdDB45GVwNMt26ixhgk4L8zus4NxhKWez5xj6xiT7DkpsSnD363h8WEoR7b5d2'
+               'u64ec4KeCXQKg')
+        pub_key1 = ('BC11mYr7gRWJM1oBUFSkW8tPWVeb8bVv9kzjkjH7emfNnsSWVKLo24vopvN8vxud7VvFjYBvhCrEECC6mVTtE7imyytvkLT'
+                    '9URKHJ3Crs1dSecKa')
+        pub_key2 = ('BC11mYrAhSZGc4JJYubuRSJDjbeoi2BueBjggutvkC8AMv8v2vdKT9T1Tq5VmXgnmzdb2maK5VF5fnbpZR1yt5bJRNBAgJb'
+                    'ZYXRnhWiS3jjHqgeZ')
+        pub_key3 = ('BC11mYrL5yBtMgaYxHEUg3anvLX3gcLi8hbtwbjymReCgGiP6hYifVMi96M3ejtvZpZbDvetBfbzgRxmu22ZkqP2i7yhFge'
+                    'mSkHp7BRhoDubrQvs')
+        cmd_wlt_create1 = "%s %s new -w wlt_multisig_2_3_A -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q" % \
+                         (self.python_executable, self.clw_executable, pk1, pub_key2, pub_key3, self.DATABASE_URI)
+        Popen(cmd_wlt_create1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        cmd_wlt_create2 = "%s %s new -w wlt_multisig_2_3_B -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q" % \
+                         (self.python_executable, self.clw_executable, pub_key1, pub_key2, pk3, self.DATABASE_URI)
+        Popen(cmd_wlt_create2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+
+        cmd_wlt_receive1 = "%s %s -w wlt_multisig_2_3_A -d %s -r -o 1 -q" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        output1 = Popen(cmd_wlt_receive1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        cmd_wlt_receive2 = "%s %s -w wlt_multisig_2_3_B -d %s -r -o 1 -q" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        output2 = Popen(cmd_wlt_receive2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        self.assertEqual(output1[0], output2[0])
+        address = normalize_string(output1[0].strip(b'\n'))
+
+        cmd_wlt_update1 = "%s %s -w wlt_multisig_2_3_A -d %s -x -o 1" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        Popen(cmd_wlt_update1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        cmd_wlt_update2 = "%s %s -w wlt_multisig_2_3_B -d %s -x -o 1" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        Popen(cmd_wlt_update2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+
+        create_tx = "%s %s -w wlt_multisig_2_3_A -d %s -s %s 0.5 -o 1" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI, address)
+        output = Popen(create_tx, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        tx_dict_str = '{' + normalize_string(output[0]).split('{', 1)[1]
+        sign_tx =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx \"%s\"" % \
+                   (self.python_executable, self.clw_executable, self.DATABASE_URI, tx_dict_str)
+        output = Popen(sign_tx, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        response = normalize_string(output[0])
+        self.assertIn('12821f8ac330e4eddb9f87ea29456b31ec300e232d2c63880f669a9b15e3741f', response)
+        self.assertIn('Signed transaction', response)
+        self.assertIn("'verified': True,", response)
+
+        sign_import_tx_file =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx-file import_test.tx" % \
+            (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        output = Popen(sign_import_tx_file, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        response2 = normalize_string(output[0])
+        self.assertIn('2e07be62d933f5b257ac066b874df651cd6e6763795c24036904024a2b44180b', response2)
+        self.assertIn('239M1DxQuxJcMHtYBdG6A81bfXQrrCNa2rr', response2)
+        self.assertIn('Signed transaction', response2)
+        self.assertIn("'verified': True,", response2)
+
+    def test_tools_transaction_options(self):
+        cmd_wlt_create = "%s %s new -w test_tools_transaction_options -d %s -n bitcoinlib_test -yq" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        cmd_wlt_update = "%s %s -w test_tools_transaction_options -d %s -x" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        cmd_wlt_send = ("%s %s -w test_tools_transaction_options -d %s -s blt1qg7du8cs0scxccmfly7x252qurv7kwsy6rm4xr7 0.001 "
+                        "--number-of-change-outputs 5") % \
+                       (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        Popen(cmd_wlt_update, stdin=PIPE, stdout=PIPE, shell=True).communicate()
+        output = normalize_string(Popen(cmd_wlt_send, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
+        tx_dict_str = '{' + output.split('{', 1)[1]
+        tx_dict = ast.literal_eval(tx_dict_str)
+        self.assertEqual(len(tx_dict['outputs']), 6)
+        self.assertTrue(tx_dict['verified'])
+
+        cmd_wlt_update2 = "%s %s -w test_tools_transaction_options -d %s -ix" % \
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        output = Popen(cmd_wlt_update2, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0]
+        output_list = [i for i in output.split(b'Keys\n')[1].split(b' ') if i != b'']
+        first_key_id = int(output_list[0])
+        address = normalize_string(output_list[2])
+        cmd_wlt_send2 = ("%s %s -w test_tools_transaction_options -d %s "
+                        "-s blt1qdjre3yw9hnt53entkp6tflhg34y4sp999emjnk 0.5 -k %d") % \
+                       (self.python_executable, self.clw_executable, self.DATABASE_URI, first_key_id)
+        output = normalize_string(Popen(cmd_wlt_send2, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
+        self.assertIn(address, output)
+        self.assertIn("Transaction created", output)
 
 
 if __name__ == '__main__':
