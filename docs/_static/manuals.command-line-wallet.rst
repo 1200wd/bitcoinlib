@@ -94,12 +94,203 @@ addresses and update unspent outputs.
 
 The -i / --wallet-info shows the contents of the updated wallet.
 
+
+Example: Multi-signature Bitcoinlib test wallet
+-----------------------------------------------
+
+First we generate 2 private keys to create a 2-of-2 multisig wallet:
+
+.. code-block:: bash
+
+    $ clw -g -n bitcoinlib_test -y
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Passphrase: marine kiwi great try know scan rigid indicate place gossip fault liquid
+    Please write down on paper and backup. With this key you can restore your wallet and all keys
+
+    Type 'yes' if you understood and wrote down your key: yes
+    Private Master key, to create multisig wallet on this machine:
+    BC19UtECk2r9PVQYhY4yboRf92XKEnKZf9hQEd1qBqCgQ98HkBeysLPqYewcWDUuaBRSSVXCShDfmhpbtgZ33sWeGPqfwoLwamzPEcnfwLoeqfQM
+    Public Master key, to share with other cosigner multisig wallets:
+    BC18rEEZrakM87qWbSSUv19vnRkEFL7ZtNtGx3exB886VbeFZp6aq9JLZucYAj1EtsHKUB2mkjvafCCGaeYeUVtdFcz5xTxTTgEPCE8fDC8LcahM
+    Network: bitcoinlib_test
+
+    $ clw -g -n bitcoinlib_test -y
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Passphrase: trumpet utility cotton couch hard shadow ivory alpha glance pear snow emerge
+    Please write down on paper and backup. With this key you can restore your wallet and all keys
+    Private Master key, to create multisig wallet on this machine:
+    BC19UtECk2r9PVQYhaAa8kEgBMPWHC4fJVJD48zBMMb9gSpY9LQVvQ1HhzB3Xmkm2BpiH5SyWoboiewpbeexPLsw8QBfAqMbDfet6kLhedtfQF8r
+    Public Master key, to share with other cosigner multisig wallets:
+    BC18rEEvE8begagfJs7kdxx1yW9tFsz7879c9vQQ2mnGbF6WSeKuBEGtmxJYLEy8rpVV9wXffbBtnL1LPKZqujPtEKzHqQeERiRybKB3DRBBoSFH
+    Network: bitcoinlib_test
+
+The -g / --generate-key is used to generate a private key passphrase.
+With -n / --network we specify the bitcoinlib_test network. This isn't actually a network but allows us to create and
+verify transactions.
+The -y / --yes options, skips the required user input.
+We now use 1 private and 1 public key to create a wallet.
+
+.. code-block:: bash
+
+    $ clw new -w multisig-2-2 -n bitcoinlib_test -m 2 2 BC19UtECk2r9PVQYhY4yboRf92XKEnKZf9hQEd1qBqCgQ98HkBeysLPqYewcWDUuaBRSSVXCShDfmhpbtgZ33sWeGPqfwoLwamzPEcnfwLoeqfQM BC18rEEvE8begagfJs7kdxx1yW9tFsz7879c9vQQ2mnGbF6WSeKuBEGtmxJYLEy8rpVV9wXffbBtnL1LPKZqujPtEKzHqQeERiRybKB3DRBBoSFH
+
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    CREATE wallet 'ms22' (bitcoinlib_test network)
+    Wallet info for ms22
+    === WALLET ===
+     ID                             22
+     Name                           ms22
+     Owner
+     Scheme                         bip32
+     Multisig                       True
+     Multisig Wallet IDs            23, 24
+     Cosigner ID                    1
+     Witness type                   segwit
+     Main network                   bitcoinlib_test
+     Latest update                  None
+
+    = Multisig Public Master Keys =
+        0 183 BC18rEEvE8begagfJs7kdxx1yW9tFsz7879c9vQQ2mnGbF6WSeKuBEGtmxJYLEy8rpVV9wXffbBtnL1LPKZqujPtEKzHqQeERiRybKB3DRBBoSFH bip32  cosigner
+        1 186 BC18rEEZrakM87qWbSSUv19vnRkEFL7ZtNtGx3exB886VbeFZp6aq9JLZucYAj1EtsHKUB2mkjvafCCGaeYeUVtdFcz5xTxTTgEPCE8fDC8LcahM bip32  main     *
+    For main keys a private master key is available in this wallet to sign transactions. * cosigner key for this wallet
+
+    - NETWORK: bitcoinlib_test -
+    - - Keys
+
+    - - Transactions Account 0 (0)
+
+    = Balance Totals (includes unconfirmed) =
+
+The multisig wallet has been created, you can view the wallet info by using the -i / --wallet-info option. Now we
+generate a new receiving address with the -r / --receive option and update the unspent outputs with the
+-x / --update-utxos option.
+
+.. code-block:: bash
+
+    $ clw -w ms22 -r
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Receive address: blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p
+    Install qr code module to show QR codes: pip install pyqrcode
+
+    $ clw -w ms22 -x
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Updating wallet utxo's
+    $ clw -w ms22 -i
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Wallet info for ms22
+    === WALLET ===
+     ID                             22
+     Name                           ms22
+     Owner
+     Scheme                         bip32
+     Multisig                       True
+     Multisig Wallet IDs            23, 24
+     Cosigner ID                    1
+     Witness type                   segwit
+     Main network                   bitcoinlib_test
+     Latest update                  None
+
+    = Multisig Public Master Keys =
+        0 183 BC18rEEvE8begagfJs7kdxx1yW9tFsz7879c9vQQ2mnGbF6WSeKuBEGtmxJYLEy8rpVV9wXffbBtnL1LPKZqujPtEKzHqQeERiRybKB3DRBBoSFH bip32  cosigner
+        1 186 BC18rEEZrakM87qWbSSUv19vnRkEFL7ZtNtGx3exB886VbeFZp6aq9JLZucYAj1EtsHKUB2mkjvafCCGaeYeUVtdFcz5xTxTTgEPCE8fDC8LcahM bip32  main     *
+    For main keys a private master key is available in this wallet to sign transactions. * cosigner key for this wallet
+
+    - NETWORK: bitcoinlib_test -
+    - - Keys
+      193 m/48'/9999999'/0'/2'/0/0     blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p Multisig Key 185/192                   2.00000000 T
+
+    - - Transactions Account 0 (2)
+    7b020ae9c7f8ba84a5a5136ae32e6195af5a4f25316f790a1278e04f479ca77d blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p       10          1.00000000 T U
+    5d0f176259ab4bc596363aa3653c44858ebeb2fd8361311966776192968e545d blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p       10          1.00000000 T U
+
+    = Balance Totals (includes unconfirmed) =
+    bitcoinlib_test      (Account 0)                  2.00000000 T
+
+We now have some utxo's in our wallet so we can create a transaction
+
+.. code-block:: bash
+
+    $ clw -w ms22 -s blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p 0.1
+    Connected to pydev debugger (build 233.13135.95)
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Transaction created
+    Transaction 3b96f493d189667565271041abbc0efbd8631bb54d76decb90e144bb145fa613
+    Date: None
+    Network: bitcoinlib_test
+    Version: 1
+    Witness type: segwit
+    Status: new
+    Verified: False
+    Inputs
+    - blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p 1.00000000 TST 7b020ae9c7f8ba84a5a5136ae32e6195af5a4f25316f790a1278e04f479ca77d 0
+      segwit p2sh_multisig; sigs: 1 (2-of-2) not validated
+    Outputs
+    - blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p 0.10000000 TST p2wsh U
+    - blt1qe4tr993nftagprtapclxrm7ahrcvl4w0dnxfnhz2cx6pjaeg989syy9zge 0.89993601 TST p2wsh U
+    Size: 192
+    Vsize: 192
+    Fee: 6399
+    Confirmations: None
+    Block: None
+    Pushed to network: False
+    Wallet: ms22
+
+    Transaction created but not sent yet. Transaction dictionary for export:
+    {<dictionary>}
+
+Copy the contents of the dictionary and save it as 3b96f493d189667565271041abbc0efbd8631bb54d76decb90e144bb145fa613.tx
+
+The transaction has been created, but cannot be verified because the wallet contains only 1 private key. So we need to
+create another wallet with the other private key, in real life situations this would be on another (offiline) machine.
+
+Below we create a new wallet, generate a receive address and update the utxo's. Finally we can import the transaction
+dictionary which we be signed once imported. And as you can see the transaction has been verified now!
+
+.. code-block:: bash
+
+    $ clw new -w multisig-2-2-signer2 -n bitcoinlib_test -m 2 2 BC18rEEZrakM87qWbSSUv19vnRkEFL7ZtNtGx3exB886VbeFZp6aq9JLZucYAj1EtsHKUB2mkjvafCCGaeYeUVtdFcz5xTxTTgEPCE8fDC8LcahM BC19UtECk2r9PVQYhaAa8kEgBMPWHC4fJVJD48zBMMb9gSpY9LQVvQ1HhzB3Xmkm2BpiH5SyWoboiewpbeexPLsw8QBfAqMbDfet6kLhedtfQF8r
+    $ clw -w multisig-2-2-signer2 -r
+    $ clw -w multisig-2-2-signer2 -x
+    $ clw -w multisig-2-2-signer2 -a tx.tx
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Transaction 3b96f493d189667565271041abbc0efbd8631bb54d76decb90e144bb145fa613
+    Date: None
+    Network: bitcoinlib_test
+    Version: 1
+    Witness type: segwit
+    Status: new
+    Verified: True
+    Inputs
+    - blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p 1.00000000 TST 7b020ae9c7f8ba84a5a5136ae32e6195af5a4f25316f790a1278e04f479ca77d 0
+      segwit p2sh_multisig; sigs: 2 (2-of-2) valid
+    Outputs
+    - blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p 0.10000000 TST p2wsh U
+    - blt1qe4tr993nftagprtapclxrm7ahrcvl4w0dnxfnhz2cx6pjaeg989syy9zge 0.89993601 TST p2wsh U
+    Size: 192
+    Vsize: 192
+    Fee: 6399
+    Confirmations: None
+    Block: None
+    Pushed to network: False
+    Wallet: multisig-2-2-signer2
+
+
+    Signed transaction:
+    {<dictionary>}
+
+
 Options Overview
 ----------------
 
 Command Line Wallet for BitcoinLib
-
-.. code-block:: none
 
 usage: clw.py [-h] [--list-wallets] [--generate-key] [--passphrase-strength PASSPHRASE_STRENGTH] [--database DATABASE] [--wallet_name [WALLET_NAME]] [--network NETWORK] [--witness-type WITNESS_TYPE] [--yes]
               [--quiet] [--wallet-remove] [--wallet-info] [--update-utxos] [--update-transactions] [--wallet-empty] [--receive] [--cosigner-id COSIGNER_ID] [--export-private]
@@ -162,9 +353,8 @@ Transactions:
                         Import transaction dictionary or raw transaction string from specified filename and sign it with available key(s)
 
 
-And create new wallet options:
-
-.. code-block:: none
+Options overview: New Wallet
+----------------------------
 
 usage: clw.py new [-h] --wallet_name [WALLET_NAME] [--password PASSWORD] [--network NETWORK] [--passphrase PASSPHRASE] [--create-from-key KEY] [--create-multisig [. ...]] [--witness-type WITNESS_TYPE]
                   [--cosigner-id COSIGNER_ID] [--database DATABASE] [--receive] [--yes] [--quiet]
@@ -195,6 +385,6 @@ options:
                         URI of the database to use
   --receive, -r         Show unused address to receive funds.
   --yes, -y             Non-interactive mode, does not prompt for confirmation
-  --quiet, -q           Quit mode, no output writen to console.
+  --quiet, -q           Quiet mode, no output writen to console
 
 
