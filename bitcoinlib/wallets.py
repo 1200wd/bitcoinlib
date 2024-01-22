@@ -3347,12 +3347,6 @@ class Wallet(object):
         if qr:
             return qr.transaction.txid.hex()
 
-
-    def update_transactions_from_block(block, network=None):
-        pass
-
-
-
     def _objects_by_key_id(self, key_id):
         key = self._session.query(DbKey).filter_by(id=key_id).scalar()
         if not key:
