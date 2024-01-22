@@ -1684,7 +1684,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                       'ZY6DFj6x61Wwbrg8Q'
         wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet', db_uri=self.DATABASE_URI)
         wallet.scan(scan_gap_limit=8)
-        wallet.info()
         self.assertEqual(len(wallet.keys()), 27)
         self.assertEqual(wallet.balance(), 60500000)
         self.assertEqual(len(wallet.transactions()), 4)
@@ -2598,7 +2597,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
     def test_wallet_readonly_create_and_import(self):
         k = '13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'
         w = wallet_create_or_open('addrwlt', k, db_uri=self.DATABASE_URI)
-        addr = Address.import_address('12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN')
+        addr = Address.parse('12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN')
         w.import_key(addr)
         self.assertEqual(len(w.accounts()), 1)
         w.utxos_update()

@@ -650,7 +650,7 @@ class TestKeysAddress(unittest.TestCase):
     def test_keys_address_import_conversion(self):
         address_legacy = '3LPrWmWj1pYPEs8dGsPtWfmg2E9LhL5BHj'
         address = 'MSbzpevgxwPp3NQXNkPELK25Lvjng7DcBk'
-        ac = Address.import_address(address_legacy, network_overrides={"prefix_address_p2sh": "32"})
+        ac = Address.parse(address_legacy, network_overrides={"prefix_address_p2sh": "32"})
         self.assertEqual(ac.address, address)
 
     def test_keys_address_encodings(self):
@@ -685,7 +685,7 @@ class TestKeysAddress(unittest.TestCase):
 
     def test_keys_address_litecoin_import(self):
         address = 'LUPKYv9Z7AvQgxuVkDdqQrBDswsQJMxsN8'
-        a = Address.import_address(address)
+        a = Address.parse(address)
         self.assertEqual(a.hashed_data, '647ea562d9e72daca10fa476297f10576f284ba4')
         self.assertEqual(a.network.name, 'litecoin')
         self.assertEqual(a.address_orig, 'LUPKYv9Z7AvQgxuVkDdqQrBDswsQJMxsN8')

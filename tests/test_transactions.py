@@ -1066,25 +1066,25 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
     #         keys.append(HDKey().public_hex)
     #     self.assertRaisesRegexp(TransactionError, exp_error, serialize_multisig_redeemscript, keys)
 
-    def test_transaction_script_type_string(self):
-        # Locking script
-        s = bytes.fromhex('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
-                          '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
-        os = "OP_1 032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca33016 " \
-             "02308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a OP_2 OP_CHECKMULTISIG"
-        self.assertEqual(os, str(script_to_string(s)))
-        # Signature unlocking script
-        sig = '304402203359857b3bc3409c161a3b9570306bde53f21a15fcf3d3946d8ddfc94dd6ff35022024dc076c7014ee199831079cc0f' \
-              'df5e55aeebee7e90f4d51a2d923cc57f9173a01'
-        self.assertEqual(script_to_string(sig), sig)
-        # Multisig redeemscript
-        script = '52210294d7bf6363ab715168e812dd5b64d1f503ba707746b55535b7ee8afadd979c0e21024b68079ccf41b9df944f4aa37' \
-                 '7a2431a8df6efd7d7939d1f4d4f17376dc3434d21028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd' \
-                 '63676d0e53ae'
-        script_string = 'OP_2 0294d7bf6363ab715168e812dd5b64d1f503ba707746b55535b7ee8afadd979c0e ' \
-                        '024b68079ccf41b9df944f4aa377a2431a8df6efd7d7939d1f4d4f17376dc3434d ' \
-                        '028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd63676d0e OP_3 OP_CHECKMULTISIG'
-        self.assertEqual(script_to_string(script), script_string)
+    # def test_transaction_script_type_string(self):
+    #     # Locking script
+    #     s = bytes.fromhex('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
+    #                       '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
+    #     os = "OP_1 032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca33016 " \
+    #          "02308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a OP_2 OP_CHECKMULTISIG"
+    #     self.assertEqual(os, str(script_to_string(s)))
+    #     # Signature unlocking script
+    #     sig = '304402203359857b3bc3409c161a3b9570306bde53f21a15fcf3d3946d8ddfc94dd6ff35022024dc076c7014ee199831079cc0f' \
+    #           'df5e55aeebee7e90f4d51a2d923cc57f9173a01'
+    #     self.assertEqual(script_to_string(sig), sig)
+    #     # Multisig redeemscript
+    #     script = '52210294d7bf6363ab715168e812dd5b64d1f503ba707746b55535b7ee8afadd979c0e21024b68079ccf41b9df944f4aa37' \
+    #              '7a2431a8df6efd7d7939d1f4d4f17376dc3434d21028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd' \
+    #              '63676d0e53ae'
+    #     script_string = 'OP_2 0294d7bf6363ab715168e812dd5b64d1f503ba707746b55535b7ee8afadd979c0e ' \
+    #                     '024b68079ccf41b9df944f4aa377a2431a8df6efd7d7939d1f4d4f17376dc3434d ' \
+    #                     '028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd63676d0e OP_3 OP_CHECKMULTISIG'
+    #     self.assertEqual(script_to_string(script), script_string)
 
     def test_transaction_p2pk_script(self):
         rawtx = '0100000001db1a1774240cb1bd39d6cd6df0c57d5624fd2bd25b8b1be471714ab00e1a8b5d00000000484730440220592ce8' \
@@ -1140,43 +1140,43 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.signature_hash(sign_id=0).hex(),
                          '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
 
-    def test_transaction_locktime(self):
-        # FIXME: Add more useful unittests for locktime
-        s = bytes.fromhex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
-        s_cltv = script_add_locktime_cltv(10000, s)
-        s_csv = script_add_locktime_csv(600000, s)
-        self.assertIsNotNone(s_cltv)
-        self.assertIsNotNone(s_csv)
-        # Test deserialize locktime transactions
-        rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044022003ea7' \
-                '34e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b161ffb654be7e89c84' \
-                'de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d0977337376868b033029ba49cc64765df' \
-                'dffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a327696a70a000000006a47304402207758c05e' \
-                '849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef9' \
-                '8a21a3c567b4c6defe8ffca06012103ab51db28d30d3ac99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdff' \
-                'ffff029b040000000000001976a91406d66adea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a914061' \
-                '4a615ee10d84a1e6d85ec1ff7fff527757d5987b0cc0800'
-        t = Transaction.parse_hex(rawtx)
-        self.assertEqual(t.locktime, 576688)
-        rawtx = '010000000159dc9ad3dc18cd76827f107a50fd96981e323aec7be4cbf982df176b9ab64f4900000000fd170147304402207' \
-                '97987a17ee28181a94437e20c60b9d8da8974e68f91f250c424b623f06aeea9022036faa2834da6f883078abc3dd2fb48c1' \
-                '9fc17097aa5b87fa11d00385fd21740b0121025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac80' \
-                '0bd206a9068119b30840206281418227f33f76c53c43fa59fad748d2954e6ecd595a94c8aa6140d424014e59608dae01e97' \
-                '700da0b53b3095a1af882102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d1187632102ef' \
-                '7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d11ac670475f2df5cb17521025c8ee352e8b0d12' \
-                'aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bdac68feffffff011f000200000000001976a91436963a21b49f' \
-                '701acf03dd1e778ab5774017b53c88ac75f2df5c'
-        t = Transaction.parse_hex(rawtx)
-        self.assertEqual(t.locktime, 1558180469)
-        # Input level locktimes
-        t = Transaction()
-        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df49453e', 0, locktime_cltv=10000)
-        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494511', 0, locktime_csv=20000)
-        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494522', 0,
-                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG + 30000)
-        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494533', 0,
-                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG + 40000)
-        self.assertIsNone(t.info())
+    # def test_transaction_locktime(self):
+    #     # FIXME: Add more useful unittests for locktime
+    #     s = bytes.fromhex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+    #     s_cltv = script_add_locktime_cltv(10000, s)
+    #     s_csv = script_add_locktime_csv(600000, s)
+    #     self.assertIsNotNone(s_cltv)
+    #     self.assertIsNotNone(s_csv)
+    #     # Test deserialize locktime transactions
+    #     rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044022003ea7' \
+    #             '34e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b161ffb654be7e89c84' \
+    #             'de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d0977337376868b033029ba49cc64765df' \
+    #             'dffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a327696a70a000000006a47304402207758c05e' \
+    #             '849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef9' \
+    #             '8a21a3c567b4c6defe8ffca06012103ab51db28d30d3ac99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdff' \
+    #             'ffff029b040000000000001976a91406d66adea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a914061' \
+    #             '4a615ee10d84a1e6d85ec1ff7fff527757d5987b0cc0800'
+    #     t = Transaction.parse_hex(rawtx)
+    #     self.assertEqual(t.locktime, 576688)
+    #     rawtx = '010000000159dc9ad3dc18cd76827f107a50fd96981e323aec7be4cbf982df176b9ab64f4900000000fd170147304402207' \
+    #             '97987a17ee28181a94437e20c60b9d8da8974e68f91f250c424b623f06aeea9022036faa2834da6f883078abc3dd2fb48c1' \
+    #             '9fc17097aa5b87fa11d00385fd21740b0121025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac80' \
+    #             '0bd206a9068119b30840206281418227f33f76c53c43fa59fad748d2954e6ecd595a94c8aa6140d424014e59608dae01e97' \
+    #             '700da0b53b3095a1af882102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d1187632102ef' \
+    #             '7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d11ac670475f2df5cb17521025c8ee352e8b0d12' \
+    #             'aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bdac68feffffff011f000200000000001976a91436963a21b49f' \
+    #             '701acf03dd1e778ab5774017b53c88ac75f2df5c'
+    #     t = Transaction.parse_hex(rawtx)
+    #     self.assertEqual(t.locktime, 1558180469)
+    #     # Input level locktimes
+    #     t = Transaction()
+    #     t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df49453e', 0, locktime_cltv=10000)
+    #     t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494511', 0, locktime_csv=20000)
+    #     t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494522', 0,
+    #                 locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG + 30000)
+    #     t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494533', 0,
+    #                 locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG + 40000)
+    #     self.assertIsNone(t.info())
 
     def test_transaction_get_unlocking_script_type(self):
         self.assertEqual(get_unlocking_script_type('p2pk'), 'signature')

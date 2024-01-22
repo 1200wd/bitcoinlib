@@ -458,35 +458,6 @@ class Address(object):
     """
 
     @classmethod
-    @deprecated
-    def import_address(cls, address, compressed=None, encoding=None, depth=None, change=None,
-                       address_index=None, network=None, network_overrides=None):
-        """
-        Import an address to the Address class. Specify network if available, otherwise it will be
-        derived form the address.
-
-        :param address: Address to import
-        :type address: str
-        :param compressed: Is key compressed or not, default is None
-        :type compressed: bool
-        :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
-        :type encoding: str
-        :param depth: Level of depth in BIP32 key path
-        :type depth: int
-        :param change: Use 0 for normal address/key, and 1 for change address (for returned/change payments)
-        :type change: int
-        :param address_index: Index of address. Used in BIP32 key paths
-        :type address_index: int
-        :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
-        :type network: str
-        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
-        :type network_overrides: dict
-
-        :return Address:
-        """
-        return cls.parse(address, compressed, encoding, depth, change, address_index, network, network_overrides)
-
-    @classmethod
     def parse(cls, address, compressed=None, encoding=None, depth=None, change=None,
               address_index=None, network=None, network_overrides=None):
         """
@@ -1072,10 +1043,6 @@ class Key(object):
         """
         flagbyte = b'\xe0' if self.compressed else b'\xc0'
         return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
-
-    @deprecated
-    def bip38_encrypt(self, password):
-        return self.encrypt(password)
 
     def wif(self, prefix=None):
         """
@@ -1999,23 +1966,6 @@ class Signature(object):
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
-    @staticmethod
-    @deprecated
-    def from_str(signature, public_key=None):
-        """
-        Create a signature from signature string with r and s part. Signature length must be 64 bytes or 128 
-        character hexstring 
-        
-        :param signature: Signature string
-        :type signature: bytes, str
-        :param public_key: Public key as HDKey or Key object or any other string accepted by HDKey object
-        :type public_key: HDKey, Key, str, hexstring, bytes
-        
-        :return Signature: 
-        """
-
-        signature = to_bytes(signature)
-        return Signature(signature, public_key)
 
     @staticmethod
     def create(txid, private, use_rfc6979=True, k=None):

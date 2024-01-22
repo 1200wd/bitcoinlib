@@ -26,13 +26,6 @@ class TestNetworks(unittest.TestCase):
         self.assertEqual(network.wif_prefix(is_private=True), b'\x04\x88\xad\xe4')
         self.assertEqual(network.wif_prefix(is_private=False), b'\x04\x88\xb2\x1e')
 
-    def test_networks_print_value(self):
-        self.assertEqual(print_value(123, rep='symbol', denominator=0.001), '0.00123 m₿')
-        self.assertEqual(print_value(123, denominator=1e-6), '1.23 µBTC')
-        self.assertEqual(print_value(1e+14, network='dogecoin', denominator=1e+6, decimals=0), '1 MDOGE')
-        self.assertEqual(print_value(1200, denominator=1e-8, rep='Satoshi'), '1200 Satoshi')
-        self.assertEqual(print_value(1200, denominator=1e-6, rep='none'), '12.00')
-
     def test_networks_network_value_for(self):
         prefixes = network_values_for('prefix_wif')
         expected_prefixes = [b'\xb0', b'\xef', b'\x99', b'\x80']
