@@ -355,10 +355,8 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output = normalize_string(Popen(cmd_wlt_update2, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
         output_list = [i for i in output.split('Keys')[1].split(' ') if i != '']
-        if output_list[0] == '\n':
-            output_list = output_list[1:]
-        first_key_id = int(output_list[0])
-        address = output_list[2]
+        first_key_id = int(output_list[1])
+        address = output_list[3]
         cmd_wlt_send2 = ("%s %s -w test_tools_transaction_options -d %s "
                         "-s blt1qdjre3yw9hnt53entkp6tflhg34y4sp999emjnk 0.5 -k %d") % \
                        (self.python_executable, self.clw_executable, self.DATABASE_URI, first_key_id)

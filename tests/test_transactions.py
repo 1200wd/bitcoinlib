@@ -71,15 +71,6 @@ class TestTransactionInputs(unittest.TestCase):
         ti = Input(prev_txid=ph, output_n=1, keys=k.public(), compressed=k.compressed)
         self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.keys[0].address())
 
-    def test_transaction_input_with_pkh(self):
-        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='dash_testnet', compressed=False)
-        prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
-        output_n = 0
-        ki_public_hash = ki.hash160
-        ti = Input(prev_txid=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='dash_testnet',
-                   compressed=False)
-        self.assertEqual(ti.address, 'yWut2kHY6nXbpgqatMCNkwsxoYHcpWeF6Q')
-
     def test_transaction_input_locking_script(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(ph, 0, unlocking_script_unsigned='76a91423e102597c4a99516f851406f935a6e634dbccec88ac')
@@ -102,6 +93,16 @@ class TestTransactionInputs(unittest.TestCase):
         t = Transaction.parse_hex(rawtx)
         self.assertTrue(t.verify())
         self.assertEqual(t.inputs[0].hash_type, 0x81)
+
+    def test_transaction_input_with_pkh(self):
+        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='bitcoin',
+                          compressed=False)
+        prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
+        output_n = 0
+        ki_public_hash = ki.hash160
+        ti = Input(prev_txid=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='bitcoin',
+                   compressed = False)
+        self.assertEqual(ti.address, '1BbSBYZChXewL1KTTcZksPmpgvDZH93wtt')
 
     # TODO: Move and rewrite
     # def test_transaction_input_locktime(self):
@@ -1085,16 +1086,6 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                         '028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd63676d0e OP_3 OP_CHECKMULTISIG'
         self.assertEqual(script_to_string(script), script_string)
 
-    def test_transaction_sign_uncompressed(self):
-        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='dash_testnet', compressed=False)
-        prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
-        output_n = 0
-        t = Transaction(network='dash_testnet')
-        t.add_input(prev_txid=prev_tx, output_n=output_n, compressed=False)
-        t.add_output(99900000, 'yUV8W2RmEbKZD8oD7YMeBNiydHWmormCDj')
-        t.sign(ki.private_byte)
-        self.assertTrue(t.verify())
-
     def test_transaction_p2pk_script(self):
         rawtx = '0100000001db1a1774240cb1bd39d6cd6df0c57d5624fd2bd25b8b1be471714ab00e1a8b5d00000000484730440220592ce8' \
                 '5d3b79509499c9832699c591fc0fd92208bfe20c67d655497c388b3cc50220134e367276b285c35692bcfc832afdc5c27729' \
@@ -1104,6 +1095,17 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t = Transaction.parse_hex(rawtx)
         self.assertEqual(t.inputs[0].script_type, 'signature')
         self.assertEqual(t.outputs[0].script_type, 'p2pk')
+
+    def test_transaction_sign_uncompressed(self):
+        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX',
+                          compressed=False)
+        prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
+        output_n = 0
+        t = Transaction()
+        t.add_input(prev_txid=prev_tx, output_n=output_n, compressed=False)
+        t.add_output(99900000, '1EHmhQH4HjJF7e4tyX61PVzzVevRJfsPMg')
+        t.sign(ki.private_byte)
+        self.assertTrue(t.verify())
 
     def test_transaction_sign_p2pk(self):
         wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \
@@ -1443,21 +1445,6 @@ class TestTransactionsMultisig(unittest.TestCase):
                     [pk1.public_byte, pk2.public_byte, pk3.public_byte],
                     script_type='p2sh_multisig', sigs_required=2)
         t.add_output(100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
-        t.sign(pk1)
-        self.assertFalse(t.verify())
-        t.sign(pk3)
-        self.assertTrue(t.verify())
-
-    def test_transaction_multisig_dash(self):
-        network = 'dash'
-        pk1 = HDKey(network=network)
-        pk2 = HDKey(network=network)
-        pk3 = HDKey(network=network)
-        t = Transaction(network=network)
-        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
-                    [pk1.public_byte, pk2.public_byte, pk3.public_byte],
-                    script_type='p2sh_multisig', sigs_required=2)
-        t.add_output(100000, 'XwZcTpBnRRURenL7Jh9Z52XGTx1jhvecUt')
         t.sign(pk1)
         self.assertFalse(t.verify())
         t.sign(pk3)

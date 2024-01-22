@@ -273,9 +273,9 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
                                 Wallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
                                 sigs_required=3, db_uri=self.DATABASE_URI)
         self.assertRaisesRegex(WalletError,
-                                "Network from key \(dash\) is different then specified network \(bitcoin\)",
+                                "Network from key \(litecoin\) is different then specified network \(bitcoin\)",
                                 Wallet.create, 'test_wallet_create_errors_multisig4',
-                                keys=[HDKey(), HDKey(network='dash')], db_uri=self.DATABASE_URI)
+                                keys=[HDKey(), HDKey(network='litecoin')], db_uri=self.DATABASE_URI)
         self.assertRaisesRegex(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
                                 Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
@@ -286,9 +286,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertRaisesRegex(WalletError, "Invalid key or address",
                                 Wallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
                                 db_uri=self.DATABASE_URI)
-        self.assertRaisesRegex(WalletError, "Segwit is not supported for Dash wallets",
-                                Wallet.create, 'test_wallet_create_errors6', keys=HDKey(network='dash'),
-                                witness_type='segwit', db_uri=self.DATABASE_URI)
         k = HDKey().subkey_for_path('m/1/2/3/4/5/6/7')
         self.assertRaisesRegex(WalletError, "Depth of provided public master key 7 does not correspond with key path",
                                 Wallet.create, 'test_wallet_create_errors7', keys=k,
@@ -686,17 +683,17 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         self.assertFalse(str(secret2) in w_json)
 
     def test_wallet_key_create_from_key(self):
-        k1 = HDKey(network='dash')
-        k2 = HDKey(network='dash')
+        k1 = HDKey(network='testnet')
+        k2 = HDKey(network='testnet')
         w1 = Wallet.create('network_mixup_test_wallet', network='litecoin', db_uri=self.DATABASE_URI)
         wk1 = WalletKey.from_key('key1', w1.wallet_id, w1._session, key=k1.address_obj)
-        self.assertEqual(wk1.network.name, 'dash')
+        self.assertEqual(wk1.network.name, 'testnet')
         self.assertRaisesRegex(WalletError, "Specified network and key network should be the same",
                                 WalletKey.from_key, 'key2', w1.wallet_id, w1._session, key=k2.address_obj,
                                 network='bitcoin')
         w2 = Wallet.create('network_mixup_test_wallet2', network='litecoin', db_uri=self.DATABASE_URI)
         wk2 = WalletKey.from_key('key1', w2.wallet_id, w2._session, key=k1)
-        self.assertEqual(wk2.network.name, 'dash')
+        self.assertEqual(wk2.network.name, 'testnet')
         self.assertRaisesRegex(WalletError, "Specified network and key network should be the same",
                                 WalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
                                 network='bitcoin')
@@ -789,29 +786,31 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         cls.pk = 'xprv9s21ZrQH143K4478MENLXpSXSvJSRYsjD2G3sY7s5sxAGubyujDmt9Qzfd1me5s1HokWGGKW9Uft8eB9dqryybAcFZ5JAs' \
                  'rg84jAVYwKJ8c'
         cls.wallet = Wallet.create(
-            keys=cls.pk, network='dash', witness_type='legacy',
+            keys=cls.pk, network='dogecoin', witness_type='legacy',
             name='test_wallet_multicurrency',
             db_uri=cls.DATABASE_URI)
 
         cls.wallet.new_account(network='litecoin')
         cls.wallet.new_account(network='bitcoin')
         cls.wallet.new_account(network='testnet')
-        cls.wallet.new_account(network='dash')
+        cls.wallet.new_account(network='dogecoin')
         cls.wallet.new_key()
         cls.wallet.new_key()
         cls.wallet.new_key(network='bitcoin')
 
     def test_wallet_multiple_networks_defined(self):
-        networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
+        networks_expected = sorted(['litecoin', 'bitcoin', 'dogecoin', 'testnet'])
         networks_wlt = sorted([x.name for x in self.wallet.networks()])
         self.assertListEqual(networks_wlt, networks_expected,
                              msg="Not all network are defined correctly for this wallet")
 
     def test_wallet_multiple_networks_default_addresses(self):
-        addresses_expected = ['XqTpf6NYrrckvsauJKfHFBzZaD9wRHjQtv', 'Xamqfy4y21pXMUP8x8TeTPWCNzsKrhSfau',
-                              'XugknDhBtJFvfErjaobizCa8KAEDVU7bCJ', 'Xj6tV9Jc3qJ2AszpNxvEq7KVQKUMcfmBqH',
-                              'XgkpZbqaRsRb2e2BC1QsWxTDEfW6JVpP6r']
-        self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
+        addresses_expected = ['D5RuWXkLEWavHvFBanskaP2LFKTYg6J6fU',
+            'DHUXe7QJfCo1gewXHsLyBB98zd6quWyxEK',
+            'DSaM5oJ7rRbrVcSYuTc5KE21paw9kWqLf7',
+            'DToob5uhE3hCMaCZxYd4S5eunFgr5f8XhD',
+            'DAPKhNHuidSyzhBypVdnc5fRY3pcvihLgs']
+        self.assertListEqual(self.wallet.addresslist(network='dogecoin'), addresses_expected)
 
     def test_wallet_multiple_networks_import_key(self):
         pk_bitcoin = 'xprv9s21ZrQH143K3RBvuNbSwpAHxXuPNWMMPfpjuX6ciwo91HpYq6gDLjZuyrQCPpo4qBDXyvftN7MdX7SBVXeGgHs' \
@@ -827,11 +826,11 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
-        pk_dashtest = ('BC19UtECk2r9PVQYhZYzX3m4arsu6tCL5VMpKPbeGpZdpzd9FHweoSRreTFKo96FAEFsUWBrASfKussgoxTrNQfm'
-                       'jWFrVraLbiHf4gCkUvwHEocA')
+        pk_test = ('BC19UtECk2r9PVQYhZYzX3m4arsu6tCL5VMpKPbeGpZdpzd9FHweoSRreTFKo96FAEFsUWBrASfKussgoxTrNQfm'
+                   'jWFrVraLbiHf4gCkUvwHEocA')
         error_str = "Network bitcoinlib_test not available in this wallet, please create an account for this network " \
                     "first."
-        self.assertRaisesRegex(WalletError, error_str, self.wallet.import_key, pk_dashtest)
+        self.assertRaisesRegex(WalletError, error_str, self.wallet.import_key, pk_test)
 
     def test_wallet_multiple_networks_value(self):
         pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysd' \
@@ -2259,58 +2258,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(len(txs_page), 2)
         self.assertEqual(txs_all[10], txs_page[0])
         self.assertEqual(txs_all[11], txs_page[1])
-
-
-@parameterized_class(*params)
-class TestWalletDash(TestWalletMixin, unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.db_remove()
-
-    def test_wallet_create_with_passphrase_dash(self):
-        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = Wallet.create("wallet-passphrase-dash", keys=passphrase, network='dash', witness_type='legacy',
-                            db_uri=self.DATABASE_URI)
-        keys = wlt.get_keys(number_of_keys=5)
-        self.assertEqual(keys[4].address, "XhxXcRvTm4yZZzbH4MYz2udkdHWEMMf9GM")
-
-    def test_wallet_import_dash(self):
-        accountkey = 'xprv9yQgG6Z38AXWuhkxScDCkLzThWWZgDKHKinMHUAPTH1uihrBWQw99sWBsN2HMpzeTze1YEYb8acT1x7sHKhXX8AbT' \
-                     'GNf8tdbycySUi2fRaa'
-        wallet = Wallet.create(
-            db_uri=self.DATABASE_URI,
-            name='test_wallet_import_dash',
-            keys=accountkey,
-            network='dash')
-        newkey = wallet.get_key()
-        self.assertEqual(wallet.main_key.wif, accountkey)
-        self.assertEqual(newkey.address, u'XtVa6s1rqo9BNXir1tb6KEXsj5NGogp1QB')
-        self.assertEqual(newkey.path, "M/0/0")
-
-    def test_wallet_multisig_dash(self):
-        network = 'dash'
-        pk1 = HDKey(network=network, witness_type='legacy')
-        pk2 = HDKey(network=network, witness_type='legacy')
-        wl1 = Wallet.create('multisig_test_wallet1', [pk1, pk2.public_master(multisig=True)], sigs_required=2,
-                            db_uri=self.DATABASE_URI)
-        wl2 = Wallet.create('multisig_test_wallet2', [pk1.public_master(multisig=True), pk2], sigs_required=2,
-                            db_uri=self.DATABASE_URI)
-        wl1_key = wl1.new_key()
-        wl2_key = wl2.new_key(cosigner_id=wl1.cosigner_id)
-        self.assertEqual(wl1_key.address, wl2_key.address)
-
-    def test_wallet_import_private_for_known_public_multisig_dash(self):
-        network = 'dash'
-        pk1 = HDKey(network=network, witness_type='legacy')
-        pk2 = HDKey(network=network, witness_type='legacy')
-        pk3 = HDKey(network=network, witness_type='legacy')
-        with wallet_create_or_open("mstest_dash", [pk1.public_master(multisig=True), pk2.public_master(multisig=True),
-                                                   pk3.public_master(multisig=True)], 2, network=network,
-                                   sort_keys=False, cosigner_id=0, db_uri=self.DATABASE_URI) as wlt:
-            self.assertFalse(wlt.cosigner[1].main_key.is_private)
-            wlt.import_key(pk2)
-            self.assertTrue(wlt.cosigner[1].main_key.is_private)
 
     def test_wallet_merge_transactions(self):
         w = wallet_create_or_open('wallet_merge_transactions_tests', network='bitcoinlib_test',

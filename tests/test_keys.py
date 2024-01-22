@@ -534,7 +534,7 @@ class TestHDKeys(unittest.TestCase):
             k = HDKey(network=network)
             for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
                 for multisig in [False, True]:
-                    if (network[:4] == 'dash' or network[:4] == 'doge') and witness_type != 'legacy':
+                    if (network[:4] == 'doge') and witness_type != 'legacy':
                         break
                     kwif = k.wif_private(witness_type=witness_type, multisig=multisig)
                     hdkey = wif_prefix_search(kwif, witness_type=witness_type, multisig=multisig, network=network)
@@ -587,7 +587,7 @@ class TestBip38(unittest.TestCase):
     def test_bip38_other_networks(self):
         if not USING_MODULE_SCRYPT:
             return
-        networks = ['testnet', 'litecoin', 'dash']
+        networks = ['testnet', 'litecoin', 'dogecoin']
         for network in networks:
             k = Key(network=network)
             enc_key = k.encrypt('password')
@@ -746,46 +746,6 @@ class TestKeysAddress(unittest.TestCase):
         addr = Address(hashed_data=hashed_data, script_type='p2tr', prefix='bcrt',
                        encoding='bech32').address
         self.assertEqual(addr, 'bcrt1pq77c6jeemv8wxlsh5h5pfdq6323naua8yapte3juw9hyec83mr8sw2eggg')
-
-class TestKeysDash(unittest.TestCase):
-    def test_format_wif_compressed_private_dash(self):
-        key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'
-        self.assertEqual('wif_compressed', get_key_format(key)['format'])
-        self.assertEqual(['dash'], get_key_format(key)['networks'])
-
-    def test_format_wif_private_dash(self):
-        key = '7rrHic4Nzr8iMSfaSFMSXvKgTb7Sw3FHwevGsnD2vYwU5btpXRT'
-        self.assertEqual('wif', get_key_format(key)['format'])
-        self.assertEqual(['dash'], get_key_format(key)['networks'])
-
-    def test_format_hdkey_private_dash(self):
-        key = 'xprv9s21ZrQH143K3D4pKs8hj46ixU3T2vPsdmfMsoYjytd15C84SoRRkXebFFb3o4j6R5srg7btramafwcfdiibf2CWqMJLEX6jL2' \
-              'YUrLR7VfS'
-        self.assertEqual('hdkey_private', get_key_format(key)['format'])
-        self.assertIn('dash', get_key_format(key)['networks'])
-
-    def test_dash_private_key(self):
-        KC_DASH = Key('000ece5e695793773007ac225a21fd570aa10f64d4da7ba29e6eabb0e34aae6b', network='dash_testnet')
-        self.assertEqual(KC_DASH.wif(), 'cMapAmsnHr2UZ2ZCjZZfRru8dS9PLjYjTVjbnrR7suqducfQNYnX')
-        self.assertEqual(KC_DASH.address(), 'ya3XLrAqfHFTFEZvDno9kv3MHREzHQzQMq')
-        self.assertEqual(KC_DASH.public_hex, '02d092ed110b2d127c160ef1d72dc158fa96a3d32b41b9680ea6ef35e194bbc83e')
-
-    def test_hdkey_bip44_account_dash(self):
-        pk = 'xprv9s21ZrQH143K3cq8ueA8GV9uv7cHqkyQGBQu8YZkAU2EXG5oSKVFeQnYK25zhHEEqqjfyTFEcV5enh6vh4tFA3FvdGuWAqPqvY' \
-             'ECNLB78mV'
-        k = HDKey(pk, network='dash')
-        self.assertEqual(k.public_master().wif(),
-                         'xpub6CRdroJethC3Y46tb4XuouSCiRDUBhecDR96NXUvRUysD2XgZy4AWB8mAsvMmcw9GgXvmu4BRSFj1yAdiN1K7f'
-                         'w9o96T41hLJRLpLGLJrxY')
-
-    def test_hdkey_dash(self):
-        k = HDKey('xprv9s21ZrQH143K4EGnYMHVxNp8JgqXCyywC3CGTrSzSudH3iRgC1gPTYgce4xamXMnyDAX8Qv8tvuW1LEgkZSrXiC25LqTJN'
-                  '8RpCKS5ixcQWD', network='dash')
-        self.assertEqual('XkQ9Vudjgq62pvuG9K7pknVbiViZzZjWkJ', k.child_public(0).address())
-        self.assertEqual('XtqfKEcdtn1QioGRie41uP79gGC6yPzmnz', k.child_public(100).address())
-        self.assertEqual('XEYoxQJvhuXCXMpUFjf9knkJrFeE3mYp9mbFXG6mR3EK2Vvzi8vA', k.child_private(6).wif_key())
-        self.assertEqual('xprv9wZJLyzHEFzD3w3uazhGhbytbsVbrHQ5Spc7qkuwsPqUQo2VTxhpyoYRGD7o1T4AKZkfjGrWHtHrS4GUkBxzUH'
-                         'ozuqu8c2n3d7sjbmyPdFC', str(k.subkey_for_path('3H/1').wif(is_private=True)))
 
 
 class TestKeysSignatures(unittest.TestCase):

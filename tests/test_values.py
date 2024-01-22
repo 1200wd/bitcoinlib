@@ -32,8 +32,6 @@ class TestValue(unittest.TestCase):
         self.assertEqual(str(Value('10')), '10.00000000 BTC')
         self.assertEqual(str(Value('10 ltc')), '10.00000000 LTC')
         self.assertEqual(str(Value('10', network='litecoin')), '10.00000000 LTC')
-        self.assertEqual(str(Value('10', network='dash_testnet')), '10.00000000 tDASH')
-        self.assertEqual(str(Value('10 tDASH')), '10.00000000 tDASH')
         self.assertEqual(float(Value('0.001 BTC')), 0.001)
         self.assertEqual(float(Value('1 msat')), 0.00000000001)
         self.assertEqual(int(Value('1 BTC')), 1)
@@ -102,7 +100,7 @@ class TestValue(unittest.TestCase):
         self.assertEqual(Value('0.00021 YBTC').str(1), '210000000000000000000.00000000 BTC')
         self.assertEqual(Value('127127504620 Doge').str('TDoge'), '0.12712750 TDOGE')
         self.assertRaisesRegex(ValueError, "Denominator not found in NETWORK_DENOMINATORS definition",
-                                Value('123 Dash').str, 'DD')
+                                Value('123 Doge').str, 'DD')
 
     def test_value_class_str_auto(self):
         self.assertEqual(Value('1000000 sat').str('auto'), '0.01000000 BTC')
@@ -139,7 +137,7 @@ class TestValue(unittest.TestCase):
         self.assertTrue(v3 == '1000.00000 mBTC')
         self.assertTrue(v3 == '1 BTC')
         self.assertTrue(v3 == '100000000 sat')
-        self.assertFalse(v3 == '1 dash')
+        self.assertFalse(v3 == '1 doge')
 
     def test_value_operators_arithmetic(self):
         value1 = Value('3 BTC')

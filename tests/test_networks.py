@@ -25,13 +25,8 @@ class TestNetworks(unittest.TestCase):
         network = Network('bitcoin')
         self.assertEqual(network.wif_prefix(is_private=True), b'\x04\x88\xad\xe4')
         self.assertEqual(network.wif_prefix(is_private=False), b'\x04\x88\xb2\x1e')
-        self.assertRaisesRegex(NetworkError, "WIF Prefix for script type p2wpkh not found", Network('dash').wif_prefix,
-                               witness_type='segwit')
 
     def test_networks_print_value(self):
-        network = Network('dash')
-        self.assertEqual(network.print_value(10000), '0.00010000 DASH')
-
         self.assertEqual(print_value(123, rep='symbol', denominator=0.001), '0.00123 m₿')
         self.assertEqual(print_value(123, denominator=1e-6), '1.23 µBTC')
         self.assertEqual(print_value(1e+14, network='dogecoin', denominator=1e+6, decimals=0), '1 MDOGE')
@@ -40,7 +35,7 @@ class TestNetworks(unittest.TestCase):
 
     def test_networks_network_value_for(self):
         prefixes = network_values_for('prefix_wif')
-        expected_prefixes = [b'\xb0', b'\xef', b'\x99', b'\x80', b'\xcc']
+        expected_prefixes = [b'\xb0', b'\xef', b'\x99', b'\x80']
         for expected in expected_prefixes:
             self.assertIn(expected, prefixes)
         self.assertEqual(network_values_for('denominator')[0], 1e-8)
@@ -69,7 +64,7 @@ class TestNetworks(unittest.TestCase):
         self.assertFalse(n1 == n2)
         self.assertTrue(n1 == 'bitcoin')
         self.assertFalse(n2 == 'bitcoin')
-        self.assertTrue(n1 != 'dash')
+        self.assertTrue(n1 != 'dogecoin')
         self.assertEqual(str(n1), "<Network: bitcoin>")
         self.assertTrue(hash(n1))
 
