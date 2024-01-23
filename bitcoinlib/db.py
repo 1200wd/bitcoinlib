@@ -283,12 +283,12 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(LargeBinary(128), index=True, doc="Bytes representation of public key")
+    public = Column(LargeBinary(32), index=True, doc="Bytes representation of public key")
     private = Column(EncryptedBinary(48), doc="Bytes representation of private key")
-    wif = Column(EncryptedString(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
+    wif = Column(EncryptedString(128), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
     key_type = Column(String(10), default='bip32', doc="Type of key: single, bip32 or multisig. Default is bip32")
-    address = Column(String(255), index=True,
+    address = Column(String(100), index=True,
                      doc="Address representation of key. An cryptocurrency address is a hash of the public key")
     cosigner_id = Column(Integer, doc="ID of cosigner, used if key is part of HD Wallet")
     encoding = Column(String(15), default='base58', doc='Encoding used to represent address: base58 or bech32')
