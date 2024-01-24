@@ -28,7 +28,7 @@ from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
 
-# Disabled warning about insecure requests, as we only connect to familiar sources and local nodes
+# Disable warnings about insecure requests, as we only connect to familiar sources and local nodes
 urllib3.disable_warnings()
 
 

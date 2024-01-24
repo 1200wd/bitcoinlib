@@ -865,7 +865,7 @@ class Cache(object):
         """
         Get list of unspent outputs (UTXO's) for specified address from database cache.
 
-        Sorted from old to new, so highest number of confirmations first.
+        Sorted from old to new, so the highest number of confirmations first.
 
         :param address: Address string
         :type address: str

@@ -1966,7 +1966,6 @@ class Signature(object):
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
-
     @staticmethod
     def create(txid, private, use_rfc6979=True, k=None):
         """

@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, LargeBinary, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
@@ -128,7 +128,10 @@ def add_column(engine, table_name, column):
     """
     column_name = column.compile(dialect=engine.dialect)
     column_type = column.type.compile(engine.dialect)
-    engine.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table_name, column_name, column_type))
+    statement = text("ALTER TABLE %s ADD COLUMN %s %s" % (table_name, column_name, column_type))
+    with engine.connect() as conn:
+        result = conn.execute(statement)
+    return result
 
 
 class EncryptedBinary(TypeDecorator):
@@ -506,19 +509,13 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
         column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
         add_column(db.engine, 'transaction_inputs', column)
         # version_db = db_update_version_id(db, '0.6.4')
-    if True or version_db < '7.0.0' and code_version >= '7.0.0':
-        # Add witness_type to keys table so we can use mixed keys in a single wallet
-        column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
-                                                        "'p2sh-segwit'. Default is segwit.")
-        add_column(db.engine, 'keys', column)
-        # TODO: Add to upgrade script, use alembic??
-        # - Add mixed to wallet_constraint_allowed_types
-        # - Wallet.witness_type default='segwit', doc="Wallet witness type. Can be 'legacy', 'segwit', 'p2sh-segwit' or
-        #   'mixed. Default is "  "segwit.")
-        # - Transaction.witness_type default='segwit'
-        # - Transaction.input: default='segwit', doc="Type of transaction, can be legacy,
-        #   segwit or p2sh-segwit. Default is segwit")
-
+    if True or version_db < '0.7.0' and code_version >= '0.7.0':
+        raise ValueError("Old database version %s is not supported in version 0.7+. "
+                         "Please copy private keys and recreate wallets" % version_db)
+        # TODO: write update script to copy private keys from db
+        # column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
+        #                                                      "'p2sh-segwit'. Default is segwit.")
+        # add_column(db.engine, 'keys', column)
 
     version_db = db_update_version_id(db, code_version)
     return version_db
