@@ -1500,6 +1500,24 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             key_pool.remove(co_id)
         self.assertTrue(t.verify())
 
+    def test_wallet_multisig_multinetwork(self):
+        network1 = 'litecoin'
+        network2 = 'bitcoinlib_test'
+        p1 = 'only sing document speed outer gauge stand govern way column material odor'
+        p2 = 'oyster pelican debate mass scene title pipe lock recipe flavor razor accident'
+        k2 = HDKey.from_passphrase(p2, network=network1, multisig=True).public_master()
+        w = wallet_create_or_open('ltcswms', [p1, k2], network=network1, witness_type='segwit',
+                                  cosigner_id=0, db_uri=self.DATABASE_URI)
+        self.assertEqual(len(w.get_keys(number_of_keys=2)), 2)
+        w.utxo_add('ltc1qkewaz7lxn75y6wppvqlsfhrnq5p5mksmlp26n8xsef0556cdfzqq2uhdrt', 2100000000000001,
+                   '21da13be453624cf46b3d883f39602ce74d04efa7a186037898b6d7bcfd405ee', 0, 15)
+        t = w.sweep('ltc1q9h8xvtrge5ttcwzy3xtz7l8kj4dewgh6hgqfjdhtq6lwr4k3527qd8tyzs')
+        self.assertFalse(t.verified)
+        t.sign(p2)
+        self.assertTrue(t.verified)
+        self.assertRaisesRegex(WalletError, "Cannot create new keys for network bitcoinlib_test, "
+                                            "no private masterkey found", w.new_key, network=network2)
+
 @parameterized_class(*params)
 class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
 

@@ -2276,6 +2276,9 @@ class Wallet(object):
         else:
             topkey = self.key(dbkey.id)
 
+        if topkey.network != network and topkey.path.split('/') == fullpath:
+            raise WalletError("Cannot create new keys for network %s, no private masterkey found" % network)
+
         # Key already found in db, return key
         if dbkey and dbkey.path == normalize_path('/'.join(fullpath)) and not recreate and number_of_keys == 1:
             return [topkey]
