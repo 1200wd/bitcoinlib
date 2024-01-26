@@ -509,7 +509,7 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
         column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
         add_column(db.engine, 'transaction_inputs', column)
         # version_db = db_update_version_id(db, '0.6.4')
-    if True or version_db < '0.7.0' and code_version >= '0.7.0':
+    if version_db < '0.7.0' and code_version >= '0.7.0':
         raise ValueError("Old database version %s is not supported in version 0.7+. "
                          "Please copy private keys and recreate wallets" % version_db)
         # TODO: write update script to copy private keys from db

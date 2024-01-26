@@ -302,7 +302,7 @@ class WalletKey(object):
     @staticmethod
     def from_key(name, wallet_id, session, key, account_id=0, network=None, change=0, purpose=84, parent_id=0,
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
-                 cosigner_id=None):
+                 cosigner_id=None, new_key_id=None):
         """
         Create WalletKey from a HDKey object or key.
 
@@ -346,6 +346,8 @@ class WalletKey(object):
         :type multisig: bool
         :param cosigner_id: Set this if you would like to create keys for other cosigners.
         :type cosigner_id: int
+        :param new_key_id: Key ID in database (DbKey.id), use to directly insert key in database without checks and without commiting. Mainly for internal usage, to significantly increase speed when inserting multiple keys.
+        :type new_key_id: int
 
         :return WalletKey: WalletKey object
         """
@@ -374,33 +376,34 @@ class WalletKey(object):
         script_type = script_type_default(witness_type, multisig)
 
         if not key_is_address:
-            keyexists = session.query(DbKey).\
-                filter(DbKey.wallet_id == wallet_id,
-                       DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
-            if keyexists:
-                _logger.warning("Key already exists in this wallet. Key ID: %d" % keyexists.id)
-                return WalletKey(keyexists.id, session, k)
-
             if key_type != 'single' and k.depth != len(path.split('/'))-1:
                 if path == 'm' and k.depth > 1:
                     path = "M"
-
             address = k.address(encoding=encoding, script_type=script_type)
-            wk = session.query(DbKey).filter(
-                DbKey.wallet_id == wallet_id,
-                or_(DbKey.public == k.public_byte,
-                    DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
-                    DbKey.address == address)).first()
-            if wk:
-                wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
-                wk.is_private = True
-                wk.private = k.private_byte
-                wk.public = k.public_byte
-                wk.path = path
-                session.commit()
-                return WalletKey(wk.id, session, k)
 
-            nk = DbKey(name=name[:80], wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
+            if not new_key_id:
+                keyexists = session.query(DbKey).\
+                    filter(DbKey.wallet_id == wallet_id,
+                           DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
+                if keyexists:
+                    _logger.warning("Key already exists in this wallet. Key ID: %d" % keyexists.id)
+                    return WalletKey(keyexists.id, session, k)
+
+                wk = session.query(DbKey).filter(
+                    DbKey.wallet_id == wallet_id,
+                    or_(DbKey.public == k.public_byte,
+                        DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
+                        DbKey.address == address)).first()
+                if wk:
+                    wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
+                    wk.is_private = True
+                    wk.private = k.private_byte
+                    wk.public = k.public_byte
+                    wk.path = path
+                    session.commit()
+                    return WalletKey(wk.id, session, k)
+
+            nk = DbKey(id=new_key_id, name=name[:80], wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
@@ -411,17 +414,19 @@ class WalletKey(object):
                 filter(DbKey.wallet_id == wallet_id,
                        DbKey.address == k.address).first()
             if keyexists:
-                _logger.warning("Key with ID %s already exists" % keyexists.id)
+                _logger.warning("Key %s with ID %s already exists" % (k.address, keyexists.id))
                 return WalletKey(keyexists.id, session, k)
-            nk = DbKey(name=name[:80], wallet_id=wallet_id, purpose=purpose,
+            nk = DbKey(id=new_key_id, name=name[:80], wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address=k.address,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id,
                        witness_type=witness_type)
 
-        session.merge(DbNetwork(name=network))
+        if not new_key_id:
+            session.merge(DbNetwork(name=network))
         session.add(nk)
-        session.commit()
+        if new_key_id is None:
+            session.commit()
         return WalletKey(nk.id, session, k)
 
     def _commit(self):
@@ -1678,9 +1683,6 @@ class Wallet(object):
         public_key_list = [pubk.key_public for pubk in public_keys]
         public_key_ids = [str(x.key_id) for x in public_keys]
 
-        # Calculate redeemscript and address and add multisig key to database
-        # redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
-
         # todo: pass key object, reuse key objects
         redeemscript = Script(script_types=['multisig'], keys=public_key_list,
                               sigs_required=self.multisig_n_required).serialize()
@@ -1710,7 +1712,8 @@ class Wallet(object):
         self._commit()
         return self.key(multisig_key.id)
 
-    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, witness_type=None, network=None):
+    def new_key(self, name='', account_id=None, change=0, cosigner_id=None, witness_type=None,
+                number_of_keys=1, network=None):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
@@ -1727,6 +1730,8 @@ class Wallet(object):
         :type change: int
         :param cosigner_id: Cosigner ID for key path
         :type cosigner_id: int
+        :param witness_type: Use to create key with different witness_type
+        :type witness_type: str
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -1735,6 +1740,46 @@ class Wallet(object):
 
         if self.scheme == 'single':
             return self.main_key
+
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        if network != self.network.name and "coin_type'" not in self.key_path:
+            raise WalletError("Multiple networks not supported by wallet key structure")
+        if self.multisig:
+            # if witness_type:
+            # TODO: raise error
+            if not self.multisig_n_required:
+                raise WalletError("Multisig_n_required not set, cannot create new key")
+            if cosigner_id is None:
+                if self.cosigner_id is None:
+                    raise WalletError("Missing Cosigner ID value, cannot create new key")
+                cosigner_id = self.cosigner_id
+        witness_type = self.witness_type if not witness_type else witness_type
+        purpose = self.purpose
+        if witness_type != self.witness_type:
+            _, purpose, encoding = get_key_structure_data(witness_type, self.multisig)
+
+        address_index = 0
+        if (self.multisig and cosigner_id is not None and
+                (len(self.cosigner) > cosigner_id and self.cosigner[cosigner_id].key_path == 'm' or
+                 self.cosigner[cosigner_id].key_path == ['m'])):
+            req_path = []
+        else:
+            prevkey = self._session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, purpose=purpose, network_name=network, account_id=account_id,
+                          witness_type=witness_type, change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
+                order_by(DbKey.address_index.desc()).first()
+            if prevkey:
+                address_index = prevkey.address_index + 1
+            req_path = [change, address_index]
+
+        return self.key_for_path(req_path, name=name, account_id=account_id, witness_type=witness_type, network=network,
+                                 cosigner_id=cosigner_id, address_index=address_index, number_of_keys=number_of_keys)
+
+    def new_keys(self, name='', account_id=None, change=0, cosigner_id=None, witness_type=None, network=None,
+                 number_of_keys=1):
+        if self.scheme == 'single':
+            return self.main_key
+        ret_keys = []
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if network != self.network.name and "coin_type'" not in self.key_path:
@@ -1765,8 +1810,14 @@ class Wallet(object):
                 address_index = prevkey.address_index + 1
             req_path = [change, address_index]
 
-        return self.key_for_path(req_path, name=name, account_id=account_id, witness_type=witness_type, network=network,
-                                 cosigner_id=cosigner_id, address_index=address_index)
+        for i in range(number_of_keys):
+            address_index += 1
+            req_path = [change, address_index]
+            ret_keys.append(self.key_for_path(req_path, name=name, account_id=account_id, witness_type=witness_type,
+                              network=network, cosigner_id=cosigner_id, address_index=address_index, commit=False))
+
+        self._session.commit()
+        return ret_keys
 
     def new_key_change(self, name='', account_id=None, witness_type=None, network=None):
         """
@@ -1906,22 +1957,23 @@ class Wallet(object):
         last_used_key_id = 0
         if last_used_qr:
             last_used_key_id = last_used_qr.id
-        dbkey = (self._session.query(DbKey).
+        dbkey = (self._session.query(DbKey.id).
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
                       used=False, change=change, depth=self.key_depth, witness_type=witness_type).
             filter(DbKey.id > last_used_key_id).
-            order_by(DbKey.id.desc()).all())
-        key_list = []
+            order_by(DbKey.id.asc()).all())
         if self.scheme == 'single' and len(dbkey):
             number_of_keys = len(dbkey) if number_of_keys > len(dbkey) else number_of_keys
-        for i in range(number_of_keys):
-            if dbkey:
-                dk = dbkey.pop()
-                nk = self.key(dk.id)
-            else:
-                nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id,
-                                  witness_type=witness_type, network=network)
-            key_list.append(nk)
+        key_list = [self.key(key_id[0]) for key_id in dbkey]
+
+        if len(key_list) > number_of_keys:
+            key_list = key_list[:number_of_keys]
+        else:
+            new_keys = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id,
+                                    witness_type=witness_type, network=network,
+                                    number_of_keys=number_of_keys - len(key_list))
+            key_list = key_list + (new_keys if type(new_keys) is list else [new_keys])
+
         if as_list:
             return key_list
         else:
@@ -2099,7 +2151,8 @@ class Wallet(object):
                            witness_type=self.witness_type, network=network)
 
     def key_for_path(self, path, level_offset=None, name=None, account_id=None, cosigner_id=None,
-                     address_index=0, change=0, witness_type=None, network=None, recreate=False):
+                     address_index=0, change=0, witness_type=None, network=None, recreate=False,
+                     number_of_keys=1):
         """
         Return key for specified path. Derive all wallet keys in path if they not already exists
 
@@ -2142,9 +2195,11 @@ class Wallet(object):
         :param recreate: Recreate key, even if already found in wallet. Can be used to update public key with private key info
         :type recreate: bool
 
-        :return WalletKey:
+        :return WalletKey, list of WalletKey:
         """
 
+        if number_of_keys == 0:
+            return []
         network, account_id, _ = self._get_account_defaults(network, account_id)
         cosigner_id = cosigner_id if cosigner_id is not None else self.cosigner_id
         level_offset_key = level_offset
@@ -2173,10 +2228,18 @@ class Wallet(object):
                 else:
                     wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
                                           cosigner_id=cosigner_id, network=network, recreate=recreate,
-                                          witness_type=witness_type)
-                public_keys.append(wk)
-            return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index,
-                                          witness_type)
+                                          witness_type=witness_type, number_of_keys=number_of_keys)
+                public_keys.append(wk if type(wk) == list else [wk])
+                # public_keys.append(wk)
+            keys_to_add = [public_keys]
+            if type(public_keys[0]) is list:
+                keys_to_add = list(zip(*public_keys))
+            ms_keys = []
+            for ms_key_cosigners in keys_to_add:
+                ms_keys.append(self._new_key_multisig(list(ms_key_cosigners), name, account_id, change, cosigner_id,
+                                                      network, address_index, witness_type))
+            if not ms_keys: return None
+            return ms_keys[0] if len(ms_keys) == 1 else ms_keys
 
         # Check for closest ancestor in wallet
         wpath = fullpath
@@ -2196,10 +2259,15 @@ class Wallet(object):
             topkey = self.key(dbkey.id)
 
         # Key already found in db, return key
-        if dbkey and dbkey.path == normalize_path('/'.join(fullpath)) and not recreate:
+        if dbkey and dbkey.path == normalize_path('/'.join(fullpath)) and not recreate and number_of_keys == 1:
             return topkey
         else:
-            # Create 1 or more keys add them to wallet
+            if dbkey and dbkey.path == normalize_path('/'.join(fullpath)) and not recreate and number_of_keys > 1:
+                nks = [topkey]
+            else:
+                # Create 1 or more keys add them to wallet
+                nks = []
+
             nk = None
             parent_id = topkey.key_id
             ck = topkey.key()
@@ -2208,11 +2276,12 @@ class Wallet(object):
             newpath = topkey.path
             n_items = len(str(dbkey.path).split('/'))
             for lvl in fullpath[n_items:]:
+                # parent_key = ck
                 ck = ck.subkey_for_path(lvl, network=network)
                 newpath += '/' + lvl
                 if not account_id:
-                    account_id = 0 if "account'" not in self.key_path or self.key_path.index("account'") >= len(
-                        fullpath) \
+                    account_id = 0 if ("account'" not in self.key_path or
+                                       self.key_path.index("account'") >= len(fullpath)) \
                         else int(fullpath[self.key_path.index("account'")][:-1])
                 change = None if "change" not in self.key_path or self.key_path.index("change") >= len(fullpath) \
                     else int(fullpath[self.key_path.index("change")])
@@ -2227,7 +2296,30 @@ class Wallet(object):
                                         cosigner_id=cosigner_id, network=network, session=self._session)
                 self._key_objects.update({nk.key_id: nk})
                 parent_id = nk.key_id
-            return nk
+            if nk:
+                nks.append(nk)
+            if len(nks) < number_of_keys:
+                topkey = self._key_objects[nks[0].parent_id]
+                parent_key = topkey.key()
+                new_key_id = self._session.query(DbKey.id).order_by(DbKey.id.desc()).first()[0] + 1
+                keys_to_add = [str(k_id) for k_id in range(int(fullpath[-1]) + len(nks), int(fullpath[-1]) +
+                                                           number_of_keys)]
+
+                for key_idx in keys_to_add:
+                    new_key_id += 1
+                    ck = parent_key.subkey_for_path(key_idx, network=network)
+                    key_name = 'address index %s' % key_idx
+                    newpath = '/'.join(newpath.split('/')[:-1] + [key_idx])
+                    nks.append(WalletKey.from_key(
+                        key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
+                        change=change, purpose=purpose, path=newpath, parent_id=parent_id,
+                        encoding=encoding, witness_type=witness_type, new_key_id=new_key_id,
+                        cosigner_id=cosigner_id, network=network, session=self._session))
+                self._session.commit()
+            nk = nks[0] if len(nks) == 1 else nks
+            if nk == []: nk = None
+
+        return nk
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
              has_balance=None, is_active=None, witness_type=None, network=None, include_private=False, as_dict=False):
@@ -2259,6 +2351,8 @@ class Wallet(object):
         :type has_balance: bool
         :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is None (show all)
         :type is_active: bool
+        :param witness_type: Filter by witness_type
+        :type witness_type: str
         :param network: Network name filter
         :type network: str
         :param include_private: Include private key information in dictionary
@@ -2862,7 +2956,6 @@ class Wallet(object):
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
-                    srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
                     srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
                     utxos = []
                     for address in addresslist:

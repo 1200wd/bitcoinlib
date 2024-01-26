@@ -874,13 +874,12 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         wallet.get_keys(network='testnet', number_of_keys=2)
         wallet.get_key(network='testnet', change=1)
-        # wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=0), 0)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
         self.assertEqual(wallet.balance(network='testnet'), 0)
-        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
+        tbtc_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
-        self.assertListEqual(wallet.addresslist(network='testnet'), ltct_addresses)
+        self.assertListEqual(wallet.addresslist(network='testnet'), tbtc_addresses)
 
         t = wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
                            network='bitcoinlib_test', fee=1000, offline=False)
