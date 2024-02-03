@@ -4,6 +4,7 @@
 #    Unit Tests for Bitcoinlib Tools
 #    © 2018 - 2024 January - 1200 Web Development <http://1200wd.com/>
 #
+
 import ast
 import os
 import sys
@@ -13,7 +14,6 @@ from subprocess import Popen, PIPE
 try:
     import mysql.connector
     import psycopg2
-    from parameterized import parameterized_class
     from psycopg2 import sql
     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 except ImportError:
@@ -27,60 +27,61 @@ SQLITE_DATABASE_FILE = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.
 DATABASE_NAME = 'bitcoinlib_unittest'
 
 
-def init_sqlite(_):
-    if os.path.isfile(SQLITE_DATABASE_FILE):
-        os.remove(SQLITE_DATABASE_FILE)
+def database_init():
+    
+    def init_sqlite():
+        if os.path.isfile(SQLITE_DATABASE_FILE):
+            os.remove(SQLITE_DATABASE_FILE)
+    
+    
+    def init_postgresql():
+        con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
+        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+        cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(
+            sql.Identifier(DATABASE_NAME))
+        )
+        cur.execute(sql.SQL("CREATE DATABASE {}").format(
+            sql.Identifier(DATABASE_NAME))
+        )
+        cur.close()
+        con.close()
+    
+    
+    def init_mysql():
+        con = mysql.connector.connect(user='user', host='localhost', password='password')
+        cur = con.cursor()
+        cur.execute("DROP DATABASE IF EXISTS {}".format(DATABASE_NAME))
+        cur.execute("CREATE DATABASE {}".format(DATABASE_NAME))
+        con.commit()
+        cur.close()
+        con.close()
+
+    if os.getenv('UNITTEST_DATABASE') == 'mysql':
+        init_mysql()
+        return 'mysql://user:password@localhost:3306/' + DATABASE_NAME
+    elif os.getenv('UNITTEST_DATABASE') == 'postgresql':
+        init_postgresql()
+        return 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME
+    else:
+        init_sqlite()
+        return SQLITE_DATABASE_FILE
 
 
-def init_postgresql(_):
-    con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-    con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = con.cursor()
-    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(
-        sql.Identifier(DATABASE_NAME))
-    )
-    cur.execute(sql.SQL("CREATE DATABASE {}").format(
-        sql.Identifier(DATABASE_NAME))
-    )
-    cur.close()
-    con.close()
-
-
-def init_mysql(_):
-    con = mysql.connector.connect(user='root', host='localhost')
-    cur = con.cursor()
-    cur.execute("DROP DATABASE IF EXISTS {}".format(DATABASE_NAME))
-    cur.execute("CREATE DATABASE {}".format(DATABASE_NAME))
-    con.commit()
-    cur.close()
-    con.close()
-
-
-# db_uris = (('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),)
-# if UNITTESTS_FULL_DATABASE_TEST:
-#     db_uris += (
-#         ('mysql://root@localhost:3306/' + DATABASE_NAME, init_mysql),
-#         ('postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, init_postgresql),
-#     )
-
-
-# @parameterized_class(('DATABASE_URI', 'init_fn'), db_uris)
 class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
-        # self.init_fn()
-        init_sqlite(self)
         self.python_executable = sys.executable
         self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                             '../bitcoinlib/tools/clw.py'))
-        self.DATABASE_URI = SQLITE_DATABASE_FILE
+        self.database_uri = database_init()
 
     def test_tools_clw_create_wallet(self):
         cmd_wlt_create = '%s %s new -w test --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
                          'actual chicken obscure spray" -r -d %s' % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_delete = "%s %s -w test --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "bc1qdv5tuzrluh4lzhnu59je9n83w4hkqjhgg44d5g"
         output_wlt_delete = "Wallet test has been removed"
 
@@ -99,9 +100,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'MeQHdWDp'
         ]
         cmd_wlt_create = "%s %s new -w testms -m 2 2 %s -r -n testnet -d %s -o 0" % \
-                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.database_uri)
         cmd_wlt_delete = "%s %s -w testms --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "2NBrLTapyFqU4Wo29xG4QeEt8kn38KVWRR"
         output_wlt_delete = "Wallet testms has been removed"
 
@@ -118,9 +119,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             '5zNYeiX8'
         ]
         cmd_wlt_create = "%s %s new -w testms1 -m 2 2 %s -r -n testnet -d %s -o 0" % \
-                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.database_uri)
         cmd_wlt_delete = "%s %s -w testms1 --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "if you understood and wrote down your key: Receive address:"
         output_wlt_delete = "Wallet testms1 has been removed"
 
@@ -133,7 +134,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
     def test_tools_clw_create_multisig_wallet_error(self):
         cmd_wlt_create = "%s %s new -w testms2 -m 2 a -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "Number of total signatures (second argument) must be a numeric value"
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
         poutput = process.communicate(input=b'y')
@@ -142,13 +143,13 @@ class TestToolsCommandLineWallet(unittest.TestCase):
     def test_tools_clw_transaction_with_script(self):
         cmd_wlt_create = '%s %s new -w test2 --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
                          'actual chicken obscure spray" -r -n bitcoinlib_test -d %s' % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_update = "%s %s -w test2 -x -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_transaction = "%s %s -w test2 -d %s -s 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 0.5 -f 100000 -p" % \
-                              (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                              (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_delete = "%s %s -w test2 --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "blt1qj0mgwyhxuw9p0ngj5kqnxhlrx8ypecqekm2gr7"
         output_wlt_transaction = 'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
@@ -171,9 +172,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
     def test_tools_clw_create_litecoin_segwit_wallet(self):
         cmd_wlt_create = '%s %s new -w ltcsw --passphrase "lounge chief tip frog camera build trouble write end ' \
                          'sword order share" -d %s -j segwit -n litecoin -r' % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_delete = "%s %s -w ltcsw --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "ltc1qgc7c2z56rr4lftg0fr8tgh2vknqc3yuydedu6m"
         output_wlt_delete = "Wallet ltcsw has been removed"
 
@@ -194,9 +195,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             '7FW6wpKW'
         ]
         cmd_wlt_create = "%s %s new -w testms-p2sh-segwit -m 2 3 %s -r -j p2sh-segwit -d %s -o 0" % \
-                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.database_uri)
         cmd_wlt_delete = "%s %s -w testms-p2sh-segwit --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "3MtNi5U2cjs3EcPizzjarSz87pU9DTANge"
         output_wlt_delete = "Wallet testms-p2sh-segwit has been removed"
 
@@ -218,7 +219,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         phrase = ("hover rescue clock ocean strategy post melt banner anxiety phone pink paper enhance more "
                   "copy gate bag brass raise logic stone duck muffin conduct")
         cmd_wlt_create = "%s %s new -w wlt_from_key -c \"%s\" -d %s -y" % \
-                         (self.python_executable, self.clw_executable, phrase, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, phrase, self.database_uri)
         output_wlt_create = "bc1qpylcrcyqa5wkwe2stzc6h7q0mhs5skxuas44w2"
 
         poutput = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
@@ -228,11 +229,11 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         send_str = ("-s blt1qzt90vqqjsqspuaegu9fh4e2htaxrgt0l76d9gz 0.1 "
                     "-s blt1qu825hm0a6ajg66j79x4tzkn56qmljjms97c5tp 1")
         cmd_wlt_create = "%s %s new -w wallet_send_to_multi -d %s -n bitcoinlib_test -yq" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_update = "%s %s -w wallet_send_to_multi -d %s -x" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_send = "%s %s -w wallet_send_to_multi -d %s %s" % \
-                        (self.python_executable, self.clw_executable, self.DATABASE_URI, send_str)
+                        (self.python_executable, self.clw_executable, self.database_uri, send_str)
 
         Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         Popen(cmd_wlt_update, stdin=PIPE, stdout=PIPE, shell=True).communicate()
@@ -243,31 +244,31 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         pk = ("zprvAWgYBBk7JR8GiejuVoZaVXtWf5zNawFbTH88uKao9qnZxBypJQNvh1tGHZghpfjUfSUiS7G7MmNw3cyakkNcNis3MjD4ic54n"
               "FY5LQxMszQ")
         cmd_wlt_create = "%s %s new -w wlt_create_and_empty -c %s -d %s -y" % \
-                         (self.python_executable, self.clw_executable, pk, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, pk, self.database_uri)
         output_wlt_create = "bc1qqnqkjpnmr5zsxar76wxqcntp28ltly0fz6crdg"
         poutput = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         self.assertIn(output_wlt_create, normalize_string(poutput[0]))
 
         cmd_wlt_empty = "%s %s -w wlt_create_and_empty -d %s --wallet-empty" % \
-                        (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                        (self.python_executable, self.clw_executable, self.database_uri)
         poutput = Popen(cmd_wlt_empty, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         self.assertIn("Removed transactions and emptied wallet", normalize_string(poutput[0]))
 
         cmd_wlt_info = "%s %s -w wlt_create_and_empty -d %s -i" % \
-                       (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                       (self.python_executable, self.clw_executable, self.database_uri)
         poutput = Popen(cmd_wlt_info, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         self.assertIn("- - Transactions Account 0 (0)", normalize_string(poutput[0]))
         self.assertNotIn(output_wlt_create, normalize_string(poutput[0]))
 
     def test_tools_wallet_sweep(self):
         cmd_wlt_create = "%s %s new -w wlt_sweep -d %s -n bitcoinlib_test -yq" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_update = "%s %s -w wlt_sweep -d %s -x" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_send = "%s %s -w wlt_sweep -d %s --sweep blt1qzt90vqqjsqspuaegu9fh4e2htaxrgt0l76d9gz -p" % \
-                        (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                        (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_info = "%s %s -w wlt_sweep -d %s -i" % \
-                        (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                        (self.python_executable, self.clw_executable, self.database_uri)
         Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         Popen(cmd_wlt_update, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         process = Popen(cmd_wlt_send, stdin=PIPE, stdout=PIPE, shell=True)
@@ -290,34 +291,34 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         pub_key3 = ('BC11mYrL5yBtMgaYxHEUg3anvLX3gcLi8hbtwbjymReCgGiP6hYifVMi96M3ejtvZpZbDvetBfbzgRxmu22ZkqP2i7yhFge'
                     'mSkHp7BRhoDubrQvs')
         cmd_wlt_create1 = "%s %s new -w wlt_multisig_2_3_A -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q" % \
-                         (self.python_executable, self.clw_executable, pk1, pub_key2, pub_key3, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, pk1, pub_key2, pub_key3, self.database_uri)
         Popen(cmd_wlt_create1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         cmd_wlt_create2 = "%s %s new -w wlt_multisig_2_3_B -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q" % \
-                         (self.python_executable, self.clw_executable, pub_key1, pub_key2, pk3, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, pub_key1, pub_key2, pk3, self.database_uri)
         Popen(cmd_wlt_create2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
 
         cmd_wlt_receive1 = "%s %s -w wlt_multisig_2_3_A -d %s -r -o 1 -q" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output1 = Popen(cmd_wlt_receive1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         cmd_wlt_receive2 = "%s %s -w wlt_multisig_2_3_B -d %s -r -o 1 -q" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output2 = Popen(cmd_wlt_receive2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         self.assertEqual(output1[0], output2[0])
         address = normalize_string(output1[0].strip(b'\n'))
 
         cmd_wlt_update1 = "%s %s -w wlt_multisig_2_3_A -d %s -x -o 1" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         Popen(cmd_wlt_update1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         cmd_wlt_update2 = "%s %s -w wlt_multisig_2_3_B -d %s -x -o 1" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         Popen(cmd_wlt_update2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
 
         create_tx = "%s %s -w wlt_multisig_2_3_A -d %s -s %s 0.5 -o 1" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI, address)
+                         (self.python_executable, self.clw_executable, self.database_uri, address)
         output = Popen(create_tx, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         tx_dict_str = '{' + normalize_string(output[0]).split('{', 1)[1]
         sign_tx =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx \"%s\"" % \
-                   (self.python_executable, self.clw_executable, self.DATABASE_URI,
+                   (self.python_executable, self.clw_executable, self.database_uri,
                     tx_dict_str.replace('\r', '').replace('\n', ''))
         output = Popen(sign_tx, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         response = normalize_string(output[0])
@@ -327,7 +328,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
         filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'import_test.tx')
         sign_import_tx_file =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx-file %s" % \
-            (self.python_executable, self.clw_executable, self.DATABASE_URI, filename)
+            (self.python_executable, self.clw_executable, self.database_uri, filename)
         output = Popen(sign_import_tx_file, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         response2 = normalize_string(output[0])
         self.assertIn('2e07be62d933f5b257ac066b874df651cd6e6763795c24036904024a2b44180b', response2)
@@ -337,12 +338,12 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
     def test_tools_transaction_options(self):
         cmd_wlt_create = "%s %s new -w test_tools_transaction_options -d %s -n bitcoinlib_test -yq" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_update = "%s %s -w test_tools_transaction_options -d %s -x" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         cmd_wlt_send = ("%s %s -w test_tools_transaction_options -d %s -s blt1qg7du8cs0scxccmfly7x252qurv7kwsy6rm4xr7 0.001 "
                         "--number-of-change-outputs 5") % \
-                       (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                       (self.python_executable, self.clw_executable, self.database_uri)
         Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         Popen(cmd_wlt_update, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         output = normalize_string(Popen(cmd_wlt_send, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
@@ -352,14 +353,14 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertTrue(tx_dict['verified'])
 
         cmd_wlt_update2 = "%s %s -w test_tools_transaction_options -d %s -ix" % \
-                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+                         (self.python_executable, self.clw_executable, self.database_uri)
         output = normalize_string(Popen(cmd_wlt_update2, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
         output_list = [i for i in output.split('Keys')[1].split(' ') if i != '']
         first_key_id = int(output_list[1])
         address = output_list[3]
         cmd_wlt_send2 = ("%s %s -w test_tools_transaction_options -d %s "
                         "-s blt1qdjre3yw9hnt53entkp6tflhg34y4sp999emjnk 0.5 -k %d") % \
-                       (self.python_executable, self.clw_executable, self.DATABASE_URI, first_key_id)
+                       (self.python_executable, self.clw_executable, self.database_uri, first_key_id)
         output = normalize_string(Popen(cmd_wlt_send2, stdin=PIPE, stdout=PIPE, shell=True).communicate()[0])
         self.assertIn(address, output)
         self.assertIn("Transaction created", output)

@@ -286,7 +286,7 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(LargeBinary(32), index=True, doc="Bytes representation of public key")
+    public = Column(LargeBinary(33), index=True, doc="Bytes representation of public key")
     private = Column(EncryptedBinary(48), doc="Bytes representation of private key")
     wif = Column(EncryptedString(128), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
@@ -309,7 +309,7 @@ class DbKey(Base):
                                               "Default is False")
     network_name = Column(String(20), ForeignKey('networks.name'),
                           doc="Name of key network, i.e. bitcoin, litecoin, dash")
-    latest_txid = Column(LargeBinary(32), doc="TxId of latest transaction downloaded from the blockchain")
+    latest_txid = Column(LargeBinary(33), doc="TxId of latest transaction downloaded from the blockchain")
     witness_type = Column(String(20), default='segwit',
                           doc="Key witness type, only specify when using mixed wallets. Can be 'legacy', 'segwit' or "
                               "'p2sh-segwit'. Default is segwit.")
@@ -369,7 +369,7 @@ class DbTransaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True,
                 doc="Unique transaction index for internal usage")
-    txid = Column(LargeBinary(32), index=True, doc="Bytes representation of transaction ID")
+    txid = Column(LargeBinary(33), index=True, doc="Bytes representation of transaction ID")
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True,
                        doc="ID of wallet which contains this transaction")
     account_id = Column(Integer, index=True, doc="ID of account")
@@ -443,7 +443,7 @@ class DbTransactionInput(Base):
     witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
     witness_type = Column(String(20), default='segwit',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is segwit")
-    prev_txid = Column(LargeBinary(32),
+    prev_txid = Column(LargeBinary(33),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
@@ -487,7 +487,7 @@ class DbTransactionOutput(Base):
                              "'nulldata', 'unknown', 'p2wpkh', 'p2wsh', 'p2tr'. Default is p2pkh")
     value = Column(BigInteger, default=0, doc="Total transaction output value")
     spent = Column(Boolean, default=False, doc="Indicated if output is already spent in another transaction")
-    spending_txid = Column(LargeBinary(32), doc="Transaction hash of input which spends this output")
+    spending_txid = Column(LargeBinary(33), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
     __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'),)
