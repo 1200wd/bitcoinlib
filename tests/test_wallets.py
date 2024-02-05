@@ -184,7 +184,13 @@ def database_init(dbname=DATABASE_NAME):
     else:
         dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):
-            os.remove(dburi)
+            try:
+                os.remove(dburi)
+            except PermissionError:
+                db_obj = Db(dburi)
+                db_obj.drop_db(True)
+                db_obj.session.close()
+                db_obj.engine.dispose()
         return dburi
 
 
