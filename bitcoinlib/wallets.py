@@ -212,6 +212,7 @@ def wallet_empty(wallet, db_uri=None, db_password=None):
     else:
         w = session.query(DbWallet).filter_by(name=wallet)
     if not w or not w.first():
+        session.close()
         raise WalletError("Wallet '%s' not found" % wallet)
     wallet_id = w.first().id
 
@@ -375,13 +376,20 @@ class WalletKey(object):
             encoding = get_encoding_from_witness(witness_type)
         script_type = script_type_default(witness_type, multisig)
 
+        if not new_key_id:
+            key_id_max = session.query(func.max(DbKey.id)).scalar()
+            new_key_id = key_id_max + 1 if key_id_max else None
+            commit = True
+        else:
+            commit = False
+
         if not key_is_address:
             if key_type != 'single' and k.depth != len(path.split('/'))-1:
                 if path == 'm' and k.depth > 1:
                     path = "M"
             address = k.address(encoding=encoding, script_type=script_type)
 
-            if not new_key_id:
+            if commit:
                 keyexists = session.query(DbKey).\
                     filter(DbKey.wallet_id == wallet_id,
                            DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
@@ -422,10 +430,10 @@ class WalletKey(object):
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id,
                        witness_type=witness_type)
 
-        if not new_key_id:
+        if commit:
             session.merge(DbNetwork(name=network))
         session.add(nk)
-        if new_key_id is None:
+        if commit:
             session.commit()
         return WalletKey(nk.id, session, k)
 
@@ -487,6 +495,9 @@ class WalletKey(object):
             self.witness_type = wk.witness_type
         else:
             raise WalletError("Key with id %s not found" % key_id)
+
+    def __del__(self):
+        self._session.close()
 
     def __repr__(self):
         return "<WalletKey(key_id=%d, name=%s, wif=%s, path=%s)>" % (self.key_id, self.name, self.wif, self.path)
@@ -1699,7 +1710,8 @@ class Wallet(object):
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
 
-        multisig_key = DbKey(
+        new_key_id = (self._session.query(func.max(DbKey.id)).scalar() or 0) + 1
+        multisig_key = DbKey(id=new_key_id,
             name=name[:80], wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
             public=address.hash_bytes, wif='multisig-%s' % address, address=address.address, cosigner_id=cosigner_id,

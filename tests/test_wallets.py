@@ -23,9 +23,8 @@ from random import shuffle
 
 try:
     import mysql.connector
-    import psycopg2
-    from psycopg2 import sql
-    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+    import psycopg
+    from psycopg import sql
 except ImportError as e:
     print("Could not import all modules. Error: %s" % e)
     # from psycopg2cffi import compat  # Use for PyPy support
@@ -63,10 +62,9 @@ params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
 
 
 def database_init(dbname=DATABASE_NAME):
-    close_all_sessions()
+    session.close_all_sessions()
     if os.getenv('UNITTEST_DATABASE') == 'postgresql':
-        con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
         cur = con.cursor()
         try:
             # cur.execute(sql.SQL("ALTER DATABASE {} allow_connections = off").format(sql.Identifier(dbname)))

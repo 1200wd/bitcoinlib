@@ -13,24 +13,21 @@ from subprocess import Popen, PIPE
 
 try:
     import mysql.connector
-    import psycopg2
-    from psycopg2 import sql
-    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+    import psycopg
+    from psycopg import sql
 except ImportError:
     pass  # Only necessary when mysql or postgres is used
 
-# from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
-from bitcoinlib.db import BCL_DATABASE_DIR
+from bitcoinlib.db import BCL_DATABASE_DIR, session
 from bitcoinlib.encoding import normalize_string
 
-SQLITE_DATABASE_FILE = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
 DATABASE_NAME = 'bitcoinlib_unittest'
 
 
 def database_init(dbname=DATABASE_NAME):
+    session.close_all_sessions()
     if os.getenv('UNITTEST_DATABASE') == 'postgresql':
-        con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
         cur = con.cursor()
         # try:
         cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(
@@ -48,7 +45,10 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'postgresql://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-        con = mysql.connector.connect(user='user', host='localhost', password='password')
+        try:
+            con = mysql.connector.connect(user='root', host='localhost')
+        except mysql.connector.errors.ProgrammingError:
+            con = mysql.connector.connect(user='user', host='localhost', password='password')
         cur = con.cursor()
         cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
         cur.execute("CREATE DATABASE {}".format(dbname))

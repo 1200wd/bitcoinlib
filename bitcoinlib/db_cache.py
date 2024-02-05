@@ -21,7 +21,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
+from sqlalchemy.orm import sessionmaker, relationship, session
 # try:
 #     import mysql.connector
 #     from parameterized import parameterized_class
@@ -90,8 +90,7 @@ class DbCache:
 
     def drop_db(self):
         self.session.commit()
-        # self.session.close_all()
-        close_all_sessions()
+        self.session.close_all()
         Base.metadata.drop_all(self.engine)
 
 

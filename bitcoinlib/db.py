@@ -23,7 +23,7 @@ from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckCons
                         ForeignKey, DateTime, LargeBinary, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
+from sqlalchemy.orm import sessionmaker, relationship, session
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 from bitcoinlib.encoding import aes_encrypt, aes_decrypt
@@ -97,7 +97,6 @@ class Db:
         if yes_i_am_sure:
             self.session.commit()
             self.session.close_all()
-            close_all_sessions()
             Base.metadata.drop_all(self.engine)
 
     @staticmethod
@@ -286,7 +285,7 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(LargeBinary(33), index=True, doc="Bytes representation of public key")
+    public = Column(LargeBinary(65), index=True, doc="Bytes representation of public key")
     private = Column(EncryptedBinary(48), doc="Bytes representation of private key")
     wif = Column(EncryptedString(128), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
