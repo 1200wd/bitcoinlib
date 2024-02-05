@@ -19,7 +19,7 @@ try:
 except ImportError:
     pass  # Only necessary when mysql or postgres is used
 
-from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
+# from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
 from bitcoinlib.db import BCL_DATABASE_DIR
 from bitcoinlib.encoding import normalize_string
 
@@ -27,45 +27,40 @@ SQLITE_DATABASE_FILE = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.
 DATABASE_NAME = 'bitcoinlib_unittest'
 
 
-def database_init():
-    
-    def init_sqlite():
-        if os.path.isfile(SQLITE_DATABASE_FILE):
-            os.remove(SQLITE_DATABASE_FILE)
-    
-    
-    def init_postgresql():
+def database_init(dbname=DATABASE_NAME):
+    if os.getenv('UNITTEST_DATABASE') == 'postgresql':
         con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
         con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cur = con.cursor()
+        # try:
         cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(
-            sql.Identifier(DATABASE_NAME))
+            sql.Identifier(dbname))
         )
         cur.execute(sql.SQL("CREATE DATABASE {}").format(
-            sql.Identifier(DATABASE_NAME))
+            sql.Identifier(dbname))
         )
+        # except Exception:
+        #     pass
+        # finally:
+        #     cur.close()
+        #     con.close()
         cur.close()
         con.close()
-    
-    
-    def init_mysql():
+        return 'postgresql://postgres:postgres@localhost:5432/' + dbname
+    elif os.getenv('UNITTEST_DATABASE') == 'mysql':
         con = mysql.connector.connect(user='user', host='localhost', password='password')
         cur = con.cursor()
-        cur.execute("DROP DATABASE IF EXISTS {}".format(DATABASE_NAME))
-        cur.execute("CREATE DATABASE {}".format(DATABASE_NAME))
+        cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
+        cur.execute("CREATE DATABASE {}".format(dbname))
         con.commit()
         cur.close()
         con.close()
-
-    if os.getenv('UNITTEST_DATABASE') == 'mysql':
-        init_mysql()
-        return 'mysql://user:password@localhost:3306/' + DATABASE_NAME
-    elif os.getenv('UNITTEST_DATABASE') == 'postgresql':
-        init_postgresql()
-        return 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME
+        return 'mysql://user:password@localhost:3306/' + dbname
     else:
-        init_sqlite()
-        return SQLITE_DATABASE_FILE
+        dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
+        if os.path.isfile(dburi):
+            os.remove(dburi)
+        return dburi
 
 
 class TestToolsCommandLineWallet(unittest.TestCase):

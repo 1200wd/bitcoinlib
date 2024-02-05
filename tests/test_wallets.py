@@ -65,87 +65,110 @@ params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
 ))
 
 
-class TestWalletMixin:
-    SCHEMA = None
-
-    @classmethod
-    def create_db_if_needed(cls, db):
-        if cls.SCHEMA == 'postgresql':
-            con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-            cur = con.cursor()
-            try:
-                cur.execute(sql.SQL("CREATE DATABASE {}").format(
-                    sql.Identifier(db))
-                )
-            except Exception:
-                pass
-            finally:
-                cur.close()
-                con.close()
-        elif cls.SCHEMA == 'mysql':
-            con = mysql.connector.connect(user='root', host='localhost')
-            cur = con.cursor()
-            cur.execute('CREATE DATABASE IF NOT EXISTS {}'.format(db))
-            con.commit()
-            cur.close()
-            con.close()
-
-    @classmethod
-    def db_remove(cls):
-        close_all_sessions()
-        if cls.SCHEMA == 'sqlite':
-            for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
-                if os.path.isfile(db):
-                    try:
-                        os.remove(db)
-                    except PermissionError:
-                        db_obj = Db(db)
-                        db_obj.drop_db(True)
-                        db_obj.session.close()
-                        db_obj.engine.dispose()
-        elif cls.SCHEMA == 'postgresql':
-            for db in [DATABASE_NAME, DATABASE_NAME_2]:
-                cls.create_db_if_needed(db)
-                con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
-                con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-                cur = con.cursor()
-                try:
-                    # drop all tables
-                    cur.execute(sql.SQL("""
-                        DO $$ DECLARE
-                            r RECORD;
-                        BEGIN
-                            FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-                                EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                            END LOOP;
-                        END $$;"""))
-                finally:
-                    cur.close()
-                    con.close()
-        elif cls.SCHEMA == 'mysql':
-            for db in [DATABASE_NAME, DATABASE_NAME_2]:
-                cls.create_db_if_needed(db)
-                con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
-                cur = con.cursor(buffered=True)
-                try:
-                    cur.execute("DROP DATABASE {};".format(db))
-                    cur.execute("CREATE DATABASE {};".format(db))
-                finally:
-                    cur.close()
-                    con.close()
+# class TestWalletMixin:
+#     SCHEMA = None
+#
+#     @classmethod
+#     def create_db_if_needed(cls, db):
+#         if cls.SCHEMA == 'postgresql':
+#             con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
+#             con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+#             cur = con.cursor()
+#             try:
+#                 cur.execute(sql.SQL("CREATE DATABASE {}").format(
+#                     sql.Identifier(db))
+#                 )
+#             except Exception:
+#                 pass
+#             finally:
+#                 cur.close()
+#                 con.close()
+#         elif cls.SCHEMA == 'mysql':
+#             con = mysql.connector.connect(user='root', host='localhost')
+#             cur = con.cursor()
+#             cur.execute('CREATE DATABASE IF NOT EXISTS {}'.format(db))
+#             con.commit()
+#             cur.close()
+#             con.close()
+#
+#     @classmethod
+#     def db_remove(cls):
+#         close_all_sessions()
+#         if cls.SCHEMA == 'sqlite':
+#             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
+#                 if os.path.isfile(db):
+#                     try:
+#                         os.remove(db)
+#                     except PermissionError:
+#                         db_obj = Db(db)
+#                         db_obj.drop_db(True)
+#                         db_obj.session.close()
+#                         db_obj.engine.dispose()
+#         elif cls.SCHEMA == 'postgresql':
+#             for db in [DATABASE_NAME, DATABASE_NAME_2]:
+#                 cls.create_db_if_needed(db)
+#                 con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
+#                 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+#                 cur = con.cursor()
+#                 try:
+#                     # drop all tables
+#                     cur.execute(sql.SQL("""
+#                         DO $$ DECLARE
+#                             r RECORD;
+#                         BEGIN
+#                             FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+#                                 EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+#                             END LOOP;
+#                         END $$;"""))
+#                 finally:
+#                     cur.close()
+#                     con.close()
+#         elif cls.SCHEMA == 'mysql':
+#             for db in [DATABASE_NAME, DATABASE_NAME_2]:
+#                 cls.create_db_if_needed(db)
+#                 con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
+#                 cur = con.cursor(buffered=True)
+#                 try:
+#                     cur.execute("DROP DATABASE {};".format(db))
+#                     cur.execute("CREATE DATABASE {};".format(db))
+#                 finally:
+#                     cur.close()
+#                     con.close()
 
 
 def database_init(dbname=DATABASE_NAME):
-
-    print(os.getenv('UNITTEST_DATABASE'))
+    close_all_sessions()
     if os.getenv('UNITTEST_DATABASE') == 'postgresql':
         con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
         con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cur = con.cursor()
-        cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(
-            sql.Identifier(dbname))
-        )
+        try:
+            # cur.execute(sql.SQL("ALTER DATABASE {} allow_connections = off").format(sql.Identifier(dbname)))
+            cur.execute(sql.SQL("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '{}'").format(
+                sql.Identifier(dbname)))
+            cur.execute(sql.SQL("SELECT pg_terminate_backend(pg_stat_activity.pid)"
+                "FROM pg_stat_activity WHERE pg_stat_activity.datname = '{}'" 
+                "AND pid <> pg_backend_pid();").format(sql.Identifier(dbname)))
+        except Exception as e:
+            print(e)
+        # res = cur.execute(sql.SQL("SELECT sum(numbackends) FROM pg_stat_database"))
+        # print(res)
+        cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
+        cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
+        # try:
+        # drop all tables
+        # cur.execute(sql.SQL("""
+        #     DO $$ DECLARE
+        #         r RECORD;
+        #     BEGIN
+        #         FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+        #             EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+        #         END LOOP;
+        #     END $$;"""))
+        # finally:
+        #     cur.close()
+        #     con.close()
+        con.commit()
         cur.close()
         con.close()
         return 'postgresql://postgres:postgres@localhost:5432/' + dbname
@@ -167,10 +190,10 @@ def database_init(dbname=DATABASE_NAME):
 
 class TestWalletCreate(unittest.TestCase):
     wallet = None
+    database_uri = None
 
     @classmethod
     def setUpClass(cls):
-        # cls.database_uri = database_init()
         cls.database_uri = database_init()
         cls.wallet = Wallet.create(
             name='test_wallet_create', witness_type='legacy',
@@ -356,6 +379,11 @@ class TestWalletCreate(unittest.TestCase):
         w = wallet_create_or_open('kewallet', ke, password='hoihoi', network='bitcoin', db_uri=self.database_uri)
         self.assertEqual(k.private_hex, w.main_key.key_private.hex())
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.database_uri
+        del cls.wallet
+
 
 class TestWalletImport(unittest.TestCase):
 
@@ -520,6 +548,7 @@ class TestWalletImport(unittest.TestCase):
 
 
 class TestWalletExport(unittest.TestCase):
+    database_uri = None
 
     @classmethod
     def setUpClass(cls):
@@ -760,6 +789,11 @@ class TestWalletKeys(unittest.TestCase):
         self.assertFalse(w2.main_key.is_private)
         self.assertIsNone(w2.main_key.key_private)
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.database_uri
+        del cls.wallet
+
 
 class TestWalletElectrum(unittest.TestCase):
     wallet = None
@@ -803,6 +837,10 @@ class TestWalletElectrum(unittest.TestCase):
                             witness_type='p2sh-segwit', db_uri=self.database_uri)
         self.assertEqual(wlt.get_key().address, '3ArRVGXfqcjw68XzUZr4iCCemrPoFZxm7s')
         self.assertEqual(wlt.get_key_change().address, '3FZEUFf59C3psUUiKB8TFbjsFUGWD73QPY')
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.wallet
 
 
 class TestWalletMultiCurrency(unittest.TestCase):
@@ -876,6 +914,10 @@ class TestWalletMultiCurrency(unittest.TestCase):
         t = w.send_to('tb1qhq6x777xpj32jm005qppxa6gyxt3qrc376ye6c', '0.1 mTBTC', fee=1000)
         self.assertFalse(t.pushed)
         self.assertTrue(t.verified)
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.wallet
 
 
 class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
@@ -2328,6 +2370,10 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t2.verify())
         self.assertTrue(t2.replace_by_fee)
         self.assertEqual(t2.inputs[0].sequence, SEQUENCE_REPLACE_BY_FEE)
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.wallet
 
 
 class TestWalletSegwit(unittest.TestCase):
