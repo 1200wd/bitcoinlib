@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2023 May - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2024 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,7 +23,6 @@ from random import shuffle
 
 try:
     import mysql.connector
-    from parameterized import parameterized_class
     import psycopg2
     from psycopg2 import sql
     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -43,8 +42,6 @@ DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittes
 DATABASEFILE_UNITTESTS_2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest2.sqlite')
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
-# SQLITE_DATABASE_FILE = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % DATABASE_NAME)
-# SQLITE_DATABASE_FILE2 = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % DATABASE_NAME_2)
 
 db_uris = (
     ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
@@ -63,77 +60,6 @@ if UNITTESTS_FULL_DATABASE_TEST:
 params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
     db_uris
 ))
-
-
-# class TestWalletMixin:
-#     SCHEMA = None
-#
-#     @classmethod
-#     def create_db_if_needed(cls, db):
-#         if cls.SCHEMA == 'postgresql':
-#             con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-#             con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-#             cur = con.cursor()
-#             try:
-#                 cur.execute(sql.SQL("CREATE DATABASE {}").format(
-#                     sql.Identifier(db))
-#                 )
-#             except Exception:
-#                 pass
-#             finally:
-#                 cur.close()
-#                 con.close()
-#         elif cls.SCHEMA == 'mysql':
-#             con = mysql.connector.connect(user='root', host='localhost')
-#             cur = con.cursor()
-#             cur.execute('CREATE DATABASE IF NOT EXISTS {}'.format(db))
-#             con.commit()
-#             cur.close()
-#             con.close()
-#
-#     @classmethod
-#     def db_remove(cls):
-#         close_all_sessions()
-#         if cls.SCHEMA == 'sqlite':
-#             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
-#                 if os.path.isfile(db):
-#                     try:
-#                         os.remove(db)
-#                     except PermissionError:
-#                         db_obj = Db(db)
-#                         db_obj.drop_db(True)
-#                         db_obj.session.close()
-#                         db_obj.engine.dispose()
-#         elif cls.SCHEMA == 'postgresql':
-#             for db in [DATABASE_NAME, DATABASE_NAME_2]:
-#                 cls.create_db_if_needed(db)
-#                 con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
-#                 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-#                 cur = con.cursor()
-#                 try:
-#                     # drop all tables
-#                     cur.execute(sql.SQL("""
-#                         DO $$ DECLARE
-#                             r RECORD;
-#                         BEGIN
-#                             FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-#                                 EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-#                             END LOOP;
-#                         END $$;"""))
-#                 finally:
-#                     cur.close()
-#                     con.close()
-#         elif cls.SCHEMA == 'mysql':
-#             for db in [DATABASE_NAME, DATABASE_NAME_2]:
-#                 cls.create_db_if_needed(db)
-#                 con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
-#                 cur = con.cursor(buffered=True)
-#                 try:
-#                     cur.execute("DROP DATABASE {};".format(db))
-#                     cur.execute("CREATE DATABASE {};".format(db))
-#                 finally:
-#                     cur.close()
-#                     con.close()
 
 
 def database_init(dbname=DATABASE_NAME):

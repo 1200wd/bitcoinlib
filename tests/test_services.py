@@ -22,7 +22,6 @@ import unittest
 import logging
 try:
     import mysql.connector
-    from parameterized import parameterized_class
     import psycopg2
     from psycopg2 import sql
     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
