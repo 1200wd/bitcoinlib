@@ -45,10 +45,7 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'postgresql://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-        try:
-            con = mysql.connector.connect(user='root', host='localhost')
-        except mysql.connector.errors.ProgrammingError:
-            con = mysql.connector.connect(user='user', host='localhost', password='password')
+        con = mysql.connector.connect(user='user', host='localhost', password='password')
         cur = con.cursor()
         cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
         cur.execute("CREATE DATABASE {}".format(dbname))

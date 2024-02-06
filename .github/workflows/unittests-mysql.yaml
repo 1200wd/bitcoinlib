@@ -1,4 +1,4 @@
-name: Bitcoinlib Tests Ubuntu MySQL
+name: Bitcoinlib Tests Ubuntu - MySQL
 on: [push]
 
 jobs:
