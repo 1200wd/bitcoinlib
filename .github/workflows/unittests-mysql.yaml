@@ -19,6 +19,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install .[dev]
+    - name: Start mysql
+      run: |
+        sudo /etc/init.d/mysql start
     - name: Test with coverage
       env:
         BCL_CONFIG_FILE: config.ini.unittest
