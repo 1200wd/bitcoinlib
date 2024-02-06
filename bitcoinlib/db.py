@@ -77,6 +77,7 @@ class Db:
         _logger.info("Using database: %s://%s:%s/%s" % (self.o.scheme or '', self.o.hostname or '',
                                                         self.o.port or '', self.o.path or ''))
         self.db_uri = db_uri
+        print(db_uri)
 
         # VERIFY AND UPDATE DATABASE
         # Just a very simple database update script, without any external libraries for now

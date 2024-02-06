@@ -22,17 +22,6 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, session
-# try:
-#     import mysql.connector
-#     from parameterized import parameterized_class
-#     import psycopg2
-#     from psycopg2 import sql
-#     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-# except ImportError as e:
-#     print("Could not import all modules. Error: %s" % e)
-#     # from psycopg2cffi import compat  # Use for PyPy support
-#     # compat.register()
-#     pass  # Only necessary when mysql or postgres is used
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 
