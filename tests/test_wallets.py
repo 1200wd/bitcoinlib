@@ -25,6 +25,7 @@ try:
     import mysql.connector
     import psycopg
     from psycopg import sql
+    import testing.postgresql
 except ImportError as e:
     print("Could not import all modules. Error: %s" % e)
     # from psycopg2cffi import compat  # Use for PyPy support
@@ -42,46 +43,42 @@ DATABASEFILE_UNITTESTS_2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unitt
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
-db_uris = (
-    ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
+# db_uris = (
+#     ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
 
-print("UNITTESTS_FULL_DATABASE_TEST: %s" % UNITTESTS_FULL_DATABASE_TEST)
+print("DATABASE USED: %s" % os.getenv('UNITTEST_DATABASE'))
 
-if UNITTESTS_FULL_DATABASE_TEST:
-    db_uris += (
-        ('mysql', 'mysql://root:root@localhost:3306/' + DATABASE_NAME,
-         'mysql://root:root@localhost:3306/' + DATABASE_NAME_2),
-        ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
-         'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
-    )
-
-
-params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
-    db_uris
-))
+# if UNITTESTS_FULL_DATABASE_TEST:
+#     db_uris += (
+#         ('mysql', 'mysql://root:root@localhost:3306/' + DATABASE_NAME,
+#          'mysql://root:root@localhost:3306/' + DATABASE_NAME_2),
+#         ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
+#          'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
+#     )
+#
+#
+# params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
+#     db_uris
+# ))
 
 
 def database_init(dbname=DATABASE_NAME):
     session.close_all_sessions()
     if os.getenv('UNITTEST_DATABASE') == 'postgresql':
-        con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
-        cur = con.cursor()
-        try:
-            # cur.execute(sql.SQL("ALTER DATABASE {} allow_connections = off").format(sql.Identifier(dbname)))
-            cur.execute(sql.SQL("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '{}'").format(
-                sql.Identifier(dbname)))
-            cur.execute(sql.SQL("SELECT pg_terminate_backend(pg_stat_activity.pid)"
-                "FROM pg_stat_activity WHERE pg_stat_activity.datname = '{}'" 
-                "AND pid <> pg_backend_pid();").format(sql.Identifier(dbname)))
-        except Exception as e:
-            print(e)
+        # con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
+        # cur = con.cursor()
+        # try:
+        #     cur.execute(sql.SQL("ALTER DATABASE {} allow_connections = off").format(sql.Identifier(dbname)))
+        #     cur.execute(sql.SQL("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '{}'").format(
+        #         sql.Identifier(dbname)))
+        #     cur.execute(sql.SQL("SELECT pg_terminate_backend(pg_stat_activity.pid)"
+        #         "FROM pg_stat_activity WHERE pg_stat_activity.datname = '{}'"
+        #         "AND pid <> pg_backend_pid();").format(sql.Identifier(dbname)))
+        # except Exception as e:
+        #     print(e)
         # res = cur.execute(sql.SQL("SELECT sum(numbackends) FROM pg_stat_database"))
         # print(res)
-        cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
-        cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
-        # try:
-        # drop all tables
-        # cur.execute(sql.SQL("""
+        # res = cur.execute(sql.SQL("""
         #     DO $$ DECLARE
         #         r RECORD;
         #     BEGIN
@@ -89,13 +86,27 @@ def database_init(dbname=DATABASE_NAME):
         #             EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
         #         END LOOP;
         #     END $$;"""))
+        # print(res)
+        # try:
+        #     cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
+        #     cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
+        # except:
+        #     pass
+        # try:
+        #     # drop all tables
         # finally:
         #     cur.close()
         #     con.close()
-        con.commit()
-        cur.close()
-        con.close()
-        return 'postgresql://postgres:postgres@localhost:5432/' + dbname
+        # con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
+        # cur = con.cursor()
+        # cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
+        # con.commit()
+        # cur.close()
+        # con.close()
+        # return 'postgresql://postgres:postgres@localhost:5432/' + dbname
+        # postgresql = testing.postgresql.Postgresql()
+        # return postgresql.url()
+        return 'testing.postgresql'
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
         con = mysql.connector.connect(user='user', host='localhost', password='password')
         cur = con.cursor()

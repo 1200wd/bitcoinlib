@@ -96,7 +96,8 @@ class Db:
     def drop_db(self, yes_i_am_sure=False):
         if yes_i_am_sure:
             self.session.commit()
-            self.session.close_all()
+            self.session.close()
+            session.close_all_sessions()
             Base.metadata.drop_all(self.engine)
 
     @staticmethod

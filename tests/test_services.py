@@ -22,9 +22,9 @@ import unittest
 import logging
 try:
     import mysql.connector
-    import psycopg2
-    from psycopg2 import sql
-    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+    import psycopg
+    from psycopg import sql
+    # from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 except ImportError as e:
     print("Could not import all modules. Error: %s" % e)
     # from psycopg2cffi import compat  # Use for PyPy support
@@ -818,8 +818,7 @@ class TestServiceCache(unittest.TestCase):
             pass
 
         try:
-            con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
             cur = con.cursor()
             cur.execute(sql.SQL("CREATE DATABASE {}").format(
                 sql.Identifier('bitcoinlibcache.unittest'))

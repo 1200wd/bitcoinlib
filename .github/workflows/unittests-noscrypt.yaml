@@ -1,4 +1,4 @@
-name: Bitcoinlib Unittests Coveralls Ubuntu - No scrypt
+name: Bitcoinlib Tests Ubuntu - No scrypt
 on: [push]
 
 jobs:

@@ -59,7 +59,7 @@ class DbCache:
     """
     Cache Database object. Initialize database and open session when creating database object.
 
-    Create new database if is doesn't exist yet
+    Create new database if it doesn't exist yet
 
     """
     def __init__(self, db_uri=None):

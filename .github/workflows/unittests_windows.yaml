@@ -1,4 +1,4 @@
-name: Bitcoinlib Windows Unittests
+name: Bitcoinlib Tests Windows
 on: [push]
 
 jobs:
