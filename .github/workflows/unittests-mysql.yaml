@@ -10,10 +10,8 @@ jobs:
         ports:
           - 3306
         env:
-          MARIADB_ROOT_PASSWORD: password
-          MARIADB_DATABASE: test
-          MARIADB_USER: user
-          MARIADB_PASSWORD: password
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
+          MARIADB_MYSQL_LOCALHOST_USER: 1
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
 
     strategy:
