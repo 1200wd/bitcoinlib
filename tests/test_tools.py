@@ -45,14 +45,17 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'postgresql://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-        con = mysql.connector.connect(user='user', host='localhost', password='password')
+        try:
+            con = mysql.connector.connect(user='user', host='localhost', password='password')
+        except:
+            con = mysql.connector.connect(user='root', host='localhost', password='password')
         cur = con.cursor()
         cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
         cur.execute("CREATE DATABASE {}".format(dbname))
         con.commit()
         cur.close()
         con.close()
-        return 'mysql://user:password@localhost:3306/' + dbname
+        return 'mysql://root:password@localhost:3306/' + dbname
     else:
         dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):
