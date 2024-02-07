@@ -40,13 +40,13 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 
 CACHE_DBNAME1 = 'bitcoinlib_cache_unittest1'
 CACHE_DBNAME2 = 'bitcoinlib_cache_unittest2'
-# FIXME: Allow mariadb for cache database
+# FIXME: Mariadb for cache database does not work due to problem with BLOB indexing
 # if os.getenv('UNITTEST_DATABASE') == 'mysql' or os.getenv('UNITTEST_DATABASE') == 'mariadb':
 #     DATABASE_CACHE_UNITTESTS = 'mariadb://user:password@localhost:3306/%s' % CACHE_DBNAME1
 #     DATABASE_CACHE_UNITTESTS2 = 'mariadb://user:password@localhost:3306/%s' % CACHE_DBNAME2
 if os.getenv('UNITTEST_DATABASE') == 'postgresql':
-    DATABASE_CACHE_UNITTESTS = 'postgresql://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME1
-    DATABASE_CACHE_UNITTESTS2 = 'postgresql://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME2
+    DATABASE_CACHE_UNITTESTS = 'postgresql+psycopg://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME1
+    DATABASE_CACHE_UNITTESTS2 = 'postgresql+psycopg://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME2
 else:
     DATABASE_CACHE_UNITTESTS =  os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME1) + '.sqlite'
     DATABASE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME2) + '.sqlite'

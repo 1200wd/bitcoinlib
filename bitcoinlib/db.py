@@ -67,6 +67,8 @@ class Db:
         if self.o.scheme == 'mysql':
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += 'binary_prefix=true'
+        if self.o.scheme == 'postgresql':
+            db_uri = self.o._replace(scheme="postgresql+psycopg").geturl()
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
         Session = sessionmaker(bind=self.engine)
