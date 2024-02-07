@@ -820,9 +820,13 @@ class TestServiceCache(unittest.TestCase):
             try:
                 con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
                 cur = con.cursor()
-                cur.execute(sql.SQL("CREATE DATABASE {}").format(
-                    sql.Identifier('bitcoinlibcache.unittest'))
-                )
+                try:
+                    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(CACHE_DBNAME1)))
+                    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(CACHE_DBNAME2)))
+                    cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(CACHE_DBNAME1)))
+                    cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(CACHE_DBNAME2)))
+                except:
+                    pass
                 cur.close()
                 con.close()
             except Exception:
