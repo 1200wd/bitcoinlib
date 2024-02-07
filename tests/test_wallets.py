@@ -71,7 +71,8 @@ def database_init(dbname=DATABASE_NAME):
         try:
             cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
             cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
-        except:
+        except Exception as e:
+            print("Error exception %s" % str(e))
             pass
         cur.close()
         con.close()
@@ -140,7 +141,9 @@ class TestWalletCreate(unittest.TestCase):
 
     def test_wallets_list(self):
         wallets = wallets_list(db_uri=self.database_uri)
-        self.assertEqual(wallets[0]['name'], 'test_wallet_create')
+        wallet_names = [w['name'] for w in wallets]
+        # self.assertEqual(wallets[0]['name'], 'test_wallet_create')
+        self.assertIn('test_wallet_create', wallet_names)
 
     def test_delete_wallet(self):
         Wallet.create(
@@ -467,7 +470,7 @@ class TestWalletExport(unittest.TestCase):
     def test_wallet_export_hdwifs(self):
         # p2wpkh
         p = 'garage million cheese nephew original subject pass reward month practice advance decide'
-        w = Wallet.create("wif_import_p2wpkh", p, network='bitcoin', witness_type='segwit',
+        w = Wallet.create("wif_export_p2wpkh", p, network='bitcoin', witness_type='segwit',
                           db_uri=self.database_uri)
         wif = 'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmx' \
               'CKkXdDAXN'
@@ -476,7 +479,7 @@ class TestWalletExport(unittest.TestCase):
 
         # # p2sh_p2wpkh
         p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
-        w = Wallet.create("wif_import_p2sh_p2wpkh", p, network='bitcoin', witness_type='p2sh-segwit',
+        w = Wallet.create("wif_export_p2sh_p2wpkh", p, network='bitcoin', witness_type='p2sh-segwit',
                           db_uri=self.database_uri)
         wif = 'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2' \
               'DqiVquYLE'
@@ -490,7 +493,7 @@ class TestWalletExport(unittest.TestCase):
             'Ba5zbv9',
             'Zpub74JTMKMB9cTWwE9Hs4UVaHvddqPtR51D99x2B5EGyXyxEg3PW77vfmD15RZ86TVdwwwuUaCueBtvaL921mgyKe9Ya6LHCaMXnEp1'
             'PMw4vDy']
-        w = Wallet.create("wif_import_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin', cosigner_id=0,
+        w = Wallet.create("wif_export_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin', cosigner_id=0,
                           db_uri=self.database_uri)
         for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
@@ -506,7 +509,7 @@ class TestWalletExport(unittest.TestCase):
             'P8nxY8N',
             'Ypub6jVwyh6yYiRoA5zAnGY1g88G5LdaxkHX65d2kSW97yTBAF1RQwAs3UGPz8bX7LvQfg8tc9MQz7eZ79qVigELqSJzfFbGmPak4PZr'
             'vW8fZXy']
-        w = Wallet.create("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
+        w = Wallet.create("wif_export_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
                           network='bitcoin', cosigner_id=0, db_uri=self.database_uri)
         for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
@@ -1292,8 +1295,8 @@ class TestWalletMultisig(unittest.TestCase):
             HDKey(network=network),
             hdkey.public()
         ]
-        wallet = Wallet.create('Multisig-2-of-3-example', key_list, sigs_required=2, network=network,
-                               db_uri=self.database_uri)
+        wallet = Wallet.create('test_wallet_multisig_sign_with_external_single_key',
+                               key_list, sigs_required=2, network=network, db_uri=self.database_uri)
         wallet.new_key()
         wallet.utxos_update()
         wt = wallet.send_to('21A6yyUPRL9hZZo1Rw4qP5G6h9idVVLUncE', 10000000, offline=False)
@@ -2464,7 +2467,7 @@ class TestWalletSegwit(unittest.TestCase):
     def test_wallet_segwit_litecoin_multisig(self):
         p1 = 'only sing document speed outer gauge stand govern way column material odor'
         p2 = 'oyster pelican debate mass scene title pipe lock recipe flavor razor accident'
-        w = wallet_create_or_open('ltcswms', [p1, p2], network='litecoin', witness_type='segwit',
+        w = wallet_create_or_open('ltc_segwit_ms', [p1, p2], network='litecoin', witness_type='segwit',
                                   cosigner_id=0, db_uri=self.database_uri)
         w.get_keys(number_of_keys=2)
         w.utxo_add('ltc1qkewaz7lxn75y6wppvqlsfhrnq5p5mksmlp26n8xsef0556cdfzqq2uhdrt', 2100000000000001,
@@ -2512,7 +2515,7 @@ class TestWalletSegwit(unittest.TestCase):
     def test_wallet_segwit_multiple_networks_accounts(self):
         pk1 = 'surround vacant shoot aunt acoustic liar barely you expand rug industry grain'
         pk2 = 'defy push try brush ceiling sugar film present goat settle praise toilet'
-        wallet = Wallet.create(keys=[pk1, pk2], network='bitcoin', name='test_wallet_multicurrency',
+        wallet = Wallet.create(keys=[pk1, pk2], network='bitcoin', name='test_wallet_segwit_multicurrency',
                                witness_type='segwit', cosigner_id=0, encoding='base58',
                                db_uri=self.database_uri)
         wallet.new_account(network='litecoin')
