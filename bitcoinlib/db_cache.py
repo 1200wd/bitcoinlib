@@ -27,15 +27,15 @@ from bitcoinlib.main import *
 
 
 _logger = logging.getLogger(__name__)
-try:
-    dbcacheurl_obj = urlparse(DEFAULT_DATABASE_CACHE)
-    if dbcacheurl_obj.netloc:
-        dbcacheurl = dbcacheurl_obj.netloc.replace(dbcacheurl_obj.password, 'xxx')
-    else:
-        dbcacheurl = dbcacheurl_obj.path
-    _logger.info("Default Cache Database %s" % dbcacheurl)
-except Exception:
-    _logger.warning("Default Cache Database: unable to parse URL")
+# try:
+#     dbcacheurl_obj = urlparse(DEFAULT_DATABASE_CACHE)
+#     if dbcacheurl_obj.netloc:
+#         dbcacheurl = dbcacheurl_obj.netloc.replace(dbcacheurl_obj.password, 'xxx')
+#     else:
+#         dbcacheurl = dbcacheurl_obj.path
+#     _logger.info("Default Cache Database %s" % dbcacheurl)
+# except Exception:
+#     _logger.warning("Default Cache Database: unable to parse URL")
 Base = declarative_base()
 
 
@@ -66,8 +66,9 @@ class DbCache:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
         if self.o.scheme == 'mysql':
-            db_uri += "&" if "?" in db_uri else "?"
-            db_uri += 'binary_prefix=true'
+            raise NotImplementedError("MySQL does not allow indexing on LargeBinary fields, so caching is not possible")
+            # db_uri += "&" if "?" in db_uri else "?"
+            # db_uri += 'binary_prefix=true'
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
         Session = sessionmaker(bind=self.engine)

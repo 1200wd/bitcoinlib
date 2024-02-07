@@ -38,19 +38,22 @@ _logger = logging.getLogger(__name__)
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
-DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
-DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
-DATABASE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
-# FIXME: MySQL databases are not supported. Not allowed to create indexes/primary keys on binary fields
-DATABASE_CACHE_MYSQL = 'mysql://root:root@localhost:3306/bitcoinlibcache.unittest'
+CACHE_DBNAME1 = 'bitcoinlib_cache_unittest1'
+CACHE_DBNAME2 = 'bitcoinlib_cache_unittest2'
+if os.getenv('UNITTEST_DATABASE') == 'mysql' or os.getenv('UNITTEST_DATABASE') == 'mariadb':
+    DATABASE_CACHE_UNITTESTS = 'mariadb://user:password@localhost:3306/%s' % CACHE_DBNAME1
+    DATABASE_CACHE_UNITTESTS2 = 'mariadb://user:password@localhost:3306/%s' % CACHE_DBNAME2
+elif os.getenv('UNITTEST_DATABASE') == 'postgresql':
+    DATABASE_CACHE_UNITTESTS = 'postgresql://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME1
+    DATABASE_CACHE_UNITTESTS2 = 'postgresql://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME2
+else:
+    DATABASE_CACHE_UNITTESTS =  'sqlite://' + os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME1) + '.sqlite'
+    DATABASE_CACHE_UNITTESTS2 = 'sqlite://' + os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME2) + '.sqlite'
+
 DATABASES_CACHE = [
-    DATABASEFILE_CACHE_UNITTESTS2,
+    DATABASE_CACHE_UNITTESTS,
+    DATABASE_CACHE_UNITTESTS2,
 ]
-if UNITTESTS_FULL_DATABASE_TEST:
-    DATABASES_CACHE += [
-        DATABASE_CACHE_POSTGRESQL,
-        DATABASE_CACHE_MYSQL
-    ]
 
 TIMEOUT_TEST = 3
 
@@ -59,7 +62,7 @@ TIMEOUT_TEST = 3
 class ServiceTest(Service):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_TEST, cache_uri=DATABASEFILE_CACHE_UNITTESTS, ignore_priority=True,
+                 timeout=TIMEOUT_TEST, cache_uri=DATABASE_CACHE_UNITTESTS, ignore_priority=True,
                  exclude_providers=None, max_errors=SERVICE_MAX_ERRORS, strict=True):
         super(self.__class__, self).__init__(network, min_providers, max_providers, providers, timeout, cache_uri,
                                              ignore_priority, exclude_providers, max_errors, strict)
@@ -803,33 +806,47 @@ class TestService(unittest.TestCase, CustomAssertions):
 
 class TestServiceCache(unittest.TestCase):
 
-    # TODO: Add mysql support
     @classmethod
     def setUpClass(cls):
+        session.close_all_sessions()
         try:
-            if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS2):
-                os.remove(DATABASEFILE_CACHE_UNITTESTS2)
-        except Exception:
-            pass
-        try:
-            DbCache(DATABASE_CACHE_POSTGRESQL).drop_db()
-            # DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
-        except Exception:
+            DbCache(CACHE_DBNAME1).drop_db()
+            DbCache(CACHE_DBNAME2).drop_db()
+        except:
             pass
 
-        try:
-            con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
+        if os.getenv('UNITTEST_DATABASE') == 'postgresql':
+            try:
+                con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
+                cur = con.cursor()
+                cur.execute(sql.SQL("CREATE DATABASE {}").format(
+                    sql.Identifier('bitcoinlibcache.unittest'))
+                )
+                cur.close()
+                con.close()
+            except Exception:
+                pass
+        elif os.getenv('UNITTEST_DATABASE') == 'mysql':
+            con = mysql.connector.connect(user='user', host='localhost', password='password')
             cur = con.cursor()
-            cur.execute(sql.SQL("CREATE DATABASE {}").format(
-                sql.Identifier('bitcoinlibcache.unittest'))
-            )
+            cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME1))
+            cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME2))
+            cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME1))
+            cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME2))
+            con.commit()
             cur.close()
             con.close()
-        except Exception:
-            pass
+        else:
+            if os.path.isfile(DATABASE_CACHE_UNITTESTS):
+                try:
+                    os.remove(DATABASE_CACHE_UNITTESTS)
+                    os.remove(DATABASE_CACHE_UNITTESTS2)
+                except:
+                    pass
+
 
     def test_service_cache_transactions(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         address = '1JQ7ybfFBoWhPJpjoihezpeAjd2xv9nXaN'
         # Get 2 transactions, nothing in cache
         res = srv.gettransactions(address, limit=2)
@@ -853,7 +870,7 @@ class TestServiceCache(unittest.TestCase):
 
     # FIXME: Disabled, lack of providers
     # def test_service_cache_gettransaction(self):
-    #     srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+    #     srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASE_CACHE_UNITTESTS2)
     #     txid = 'b6533d361daac291f64fff32a5c157a4785b423ce36e2eac27117879f93973da'
     #
     #     t = srv.gettransaction(txid)
@@ -878,7 +895,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
@@ -898,7 +915,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
     def test_service_cache_transaction_coinbase(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
         if t:
             self.assertGreaterEqual(srv.results_cache_n, 0)
@@ -922,7 +939,7 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(t.raw_hex(), rawtx)
 
     def test_service_cache_with_latest_tx_query(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         address = 'bc1qxfrgfhs49d7dtcfzlhp7f7cwsp8zpp60hywp0f'
         after_txid = '13401ad121c8ae91e18b4bb0db5d8f350a2b0b5ddd5ca26165137bf07fefad90'
         srv.gettransaction('4156e78f347e47d2ccdd4a19614d958c6e4502d09a68f63ed0c72691f63a5028')
@@ -932,7 +949,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(txs), 5)
 
     def test_service_cache_correctly_update_spent_info(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
         self.assertTrue(txs[0].outputs[0].spent)
@@ -974,7 +991,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transaction_p2sh_p2wpkh_input(self):
         txid = '6ab6432a6b7b04ecc335c6e8adccc45c25f46e33752478f0bcacaf3f1b61ad92'
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         t = srv.gettransaction(txid)
         self.assertEqual(t.size, 249)
         self.assertEqual(srv.results_cache_n, 0)
