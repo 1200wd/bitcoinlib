@@ -477,7 +477,7 @@ class DbTransactionOutput(Base):
                             doc="Transaction ID of parent transaction")
     transaction = relationship("DbTransaction", back_populates='outputs',
                                doc="Link to transaction object")
-    output_n = Column(Integer, primary_key=True, doc="Sequence number of transaction output")
+    output_n = Column(BigInteger, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
     key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
     address = Column(String(255),
