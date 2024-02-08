@@ -50,26 +50,8 @@ def database_init(dbname=DATABASE_NAME):
     if os.getenv('UNITTEST_DATABASE') == 'postgresql':
         con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
         cur = con.cursor()
-        # try:
-        #     cur.execute(sql.SQL("ALTER DATABASE {} allow_connections = off").format(sql.Identifier(dbname)))
-        #     cur.execute(sql.SQL("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '{}'").format(
-        #         sql.Identifier(dbname)))
-        #     cur.execute(sql.SQL("SELECT pg_terminate_backend(pg_stat_activity.pid)"
-        #         "FROM pg_stat_activity WHERE pg_stat_activity.datname = '{}'"
-        #         "AND pid <> pg_backend_pid();").format(sql.Identifier(dbname)))
-        # except Exception as e:
-        #     print(e)
-        # res = cur.execute(sql.SQL("SELECT sum(numbackends) FROM pg_stat_database"))
-        # res = cur.execute(sql.SQL("""
-        #     DO $$ DECLARE
-        #         r RECORD;
-        #     BEGIN
-        #         FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-        #             EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-        #         END LOOP;
-        #     END $$;"""))
         try:
-            cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
+            # cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
             cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
         except Exception as e:
             print("Error exception %s" % str(e))
