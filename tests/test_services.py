@@ -809,13 +809,6 @@ class TestServiceCache(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        session.close_all_sessions()
-        try:
-            DbCache(CACHE_DBNAME1).drop_db()
-            DbCache(CACHE_DBNAME2).drop_db()
-        except:
-            pass
-
         if os.getenv('UNITTEST_DATABASE') == 'postgresql':
             try:
                 con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
@@ -831,16 +824,16 @@ class TestServiceCache(unittest.TestCase):
                 con.close()
             except Exception:
                 pass
-        elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-            con = mysql.connector.connect(user='user', host='localhost', password='password')
-            cur = con.cursor()
-            cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME1))
-            cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME2))
-            cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME1))
-            cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME2))
-            con.commit()
-            cur.close()
-            con.close()
+        # elif os.getenv('UNITTEST_DATABASE') == 'mysql':
+        #     con = mysql.connector.connect(user='user', host='localhost', password='password')
+        #     cur = con.cursor()
+        #     cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME1))
+        #     cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME2))
+        #     cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME1))
+        #     cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME2))
+        #     con.commit()
+        #     cur.close()
+        #     con.close()
         else:
             if os.path.isfile(DATABASE_CACHE_UNITTESTS):
                 try:

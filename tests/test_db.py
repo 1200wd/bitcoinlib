@@ -28,7 +28,6 @@ try:
     import mysql.connector
     import psycopg
     from psycopg import sql
-    import testing.postgresql
 except ImportError as e:
     print("Could not import all modules. Error: %s" % e)
 
