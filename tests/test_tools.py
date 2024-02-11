@@ -37,7 +37,7 @@ def database_init(dbname=DATABASE_NAME):
         )
         cur.close()
         con.close()
-        return 'postgresql://postgres:postgres@localhost:5432/' + dbname
+        return 'postgresql+psycopg://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
         con = mysql.connector.connect(user='user', host='localhost', password='password')
         cur = con.cursor()

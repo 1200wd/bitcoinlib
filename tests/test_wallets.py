@@ -51,14 +51,14 @@ def database_init(dbname=DATABASE_NAME):
         con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
         cur = con.cursor()
         try:
-            # cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
+            cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(dbname)))
             cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
         except Exception as e:
             print("Error exception %s" % str(e))
             pass
         cur.close()
         con.close()
-        return 'postgresql://postgres:postgres@localhost:5432/' + dbname
+        return 'postgresql+psycopg://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
         con = mysql.connector.connect(user='user', host='localhost', password='password')
         cur = con.cursor()
