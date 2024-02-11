@@ -19,10 +19,10 @@
 #
 
 import unittest
-from sqlalchemy.exc import OperationalError
 from bitcoinlib.db import *
 from bitcoinlib.db_cache import *
-from bitcoinlib.wallets import Wallet, WalletError
+from bitcoinlib.wallets import Wallet, WalletError, WalletTransaction
+from bitcoinlib.transactions import Input, Output
 from bitcoinlib.services.services import Service
 try:
     import mysql.connector
@@ -97,6 +97,17 @@ class TestDb(unittest.TestCase):
             dbtmp.drop_db()
             self.assertRaisesRegex(Exception, "", srv.gettransaction,
                                    '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
+
+    def test_database_transaction_integers(self):
+        db = Db(self.database_uri)
+        w = Wallet.create('StrangeTransactions', account_id=0x7fffffff, db_uri=db.db_uri)
+        inp = Input('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13', 0x7fffffff,
+                    value=0xffffffff, index_n=0x7fffffff, sequence=0xffffffff)
+        outp = Output(0xffffffff, '37jKPSmbEGwgfacCr2nayn1wTaqMAbA94Z', output_n=0xffffffff)
+        wt = WalletTransaction(w, 0x7fffffff, locktime=0xffffffff, fee=0xffffffff, confirmations=0x7fffffff,
+                               input_total= 2100000000001000, block_height=0x7fffffff, version=0x7fffffff,
+                               output_total=2100000000000000, size=0x07fffffff, inputs=[inp], outputs=[outp])
+        self.assertTrue(wt.store())
 
 
 if __name__ == '__main__':
