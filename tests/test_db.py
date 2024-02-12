@@ -86,6 +86,8 @@ class TestDb(unittest.TestCase):
         Wallet.create("tmpwallet", db_uri=self.database_uri)
 
     def test_database_cache_create_drop(self):
+        if os.getenv('UNITTEST_DATABASE') == 'mysql':
+            self.skipTest('MySQL does not allow indexing on LargeBinary fields, so caching is not possible')
         dbtmp = DbCache(self.database_cache_uri)
         srv = Service(cache_uri=self.database_cache_uri, exclude_providers=['bitaps', 'bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
