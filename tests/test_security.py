@@ -41,7 +41,7 @@ if os.getenv('UNITTEST_DATABASE') == 'postgresql':
     cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier('bitcoinlib_security')))
     cur.close()
     con.close()
-    DATABASEFILE_UNITTESTS_ENCRYPTED = 'postgresql://postgres:postgres@localhost:5432/bitcoinlib_security'
+    DATABASEFILE_UNITTESTS_ENCRYPTED = 'postgresql+psycopg://postgres:postgres@localhost:5432/bitcoinlib_security'
 elif os.getenv('UNITTEST_DATABASE') == 'mysql':
     con = mysql.connector.connect(user='root', host='localhost', password='root')
     cur = con.cursor()
