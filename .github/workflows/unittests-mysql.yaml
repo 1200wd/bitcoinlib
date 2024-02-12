@@ -15,8 +15,8 @@ jobs:
     - name: Set up MySQL
       env:
         DB_DATABASE: bitcoinlib_test
-        DB_USER: user
-        DB_PASSWORD: password
+        DB_USER: root
+        DB_PASSWORD: root
       run: |
         sudo /etc/init.d/mysql start
         mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
