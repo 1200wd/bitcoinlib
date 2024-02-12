@@ -43,7 +43,7 @@ if os.getenv('UNITTEST_DATABASE') == 'postgresql':
     con.close()
     DATABASEFILE_UNITTESTS_ENCRYPTED = 'postgresql://postgres:postgres@localhost:5432/bitcoinlib_security'
 elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-    con = mysql.connector.connect(user='user', host='localhost', password='password')
+    con = mysql.connector.connect(user='root', host='localhost', password='root')
     cur = con.cursor()
     cur.execute("DROP DATABASE IF EXISTS {}".format('bitcoinlib_security'))
     cur.execute("CREATE DATABASE {}".format('bitcoinlib_security'))

@@ -825,7 +825,7 @@ class TestServiceCache(unittest.TestCase):
             except Exception:
                 pass
         # elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-        #     con = mysql.connector.connect(user='user', host='localhost', password='password')
+        #     con = mysql.connector.connect(user='root', host='localhost', password='root')
         #     cur = con.cursor()
         #     cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME1))
         #     cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME2))

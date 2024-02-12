@@ -59,7 +59,7 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'postgresql+psycopg://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql':
-        con = mysql.connector.connect(user='user', host='localhost', password='password')
+        con = mysql.connector.connect(user='root', host='localhost', password='root')
         cur = con.cursor()
         cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
         cur.execute("CREATE DATABASE {}".format(dbname))
