@@ -84,3 +84,7 @@ And in Windows:
 .. code-block:: bash
 
     $ setx DB_FIELD_ENCRYPTION_KEY '2414966ea9f2de189a61953c333f61013505dfbf8e383b5ed6cb1981d5ec2620'
+
+Enviroment variables can also be stored in an .env key, in a virtual enviroment or in Python code itself. However anyone with access to the key can decrypt your private keys.
+
+Please make sure to remember and backup your encryption key, if you loose your key the private keys can not be recovered!
