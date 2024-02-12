@@ -50,7 +50,7 @@ elif os.getenv('UNITTEST_DATABASE') == 'mysql':
     con.commit()
     cur.close()
     con.close()
-    DATABASEFILE_UNITTESTS_ENCRYPTED = 'mysql://user:password@localhost:3306/bitcoinlib_security'
+    DATABASEFILE_UNITTESTS_ENCRYPTED = 'mysql://root:root@localhost:3306/bitcoinlib_security'
 else:
     DATABASEFILE_UNITTESTS_ENCRYPTED = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest_security.sqlite')
     if os.path.isfile(DATABASEFILE_UNITTESTS_ENCRYPTED):
