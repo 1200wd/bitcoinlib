@@ -26,5 +26,5 @@ jobs:
     - name: Test with coverage
       env:
         BCL_CONFIG_FILE: config.ini.unittest
-        UNITTEST_DATABASE: postgresql
+        UNITTEST_DATABASE: mysql
       run: coverage run --source=bitcoinlib -m unittest -v
