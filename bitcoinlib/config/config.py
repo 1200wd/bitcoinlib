@@ -22,6 +22,7 @@ import os
 import locale
 import platform
 import configparser
+import enum
 from .opcodes import *
 from pathlib import Path
 from datetime import datetime
