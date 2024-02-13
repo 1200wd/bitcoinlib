@@ -1723,7 +1723,6 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t.sign([pk1], 0)
         self.assertTrue(t.verify())
-        print(t.raw_hex())
         t2 = Transaction.parse(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
         self.assertEqual(t2.signature_hash(0).hex(),
@@ -1768,7 +1767,6 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t = Transaction(inputs, outputs, witness_type='segwit')
         t.sign(key2)
         self.assertTrue(t.verify())
-        print(t.raw_hex())
         self.assertEqual(t.signature_hash(0).hex(),
                          '1926c08d8c0f54498382e97704e7b2d8b4181ffa524b4c0d8a43aba61e3fc656')
         self.assertEqual(t.txid, txid)

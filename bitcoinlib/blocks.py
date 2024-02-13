@@ -251,11 +251,13 @@ class Block:
         raw.seek(tx_start_pos)
         transactions = []
 
+        index = 0
         while parse_transactions and raw.tell() < txs_data_size:
             if limit != 0 and len(transactions) >= limit:
                 break
-            t = Transaction.parse_bytesio(raw, strict=False)
+            t = Transaction.parse_bytesio(raw, strict=False, index=index)
             transactions.append(t)
+            index += 1
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))

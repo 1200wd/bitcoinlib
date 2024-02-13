@@ -890,7 +890,7 @@ class Transaction(object):
         return cls.parse_bytesio(rawtx, strict, network)
 
     @classmethod
-    def parse_bytesio(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
+    def parse_bytesio(cls, rawtx, strict=True, network=DEFAULT_NETWORK, index=None):
         """
         Parse a raw transaction and create a Transaction object
 
@@ -997,7 +997,7 @@ class Transaction(object):
             raw_bytes = rawtx.read(raw_len)
 
         return Transaction(inputs, outputs, locktime, version, network, size=raw_len, output_total=output_total,
-                           coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes)
+                           coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes, index=index)
 
     @classmethod
     def parse_hex(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
@@ -1066,7 +1066,7 @@ class Transaction(object):
                  network=DEFAULT_NETWORK, fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None,
                  confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
                  status='new', coinbase=False, verified=False, witness_type='segwit', flag=None, replace_by_fee=False,
-                 order_n=None):
+                 index=None):
         """
         Create a new transaction class with provided inputs and outputs.
 
@@ -1119,8 +1119,8 @@ class Transaction(object):
         :type witness_type: str
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
-        :param order_n: Order of transaction in block. Used when parsing blocks
-        :type order_n: int
+        :param index: Index of transaction in block. Used when parsing blocks
+        :type index: int
 
         """
 
@@ -1181,7 +1181,7 @@ class Transaction(object):
         self.witness_type = witness_type
         self.replace_by_fee = replace_by_fee
         self.change = 0
-        self.order_n = order_n
+        self.index = index
         self.calc_weight_units()
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")

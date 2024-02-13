@@ -136,7 +136,7 @@ class DbCacheTransaction(Base):
     fee = Column(BigInteger, doc="Transaction fee")
     nodes = relationship("DbCacheTransactionNode", cascade="all,delete",
                          doc="List of all inputs and outputs as DbCacheTransactionNode objects")
-    order_n = Column(Integer, doc="Order of transaction in block")
+    index = Column(Integer, doc="Index of transaction in block")
     witness_type = Column(Enum(WitnessTypeTransactions), default=WitnessTypeTransactions.legacy,
                           doc="Transaction type enum: legacy or segwit")
 

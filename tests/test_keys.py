@@ -566,7 +566,7 @@ class TestBip38(unittest.TestCase):
             return
         for v in self.vectors["valid"]:
             k = Key(v['wif'])
-            print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
+            # print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
             self.assertEqual(str(v['bip38']), k.encrypt(str(v['passphrase'])))
 
     def test_decrypt_bip38_key(self):
@@ -574,14 +574,14 @@ class TestBip38(unittest.TestCase):
             return
         for v in self.vectors["valid"]:
             k = Key(v['bip38'], password=str(v['passphrase']))
-            print("Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif']))
+            # print("Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif']))
             self.assertEqual(str(v['wif']), k.wif())
 
     def test_bip38_invalid_keys(self):
         if not USING_MODULE_SCRYPT:
             return
         for v in self.vectors["invalid"]["verify"]:
-            print("Checking invalid key %s" % v['base58'])
+            # print("Checking invalid key %s" % v['base58'])
             self.assertRaisesRegex(Exception, "", Key, str(v['base58']))
 
     def test_bip38_other_networks(self):
@@ -622,8 +622,8 @@ class TestKeysBulk(unittest.TestCase):
         for i in range(BULKTESTCOUNT):
             pub_with_pubparent = self.K.child_public(i).address()
             pub_with_privparent = self.k.child_private(i).address()
-            if pub_with_privparent != pub_with_pubparent:
-                print("Error index %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent))
+            # if pub_with_privparent != pub_with_pubparent:
+            #     print("Error index %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent))
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
     def test_hdkey_derive_from_public_and_private_random(self):
@@ -635,9 +635,9 @@ class TestKeysBulk(unittest.TestCase):
             pubk = HDKey(k.wif_public())
             pub_with_pubparent = pubk.child_public().address()
             pub_with_privparent = k.child_private().address()
-            if pub_with_privparent != pub_with_pubparent:
-                print("Error random key: %4d: pub-child %s, priv-child %s" %
-                      (i, pub_with_privparent, pub_with_pubparent))
+            # if pub_with_privparent != pub_with_pubparent:
+            #     print("Error random key: %4d: pub-child %s, priv-child %s" %
+            #           (i, pub_with_privparent, pub_with_pubparent))
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
 

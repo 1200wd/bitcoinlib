@@ -382,11 +382,11 @@ class Service(object):
             if len(txs):
                 last_txid = bytes.fromhex(txs[-1:][0].txid)
             if len(self.results):
-                order_n = 0
+                index = 0
                 for t in txs:
                     if t.confirmations != 0:
-                        res = self.cache.store_transaction(t, order_n, commit=False)
-                        order_n += 1
+                        res = self.cache.store_transaction(t, index, commit=False)
+                        index += 1
                         # Failure to store transaction: stop caching transaction and store last tx block height - 1
                         if res is False:
                             if t.block_height:
@@ -556,11 +556,11 @@ class Service(object):
             block.page = page
 
             if parse_transactions and self.min_providers <= 1:
-                order_n = (page-1)*limit
+                index = (page-1)*limit
                 for tx in block.transactions:
                     if isinstance(tx, Transaction):
-                        self.cache.store_transaction(tx, order_n, commit=False)
-                    order_n += 1
+                        self.cache.store_transaction(tx, index, commit=False)
+                    index += 1
                 self.cache.commit()
             self.complete = True if len(block.transactions) == block.tx_count else False
             self.cache.store_block(block)
@@ -717,7 +717,7 @@ class Cache(object):
         t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
                         fee=db_tx.fee, txid=db_tx.txid.hex(), date=db_tx.date, confirmations=db_tx.confirmations,
                         block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value,
-                        order_n=db_tx.order_n)
+                        index=db_tx.index)
         for n in db_tx.nodes:
             if n.is_input:
                 if n.ref_txid == b'\00' * 32:
@@ -794,7 +794,7 @@ class Cache(object):
                         filter(DbCacheTransactionNode.address == address,
                                DbCacheTransaction.block_height >= after_tx.block_height,
                                DbCacheTransaction.block_height <= db_addr.last_block).\
-                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
+                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.index).all()
                     db_txs2 = []
                     for d in db_txs:
                         db_txs2.append(d)
@@ -806,7 +806,7 @@ class Cache(object):
             else:
                 db_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode). \
                     filter(DbCacheTransactionNode.address == address). \
-                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
+                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.index).all()
             for db_tx in db_txs:
                 t = self._parse_db_transaction(db_tx)
                 if t:
@@ -836,8 +836,8 @@ class Cache(object):
         n_from = (page-1) * limit
         n_to = page * limit
         db_txs = self.session.query(DbCacheTransaction).\
-            filter(DbCacheTransaction.block_height == height, DbCacheTransaction.order_n >= n_from,
-                   DbCacheTransaction.order_n < n_to).all()
+            filter(DbCacheTransaction.block_height == height, DbCacheTransaction.index >= n_from,
+                   DbCacheTransaction.index < n_to).all()
         txs = []
         for db_tx in db_txs:
             t = self._parse_db_transaction(db_tx)
@@ -881,7 +881,7 @@ class Cache(object):
                                       DbCacheTransactionNode.value, DbCacheTransaction.confirmations,
                                       DbCacheTransaction.block_height, DbCacheTransaction.fee,
                                       DbCacheTransaction.date, DbCacheTransaction.txid).join(DbCacheTransaction). \
-            order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n). \
+            order_by(DbCacheTransaction.block_height, DbCacheTransaction.index). \
             filter(DbCacheTransactionNode.address == address, DbCacheTransactionNode.is_input == False,
                    DbCacheTransaction.network_name == self.network.name).all()
         utxos = []
@@ -991,14 +991,14 @@ class Cache(object):
         self.session.merge(dbvar)
         self.commit()
 
-    def store_transaction(self, t, order_n=None, commit=True):
+    def store_transaction(self, t, index=None, commit=True):
         """
         Store transaction in cache. Use order number to determine order in a block
 
         :param t: Transaction
         :type t: Transaction
-        :param order_n: Order in block
-        :type order_n: int
+        :param index: Order in block
+        :type index: int
         :param commit: Commit transaction to database. Default is True. Can be disabled if a larger number of transactions are added to cache, so you can commit outside this method.
         :type commit: bool
 
@@ -1023,7 +1023,7 @@ class Cache(object):
             return
         new_tx = DbCacheTransaction(txid=txid, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, network_name=t.network.name,
-                                    fee=t.fee, order_n=order_n, version=t.version_int,
+                                    fee=t.fee, index=index, version=t.version_int,
                                     locktime=t.locktime, witness_type=t.witness_type)
         self.session.add(new_tx)
         for i in t.inputs:

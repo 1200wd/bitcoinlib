@@ -413,7 +413,7 @@ class DbTransaction(Base):
     raw = Column(LargeBinary,
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
     verified = Column(Boolean, default=False, doc="Is transaction verified. Default is False")
-    order_n = Column(Integer, doc="Order of transaction in block")
+    index = Column(Integer, doc="Index of transaction in block")
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'txid', name='constraint_wallet_transaction_hash_unique'),

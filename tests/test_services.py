@@ -111,7 +111,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         except ServiceError:
             pass
         for provider in srv.errors:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             prov_error = str(srv.errors[provider])
             if isinstance(srv.errors[provider], Exception) or 'response [429]' in prov_error \
                     or 'response [503]' in prov_error:
@@ -128,7 +128,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, nothing to compare. Errors %s" % srv.errors)
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
@@ -142,7 +142,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         if len(srv.results) < 2:
             self.skipTest("Only 1 or less service providers found, nothing to compare. Errors %s" % srv.errors)
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
@@ -166,7 +166,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(min_providers=3)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
@@ -175,7 +175,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
         for provider in srv.results:
-            print("Testing provider %s" % provider)
+            # print("Testing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_get_utxos_litecoin(self):
@@ -183,7 +183,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         txid = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_get_utxos_litecoin_after_txid(self):
@@ -192,7 +192,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
         for provider in srv.results:
-            print("Comparing provider %s" % provider)
+            # print("Comparing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_estimatefee(self):
@@ -206,7 +206,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         # Normalize with dust amount, to avoid errors on small differences
         dust = Network().dust_amount
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             if srv.results[provider] < average_fee and average_fee - srv.results[provider] > dust:
                 srv.results[provider] += dust
             elif srv.results[provider] > average_fee and srv.results[provider] - average_fee > dust:
@@ -264,7 +264,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(min_providers=3)
         srv.gettransactions(address)
         for provider in srv.results:
-            print("Testing: %s" % provider)
+            # print("Testing: %s" % provider)
             res = srv.results[provider]
             t = [r for r in res if r.txid == txid][0]
 
@@ -419,7 +419,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
 
         for provider in srv.results:
-            print("Comparing provider %s" % provider)
+            # print("Comparing provider %s" % provider)
             self.assertTrue(srv.results[provider].verify())
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
@@ -444,7 +444,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(min_providers=3, network='litecoin')
         srv.gettransactions(address)
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             res = srv.results[provider]
             txs = [r for r in res if r.txid == txid]
             t = txs[0]
@@ -571,7 +571,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:
-            print("\nComparing provider %s" % provider)
+            # print("\nComparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
@@ -675,7 +675,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_height(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
         self.assertEqual(to_hexstring(b.block_hash), '00000000000000000003ecd827f336c6971f6f77a0b9fba362398dd867975645')
         self.assertEqual(to_hexstring(b.merkle_root), 'ca13ce7f21619f73fb5a062696ec06a4427c6ad9e523e7bc1cf5287c137ddcea')
@@ -701,7 +701,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_parse_tx_paging(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(120000, parse_transactions=True, limit=25, page=2)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
         self.assertEqual(b.height, 120000)
@@ -720,7 +720,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_litecoin(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, network='litecoin', cache_uri='')
         b = srv.getblock(1000000, parse_transactions=True, limit=2)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 1000000)
         self.assertEqual(to_hexstring(b.block_hash), '8ceae698f0a2d338e39b213eb9c253a91a270ca6451a4d9bba7bf2c9e637dfda')
         self.assertEqual(to_hexstring(b.merkle_root),
@@ -971,7 +971,7 @@ class TestServiceCache(unittest.TestCase):
         for cache_db in DATABASES_CACHE:
             srv = ServiceTest(cache_uri=cache_db, exclude_providers=['blockchair', 'bitcoind'])
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
-            print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
+            # print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
             check_block_128594(b)
             self.assertEqual(srv.results_cache_n, 0)
 
@@ -996,3 +996,11 @@ class TestServiceCache(unittest.TestCase):
         t2 = srv.gettransaction(txid)
         self.assertEqual(t2.size, 249)
         self.assertEqual(srv.results_cache_n, 1)
+
+    def test_service_cache_transaction_index(self):
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
+        srv.getblock(104444, parse_transactions=True)
+        t = srv.gettransaction('d7795eb181ef87a35298e8689cabf852e831824ded4c23b1a7f711df119a6599')
+        if not srv.results_cache_n:
+            self.skipTest('Transaction not indexed for selected provider')
+        self.assertEqual(t.index, 5)
