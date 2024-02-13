@@ -28,35 +28,6 @@ from bitcoinlib.keys import Signature, Key
 _logger = logging.getLogger(__name__)
 
 
-SCRIPT_TYPES = {
-    # <name>: (<type>, <script_commands>, <data-lengths>)
-    'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
-    'p2pkh_drop': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig],
-                   [32, 20]),
-    'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
-    'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
-    'p2wsh': ('locking', [op.op_0, 'data'], [32]),
-    'p2tr': ('locking', ['op_n', 'data'], [32]),
-    'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
-    'p2pk': ('locking', ['key', op.op_checksig], []),
-    'nulldata': ('locking', [op.op_return, 'data'], [0]),
-    'nulldata_1': ('locking', [op.op_return, op.op_0], []),
-    'nulldata_2': ('locking', [op.op_return], []),
-    'sig_pubkey': ('unlocking', ['signature', 'key'], []),
-    # 'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
-    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
-    'p2tr_unlock': ('unlocking', ['data'], [64]),
-    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'redeemscript'], []),
-    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'redeemscript'], []),
-    'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
-    'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
-    'signature': ('unlocking', ['signature'], []),
-    'signature_multisig': ('unlocking', [op.op_0, 'signature'], []),
-    'locktime_cltv': ('unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop], []),
-    'locktime_csv': ('unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop], []),
-}
-
-
 class ScriptError(Exception):
     """
     Handle Key class Exceptions

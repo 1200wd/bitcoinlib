@@ -22,7 +22,7 @@ import os
 import locale
 import platform
 import configparser
-import enum
+from .opcodes import *
 from pathlib import Path
 from datetime import datetime
 
@@ -54,27 +54,32 @@ BLOCK_COUNT_CACHE_TIME = 3
 SERVICE_MAX_ERRORS = 4  # Fail service request when more then max errors occur for <SERVICE_MAX_ERRORS> providers
 
 # Transactions
-SCRIPT_TYPES_LOCKING = {
-    # Locking scripts / scriptPubKey (Output)
-    'p2pkh': ['OP_DUP', 'OP_HASH160', 'hash-20', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
-    'p2sh': ['OP_HASH160', 'hash-20', 'OP_EQUAL'],
-    'p2wpkh': ['OP_0', 'hash-20'],
-    'p2wsh': ['OP_0', 'hash-32'],
-    'p2tr': ['op_n', 'hash-32'],
-    'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
-    'p2pk': ['public_key', 'OP_CHECKSIG'],
-    'nulldata': ['OP_RETURN', 'return_data'],
-}
-
-SCRIPT_TYPES_UNLOCKING = {
-    # Unlocking scripts / scriptSig (Input)
-    'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
-    'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
-    'p2sh_p2wpkh': ['OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
-    'p2sh_p2wsh': ['OP_0', 'push_size', 'redeemscript'],
-    'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
-    'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
-    'signature': ['signature']
+SCRIPT_TYPES = {
+    # <name>: (<type>, <script_commands>, <data-lengths>)
+    'p2pkh': ('locking', [op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
+    'p2pkh_drop': ('locking', ['data', op.op_drop, op.op_dup, op.op_hash160, 'data', op.op_equalverify, op.op_checksig],
+                   [32, 20]),
+    'p2sh': ('locking', [op.op_hash160, 'data', op.op_equal], [20]),
+    'p2wpkh': ('locking', [op.op_0, 'data'], [20]),
+    'p2wsh': ('locking', [op.op_0, 'data'], [32]),
+    'p2tr': ('locking', ['op_n', 'data'], [32]),
+    'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2pk': ('locking', ['key', op.op_checksig], []),
+    'nulldata': ('locking', [op.op_return, 'data'], [0]),
+    'nulldata_1': ('locking', [op.op_return, op.op_0], []),
+    'nulldata_2': ('locking', [op.op_return], []),
+    'sig_pubkey': ('unlocking', ['signature', 'key'], []),
+    # 'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'op_n', 'key', 'op_n', op.op_checkmultisig], []),
+    'p2sh_multisig': ('unlocking', [op.op_0, 'signature', 'redeemscript'], []),
+    'p2tr_unlock': ('unlocking', ['data'], [64]),
+    'p2sh_multisig_2?': ('unlocking', [op.op_0, 'signature', op.op_verify, 'redeemscript'], []),
+    'p2sh_multisig_3?': ('unlocking', [op.op_0, 'signature', op.op_1add, 'redeemscript'], []),
+    'p2sh_p2wpkh': ('unlocking', [op.op_0, op.op_hash160, 'redeemscript', op.op_equal], []),
+    'p2sh_p2wsh': ('unlocking', [op.op_0, 'redeemscript'], []),
+    'signature': ('unlocking', ['signature'], []),
+    'signature_multisig': ('unlocking', [op.op_0, 'signature'], []),
+    'locktime_cltv': ('unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop], []),
+    'locktime_csv': ('unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop], []),
 }
 
 SIGHASH_ALL = 1
