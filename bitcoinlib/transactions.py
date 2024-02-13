@@ -1065,7 +1065,8 @@ class Transaction(object):
     def __init__(self, inputs=None, outputs=None, locktime=0, version=None,
                  network=DEFAULT_NETWORK, fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None,
                  confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
-                 status='new', coinbase=False, verified=False, witness_type='segwit', flag=None, replace_by_fee=False):
+                 status='new', coinbase=False, verified=False, witness_type='segwit', flag=None, replace_by_fee=False,
+                 order_n=None):
         """
         Create a new transaction class with provided inputs and outputs.
 
@@ -1118,6 +1119,8 @@ class Transaction(object):
         :type witness_type: str
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
+        :param order_n: Order of transaction in block. Used when parsing blocks
+        :type order_n: int
 
         """
 
@@ -1178,6 +1181,7 @@ class Transaction(object):
         self.witness_type = witness_type
         self.replace_by_fee = replace_by_fee
         self.change = 0
+        self.order_n = order_n
         self.calc_weight_units()
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")

@@ -716,7 +716,8 @@ class Cache(object):
     def _parse_db_transaction(db_tx):
         t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
                         fee=db_tx.fee, txid=db_tx.txid.hex(), date=db_tx.date, confirmations=db_tx.confirmations,
-                        block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value)
+                        block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value,
+                        order_n=db_tx.order_n)
         for n in db_tx.nodes:
             if n.is_input:
                 if n.ref_txid == b'\00' * 32:
