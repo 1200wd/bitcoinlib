@@ -300,11 +300,13 @@ class Block:
         """
         transactions_dict = []
         txs_data_orig = deepcopy(self.txs_data)
+        index = 0
         while self.txs_data and len(self.transactions) < self.tx_count:
-            tx = self.parse_transaction_dict()
+            tx = self.parse_transaction_dict(index)
             if not tx:
                 break
             transactions_dict.append(tx)
+            index += 1
         self.txs_data = txs_data_orig
         return transactions_dict
             
@@ -321,7 +323,7 @@ class Block:
             return t
         return False
 
-    def parse_transaction_dict(self):
+    def parse_transaction_dict(self, index=None):
         """
         Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
         Transaction object in Block and return the transaction
@@ -407,6 +409,7 @@ class Block:
             tx['txid'] = double_sha256(tx['version'][::-1] + raw_n_inputs + inputs_raw + raw_n_outputs + outputs_raw
                                        + tx_locktime)[::-1]
             tx['size'] = len(tx['rawtx'])
+            tx['index'] = index
             # TODO: tx['vsize'] = len(tx['rawtx'])
             return tx
         return False
