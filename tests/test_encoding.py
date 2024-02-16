@@ -402,26 +402,26 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
     # Source: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
     def test_bech32m_valid(self):
         for addr, pubkeyhash in BECH32M_VALID:
-            assert(pubkeyhash == addr_bech32_to_pubkeyhash(addr, include_witver=True).hex())
+            assert pubkeyhash == addr_bech32_to_pubkeyhash(addr, include_witver=True).hex()
             prefix = addr.split('1')[0].lower()
             witver = change_base(addr.split('1')[1][0], 'bech32', 10)
             checksum_xor = addr_bech32_checksum(addr)
             addrc = pubkeyhash_to_addr_bech32(pubkeyhash, prefix, witver, checksum_xor=checksum_xor)
-            assert(addr.lower() == addrc)
+            assert addr.lower() == addrc
 
     def test_bech32_invalid(self):
         for addr, err in BECH32M_INVALID:
             try:
                 addr_bech32_to_pubkeyhash(addr)
             except (EncodingError, TypeError) as e:
-                assert (str(e) == err)
+                assert str(e) == err
 
     def test_bech32_invalid_pubkeyhash(self):
         for pubkeyhash, err in BECH32M_INVALID_PUBKEYHASH:
             try:
                 pubkeyhash_to_addr_bech32(pubkeyhash)
             except (EncodingError, TypeError) as e:
-                assert (str(e) == err)
+                assert str(e) == err
 
 
 class TestEncodingConfig(unittest.TestCase):
