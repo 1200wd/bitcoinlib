@@ -319,8 +319,8 @@ BECH32M_INVALID = [
     ('bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v8n0nx0muaewav253zgeav',
      'Invalid decoded data length, must be between 2 and 40'),
     ('BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P', 'Invalid decoded data length, must be 20 or 32 bytes'),
-    ('bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v07qwwzcrf', "cannot convert 'NoneType' object to bytes"),
-    ('tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vpggkg4j', "cannot convert 'NoneType' object to bytes"),
+    ('bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v07qwwzcrf', "Invalid padding bits"),
+    ('tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vpggkg4j', "Invalid padding bits"),
     ('bc1gmk9yu', 'Invalid checksum (Bech32 instead of Bech32m)'),
 ]
 
