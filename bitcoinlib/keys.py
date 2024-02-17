@@ -2234,7 +2234,7 @@ class Signature(object):
                 str(secp256k1_Gy)
             )
         else:
-            transaction_to_sign = to_bytes(self.txid)
+            transaction_to_sign = bytes.fromhex(self.txid)
             signature = self.bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)
