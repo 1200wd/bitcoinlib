@@ -44,6 +44,7 @@ DATABASE_NAME_2 = 'bitcoinlib2_test'
 
 print("DATABASE USED: %s" % os.getenv('UNITTEST_DATABASE'))
 
+
 def database_init(dbname=DATABASE_NAME):
     session.close_all_sessions()
     if os.getenv('UNITTEST_DATABASE') == 'postgresql':
@@ -639,24 +640,24 @@ class TestWalletKeys(unittest.TestCase):
         k1 = HDKey(network='testnet')
         k2 = HDKey(network='testnet')
         w1 = Wallet.create('network_mixup_test_wallet', network='litecoin', db_uri=self.database_uri)
-        wk1 = WalletKey.from_key('key1', w1.wallet_id, w1._session, key=k1.address_obj)
+        wk1 = WalletKey.from_key('key1', w1.wallet_id, w1.session, key=k1.address_obj)
         self.assertEqual(wk1.network.name, 'testnet')
         self.assertRaisesRegex(WalletError, "Specified network and key network should be the same",
-                                WalletKey.from_key, 'key2', w1.wallet_id, w1._session, key=k2.address_obj,
+                                WalletKey.from_key, 'key2', w1.wallet_id, w1.session, key=k2.address_obj,
                                 network='bitcoin')
         w2 = Wallet.create('network_mixup_test_wallet2', network='litecoin', db_uri=self.database_uri)
-        wk2 = WalletKey.from_key('key1', w2.wallet_id, w2._session, key=k1)
+        wk2 = WalletKey.from_key('key1', w2.wallet_id, w2.session, key=k1)
         self.assertEqual(wk2.network.name, 'testnet')
         self.assertRaisesRegex(WalletError, "Specified network and key network should be the same",
-                                WalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
+                                WalletKey.from_key, 'key2', w2.wallet_id, w2.session, key=k2,
                                 network='bitcoin')
-        wk3 = WalletKey.from_key('key3', w2.wallet_id, w2._session, key=k1)
+        wk3 = WalletKey.from_key('key3', w2.wallet_id, w2.session, key=k1)
         self.assertEqual(wk3.name, 'key1')
-        wk4 = WalletKey.from_key('key4', w2.wallet_id, w2._session, key=k1.address_obj)
+        wk4 = WalletKey.from_key('key4', w2.wallet_id, w2.session, key=k1.address_obj)
         self.assertEqual(wk4.name, 'key1')
         k = HDKey().public_master()
         w = Wallet.create('pmtest', network='litecoin', db_uri=self.database_uri)
-        wk1 = WalletKey.from_key('key', w.wallet_id, w._session, key=k)
+        wk1 = WalletKey.from_key('key', w.wallet_id, w.session, key=k)
         self.assertEqual(wk1.path, 'M')
         # Test __repr__ method
         self.assertIn("<WalletKey(key_id=", repr(wk1))
@@ -666,10 +667,10 @@ class TestWalletKeys(unittest.TestCase):
 
     def test_wallet_key_exceptions(self):
         w = Wallet.create('test_wallet_key_not_found', db_uri=self.database_uri)
-        self.assertRaisesRegex(WalletError, 'Key with id 1000000 not found', WalletKey, 1000000, w._session)
+        self.assertRaisesRegex(WalletError, 'Key with id 1000000 not found', WalletKey, 1000000, w.session)
         self.assertRaisesRegex(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
                                            "network then specified: bitcoin",
-                                WalletKey.from_key, '', w.wallet_id, w._session,
+                                WalletKey.from_key, '', w.wallet_id, w.session,
                                 'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
         self.assertRaisesRegex(WalletError, "", w.get_key, cosigner_id=10)
 
@@ -1196,7 +1197,7 @@ class TestWalletMultisig(unittest.TestCase):
             t = wallet_dict[wallet_id].transaction_import(t)
             t.sign()
             n_signs += 1
-        wlt._session.close()
+        wlt.session.close()
         return t
 
     def test_wallet_multisig_2of3(self):

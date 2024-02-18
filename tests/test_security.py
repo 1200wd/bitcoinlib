@@ -81,8 +81,8 @@ class TestSecurity(TestCase):
             db_query = text("SELECT wif, private FROM `keys` WHERE id=%d" % wallet._dbwallet.main_key_id)
         else:
             db_query = text("SELECT wif, private FROM keys WHERE id=%d" % wallet._dbwallet.main_key_id)
-        encrypted_main_key_wif = wallet._session.execute(db_query).fetchone()[0]
-        encrypted_main_key_private = wallet._session.execute(db_query).fetchone()[1]
+        encrypted_main_key_wif = wallet.session.execute(db_query).fetchone()[0]
+        encrypted_main_key_private = wallet.session.execute(db_query).fetchone()[1]
         self.assertIn(type(encrypted_main_key_wif), (bytes, memoryview), "Encryption of database private key failed!")
         self.assertEqual(encrypted_main_key_wif.hex(), pk_wif_enc_hex)
         self.assertEqual(encrypted_main_key_private.hex(), pk_enc_hex)
