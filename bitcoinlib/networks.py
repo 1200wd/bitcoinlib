@@ -157,7 +157,7 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     Can return multiple items if no network is specified:
 
     >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
-    ['bitcoin', 'regtest', 'dash', 'dogecoin']
+    ['bitcoin', 'regtest', 'dogecoin']
 
     :param wif: WIF string or prefix as hexadecimal string
     :type wif: str

@@ -1424,7 +1424,7 @@ class HDKey(Key):
                     key_type = 'private' if is_private else 'public'
 
         if witness_type is None:
-            witness_type = 'legacy' if network == 'dash' else DEFAULT_WITNESS_TYPE
+            witness_type = DEFAULT_WITNESS_TYPE
         self.script_type = script_type if script_type else script_type_default(witness_type, multisig)
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)

@@ -2696,7 +2696,7 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         address = 'bc1qgf8fzfj65lcr5vae0sh77akurh4zc9s9m4uspm'
         w = Wallet.create('wallet_mix_no_private', keys=pub_master, db_uri=self.database_uri)
         self.assertEqual(address, w.get_key().address)
-        self.assertRaisesRegexp(WalletError, "This wallet has no private key, cannot use multiple witness types",
+        self.assertRaisesRegex(WalletError, "This wallet has no private key, cannot use multiple witness types",
                                 w.get_key, witness_type='legacy')
 
     def test_wallet_mixed_witness_type_create(self):

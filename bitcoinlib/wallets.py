@@ -1267,8 +1267,8 @@ class Wallet(object):
         if network is None:
             network = DEFAULT_NETWORK
         if witness_type is None:
-            witness_type = DEFAULT_WITNESS_TYPE if network != 'dash' else 'legacy'
-        if network in ['dash', 'dash_testnet', 'dogecoin', 'dogecoin_testnet'] and witness_type != 'legacy':
+            witness_type = DEFAULT_WITNESS_TYPE
+        if network in ['dogecoin', 'dogecoin_testnet'] and witness_type != 'legacy':
             raise WalletError("Segwit is not supported for %s wallets" % network.capitalize())
         elif network in ('dogecoin', 'dogecoin_testnet') and witness_type not in ('legacy', 'p2sh-segwit'):
             raise WalletError("Pure segwit addresses are not supported for Dogecoin wallets. "
@@ -1358,12 +1358,9 @@ class Wallet(object):
         """
 
         self._session = None
+        self._engine = None
         if session:
             self._session = session
-        # else:
-        #     dbinit = Db(db_uri=db_uri, password=db_password)
-        #     self.session = dbinit.session
-        #     self._engine = dbinit.engine
         self._db_password = db_password
         self.db_uri = db_uri
         self.db_cache_uri = db_cache_uri

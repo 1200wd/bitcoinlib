@@ -310,7 +310,7 @@ class DbKey(Base):
     used = Column(Boolean, default=False, doc="Has key already been used on the blockchain in as input or output? "
                                               "Default is False")
     network_name = Column(String(20), ForeignKey('networks.name'),
-                          doc="Name of key network, i.e. bitcoin, litecoin, dash")
+                          doc="Name of key network, i.e. bitcoin, litecoin")
     latest_txid = Column(LargeBinary(33), doc="TxId of latest transaction downloaded from the blockchain")
     witness_type = Column(String(20), default='segwit',
                           doc="Key witness type, only specify when using mixed wallets. Can be 'legacy', 'segwit' or "
@@ -346,7 +346,7 @@ class DbNetwork(Base):
 
     """
     __tablename__ = 'networks'
-    name = Column(String(20), unique=True, primary_key=True, doc="Network name, i.e.: bitcoin, litecoin, dash")
+    name = Column(String(20), unique=True, primary_key=True, doc="Network name, i.e.: bitcoin, litecoin")
     description = Column(String(50))
 
     def __repr__(self):
