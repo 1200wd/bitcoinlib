@@ -47,6 +47,7 @@ ENABLE_BITCOINLIB_LOGGING = True
 ALLOW_DATABASE_THREADS = None
 DATABASE_ENCRYPTION_ENABLED = False
 DB_FIELD_ENCRYPTION_KEY = None
+DB_FIELD_ENCRYPTION_PASSWORD = None
 
 # Services
 TIMEOUT_REQUESTS = 5
@@ -238,7 +239,7 @@ def read_config():
     global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
-    global SERVICE_CACHING_ENABLED, DATABASE_ENCRYPTION_ENABLED, DB_FIELD_ENCRYPTION_KEY
+    global SERVICE_CACHING_ENABLED, DATABASE_ENCRYPTION_ENABLED, DB_FIELD_ENCRYPTION_KEY, DB_FIELD_ENCRYPTION_PASSWORD
     global SERVICE_MAX_ERRORS, BLOCK_COUNT_CACHE_TIME, MAX_TRANSACTIONS
 
     # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
@@ -273,6 +274,7 @@ def read_config():
     SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
     DATABASE_ENCRYPTION_ENABLED = config_get('common', 'database_encryption_enabled', fallback=False, is_boolean=True)
     DB_FIELD_ENCRYPTION_KEY = os.environ.get('DB_FIELD_ENCRYPTION_KEY')
+    DB_FIELD_ENCRYPTION_PASSWORD = os.environ.get('DB_FIELD_ENCRYPTION_PASSWORD')
 
     # Log settings
     ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)

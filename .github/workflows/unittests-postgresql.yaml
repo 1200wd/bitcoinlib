@@ -36,4 +36,5 @@ jobs:
       env:
         BCL_CONFIG_FILE: config.ini.unittest
         UNITTEST_DATABASE: postgresql
+        DB_FIELD_ENCRYPTION_PASSWORD: verybadpassword
       run: coverage run --source=bitcoinlib -m unittest -v

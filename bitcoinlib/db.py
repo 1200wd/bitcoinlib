@@ -26,7 +26,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker, relationship, session
 from urllib.parse import urlparse
 from bitcoinlib.main import *
-from bitcoinlib.encoding import aes_encrypt, aes_decrypt
+from bitcoinlib.encoding import aes_encrypt, aes_decrypt, double_sha256
 
 _logger = logging.getLogger(__name__)
 Base = declarative_base()
@@ -136,28 +136,43 @@ def add_column(engine, table_name, column):
     return result
 
 
+def _get_encryption_key(default_impl):
+    impl = default_impl
+    key = None
+    if DATABASE_ENCRYPTION_ENABLED:
+        if not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
+            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
+                            "environment. Please supply 32 bytes key as hexadecimal string.")
+    if DB_FIELD_ENCRYPTION_KEY:
+        impl = default_impl
+        key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    elif DB_FIELD_ENCRYPTION_PASSWORD:
+        impl = default_impl
+        key = double_sha256(bytes(DB_FIELD_ENCRYPTION_PASSWORD, 'utf8'))
+    return key, impl
+
+
 class EncryptedBinary(TypeDecorator):
     """
     FieldType for encrypted Binary storage using EAS encryption
     """
 
-    impl = LargeBinary
     cache_ok = True
-    key = None
-    if DATABASE_ENCRYPTION_ENABLED:
-        if not DB_FIELD_ENCRYPTION_KEY:
-            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
-                            "environment. Please supply 32 bytes key as hexadecimal string.")
-        else:
-            key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    key, impl = _get_encryption_key(LargeBinary)
+    # if DATABASE_ENCRYPTION_ENABLED:
+    #     if not DB_FIELD_ENCRYPTION_KEY:
+    #         _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
+    #                         "environment. Please supply 32 bytes key as hexadecimal string.")
+    # if DB_FIELD_ENCRYPTION_KEY:
+    #     key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
 
     def process_bind_param(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         return aes_encrypt(value, self.key)
 
     def process_result_value(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         return aes_decrypt(value, self.key)
 
@@ -167,26 +182,27 @@ class EncryptedString(TypeDecorator):
     FieldType for encrypted String storage using EAS encryption
     """
 
-    impl = String
+    # impl = String
     cache_ok = True
-    key = None
-    if DATABASE_ENCRYPTION_ENABLED:
-        if not DB_FIELD_ENCRYPTION_KEY:
-            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
-                            "environment. Please supply 32 bytes key as hexadecimal string.")
-        else:
-            impl = LargeBinary
-            key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    # key = None
+    # if DATABASE_ENCRYPTION_ENABLED:
+    #     if not DB_FIELD_ENCRYPTION_KEY:
+    #         _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
+    #                         "environment. Please supply 32 bytes key as hexadecimal string.")
+    # if DB_FIELD_ENCRYPTION_KEY:
+    #     impl = LargeBinary
+    #     key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    key, impl = _get_encryption_key(String)
 
     def process_bind_param(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         if not isinstance(value, bytes):
             value = bytes(value, 'utf8')
         return aes_encrypt(value, self.key)
 
     def process_result_value(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         return aes_decrypt(value, self.key).decode('utf8')
 
