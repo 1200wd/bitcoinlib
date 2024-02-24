@@ -144,10 +144,10 @@ def _get_encryption_key(default_impl):
             _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
                             "environment. Please supply 32 bytes key as hexadecimal string.")
     if DB_FIELD_ENCRYPTION_KEY:
-        impl = default_impl
+        impl = LargeBinary
         key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
     elif DB_FIELD_ENCRYPTION_PASSWORD:
-        impl = default_impl
+        impl = LargeBinary
         key = double_sha256(bytes(DB_FIELD_ENCRYPTION_PASSWORD, 'utf8'))
     return key, impl
 
@@ -189,8 +189,8 @@ class EncryptedString(TypeDecorator):
     def process_result_value(self, value, dialect):
         if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
-        if value.startswith('\\x'):
-            value = bytes.fromhex(value[2:])
+        # if value.startswith('\\x'):
+        #     value = bytes.fromhex(value[2:])
         return aes_decrypt(value, self.key).decode('utf8')
 
 
@@ -293,7 +293,7 @@ class DbKey(Base):
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
     public = Column(LargeBinary(65), index=True, doc="Bytes representation of public key")
     private = Column(EncryptedBinary(48), doc="Bytes representation of private key")
-    wif = Column(EncryptedString(260), index=True, doc="Public or private WIF (Wallet Import Format) representation")
+    wif = Column(EncryptedString(128), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
     key_type = Column(String(10), default='bip32', doc="Type of key: single, bip32 or multisig. Default is bip32")
     address = Column(String(100), index=True,
