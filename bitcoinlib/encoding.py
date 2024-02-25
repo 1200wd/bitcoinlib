@@ -946,7 +946,11 @@ def aes_decrypt(encrypted_data, key):
     ct = encrypted_data[:-16]
     tag = encrypted_data[-16:]
     cipher2 = AES.new(key, AES.MODE_SIV)
-    return cipher2.decrypt_and_verify(ct, tag)
+    try:
+        res = cipher2.decrypt_and_verify(ct, tag)
+    except ValueError as e:
+        raise EncodingError("Could not decrypt value (password incorrect?): %s" % e)
+    return res
 
 
 def bip38_decrypt(encrypted_privkey, password):

@@ -24,6 +24,7 @@ from sqlalchemy.sql import text
 from bitcoinlib.db import BCL_DATABASE_DIR
 from bitcoinlib.wallets import Wallet
 from bitcoinlib.keys import HDKey
+from bitcoinlib.encoding import EncodingError
 
 
 try:
@@ -117,6 +118,17 @@ class TestSecurity(TestCase):
         self.assertEqual(encrypted_main_key_private.hex(), pk_enc_hex)
         self.assertNotEqual(encrypted_main_key_private, HDKey(pk).private_byte)
 
+    def test_security_encrypted_db_incorrect_password(self):
+        db = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bitcoinlib_encrypted.sqlite')
+        self.assertRaisesRegex(EncodingError, "Could not decrypt value \(password incorrect\?\): MAC check failed",
+                               Wallet, 'wlt-encryption-test', db_uri=db)
+
+    def test_security_encrypted_db_no_password(self):
+        db = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bitcoinlib_encrypted.sqlite')
+        if os.environ.get('DB_FIELD_ENCRYPTION_PASSWORD') or os.environ.get('DB_FIELD_ENCRYPTION_KEY'):
+            self.skipTest("This test only runs when no encryption keys are provided")
+        self.assertRaisesRegex(ValueError, "Data is encrypted please provide key in environment",
+                               Wallet, 'wlt-encryption-test', db_uri=db)
 
 if __name__ == '__main__':
     main()

@@ -188,9 +188,9 @@ class EncryptedString(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
+            if isinstance(value, bytes):
+                raise ValueError("Data is encrypted please provide key in environment")
             return value
-        # if value.startswith('\\x'):
-        #     value = bytes.fromhex(value[2:])
         return aes_decrypt(value, self.key).decode('utf8')
 
 
