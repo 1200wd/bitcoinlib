@@ -19,6 +19,6 @@ jobs:
           pip uninstall -y scrypt
       - name: Test with coverage
         env:
-          BCL_CONFIG_FILE: config_encryption.ini.unittest
+          BCL_CONFIG_FILE: ./config_encryption.ini.unittest
           DB_FIELD_ENCRYPTION_KEY: 11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff
         run: coverage run --source=bitcoinlib -m unittest -v
