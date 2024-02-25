@@ -55,7 +55,9 @@ If you look at the contents of the SQLite database you can see it is encrypted.
 Encrypt private key fields with AES
 -----------------------------------
 
-Enable database encryption in Bitcoinlib configuration settings at ~/.bitcoinlib/config.ini
+It is also possible to just encrypt the private keys in the database with secure AES encryption. You need to provide a key or password as environment variable.
+
+* You can skip this step if you want, but this provides an extra warning / check when no encryption key is found: Enable database encryption in Bitcoinlib configuration settings at ~/.bitcoinlib/config.ini
 
 .. code-block:: text
 
@@ -63,7 +65,9 @@ Enable database encryption in Bitcoinlib configuration settings at ~/.bitcoinlib
     # You need to set the password in the DB_FIELD_ENCRYPTION_KEY environment variable.
     database_encryption_enabled=True
 
-Now generate a secure 32 bytes encryption key. You can use Bitcoinlib to do this:
+You can provide an encryption key directly or use a password to create a key:
+
+1. Generate a secure 32 bytes encryption key yourself with Bitcoinlib:
 
 .. code-block:: python
 
@@ -73,18 +77,26 @@ Now generate a secure 32 bytes encryption key. You can use Bitcoinlib to do this
 
 This key needs to be stored in the environment when creating or accessing a wallet. No extra arguments have to be provided to the Wallet class, the data is encrypted an decrypted at database level.
 
+2. You can also just provide a password, and let Bitcoinlib create a key for you. You will need to pass the DB_FIELD_ENCRYPTION_PASSWORD environment variable.
+
 There are several ways to store the key in an Environment variable, on Linux you can do:
 
 .. code-block:: bash
 
     $ export DB_FIELD_ENCRYPTION_KEY='2414966ea9f2de189a61953c333f61013505dfbf8e383b5ed6cb1981d5ec2620'
 
-And in Windows:
+or
+
+.. code-block:: bash
+
+    $ export DB_FIELD_ENCRYPTION_PASSWORD=ineedtorememberthispassword
+
+Or in Windows:
 
 .. code-block:: bash
 
     $ setx DB_FIELD_ENCRYPTION_KEY '2414966ea9f2de189a61953c333f61013505dfbf8e383b5ed6cb1981d5ec2620'
 
-Enviroment variables can also be stored in an .env key, in a virtual enviroment or in Python code itself. However anyone with access to the key can decrypt your private keys.
+Environment variables can also be stored in an .env key, in a virtual environment or in Python code itself. However anyone with access to the key can decrypt your private keys.
 
-Please make sure to remember and backup your encryption key, if you loose your key the private keys can not be recovered!
+Please make sure to remember and backup your encryption key or password, if you loose your key the private keys can not be recovered!
