@@ -45,8 +45,7 @@ def parse_args():
     parser.add_argument('--database', '-d',
                         help="URI of the database to use",)
     parser.add_argument('--wallet_name', '-w', nargs='?', default='',
-                        help="Name of wallet to create or open. Provide wallet name or number when running wallet "
-                             "actions")
+                        help="Name of wallet to open. Provide wallet name or number when running wallet actions")
     parser.add_argument('--network', '-n',
                         help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
     parser.add_argument('--witness-type', '-j', metavar='WITNESS_TYPE', default=None,

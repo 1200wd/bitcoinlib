@@ -95,6 +95,43 @@ addresses and update unspent outputs.
 The -i / --wallet-info shows the contents of the updated wallet.
 
 
+Encrypt private key fields
+--------------------------
+
+Bitcoinlib has build in functionality to encrypt private key fields in the database. If you provide a password in
+the runtime environment the data is encrypted at low level in de database module. You can provide a 32 byte key
+in the DB_FIELD_ENCRYPTION_KEY variable or a password in the DB_FIELD_ENCRYPTION_PASSWORD variable.
+
+.. code-block:: bash
+
+    $ export DB_FIELD_ENCRYPTION_PASSWORD=iforgot
+    $ clw new -w cryptwallet
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    CREATE wallet 'cryptwallet' (bitcoin network)
+    Passphrase: job giant vendor side oil embrace true cushion have matrix glimpse rack
+    Please write down on paper and backup. With this key you can restore your wallet and all keys
+
+    Type 'yes' if you understood and wrote down your key: yes
+    ... wallet info ...
+
+    $ clw -w cryptwallet -r
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    Receive address: bc1q2cr0chgs6530mdpag2rfn7v9nt232nlpqcc4kc
+    Install qr code module to show QR codes: pip install pyqrcode
+
+If we now remove the password from the environment, we cannot open the wallet anymore:
+
+.. code-block:: bash
+
+    $ export DB_FIELD_ENCRYPTION_PASSWORD=
+    $ clw -w cryptwallet -i
+    Command Line Wallet - BitcoinLib 0.6.14
+
+    ValueError: Data is encrypted please provide key in environment
+
+
 Example: Multi-signature Bitcoinlib test wallet
 -----------------------------------------------
 
