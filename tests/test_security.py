@@ -119,12 +119,12 @@ class TestSecurity(TestCase):
         self.assertNotEqual(encrypted_main_key_private, HDKey(pk).private_byte)
 
     def test_security_encrypted_db_incorrect_password(self):
-        db = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bitcoinlib_encrypted.sqlite')
+        db = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bitcoinlib_encrypted.db')
         self.assertRaisesRegex(EncodingError, "Could not decrypt value \(password incorrect\?\): MAC check failed",
                                Wallet, 'wlt-encryption-test', db_uri=db)
 
     def test_security_encrypted_db_no_password(self):
-        db = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bitcoinlib_encrypted.sqlite')
+        db = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bitcoinlib_encrypted.db')
         if os.environ.get('DB_FIELD_ENCRYPTION_PASSWORD') or os.environ.get('DB_FIELD_ENCRYPTION_KEY'):
             self.skipTest("This test only runs when no encryption keys are provided")
         self.assertRaisesRegex(ValueError, "Data is encrypted please provide key in environment",
