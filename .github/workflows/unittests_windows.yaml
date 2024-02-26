@@ -18,6 +18,6 @@ jobs:
           python -m pip install .[dev]
       - name: Test with coverage
         env:
-          BCL_CONFIG_FILE: ${{ github.workspace }}/config.ini.unittest
+          BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
           PYTHONUTF8: 1
         run: coverage run --source=bitcoinlib -m unittest -v
