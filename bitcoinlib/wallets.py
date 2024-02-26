@@ -3196,13 +3196,6 @@ class Wallet(object):
         network = self.network.name
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         blockcount = srv.blockcount()
-        # db_txs = self.session.query(DbTransaction). \
-        #     filter(DbTransaction.wallet_id == self.wallet_id,
-        #            DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
-        # for db_tx in db_txs:
-        #     self.session.query(DbTransaction).filter_by(id=db_tx.id). \
-        #         update({DbTransaction.status: 'confirmed',
-        #                 DbTransaction.confirmations: (blockcount - DbTransaction.block_height) + 1})
         self.session.query(DbTransaction).\
             filter(DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network, DbTransaction.block_height > 0).\
@@ -3277,24 +3270,9 @@ class Wallet(object):
             depth = self.key_depth
 
         # Update number of confirmations and status for already known transactions
-        # if not key_id:
         self.transactions_update_confirmations()
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
-        # blockcount = srv.blockcount()
-        # db_txs = self.session.query(DbTransaction).\
-        #     filter(DbTransaction.wallet_id == self.wallet_id,
-        #            DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
-        # for db_tx in db_txs:
-        #     self.session.query(DbTransaction).filter_by(id=db_tx.id).\
-        #         update({DbTransaction.status: 'confirmed',
-        #                 DbTransaction.confirmations: (blockcount - DbTransaction.block_height) + 1})
-        # self.session.query(DbTransaction).\
-        #     filter(DbTransaction.wallet_id == self.wallet_id,
-        #            DbTransaction.network_name == network, DbTransaction.block_height > 0).\
-        #         update({DbTransaction.status: 'confirmed',
-        #                 DbTransaction.confirmations: (blockcount - DbTransaction.block_height) + 1})
-        # self._commit()
 
         # Get transactions for wallet's addresses
         txs = []
