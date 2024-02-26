@@ -303,15 +303,9 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_gettransactions_after_txid_segwit(self):
         res = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['blockcypher']).\
-            gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
-                            after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
-        tx_ids = [
-            '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803',
-            'a4bc261faf9ca47722760c9f9f075ab974c7351d8da7b0b5e5a316b3aa7aefa2',
-            '04be18177781f8060d63390a705cf89ffed2252a3506fab69be7079bc7ba9410']
-        self.assertIn(res[0].txid, tx_ids)
-        self.assertIn(res[1].txid, tx_ids)
-        self.assertIn(res[2].txid, tx_ids)
+            gettransactions('bc1qj9hlju59t0m4389033r2x8mlxwc86qgqm9flm626sd22cdhfs9jsyrrp6q',
+                            after_txid='bd430d52f35166a7dd6251c73a48559ad8b5f41b6c5bc4a6c4c1a3e3702f4287')
+        self.assertEqual(res[0].txid, 'cab75da6d7fe1531c881d4efdb4826410a2604aa9e6442ab12a08363f34fb408')
 
     def test_service_gettransactions_after_txid_litecoin(self):
         res = ServiceTest('litecoin').gettransactions(
