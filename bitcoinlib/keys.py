@@ -491,6 +491,10 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
 
         pre_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt[:4], 32, 16384, 8, 8)
         owner_entropy = owner_salt[:4] + int.to_bytes((lot * 4096 + sequence), 4, 'big')
+        if isinstance(pre_factor, list):
+            for pf in pre_factor:
+                print(pf.hex())
+            print(len(pre_factor))
         pass_factor = double_sha256(pre_factor + owner_entropy)
         magic = int.to_bytes(BIP38_MAGIC_LOT_AND_SEQUENCE, 8, 'big')
     else:

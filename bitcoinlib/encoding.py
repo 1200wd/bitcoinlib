@@ -1052,7 +1052,7 @@ def scrypt_hash(password, salt, key_len=64, N=16384, r=8, p=1, buflen=64):
 
     """
     try:               # Try scrypt from Cryptodome
-        key = scrypt(password, salt, key_len, N, r, p, buflen // key_len)
+        key = scrypt(password, salt, key_len, N, r, p)
     except TypeError:  # Use scrypt module
         key = scrypt.hash(password, salt, N, r, p, key_len)
     return key
