@@ -452,6 +452,55 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
     return npath
 
 
+def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=os.urandom(8)):
+    """
+    Intermediate passphrase generator for EC multiplied BIP38 encrypted private keys.
+    Source: https://github.com/meherett/python-bip38/blob/master/bip38/bip38.py
+
+    :param passphrase: Passphrase or password text
+    :type passphrase: str
+    :param lot: Lot number  between 100000 <= lot <= 999999 range, default to ``None``
+    :type lot: int
+    :param sequence: Sequence number  between 0 <= sequence <= 4095 range, default to ``None``
+    :type sequence: int
+    :param owner_salt: Owner salt, default to ``os.urandom(8)``
+    :type owner_salt: str, bytes
+
+    :returns: str -- Intermediate passphrase
+
+    >>> bip38_intermediate_password(passphrase="TestingOneTwoThree", lot=199999, sequence=1, owner_salt="75ed1cdeb254cb38")
+    'passphraseb7ruSN4At4Rb8hPTNcAVezfsjonvUs4Qo3xSp1fBFsFPvVGSbpP2WTJMhw3mVZ'
+
+    """
+
+    owner_salt = to_bytes(owner_salt)
+    if len(owner_salt) not in [4, 8]:
+        raise ValueError(f"Invalid owner salt length (expected: 4 or 8 bytes, got: {len(owner_salt)})")
+    if len(owner_salt) == 4 and (not lot or not sequence):
+        raise ValueError(f"Invalid owner salt length for non lot/sequence (expected: 8 bytes, got:"
+                         f" {len(owner_salt)})")
+    if (lot and not sequence) or (not lot and sequence):
+        raise ValueError(f"Both lot & sequence are required, got: (lot {lot}) (sequence {sequence})")
+
+    if lot and sequence:
+        lot, sequence = int(lot), int(sequence)
+        if not 100000 <= lot <= 999999:
+            raise ValueError(f"Invalid lot, (expected: 100000 <= lot <= 999999, got: {lot})")
+        if not 0 <= sequence <= 4095:
+            raise ValueError(f"Invalid lot, (expected: 0 <= sequence <= 4095, got: {sequence})")
+
+        pre_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt[:4], 32, 16384, 8, 8)
+        owner_entropy = owner_salt[:4] + int.to_bytes((lot * 4096 + sequence), 4, 'big')
+        pass_factor = double_sha256(pre_factor + owner_entropy)
+        magic = int.to_bytes(BIP38_MAGIC_LOT_AND_SEQUENCE, 8, 'big')
+    else:
+        pass_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt, 32, 16384, 8, 8)
+        magic = int.to_bytes(BIP38_MAGIC_NO_LOT_AND_SEQUENCE, 8, 'big')
+        owner_entropy = owner_salt
+
+    return pubkeyhash_to_addr_base58(magic + owner_entropy + HDKey(pass_factor).public_byte, prefix=b'')
+
+
 class Address(object):
     """
     Class to store, convert and analyse various address types as representation of public keys or scripts hashes

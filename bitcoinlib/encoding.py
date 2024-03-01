@@ -987,10 +987,12 @@ def bip38_decrypt(encrypted_privkey, password):
         password = password.encode('utf-8')
     addresshash = d[0:4]
     d = d[4:-4]
-    try:
-        key = scrypt(password, addresshash, 64, 16384, 8, 8)
-    except Exception:
-        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
+
+    key = scrypt_hash(password, addresshash, 64, 16384, 8, 8)
+    # try:
+    #     key = scrypt(password, addresshash, 64, 16384, 8, 8)
+    # except Exception:
+    #     key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
@@ -1028,10 +1030,7 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     if isinstance(password, str):
         password = password.encode('utf-8')
     addresshash = double_sha256(address)[0:4]
-    try:
-        key = scrypt(password, addresshash, 64, 16384, 8, 8)
-    except Exception:
-        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
+    key = scrypt_hash(password, addresshash, 64, 16384, 8, 8)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     aes = AES.new(derivedhalf2, AES.MODE_ECB)
@@ -1043,6 +1042,21 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
     encrypted_privkey += double_sha256(encrypted_privkey)[:4]
     return base58encode(encrypted_privkey)
+
+
+def scrypt_hash(password, salt, key_len=64, N=16384, r=8, p=1, buflen=64):
+    """
+    Wrapper for Scrypt method for scrypt or Cryptodome library
+
+    For documentation see methods in referring libraries
+
+    """
+    try:               # Try scrypt from Cryptodome
+        key = scrypt(password, salt, key_len, N, r, p, buflen // key_len)
+    except TypeError:  # Use scrypt module
+        key = scrypt.hash(password, salt, N, r, p, key_len)
+    return key
+
 
 
 class Quantity:

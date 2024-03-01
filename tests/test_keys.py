@@ -26,7 +26,7 @@ from bitcoinlib.keys import *
 
 # Number of bulktests for generation of private, public keys and HDKeys. Set to 0 to disable
 # WARNING: Can be slow for a larger number of tests
-BULKTESTCOUNT = 100
+BULKTESTCOUNT = 250
 
 
 class TestKeyClasses(unittest.TestCase):
@@ -599,6 +599,14 @@ class TestBip38(unittest.TestCase):
         bip38_wif = '6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq'
         k = HDKey(pkwif, witness_type='legacy')
         self.assertEqual(k.encrypt('Satoshi'), bip38_wif)
+
+    def test_bip38_intermediate_password(self):
+        password1 = 'passphraseb7ruSN4At4Rb8hPTNcAVezfsjonvUs4Qo3xSp1fBFsFPvVGSbpP2WTJMhw3mVZ'
+        intpwd1 = bip38_intermediate_password(passphrase="TestingOneTwoThree", lot=199999, sequence=1,
+                                    owner_salt="75ed1cdeb254cb38")
+        self.assertEqual(password1, intpwd1)
+        self.assertEqual(bip38_intermediate_password(passphrase="TestingOneTwoThree")[:10], 'passphrase')
+
 
 
 class TestKeysBulk(unittest.TestCase):

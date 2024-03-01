@@ -102,6 +102,10 @@ SIGNATURE_VERSION_SEGWIT = 1
 # Mnemonics
 DEFAULT_LANGUAGE = 'english'
 
+# BIP38
+BIP38_MAGIC_LOT_AND_SEQUENCE: int = 0x2ce9b3e1ff39e251
+BIP38_MAGIC_NO_LOT_AND_SEQUENCE: int = 0x2ce9b3e1ff39e253
+
 # Networks
 DEFAULT_NETWORK = 'bitcoin'
 NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units, https://en.wikipedia.org/wiki/Metric_prefix
