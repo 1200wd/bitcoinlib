@@ -1680,12 +1680,15 @@ class HDKey(Key):
         :return Key:
         """
         if self.is_private:
-            return HDKey(secp256k1_n - self.secret, network=self.network, compressed=self.compressed,
+            return HDKey(secp256k1_n - self.secret, network=self.network.name, compressed=self.compressed,
                          witness_type=self.witness_type, multisig=self.multisig, encoding=self.encoding)
         else:
             # Inverse y in init: self._y = secp256k1_p - self._y
-            return HDKey(('02' if self._y % 2 else '03') + self.x_hex, network=self.network, compressed=self.compressed,
-                       witness_type=self.witness_type, multisig=self.multisig, encoding=self.encoding)
+            if not self.compressed:
+                return self
+            return HDKey(('02' if self._y % 2 else '03') + self.x_hex, network=self.network.name,
+                         compressed=self.compressed, witness_type=self.witness_type, multisig=self.multisig,
+                         encoding=self.encoding)
 
     def info(self):
         """

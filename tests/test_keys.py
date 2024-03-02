@@ -94,6 +94,18 @@ class TestKeyClasses(unittest.TestCase):
         self.assertEqual((-k).address(), pub_k.inverse().address())
         self.assertEqual((-k).address(), k.inverse().address())
 
+        pkwif = 'Mtpv7L6Q8tPadPv8iUDKAXk1wyCmdJ6q2y2d3AixyoGVMH3WeoCDwkLbpUBXXB5HHbueeqTikkeBGTBV7tCcgJtEfm1wCt4ZcQixz7TtV5CAXfd'
+        k = HDKey(pkwif, network='litecoin', compressed=False, witness_type='p2sh-segwit')
+        pub_k = k.public()
+        self.assertEqual(pub_k, pub_k.inverse())
+
+        k = HDKey(pkwif, network='litecoin', witness_type='p2sh-segwit')
+        pub_k = k.public()
+        kpi = pub_k.inverse()
+        self.assertEqual(kpi.address(), "MQVYsZ5o5uhN2X6QMbu9RVu5YADiq859MY")
+        self.assertEqual(kpi.witness_type, 'p2sh-segwit')
+        self.assertEqual(kpi.network.name, 'litecoin')
+
     def test_dict_and_json_outputs(self):
         k = HDKey()
         k.address(script_type='p2wsh', encoding='bech32')
