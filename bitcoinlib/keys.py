@@ -496,13 +496,111 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
                 print(pf.hex())
             print(len(pre_factor))
         pass_factor = double_sha256(pre_factor + owner_entropy)
-        magic = int.to_bytes(BIP38_MAGIC_LOT_AND_SEQUENCE, 8, 'big')
+        magic = BIP38_MAGIC_LOT_AND_SEQUENCE
     else:
         pass_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt, 32, 16384, 8, 8)
-        magic = int.to_bytes(BIP38_MAGIC_NO_LOT_AND_SEQUENCE, 8, 'big')
+        magic = BIP38_MAGIC_NO_LOT_AND_SEQUENCE
         owner_entropy = owner_salt
 
     return pubkeyhash_to_addr_base58(magic + owner_entropy + HDKey(pass_factor).public_byte, prefix=b'')
+
+
+def bip38_create_new_encrypted_wif(intermediate_passphrase, public_key_type="compressed", seed=os.urandom(24),
+                                   network=DEFAULT_NETWORK):
+    """
+    Create new encrypted WIF (Wallet Important Format)
+
+    :param intermediate_passphrase: Intermediate passphrase text
+    :type intermediate_passphrase: str
+    :param public_key_type: Public key type, default to ``uncompressed``
+    :type public_key_type: Literal["uncompressed", "compressed"]
+    :param seed: Seed, default to ``os.urandom(24)``
+    :type seed: Optional[str, bytes]
+    :param network: Network type
+    :type network: Literal["mainnet", "testnet"], default to ``mainnet``
+
+    :returns: dict -- Encrypted WIF (Wallet Important Format)
+
+    """
+
+    seed_b = to_bytes(seed)
+    intermediate_password_bytes = change_base(intermediate_passphrase,58, 256)
+    check = intermediate_password_bytes[-4:]
+    intermediate_decode = intermediate_password_bytes[:-4]
+    checksum = double_sha256(intermediate_decode)[0:4]
+    assert (check == checksum), "Invalid address, checksum incorrect"
+    if len(intermediate_decode) != 49:
+        raise ValueError(f"Invalid intermediate passphrase length (expected: 49, got: {len(intermediate_decode)})")
+
+    magic: bytes = intermediate_decode[:8]
+    owner_entropy: bytes = intermediate_decode[8:16]
+    pass_point: bytes = intermediate_decode[16:]
+
+    if magic == BIP38_MAGIC_LOT_AND_SEQUENCE:
+        if public_key_type == "uncompressed":
+            flag: bytes = BIP38_MAGIC_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG
+        elif public_key_type == "compressed":
+            flag: bytes = BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG
+        else:
+            raise ValueError(f"Invalid public key type (expected: 'uncompressed' or 'compressed', got: {public_key_type})")
+    elif magic == BIP38_MAGIC_NO_LOT_AND_SEQUENCE:
+        if public_key_type == "uncompressed":
+            flag: bytes = BIP38_MAGIC_NO_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG
+        elif public_key_type == "compressed":
+            flag: bytes = BIP38_MAGIC_NO_LOT_AND_SEQUENCE_COMPRESSED_FLAG
+        else:
+            raise ValueError(f"Invalid public key type (expected: 'uncompressed' or 'compressed', got: {public_key_type})")
+    else:
+        raise ValueError("Invalid magic bytes, check BIP38 constants")
+
+    factor_b: bytes = double_sha256(seed_b)
+    if not 0 < int.from_bytes(factor_b, 'big') < secp256k1_n:
+        raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
+
+    public_key: bytes = multiply_public_key(pass_point, factor_b, public_key_type)
+    address: str = public_key_to_addresses(public_key=public_key, network=network)
+    address_hash: bytes = get_checksum(get_bytes(address, unhexlify=False))
+    salt: bytes = address_hash + owner_entropy
+    scrypt_hash: bytes = scrypt.hash(pass_point, salt, 1024, 1, 1, 64)
+    derived_half_1, derived_half_2, key = scrypt_hash[:16], scrypt_hash[16:32], scrypt_hash[32:]
+
+    aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
+    encrypted_half_1: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(seed_b[:16]) ^ bytes_to_integer(derived_half_1)
+    ))
+    encrypted_half_2: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(encrypted_half_1[8:] + seed_b[16:]) ^ bytes_to_integer(derived_half_2)
+    ))
+    encrypted_wif: str = ensure_string(check_encode((
+        integer_to_bytes(BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX) + flag + address_hash + owner_entropy + encrypted_half_1[:8] + encrypted_half_2
+    )))
+
+    point_b: bytes = get_bytes(private_key_to_public_key(factor_b, public_key_type="compressed"))
+    point_b_prefix: bytes = integer_to_bytes(
+        (bytes_to_integer(scrypt_hash[63:]) & 1) ^ bytes_to_integer(point_b[:1])
+    )
+    point_b_half_1: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(point_b[1:17]) ^ bytes_to_integer(derived_half_1)
+    ))
+    point_b_half_2: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(point_b[17:]) ^ bytes_to_integer(derived_half_2)
+    ))
+    encrypted_point_b: bytes = (
+        point_b_prefix + point_b_half_1 + point_b_half_2
+    )
+    confirmation_code: str = ensure_string(check_encode((
+        integer_to_bytes(CONFIRMATION_CODE_PREFIX) + flag + address_hash + owner_entropy + encrypted_point_b
+    )))
+
+    return dict(
+        encrypted_wif=encrypted_wif,
+        confirmation_code=confirmation_code,
+        public_key=bytes_to_string(public_key),
+        seed=bytes_to_string(seed_b),
+        public_key_type=public_key_type,
+        address=address
+    )
+
 
 
 class Address(object):

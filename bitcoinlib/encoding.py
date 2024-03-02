@@ -521,7 +521,7 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
     >>> addr_base58_to_pubkeyhash('142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ', as_hex=True)
     '21342f229392d7c9ed82c932916cee6517fbc9a2'
 
-    :param address: Crypto currency address in base-58 format
+    :param address: Cryptocurrency address in base-58 format
     :type address: str, bytes
     :param as_hex: Output as hexstring
     :type as_hex: bool
