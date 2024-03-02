@@ -884,6 +884,23 @@ def double_sha256(string, as_hex=False):
         return hashlib.sha256(hashlib.sha256(string).digest()).hexdigest()
 
 
+def sha256(string, as_hex=False):
+    """
+    Get SHA256 hash of string
+
+    :param string: String to be hashed
+    :type string: bytes
+    :param as_hex: Return value as hexadecimal string. Default is False
+    :type as_hex: bool
+
+    :return bytes, str:
+    """
+    if not as_hex:
+        return hashlib.sha256(string).digest()
+    else:
+        return hashlib.sha256(string).hexdigest()
+
+
 def ripemd160(string):
     try:
         return RIPEMD160.new(string).digest()

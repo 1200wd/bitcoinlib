@@ -150,6 +150,9 @@ def get_key_format(key, is_private=None):
     elif isinstance(key, bytes) and len(key) == 32:
         key_format = 'bin'
         is_private = True
+    elif isinstance(key, tuple):
+        key_format = 'point'
+        is_private = False
     elif len(key) == 130 and key[:2] == '04' and not is_private:
         key_format = 'public_uncompressed'
         is_private = False
@@ -557,49 +560,49 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, public_key_type="com
     if not 0 < int.from_bytes(factor_b, 'big') < secp256k1_n:
         raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
 
-    public_key: bytes = multiply_public_key(pass_point, factor_b, public_key_type)
-    address: str = public_key_to_addresses(public_key=public_key, network=network)
-    address_hash: bytes = get_checksum(get_bytes(address, unhexlify=False))
-    salt: bytes = address_hash + owner_entropy
-    scrypt_hash: bytes = scrypt.hash(pass_point, salt, 1024, 1, 1, 64)
-    derived_half_1, derived_half_2, key = scrypt_hash[:16], scrypt_hash[16:32], scrypt_hash[32:]
-
-    aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
-    encrypted_half_1: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(seed_b[:16]) ^ bytes_to_integer(derived_half_1)
-    ))
-    encrypted_half_2: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(encrypted_half_1[8:] + seed_b[16:]) ^ bytes_to_integer(derived_half_2)
-    ))
-    encrypted_wif: str = ensure_string(check_encode((
-        integer_to_bytes(BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX) + flag + address_hash + owner_entropy + encrypted_half_1[:8] + encrypted_half_2
-    )))
-
-    point_b: bytes = get_bytes(private_key_to_public_key(factor_b, public_key_type="compressed"))
-    point_b_prefix: bytes = integer_to_bytes(
-        (bytes_to_integer(scrypt_hash[63:]) & 1) ^ bytes_to_integer(point_b[:1])
-    )
-    point_b_half_1: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(point_b[1:17]) ^ bytes_to_integer(derived_half_1)
-    ))
-    point_b_half_2: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(point_b[17:]) ^ bytes_to_integer(derived_half_2)
-    ))
-    encrypted_point_b: bytes = (
-        point_b_prefix + point_b_half_1 + point_b_half_2
-    )
-    confirmation_code: str = ensure_string(check_encode((
-        integer_to_bytes(CONFIRMATION_CODE_PREFIX) + flag + address_hash + owner_entropy + encrypted_point_b
-    )))
-
-    return dict(
-        encrypted_wif=encrypted_wif,
-        confirmation_code=confirmation_code,
-        public_key=bytes_to_string(public_key),
-        seed=bytes_to_string(seed_b),
-        public_key_type=public_key_type,
-        address=address
-    )
+    # public_key: bytes = multiply_public_key(pass_point, factor_b, public_key_type)
+    # address: str = public_key_to_addresses(public_key=public_key, network=network)
+    # address_hash: bytes = get_checksum(get_bytes(address, unhexlify=False))
+    # salt: bytes = address_hash + owner_entropy
+    # scrypt_hash: bytes = scrypt.hash(pass_point, salt, 1024, 1, 1, 64)
+    # derived_half_1, derived_half_2, key = scrypt_hash[:16], scrypt_hash[16:32], scrypt_hash[32:]
+    #
+    # aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
+    # encrypted_half_1: bytes = aes.encrypt(integer_to_bytes(
+    #     bytes_to_integer(seed_b[:16]) ^ bytes_to_integer(derived_half_1)
+    # ))
+    # encrypted_half_2: bytes = aes.encrypt(integer_to_bytes(
+    #     bytes_to_integer(encrypted_half_1[8:] + seed_b[16:]) ^ bytes_to_integer(derived_half_2)
+    # ))
+    # encrypted_wif: str = ensure_string(check_encode((
+    #     integer_to_bytes(BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX) + flag + address_hash + owner_entropy + encrypted_half_1[:8] + encrypted_half_2
+    # )))
+    #
+    # point_b: bytes = get_bytes(private_key_to_public_key(factor_b, public_key_type="compressed"))
+    # point_b_prefix: bytes = integer_to_bytes(
+    #     (bytes_to_integer(scrypt_hash[63:]) & 1) ^ bytes_to_integer(point_b[:1])
+    # )
+    # point_b_half_1: bytes = aes.encrypt(integer_to_bytes(
+    #     bytes_to_integer(point_b[1:17]) ^ bytes_to_integer(derived_half_1)
+    # ))
+    # point_b_half_2: bytes = aes.encrypt(integer_to_bytes(
+    #     bytes_to_integer(point_b[17:]) ^ bytes_to_integer(derived_half_2)
+    # ))
+    # encrypted_point_b: bytes = (
+    #     point_b_prefix + point_b_half_1 + point_b_half_2
+    # )
+    # confirmation_code: str = ensure_string(check_encode((
+    #     integer_to_bytes(CONFIRMATION_CODE_PREFIX) + flag + address_hash + owner_entropy + encrypted_point_b
+    # )))
+    #
+    # return dict(
+    #     encrypted_wif=encrypted_wif,
+    #     confirmation_code=confirmation_code,
+    #     public_key=bytes_to_string(public_key),
+    #     seed=bytes_to_string(seed_b),
+    #     public_key_type=public_key_type,
+    #     address=address
+    # )
 
 
 
@@ -856,7 +859,7 @@ class Key(object):
         12127227708610754620337553985245292396444216111803695028419544944213442390363
 
         :param import_key: If specified import given private or public key. If not specified a new private key is generated.
-        :type import_key: str, int, bytes
+        :type import_key: str, int, bytes, tuple
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str, Network
         :param compressed: Is key compressed or not, default is True
@@ -926,32 +929,46 @@ class Key(object):
 
         if not self.is_private:
             self.secret = None
-            pub_key = to_hexstring(import_key)
-            if len(pub_key) == 130:
-                self._public_uncompressed_hex = pub_key
-                self.x_hex = pub_key[2:66]
-                self.y_hex = pub_key[66:130]
-                self._y = int(self.y_hex, 16)
-                self.compressed = False
-                if self._y % 2:
-                    prefix = '03'
-                else:
-                    prefix = '02'
-                self.public_hex = pub_key
-                self.public_compressed_hex = prefix + self.x_hex
-            else:
-                self.public_hex = pub_key
-                self.x_hex = pub_key[2:66]
+            if self.key_format == 'point':
                 self.compressed = True
-                self._x = int(self.x_hex, 16)
-                self.public_compressed_hex = pub_key
-            self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
-            if self._public_uncompressed_hex:
-                self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
-            if self.compressed:
-                self.public_byte = self.public_compressed_byte
+                self._x = import_key[0]
+                self._y = import_key[1]
+                self.x_bytes = self._x.to_bytes(32, 'big')
+                self.y_bytes = self._y.to_bytes(32, 'big')
+                self.x_hex = self.x_bytes.hex()
+                self.y_hex = self.y_bytes.hex()
+                prefix = '03' if self._y % 2 else '02'
+                self.public_hex = prefix + self.x_hex
+                self.public_compressed_hex = prefix + self.x_hex
+                self.public_byte = (b'\3' if self._y % 2 else b'\2') + self.x_bytes
             else:
-                self.public_byte = self.public_uncompressed_byte
+                pub_key = to_hexstring(import_key)
+                if len(pub_key) == 130:
+                    self._public_uncompressed_hex = pub_key
+                    self.x_hex = pub_key[2:66]
+                    self.y_hex = pub_key[66:130]
+                    self._y = int(self.y_hex, 16)
+                    self.compressed = False
+                    if self._y % 2:
+                        prefix = '03'
+                    else:
+                        prefix = '02'
+                    self.public_hex = pub_key
+                    self.public_compressed_hex = prefix + self.x_hex
+                else:
+                    self.public_hex = pub_key
+                    self.x_hex = pub_key[2:66]
+                    self.compressed = True
+                    self._x = int(self.x_hex, 16)
+                    self.public_compressed_hex = pub_key
+                self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
+                if self._public_uncompressed_hex:
+                    self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
+                if self.compressed:
+                    self.public_byte = self.public_compressed_byte
+                else:
+                    self.public_byte = self.public_uncompressed_byte
+
         elif self.is_private and self.key_format == 'decimal':
             self.secret = int(import_key)
             self.private_hex = change_base(self.secret, 10, 16, 64)
@@ -1049,10 +1066,55 @@ class Key(object):
         return self.public_byte
 
     def __add__(self, other):
-        return self.public_byte + other
+        """
+        Scalar addition over secp256k1 order of 2 keys secrets. Returns a new private key with network and compressed
+        attributes from first key.
 
-    def __radd__(self, other):
-        return other + self.public_byte
+        :param other: Private Key class
+        :type other: Key
+
+        :return: Key
+        """
+        assert self.is_private
+        assert isinstance(other, Key)
+        assert other.is_private
+        return Key((self.secret + other.secret) % secp256k1_n, self.network, self.compressed)
+
+    def __sub__(self, other):
+        """
+        Scalar substraction over secp256k1 order of 2 keys secrets. Returns a new private key with network and
+        compressed attributes from first key.
+
+        :param other: Private Key class
+        :type other: Key
+
+        :return: Key
+        """
+        assert self.is_private
+        assert isinstance(other, Key)
+        assert other.is_private
+        return Key((self.secret - other.secret) % secp256k1_n, self.network, self.compressed)
+
+    def __mul__(self, other):
+        """
+        Scalar multiplication over secp256k1 order of 2 keys secrets. Returns a new private key with network and
+        compressed attributes from first key.
+
+        :param other: Private Key class
+        :type other: Key
+
+        :return: Key
+        """
+        assert isinstance(other, Key)
+        assert self.secret
+        assert other.is_private
+        return Key((self.secret * other.secret) % secp256k1_n, self.network, self.compressed)
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __neg__(self):
+        return self.inverse()
 
     def __len__(self):
         return len(self.public_byte)
@@ -1076,6 +1138,18 @@ class Key(object):
             return self.secret
         else:
             return None
+
+    def inverse(self):
+        """
+        Return inverse of private or public key
+
+        :return Key:
+        """
+        if self.is_private:
+            return Key(secp256k1_n - self.secret, network=self.network, compressed=self.compressed)
+        else:
+            # Inverse y in init: self._y = secp256k1_p - self._y
+            return Key(('02' if self._y % 2 else '03') + self.x_hex, network=self.network, compressed=self.compressed)
 
     @property
     def x(self):
@@ -1485,7 +1559,7 @@ class HDKey(Key):
         <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW, network=bitcoin)>
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
-        :type import_key: str, bytes, int
+        :type import_key: str, bytes, int, tuple
         :param key: Private or public key (length 32)
         :type key: bytes
         :param chain: A chain code (length 32)
@@ -1595,6 +1669,23 @@ class HDKey(Key):
     def __repr__(self):
         return "<HDKey(public_hex=%s, wif_public=%s, network=%s)>" % \
                (self.public_hex, self.wif_public(), self.network.name)
+
+    def __neg__(self):
+        return self.inverse()
+
+    def inverse(self):
+        """
+        Return inverse of private or public key
+
+        :return Key:
+        """
+        if self.is_private:
+            return HDKey(secp256k1_n - self.secret, network=self.network, compressed=self.compressed,
+                         witness_type=self.witness_type, multisig=self.multisig, encoding=self.encoding)
+        else:
+            # Inverse y in init: self._y = secp256k1_p - self._y
+            return HDKey(('02' if self._y % 2 else '03') + self.x_hex, network=self.network, compressed=self.compressed,
+                       witness_type=self.witness_type, multisig=self.multisig, encoding=self.encoding)
 
     def info(self):
         """

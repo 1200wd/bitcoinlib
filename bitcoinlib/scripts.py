@@ -534,7 +534,7 @@ class Script(object):
             if isinstance(cmd, int):
                 raw += bytes([cmd])
             else:
-                raw += data_pack(cmd)
+                raw += data_pack(bytes(cmd))
         self._raw = raw
         return raw
 
