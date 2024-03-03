@@ -37,7 +37,6 @@ if USE_FASTECDSA:
     from fastecdsa import point as fastecdsa_point
 else:
     import ecdsa
-
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
@@ -508,15 +507,15 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     return pubkeyhash_to_addr_base58(magic + owner_entropy + HDKey(pass_factor).public_byte, prefix=b'')
 
 
-def bip38_create_new_encrypted_wif(intermediate_passphrase, public_key_type="compressed", seed=os.urandom(24),
+def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, seed=os.urandom(24),
                                    network=DEFAULT_NETWORK):
     """
     Create new encrypted WIF (Wallet Important Format)
 
     :param intermediate_passphrase: Intermediate passphrase text
     :type intermediate_passphrase: str
-    :param public_key_type: Public key type, default to ``uncompressed``
-    :type public_key_type: Literal["uncompressed", "compressed"]
+    :param compressed: Compressed key
+    :type compressed: boolean
     :param seed: Seed, default to ``os.urandom(24)``
     :type seed: Optional[str, bytes]
     :param network: Network type
@@ -540,19 +539,15 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, public_key_type="com
     pass_point: bytes = intermediate_decode[16:]
 
     if magic == BIP38_MAGIC_LOT_AND_SEQUENCE:
-        if public_key_type == "uncompressed":
-            flag: bytes = BIP38_MAGIC_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG
-        elif public_key_type == "compressed":
+        if compressed:
             flag: bytes = BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG
         else:
-            raise ValueError(f"Invalid public key type (expected: 'uncompressed' or 'compressed', got: {public_key_type})")
+            flag: bytes = BIP38_MAGIC_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG
     elif magic == BIP38_MAGIC_NO_LOT_AND_SEQUENCE:
-        if public_key_type == "uncompressed":
-            flag: bytes = BIP38_MAGIC_NO_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG
-        elif public_key_type == "compressed":
+        if compressed:
             flag: bytes = BIP38_MAGIC_NO_LOT_AND_SEQUENCE_COMPRESSED_FLAG
         else:
-            raise ValueError(f"Invalid public key type (expected: 'uncompressed' or 'compressed', got: {public_key_type})")
+            flag: bytes = BIP38_MAGIC_NO_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG
     else:
         raise ValueError("Invalid magic bytes, check BIP38 constants")
 
@@ -560,49 +555,52 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, public_key_type="com
     if not 0 < int.from_bytes(factor_b, 'big') < secp256k1_n:
         raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
 
-    # public_key: bytes = multiply_public_key(pass_point, factor_b, public_key_type)
+    pk_point = ec_point_multiplication(HDKey(pass_point).public_point(), int.from_bytes(factor_b, 'big'))
+    k = HDKey((pk_point.x, pk_point.y),compressed=compressed)
+    public_key: bytes = multiply_public_key(pass_point, factor_b, public_key_type)
     # address: str = public_key_to_addresses(public_key=public_key, network=network)
     # address_hash: bytes = get_checksum(get_bytes(address, unhexlify=False))
-    # salt: bytes = address_hash + owner_entropy
-    # scrypt_hash: bytes = scrypt.hash(pass_point, salt, 1024, 1, 1, 64)
-    # derived_half_1, derived_half_2, key = scrypt_hash[:16], scrypt_hash[16:32], scrypt_hash[32:]
-    #
-    # aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
-    # encrypted_half_1: bytes = aes.encrypt(integer_to_bytes(
-    #     bytes_to_integer(seed_b[:16]) ^ bytes_to_integer(derived_half_1)
-    # ))
-    # encrypted_half_2: bytes = aes.encrypt(integer_to_bytes(
-    #     bytes_to_integer(encrypted_half_1[8:] + seed_b[16:]) ^ bytes_to_integer(derived_half_2)
-    # ))
-    # encrypted_wif: str = ensure_string(check_encode((
-    #     integer_to_bytes(BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX) + flag + address_hash + owner_entropy + encrypted_half_1[:8] + encrypted_half_2
-    # )))
-    #
-    # point_b: bytes = get_bytes(private_key_to_public_key(factor_b, public_key_type="compressed"))
-    # point_b_prefix: bytes = integer_to_bytes(
-    #     (bytes_to_integer(scrypt_hash[63:]) & 1) ^ bytes_to_integer(point_b[:1])
-    # )
-    # point_b_half_1: bytes = aes.encrypt(integer_to_bytes(
-    #     bytes_to_integer(point_b[1:17]) ^ bytes_to_integer(derived_half_1)
-    # ))
-    # point_b_half_2: bytes = aes.encrypt(integer_to_bytes(
-    #     bytes_to_integer(point_b[17:]) ^ bytes_to_integer(derived_half_2)
-    # ))
-    # encrypted_point_b: bytes = (
-    #     point_b_prefix + point_b_half_1 + point_b_half_2
-    # )
-    # confirmation_code: str = ensure_string(check_encode((
-    #     integer_to_bytes(CONFIRMATION_CODE_PREFIX) + flag + address_hash + owner_entropy + encrypted_point_b
-    # )))
-    #
-    # return dict(
-    #     encrypted_wif=encrypted_wif,
-    #     confirmation_code=confirmation_code,
-    #     public_key=bytes_to_string(public_key),
-    #     seed=bytes_to_string(seed_b),
-    #     public_key_type=public_key_type,
-    #     address=address
-    # )
+
+    salt: bytes = address_hash + owner_entropy
+    scrypt_hash: bytes = scrypt.hash(pass_point, salt, 1024, 1, 1, 64)
+    derived_half_1, derived_half_2, key = scrypt_hash[:16], scrypt_hash[16:32], scrypt_hash[32:]
+
+    aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
+    encrypted_half_1: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(seed_b[:16]) ^ bytes_to_integer(derived_half_1)
+    ))
+    encrypted_half_2: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(encrypted_half_1[8:] + seed_b[16:]) ^ bytes_to_integer(derived_half_2)
+    ))
+    encrypted_wif: str = ensure_string(check_encode((
+        integer_to_bytes(BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX) + flag + address_hash + owner_entropy + encrypted_half_1[:8] + encrypted_half_2
+    )))
+
+    point_b: bytes = get_bytes(private_key_to_public_key(factor_b, public_key_type="compressed"))
+    point_b_prefix: bytes = integer_to_bytes(
+        (bytes_to_integer(scrypt_hash[63:]) & 1) ^ bytes_to_integer(point_b[:1])
+    )
+    point_b_half_1: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(point_b[1:17]) ^ bytes_to_integer(derived_half_1)
+    ))
+    point_b_half_2: bytes = aes.encrypt(integer_to_bytes(
+        bytes_to_integer(point_b[17:]) ^ bytes_to_integer(derived_half_2)
+    ))
+    encrypted_point_b: bytes = (
+        point_b_prefix + point_b_half_1 + point_b_half_2
+    )
+    confirmation_code: str = ensure_string(check_encode((
+        integer_to_bytes(CONFIRMATION_CODE_PREFIX) + flag + address_hash + owner_entropy + encrypted_point_b
+    )))
+
+    return dict(
+        encrypted_wif=encrypted_wif,
+        confirmation_code=confirmation_code,
+        public_key=bytes_to_string(public_key),
+        seed=bytes_to_string(seed_b),
+        public_key_type=public_key_type,
+        address=address
+    )
 
 
 
@@ -2570,6 +2568,26 @@ def ec_point(m):
         point = secp256k1_generator
         point *= m
         return point
+
+
+def ec_point_multiplication(p, m):
+    """
+    Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
+
+    :param m: A scalar multiplier
+    :type m: int
+
+    :return Point: Generator point G multiplied by m
+    """
+    m = int(m)
+    if USE_FASTECDSA:
+        point = fastecdsa_point.Point(p[0], p[1], fastecdsa_secp256k1)
+        return point * m
+    else:
+        raise NotImplementedError
+        # point = secp256k1_generator
+        # point *= m
+        # return point
 
 
 def mod_sqrt(a):
