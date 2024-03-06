@@ -295,6 +295,7 @@ def deserialize_address(address, encoding=None, network=None):
                     'script_type': script_type,
                     'witness_type': witness_type,
                     'networks': networks,
+                    'checksum': checksum,
                     'witver': None,
                 }
     if encoding == 'bech32' or encoding is None:
@@ -319,6 +320,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'script_type': script_type,
                 'witness_type': witness_type,
                 'networks': networks,
+                'checksum': addr_bech32_checksum(address),
                 'witver': witver,
             }
         except EncodingError as err:
@@ -556,49 +558,41 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
         raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
 
     pk_point = ec_point_multiplication(HDKey(pass_point).public_point(), int.from_bytes(factor_b, 'big'))
-    k = HDKey((pk_point.x, pk_point.y),compressed=compressed)
-    public_key: bytes = multiply_public_key(pass_point, factor_b, public_key_type)
-    # address: str = public_key_to_addresses(public_key=public_key, network=network)
-    # address_hash: bytes = get_checksum(get_bytes(address, unhexlify=False))
+    k = HDKey((pk_point.x, pk_point.y), compressed=compressed, witness_type='legacy')
+    public_key = k.public_hex
+    address = k.address()
+    address_hash = double_sha256(bytes(address, 'utf8'))[:4]
 
     salt: bytes = address_hash + owner_entropy
-    scrypt_hash: bytes = scrypt.hash(pass_point, salt, 1024, 1, 1, 64)
-    derived_half_1, derived_half_2, key = scrypt_hash[:16], scrypt_hash[16:32], scrypt_hash[32:]
+    scrypt_hash_bytes: bytes = scrypt_hash(pass_point, salt, 64, 1024, 1, 1)
+    derived_half_1, derived_half_2, key = scrypt_hash_bytes[:16], scrypt_hash_bytes[16:32], scrypt_hash_bytes[32:]
 
-    aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
-    encrypted_half_1: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(seed_b[:16]) ^ bytes_to_integer(derived_half_1)
-    ))
-    encrypted_half_2: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(encrypted_half_1[8:] + seed_b[16:]) ^ bytes_to_integer(derived_half_2)
-    ))
-    encrypted_wif: str = ensure_string(check_encode((
-        integer_to_bytes(BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX) + flag + address_hash + owner_entropy + encrypted_half_1[:8] + encrypted_half_2
-    )))
+    aes = AES.new(key, AES.MODE_ECB)
+    encrypted_half_1 = \
+        aes.encrypt((int.from_bytes(seed_b[:16], 'big') ^ int.from_bytes(derived_half_1, 'big')).to_bytes(16, 'big'))
+    encrypted_half_2 = \
+        aes.encrypt((int.from_bytes((encrypted_half_1[8:] + seed_b[16:]), 'big') ^
+                     int.from_bytes(derived_half_2,'big')).to_bytes(16, 'big'))
+    encrypted_wif = pubkeyhash_to_addr_base58(flag + address_hash + owner_entropy + encrypted_half_1[:8] +
+        encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
 
-    point_b: bytes = get_bytes(private_key_to_public_key(factor_b, public_key_type="compressed"))
-    point_b_prefix: bytes = integer_to_bytes(
-        (bytes_to_integer(scrypt_hash[63:]) & 1) ^ bytes_to_integer(point_b[:1])
-    )
-    point_b_half_1: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(point_b[1:17]) ^ bytes_to_integer(derived_half_1)
-    ))
-    point_b_half_2: bytes = aes.encrypt(integer_to_bytes(
-        bytes_to_integer(point_b[17:]) ^ bytes_to_integer(derived_half_2)
-    ))
-    encrypted_point_b: bytes = (
-        point_b_prefix + point_b_half_1 + point_b_half_2
-    )
-    confirmation_code: str = ensure_string(check_encode((
-        integer_to_bytes(CONFIRMATION_CODE_PREFIX) + flag + address_hash + owner_entropy + encrypted_point_b
-    )))
+    point_b = HDKey(factor_b).public_byte
+    point_b_prefix = (int.from_bytes(scrypt_hash_bytes[63:], 'big') & 1 ^
+                      int.from_bytes(point_b[:1], 'big')).to_bytes(1, 'big')
+    point_b_half_1 = aes.encrypt((int.from_bytes(point_b[1:17], 'big') ^
+                                  int.from_bytes(derived_half_1, 'big')).to_bytes(16, 'big'))
+    point_b_half_2 = aes.encrypt((int.from_bytes(point_b[17:], 'big') ^
+                                  int.from_bytes(derived_half_2, 'big')).to_bytes(16, 'big'))
+    encrypted_point_b = point_b_prefix + point_b_half_1 + point_b_half_2
+    confirmation_code = pubkeyhash_to_addr_base58(flag + address_hash + owner_entropy + encrypted_point_b,
+                                                  prefix=BIP38_CONFIRMATION_CODE_PREFIX)
 
     return dict(
         encrypted_wif=encrypted_wif,
         confirmation_code=confirmation_code,
-        public_key=bytes_to_string(public_key),
-        seed=bytes_to_string(seed_b),
-        public_key_type=public_key_type,
+        public_key=public_key,
+        seed=seed_b,
+        compressed=compressed,
         address=address
     )
 
