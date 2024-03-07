@@ -456,6 +456,199 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
     return npath
 
 
+def bip38_decrypt(encrypted_privkey, password):
+    """
+    BIP0038 non-ec-multiply decryption. Returns WIF private key.
+    Based on code from https://github.com/nomorecoin/python-bip38-testing
+    This method is called by Key class init function when importing BIP0038 key.
+
+    :param encrypted_privkey: Encrypted private key using WIF protected key format
+    :type encrypted_privkey: str
+    :param password: Required password for decryption
+    :type password: str
+
+    :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
+    """
+    d = change_base(encrypted_privkey, 58, 256)
+    identifier = d[0:2]
+    flagbyte = d[2:3]
+    address_hash: bytes = d[3:7]
+    if identifier  == BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
+        owner_entropy: bytes = d[7:15]
+        encrypted_half_1_half_1: bytes = d[15:23]
+        encrypted_half_2: bytes = d[23:-4]
+
+        lot_and_sequence = None
+        if flagbyte in [BIP38_MAGIC_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
+                     b'\x0c', b'\x14', b'\x1c', b'\x2c', b'\x34', b'\x3c']:
+            owner_salt: bytes = owner_entropy[:4]
+            lot_and_sequence = owner_entropy[4:]
+        else:
+            owner_salt: bytes = owner_entropy
+
+        # pass_factor: bytes = scrypt.hash(unicodedata.normalize("NFC", passphrase), owner_salt, 16384, 8, 8, 32)
+        pass_factor = scrypt_hash(password, owner_salt, 32, 16384, 8, 8)
+        if lot_and_sequence:
+            pass_factor: bytes = double_sha256(pass_factor + owner_entropy)
+        if int.from_bytes(pass_factor, 'big') == 0 or int.from_bytes(pass_factor, 'big') >= secp256k1_n:
+            raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
+
+        # pre_public_key: str = private_key_to_public_key(
+        #     private_key=pass_factor, public_key_type="compressed"
+        # )
+        pre_public_key = HDKey(pass_factor).public_byte
+        salt = address_hash + owner_entropy
+        encrypted_seed_b: bytes = scrypt_hash(pre_public_key, salt, 64, 1024, 1, 1)
+        key: bytes = encrypted_seed_b[32:]
+
+        # aes = AES.new(key, AES.MODE_ECB)
+        # encrypted_half_1 = \
+        #     aes.encrypt(
+        #         (int.from_bytes(seed_b[:16], 'big') ^ int.from_bytes(derived_half_1, 'big')).to_bytes(16, 'big'))
+        # encrypted_half_2 = \
+        #     aes.encrypt((int.from_bytes((encrypted_half_1[8:] + seed_b[16:]), 'big') ^
+        #                  int.from_bytes(derived_half_2, 'big')).to_bytes(16, 'big'))
+        # encrypted_wif = pubkeyhash_to_addr_base58(flag + address_hash + owner_entropy + encrypted_half_1[:8] +
+        #                                           encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
+
+        # aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
+        aes = AES.new(key, AES.MODE_ECB)
+
+        # encrypted_half_1_half_2_seed_b_last_3 = integer_to_bytes(
+        #     bytes_to_integer(aes.decrypt(encrypted_half_2)) ^ bytes_to_integer(encrypted_seed_b[16:32])
+        # )
+        encrypted_half_1_half_2_seed_b_last_3 = (
+            int.from_bytes(aes.decrypt(encrypted_half_2), 'big') ^
+            int.from_bytes(encrypted_seed_b[16:32], 'big')).to_bytes(16, 'big')
+        encrypted_half_1_half_2: bytes = encrypted_half_1_half_2_seed_b_last_3[:8]
+        encrypted_half_1: bytes = (
+                encrypted_half_1_half_1 + encrypted_half_1_half_2
+        )
+
+        seed_b: bytes = ((
+            int.from_bytes(aes.decrypt(encrypted_half_1), 'big') ^
+            int.from_bytes(encrypted_seed_b[:16], 'big')).to_bytes(16, 'big') +
+                         encrypted_half_1_half_2_seed_b_last_3[8:])
+
+        factor_b: bytes = double_sha256(seed_b)
+        if int.from_bytes(factor_b, 'big') == 0 or int.from_bytes(factor_b, 'big') >= secp256k1_n:
+            raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
+
+        # private_key: bytes = multiply_private_key(pass_factor, factor_b)
+        private_key = HDKey(pass_factor) * HDKey(factor_b)
+        # public_key: str = private_key_to_public_key(
+        #     private_key=private_key, public_key_type="uncompressed"
+        # )
+        # wif_type: Literal["wif", "wif-compressed"] = "wif"
+        # public_key_type: Literal["uncompressed", "compressed"] = "uncompressed"
+        compressed = False
+        public_key = private_key.public_uncompressed_hex
+        # if bytes_to_integer(flag) in FLAGS["compression"]:
+        if flagbyte in [BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
+                        b'\x28', b'\x2c', b'\x30', b'\x34', b'\x38', b'\x3c', b'\xe0', b'\xe8', b'\xf0', b'\xf8']:
+            public_key: str = private_key.public_compressed_hex
+            public_key_type = "compressed"
+            wif_type = "wif-compressed"
+            compressed = True
+
+        # address: str = public_key_to_addresses(public_key=public_key, network=network)
+        address = private_key.address(compressed=compressed)
+        address_hash_check = double_sha256(bytes(address, 'utf8'))[:4]
+        # if get_checksum(get_bytes(address, unhexlify=False)) == address_hash:
+        if address_hash_check == address_hash:
+            # wif: str = private_key_to_wif(
+            #     private_key=private_key, wif_type=wif_type, network=network
+            # )
+            wif = private_key.wif()
+            lot = None
+            sequence = None
+            # if detail:
+            if lot_and_sequence:
+                # sequence: int = bytes_to_integer(lot_and_sequence) % 4096
+                # lot: int = (bytes_to_integer(lot_and_sequence) - sequence) // 4096
+                sequence = int.from_bytes(lot_and_sequence, 'big') % 4096
+                lot = int.from_bytes(lot_and_sequence, 'big') // 4096
+            # return dict(
+            #     wif=wif,
+            #     private_key=bytes_to_string(private_key),
+            #     wif_type=wif_type,
+            #     public_key=public_key,
+            #     public_key_type=public_key_type,
+            #     seed=bytes_to_string(seed_b),
+            #     address=address,
+            #     lot=lot,
+            #     sequence=sequence
+            # )
+            return wif
+    elif identifier == BIP38_NO_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
+        d = d[3:]
+        if flagbyte == b'\xc0':
+            compressed = False
+        elif flagbyte == b'\xe0' or flagbyte == b'\x20':
+            compressed = True
+        else:
+            raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")
+        if isinstance(password, str):
+            password = password.encode('utf-8')
+        addresshash = d[0:4]
+        d = d[4:-4]
+
+        key = scrypt_hash(password, addresshash, 64, 16384, 8, 8)
+        derivedhalf1 = key[0:32]
+        derivedhalf2 = key[32:64]
+        encryptedhalf1 = d[0:16]
+        encryptedhalf2 = d[16:32]
+
+        # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+        aes = AES.new(derivedhalf2, AES.MODE_ECB)
+        decryptedhalf2 = aes.decrypt(encryptedhalf2)
+        decryptedhalf1 = aes.decrypt(encryptedhalf1)
+        priv = decryptedhalf1 + decryptedhalf2
+        priv = (int.from_bytes(priv, 'big') ^ int.from_bytes(derivedhalf1, 'big')).to_bytes(32, 'big')
+        # if compressed:
+        #     # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
+        #     priv += b'\1'
+        return priv, addresshash, compressed
+    else:
+        raise EncodingError("Unknown BIP38 identifier, value must be 0x0142 (non-EC-multiplied) or "
+                            "0x0143 (EC-multiplied)")
+
+
+def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
+    """
+    BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
+    Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+    :param private_hex: Private key in hex format
+    :type private_hex: str
+    :param address: Address string
+    :type address: str
+    :param password: Required password for encryption
+    :type password: str
+    :param flagbyte: Flagbyte prefix for WIF
+    :type flagbyte: bytes
+
+    :return str: BIP38 password encrypted private key
+    """
+    if isinstance(address, str):
+        address = address.encode('utf-8')
+    if isinstance(password, str):
+        password = password.encode('utf-8')
+    addresshash = double_sha256(address)[0:4]
+    key = scrypt_hash(password, addresshash, 64, 16384, 8, 8)
+    derivedhalf1 = key[0:32]
+    derivedhalf2 = key[32:64]
+    aes = AES.new(derivedhalf2, AES.MODE_ECB)
+    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    encryptedhalf1 = \
+        aes.encrypt((int(private_hex[0:32], 16) ^ int.from_bytes(derivedhalf1[0:16], 'big')).to_bytes(16, 'big'))
+    encryptedhalf2 = \
+        aes.encrypt((int(private_hex[32:64], 16) ^ int.from_bytes(derivedhalf1[16:32], 'big')).to_bytes(16, 'big'))
+    encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
+    encrypted_privkey += double_sha256(encrypted_privkey)[:4]
+    return base58encode(encrypted_privkey)
+
+
 def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=os.urandom(8)):
     """
     Intermediate passphrase generator for EC multiplied BIP38 encrypted private keys.
