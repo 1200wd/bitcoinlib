@@ -61,7 +61,7 @@ def parse_args():
                             help="Name of wallet to create or open. Provide wallet name or number when running wallet "
                             "actions")
     parser_new.add_argument('--password',
-                            help='Password for BIP38 encrypted key. Use to create a wallet with a protected key')
+                            help='Password for BIP38 encrypted key. Use to create a wallet from a protected key')
     parser_new.add_argument('--network', '-n',
                             help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
     parser_new.add_argument('--passphrase', default=None, metavar="PASSPHRASE",

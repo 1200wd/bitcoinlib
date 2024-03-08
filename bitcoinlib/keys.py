@@ -486,37 +486,18 @@ def bip38_decrypt(encrypted_privkey, password):
         else:
             owner_salt: bytes = owner_entropy
 
-        # pass_factor: bytes = scrypt.hash(unicodedata.normalize("NFC", passphrase), owner_salt, 16384, 8, 8, 32)
         pass_factor = scrypt_hash(password, owner_salt, 32, 16384, 8, 8)
         if lot_and_sequence:
             pass_factor: bytes = double_sha256(pass_factor + owner_entropy)
         if int.from_bytes(pass_factor, 'big') == 0 or int.from_bytes(pass_factor, 'big') >= secp256k1_n:
             raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
 
-        # pre_public_key: str = private_key_to_public_key(
-        #     private_key=pass_factor, public_key_type="compressed"
-        # )
         pre_public_key = HDKey(pass_factor).public_byte
         salt = address_hash + owner_entropy
         encrypted_seed_b: bytes = scrypt_hash(pre_public_key, salt, 64, 1024, 1, 1)
         key: bytes = encrypted_seed_b[32:]
 
-        # aes = AES.new(key, AES.MODE_ECB)
-        # encrypted_half_1 = \
-        #     aes.encrypt(
-        #         (int.from_bytes(seed_b[:16], 'big') ^ int.from_bytes(derived_half_1, 'big')).to_bytes(16, 'big'))
-        # encrypted_half_2 = \
-        #     aes.encrypt((int.from_bytes((encrypted_half_1[8:] + seed_b[16:]), 'big') ^
-        #                  int.from_bytes(derived_half_2, 'big')).to_bytes(16, 'big'))
-        # encrypted_wif = pubkeyhash_to_addr_base58(flag + address_hash + owner_entropy + encrypted_half_1[:8] +
-        #                                           encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
-
-        # aes: AESModeOfOperationECB = AESModeOfOperationECB(key)
         aes = AES.new(key, AES.MODE_ECB)
-
-        # encrypted_half_1_half_2_seed_b_last_3 = integer_to_bytes(
-        #     bytes_to_integer(aes.decrypt(encrypted_half_2)) ^ bytes_to_integer(encrypted_seed_b[16:32])
-        # )
         encrypted_half_1_half_2_seed_b_last_3 = (
             int.from_bytes(aes.decrypt(encrypted_half_2), 'big') ^
             int.from_bytes(encrypted_seed_b[16:32], 'big')).to_bytes(16, 'big')
@@ -534,52 +515,36 @@ def bip38_decrypt(encrypted_privkey, password):
         if int.from_bytes(factor_b, 'big') == 0 or int.from_bytes(factor_b, 'big') >= secp256k1_n:
             raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
 
-        # private_key: bytes = multiply_private_key(pass_factor, factor_b)
         private_key = HDKey(pass_factor) * HDKey(factor_b)
-        # public_key: str = private_key_to_public_key(
-        #     private_key=private_key, public_key_type="uncompressed"
-        # )
-        # wif_type: Literal["wif", "wif-compressed"] = "wif"
-        # public_key_type: Literal["uncompressed", "compressed"] = "uncompressed"
         compressed = False
         public_key = private_key.public_uncompressed_hex
-        # if bytes_to_integer(flag) in FLAGS["compression"]:
         if flagbyte in [BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
                         b'\x28', b'\x2c', b'\x30', b'\x34', b'\x38', b'\x3c', b'\xe0', b'\xe8', b'\xf0', b'\xf8']:
             public_key: str = private_key.public_compressed_hex
-            public_key_type = "compressed"
-            wif_type = "wif-compressed"
             compressed = True
 
-        # address: str = public_key_to_addresses(public_key=public_key, network=network)
         address = private_key.address(compressed=compressed)
         address_hash_check = double_sha256(bytes(address, 'utf8'))[:4]
-        # if get_checksum(get_bytes(address, unhexlify=False)) == address_hash:
-        if address_hash_check == address_hash:
-            # wif: str = private_key_to_wif(
-            #     private_key=private_key, wif_type=wif_type, network=network
-            # )
-            wif = private_key.wif()
-            lot = None
-            sequence = None
-            # if detail:
-            if lot_and_sequence:
-                # sequence: int = bytes_to_integer(lot_and_sequence) % 4096
-                # lot: int = (bytes_to_integer(lot_and_sequence) - sequence) // 4096
-                sequence = int.from_bytes(lot_and_sequence, 'big') % 4096
-                lot = int.from_bytes(lot_and_sequence, 'big') // 4096
-            # return dict(
-            #     wif=wif,
-            #     private_key=bytes_to_string(private_key),
-            #     wif_type=wif_type,
-            #     public_key=public_key,
-            #     public_key_type=public_key_type,
-            #     seed=bytes_to_string(seed_b),
-            #     address=address,
-            #     lot=lot,
-            #     sequence=sequence
-            # )
-            return wif
+        if address_hash_check != address_hash:
+            raise ValueError("Address hash has invalid checksum")
+        wif = private_key.wif()
+        lot = None
+        sequence = None
+        if lot_and_sequence:
+            sequence = int.from_bytes(lot_and_sequence, 'big') % 4096
+            lot = int.from_bytes(lot_and_sequence, 'big') // 4096
+
+        # TODO: Check if more data needs to be returned
+        retdict = dict(
+            wif=wif,
+            private_key=private_key.private_hex,
+            public_key=public_key,
+            seed=seed_b.hex(),
+            address=address,
+            lot=lot,
+            sequence=sequence
+        )
+        return private_key.private_byte, address_hash, compressed
     elif identifier == BIP38_NO_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
         d = d[3:]
         if flagbyte == b'\xc0':
@@ -605,9 +570,6 @@ def bip38_decrypt(encrypted_privkey, password):
         decryptedhalf1 = aes.decrypt(encryptedhalf1)
         priv = decryptedhalf1 + decryptedhalf2
         priv = (int.from_bytes(priv, 'big') ^ int.from_bytes(derivedhalf1, 'big')).to_bytes(32, 'big')
-        # if compressed:
-        #     # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
-        #     priv += b'\1'
         return priv, addresshash, compressed
     else:
         raise EncodingError("Unknown BIP38 identifier, value must be 0x0142 (non-EC-multiplied) or "
