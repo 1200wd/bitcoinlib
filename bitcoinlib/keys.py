@@ -518,7 +518,7 @@ def bip38_decrypt(encrypted_privkey, password):
         private_key = HDKey(pass_factor) * HDKey(factor_b)
         compressed = False
         public_key = private_key.public_uncompressed_hex
-        if flagbyte in [BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
+        if flagbyte in [BIP38_MAGIC_NO_LOT_AND_SEQUENCE_COMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
                         b'\x28', b'\x2c', b'\x30', b'\x34', b'\x38', b'\x3c', b'\xe0', b'\xe8', b'\xf0', b'\xf8']:
             public_key: str = private_key.public_compressed_hex
             compressed = True

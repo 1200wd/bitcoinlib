@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2017-2018 July - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2024 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -681,6 +681,64 @@ class TestBip38(unittest.TestCase):
         self.assertEqual(password1, intpwd1)
         self.assertEqual(bip38_intermediate_password(passphrase="TestingOneTwoThree")[:10], 'passphrase')
 
+        intermediate_codes = [
+            {"passphrase": "MOLON LABE", "lot": None, "sequence": None, "owner_salt": "d7ebe42cf42a79f4",
+             "intermediate_passphrase": "passphraserDFxboKK9cTkBQMb73vdzgsXB5L6cCMFCzTVoMTpMWYD8SJXv3jcKyHbRWBcza"},
+            {"passphrase": "MOLON LABE", "lot": 100000, "sequence": 1, "owner_salt": "d7ebe42cf42a79f4",
+             "intermediate_passphrase": "passphrasedYVZ6EdRqSmcHHsYWmJ7wzWcWYuDQmf9EGH9Pnrv67eHy4qswaAGGc8Et3eeGp"},
+            {"passphrase": "MOLON LABE", "lot": 100000, "sequence": 1, "owner_salt": "d7ebe42c",
+             "intermediate_passphrase": "passphrasedYVZ6EdRqSmcHHsYWmJ7wzWcWYuDQmf9EGH9Pnrv67eHy4qswaAGGc8Et3eeGp"}
+        ]
+        for ic in intermediate_codes:
+            intermediate_password = bip38_intermediate_password(ic['passphrase'], ic['lot'], ic['sequence'],
+                                                                ic['owner_salt'])
+            self.assertEqual(intermediate_password, ic['intermediate_passphrase'])
+
+    def test_bip38_create_new_encrypted_wif(self):
+        create_new_encrypted_wif = [
+            {"intermediate_passphrase": "passphraserDFxboKK9cTkBQMb73vdzgsXB5L6cCMFCzTVoMTpMWYD8SJXv3jcKyHbRWBcza",
+             "seed": "9b6cad86daddae99ac3b76c1e47e61bc7f4665d02e10c290",
+             "encrypted_wif": "6PnQDk5XngQugiy1Fi2kzzgKAQrxZrtQDGNFiQTMamjiJcjBT4LhXdnhNf",
+             "confirmation_code": "cfrm38VUF9PjRxQojZERDySt9Q7Z9FSdhQkMP5RFsouS4y3Emf2YD2CXXMCypQvv94dJujaPTfq",
+             "public_key": "0348ca8b4e7c0c75ecfd4b437535d186a12f3027be0c29d2125e9c0dec48677caa",
+             "compressed": True, "address": "16uZsrjjENCVsXwJqw2kMWGwWbDKQ12a1h"},
+            {"intermediate_passphrase": "passphrasedYVZ6EdRqSmcHHsYWmJ7wzWcWYuDQmf9EGH9Pnrv67eHy4qswaAGGc8Et3eeGp",
+             "seed": "9b6cad86daddae99ac3b76c1e47e61bc7f4665d02e10c290",
+             "encrypted_wif": "6PgRAPfrPWjPXfC6x9XB139RHzUP8GFcVen5Ju3qJDhRP69Q4Vd8Wbct6B",
+             "confirmation_code": "cfrm38V8kEzECGczWJmEoGuYfkoamcmVij3tHUhD6DEEquSRXp61HzhnT8jwQwBBZiKs9Jg4LXZ",
+             "public_key": "04597967956e7f4c0e13ed7cd98baa9d7697a7f685d4347168e4a011c5fe6ba628e06ef89587c17afb5504"
+                           "4336e44648dfa944ca85a4af0a7b28c29d4eefd0da92",
+             "compressed": False, "address": "1KRg2YJxuHiNcqfp9gVpkgRFhcvALy1zgk"}
+        ]
+        for ew in create_new_encrypted_wif:
+            res = bip38_create_new_encrypted_wif(ew["intermediate_passphrase"], ew["compressed"], ew["seed"])
+            self.assertEqual(res['encrypted_wif'], ew['encrypted_wif'])
+            self.assertEqual(res['confirmation_code'], ew['confirmation_code'])
+            self.assertEqual(res['address'], ew['address'])
+
+    def test_bip38_decrypt_wif(self):
+        bip38_decrypt_test_vectors = [
+            {"encrypted_wif": "6PRL8jj6dLQjBBJjHMdUKLSNLEpjTyAfmt8GnCnfT87NeQ2BU5eAW1tcsS",
+             "passphrase": "TestingOneTwoThree",
+             "network": "testnet", "wif": "938jwjergAxARSWx2YSt9nSBWBz24h8gLhv7EUfgEP1wpMLg6iX",
+             "private_key": "cbf4b9f70470856bb4f40f80b87edb90865997ffee6df315ab166d713af433a5", "wif_type": "wif",
+             "public_key": "04d2ce831dd06e5c1f5b1121ef34c2af4bcb01b126e309234adbc3561b60c9360ea7f23327b49ba7f10d17fad15f068b8807dbbc9e4ace5d4a0b40264eefaf31a4",
+             "compressed": False, "seed": None, "address": "myM3eoxWDWxFe7GYHZw8K21rw7QDNZeDYM", "lot": None,
+             "sequence": None},
+            {"encrypted_wif": "6PYVB5nHnumbUua1UmsAMPHWHa76Ci48MY79aKYnpKmwxeGqHU2XpXtKvo",
+             "passphrase": "TestingOneTwoThree",
+             "network": "testnet", "wif": "cURAYbG6FtvUasdBsooEmmY9MqUfhJ8tdybQWV7iA4BAwunCT2Fu",
+             "private_key": "cbf4b9f70470856bb4f40f80b87edb90865997ffee6df315ab166d713af433a5",
+             "wif_type": "wif-compressed",
+             "public_key": "02d2ce831dd06e5c1f5b1121ef34c2af4bcb01b126e309234adbc3561b60c9360e",
+             "compressed": True, "seed": None, "address": "mkaJhmE5vvaXG17uZdCm6wKpckEfnG4yt9", "lot": None,
+             "sequence": None},
+        ]
+
+        for tv in bip38_decrypt_test_vectors:
+            res = bip38_decrypt(tv['encrypted_wif'], tv['passphrase'])
+            self.assertEqual(res[0].hex(), tv['private_key'])
+            self.assertEqual(res[2], tv['compressed'])
 
 
 class TestKeysBulk(unittest.TestCase):

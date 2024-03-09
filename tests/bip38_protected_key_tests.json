@@ -54,7 +54,7 @@
       "description": "EC multiply / no compression / lot sequence numbers #1",
       "test_encrypt": false
     }
-  ],
+],
   "invalid": {
     "decrypt": [],
     "encrypt": [],
