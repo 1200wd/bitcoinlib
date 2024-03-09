@@ -139,6 +139,13 @@ class TestKeyClasses(unittest.TestCase):
         self.assertEqual(k.public(), k2)
         self.assertEqual(k.address(), k2.address())
 
+        k = HDKey(compressed=False, witness_type='legacy')
+        p = (k.x, k.y)
+        k2 = HDKey(p, compressed=False, witness_type='legacy')
+        self.assertEqual(k, k2)
+        self.assertEqual(k.public(), k2)
+        self.assertEqual(k.address(), k2.address())
+
 
 class TestGetKeyFormat(unittest.TestCase):
 

@@ -1077,7 +1077,7 @@ class Key(object):
         if not self.is_private:
             self.secret = None
             if self.key_format == 'point':
-                self.compressed = True
+                self.compressed = compressed
                 self._x = import_key[0]
                 self._y = import_key[1]
                 self.x_bytes = self._x.to_bytes(32, 'big')
@@ -1085,9 +1085,9 @@ class Key(object):
                 self.x_hex = self.x_bytes.hex()
                 self.y_hex = self.y_bytes.hex()
                 prefix = '03' if self._y % 2 else '02'
-                self.public_hex = prefix + self.x_hex
+                self._public_uncompressed_hex = '04' + self.x_hex + self.y_hex
                 self.public_compressed_hex = prefix + self.x_hex
-                self.public_byte = (b'\3' if self._y % 2 else b'\2') + self.x_bytes
+                self.public_hex = self.public_compressed_hex if compressed else self._public_uncompressed_hex
             else:
                 pub_key = to_hexstring(import_key)
                 if len(pub_key) == 130:
@@ -1096,10 +1096,7 @@ class Key(object):
                     self.y_hex = pub_key[66:130]
                     self._y = int(self.y_hex, 16)
                     self.compressed = False
-                    if self._y % 2:
-                        prefix = '03'
-                    else:
-                        prefix = '02'
+                    prefix = '03' if self._y % 2 else '02'
                     self.public_hex = pub_key
                     self.public_compressed_hex = prefix + self.x_hex
                 else:
@@ -1108,13 +1105,10 @@ class Key(object):
                     self.compressed = True
                     self._x = int(self.x_hex, 16)
                     self.public_compressed_hex = pub_key
-                self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
-                if self._public_uncompressed_hex:
-                    self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
-                if self.compressed:
-                    self.public_byte = self.public_compressed_byte
-                else:
-                    self.public_byte = self.public_uncompressed_byte
+            self.public_compressed_byte = bytes.fromhex(self.public_compressed_hex)
+            if self._public_uncompressed_hex:
+                self._public_uncompressed_byte = bytes.fromhex(self._public_uncompressed_hex)
+            self.public_byte = self.public_compressed_byte if self.compressed else self.public_uncompressed_byte
 
         elif self.is_private and self.key_format == 'decimal':
             self.secret = int(import_key)
