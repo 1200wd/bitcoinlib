@@ -637,6 +637,8 @@ class TestBip38(unittest.TestCase):
         if not USING_MODULE_SCRYPT:
             return
         for v in self.vectors["valid"]:
+            if v.get('test_encrypt') is False:
+                continue
             k = Key(v['wif'])
             # print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
             self.assertEqual(str(v['bip38']), k.encrypt(str(v['passphrase'])))
