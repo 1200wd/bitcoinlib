@@ -674,9 +674,9 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
     :param compressed: Compressed key
     :type compressed: boolean
     :param seed: Seed, default to ``os.urandom(24)``
-    :type seed: Optional[str, bytes]
-    :param network: Network type
-    :type network: Literal["mainnet", "testnet"], default to ``mainnet``
+    :type seed: str, bytes
+    :param network: Network name
+    :type network: str
 
     :returns: dict -- Encrypted WIF (Wallet Important Format)
 
@@ -713,7 +713,7 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
         raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
 
     pk_point = ec_point_multiplication(HDKey(pass_point).public_point(), int.from_bytes(factor_b, 'big'))
-    k = HDKey((pk_point.x, pk_point.y), compressed=compressed, witness_type='legacy')
+    k = HDKey((pk_point[0], pk_point[1]), compressed=compressed, witness_type='legacy', network=network)
     public_key = k.public_hex
     address = k.address()
     address_hash = double_sha256(bytes(address, 'utf8'))[:4]
@@ -2709,28 +2709,29 @@ def ec_point(m):
         return fastecdsa_keys.get_public_key(m, fastecdsa_secp256k1)
     else:
         point = secp256k1_generator
-        point *= m
-        return point
+        return point * m
 
 
 def ec_point_multiplication(p, m):
     """
     Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
 
+    :param p: Point on SECP256k1 curve
+    :type p: tuple
     :param m: A scalar multiplier
     :type m: int
 
-    :return Point: Generator point G multiplied by m
+    :return tuple: Generator point G multiplied by m as tuple in (x, y) format
     """
     m = int(m)
     if USE_FASTECDSA:
         point = fastecdsa_point.Point(p[0], p[1], fastecdsa_secp256k1)
-        return point * m
+        point_m = point * m
+        return (point_m.x, point_m.y)
     else:
-        raise NotImplementedError
-        # point = secp256k1_generator
-        # point *= m
-        # return point
+        point = ecdsa.ellipticcurve.Point(ecdsa.SECP256k1.curve, p[0], p[1])
+        point_m = point * m
+        return (point_m.x(), point_m.y())
 
 
 def mod_sqrt(a):
