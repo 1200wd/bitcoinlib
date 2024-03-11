@@ -101,10 +101,13 @@ class TestKeyClasses(unittest.TestCase):
 
         k = HDKey(pkwif, network='litecoin', witness_type='p2sh-segwit')
         pub_k = k.public()
-        kpi = pub_k.inverse()
-        self.assertEqual(kpi.address(), "MQVYsZ5o5uhN2X6QMbu9RVu5YADiq859MY")
-        self.assertEqual(kpi.witness_type, 'p2sh-segwit')
-        self.assertEqual(kpi.network.name, 'litecoin')
+        pub_k_inv = pub_k.inverse()
+        self.assertEqual(pub_k_inv.address(), "MQVYsZ5o5uhN2X6QMbu9RVu5YADiq859MY")
+        self.assertEqual(pub_k_inv.witness_type, 'p2sh-segwit')
+        self.assertEqual(pub_k_inv.network.name, 'litecoin')
+        self.assertEqual(k.address(), pub_k.address())
+        self.assertEqual((-k).address(), pub_k_inv.address())
+        self.assertEqual((-k).address(), k.inverse().address())
 
     def test_dict_and_json_outputs(self):
         k = HDKey()
