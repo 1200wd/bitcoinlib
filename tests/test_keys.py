@@ -701,17 +701,25 @@ class TestBip38(unittest.TestCase):
              "encrypted_wif": "6PnQDk5XngQugiy1Fi2kzzgKAQrxZrtQDGNFiQTMamjiJcjBT4LhXdnhNf",
              "confirmation_code": "cfrm38VUF9PjRxQojZERDySt9Q7Z9FSdhQkMP5RFsouS4y3Emf2YD2CXXMCypQvv94dJujaPTfq",
              "public_key": "0348ca8b4e7c0c75ecfd4b437535d186a12f3027be0c29d2125e9c0dec48677caa",
-             "compressed": True, "address": "16uZsrjjENCVsXwJqw2kMWGwWbDKQ12a1h"},
+             "compressed": True, "address": "16uZsrjjENCVsXwJqw2kMWGwWbDKQ12a1h", "network": "bitcoin"},
             {"intermediate_passphrase": "passphrasedYVZ6EdRqSmcHHsYWmJ7wzWcWYuDQmf9EGH9Pnrv67eHy4qswaAGGc8Et3eeGp",
              "seed": "9b6cad86daddae99ac3b76c1e47e61bc7f4665d02e10c290",
              "encrypted_wif": "6PgRAPfrPWjPXfC6x9XB139RHzUP8GFcVen5Ju3qJDhRP69Q4Vd8Wbct6B",
              "confirmation_code": "cfrm38V8kEzECGczWJmEoGuYfkoamcmVij3tHUhD6DEEquSRXp61HzhnT8jwQwBBZiKs9Jg4LXZ",
              "public_key": "04597967956e7f4c0e13ed7cd98baa9d7697a7f685d4347168e4a011c5fe6ba628e06ef89587c17afb5504"
                            "4336e44648dfa944ca85a4af0a7b28c29d4eefd0da92",
-             "compressed": False, "address": "1KRg2YJxuHiNcqfp9gVpkgRFhcvALy1zgk"}
+             "compressed": False, "address": "1KRg2YJxuHiNcqfp9gVpkgRFhcvALy1zgk", "network": "bitcoin"},
+            {"intermediate_passphrase": "passphrasedYVZ6EdRqSmcHHsYWmJ7wzWcWYuDQmf9EGH9Pnrv67eHy4qswaAGGc8Et3eeGp",
+             "seed": "9b6cad86daddae99ac3b76c1e47e61bc7f4665d02e10c290",
+             "encrypted_wif": "6PgEuJVC5CJV4m9f5NgmW1MQCV56XyQ3ZASqckdz4s3PAznxKRi9H6JW5c",
+             "confirmation_code": "cfrm38V8AorwLxaG1GThhCDdS2Av74pRkojnePAS69nscD93DDVchgcjg1o8mxpXSJRaZbXFUYv",
+             "public_key": "04597967956e7f4c0e13ed7cd98baa9d7697a7f685d4347168e4a011c5fe6ba628e06ef89587c17afb5504"
+                           "4336e44648dfa944ca85a4af0a7b28c29d4eefd0da92",
+             "compressed": False, "address": "LdedHkcnywxRseMyKpV82hV1uqHSU2m1ez", "network": "litecoin"}
         ]
         for ew in create_new_encrypted_wif:
-            res = bip38_create_new_encrypted_wif(ew["intermediate_passphrase"], ew["compressed"], ew["seed"])
+            res = bip38_create_new_encrypted_wif(ew["intermediate_passphrase"], ew["compressed"], ew["seed"],
+                                                 network=ew["network"])
             self.assertEqual(res['encrypted_wif'], ew['encrypted_wif'])
             self.assertEqual(res['confirmation_code'], ew['confirmation_code'])
             self.assertEqual(res['address'], ew['address'])

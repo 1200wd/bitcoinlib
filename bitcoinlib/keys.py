@@ -467,7 +467,7 @@ def bip38_decrypt(encrypted_privkey, password):
     :param password: Required password for decryption
     :type password: str
 
-    :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
+    :return tuple (bytes, bytes, boolean, dict): (Private Key bytes, 4 byte address hash for verification, compressed?, dictionary with additional info)
     """
     d = change_base(encrypted_privkey, 58, 256)
     identifier = d[0:2]
@@ -490,7 +490,7 @@ def bip38_decrypt(encrypted_privkey, password):
         if lot_and_sequence:
             pass_factor: bytes = double_sha256(pass_factor + owner_entropy)
         if int.from_bytes(pass_factor, 'big') == 0 or int.from_bytes(pass_factor, 'big') >= secp256k1_n:
-            raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
+            raise ValueError("Invalid EC encrypted WIF (Wallet Import Format)")
 
         pre_public_key = HDKey(pass_factor).public_byte
         salt = address_hash + owner_entropy
@@ -513,7 +513,7 @@ def bip38_decrypt(encrypted_privkey, password):
 
         factor_b: bytes = double_sha256(seed_b)
         if int.from_bytes(factor_b, 'big') == 0 or int.from_bytes(factor_b, 'big') >= secp256k1_n:
-            raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
+            raise ValueError("Invalid EC encrypted WIF (Wallet Import Format)")
 
         private_key = HDKey(pass_factor) * HDKey(factor_b)
         compressed = False
@@ -534,7 +534,6 @@ def bip38_decrypt(encrypted_privkey, password):
             sequence = int.from_bytes(lot_and_sequence, 'big') % 4096
             lot = int.from_bytes(lot_and_sequence, 'big') // 4096
 
-        # TODO: Check if more data needs to be returned
         retdict = dict(
             wif=wif,
             private_key=private_key.private_hex,
@@ -544,7 +543,7 @@ def bip38_decrypt(encrypted_privkey, password):
             lot=lot,
             sequence=sequence
         )
-        return private_key.private_byte, address_hash, compressed
+        return private_key.private_byte, address_hash, compressed, retdict
     elif identifier == BIP38_NO_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
         d = d[3:]
         if flagbyte == b'\xc0':
@@ -570,7 +569,7 @@ def bip38_decrypt(encrypted_privkey, password):
         decryptedhalf1 = aes.decrypt(encryptedhalf1)
         priv = decryptedhalf1 + decryptedhalf2
         priv = (int.from_bytes(priv, 'big') ^ int.from_bytes(derivedhalf1, 'big')).to_bytes(32, 'big')
-        return priv, addresshash, compressed
+        return priv, addresshash, compressed, {}
     else:
         raise EncodingError("Unknown BIP38 identifier, value must be 0x0142 (non-EC-multiplied) or "
                             "0x0143 (EC-multiplied)")
@@ -616,6 +615,8 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     Intermediate passphrase generator for EC multiplied BIP38 encrypted private keys.
     Source: https://github.com/meherett/python-bip38/blob/master/bip38/bip38.py
 
+    Use intermediate password to create a encrypted WIF key with the :func:`bip38_create_new_encrypted_wif` method.
+
     :param passphrase: Passphrase or password text
     :type passphrase: str
     :param lot: Lot number  between 100000 <= lot <= 999999 range, default to ``None``
@@ -625,7 +626,7 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     :param owner_salt: Owner salt, default to ``os.urandom(8)``
     :type owner_salt: str, bytes
 
-    :returns: str -- Intermediate passphrase
+    :returns str: Intermediate passphrase
 
     >>> bip38_intermediate_password(passphrase="TestingOneTwoThree", lot=199999, sequence=1, owner_salt="75ed1cdeb254cb38")
     'passphraseb7ruSN4At4Rb8hPTNcAVezfsjonvUs4Qo3xSp1fBFsFPvVGSbpP2WTJMhw3mVZ'
@@ -667,18 +668,19 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
 def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, seed=os.urandom(24),
                                    network=DEFAULT_NETWORK):
     """
-    Create new encrypted WIF (Wallet Important Format)
+    Create new encrypted WIF BIP38 EC multiplied key. Use :func:`bip38_intermediate_password` to create a
+    intermediate passphrase first.
 
     :param intermediate_passphrase: Intermediate passphrase text
     :type intermediate_passphrase: str
-    :param compressed: Compressed key
+    :param compressed: Compressed or uncompressed key
     :type compressed: boolean
     :param seed: Seed, default to ``os.urandom(24)``
     :type seed: str, bytes
     :param network: Network name
     :type network: str
 
-    :returns: dict -- Encrypted WIF (Wallet Important Format)
+    :returns dict: Dictionary with encrypted WIF key and confirmation code
 
     """
 
@@ -710,7 +712,7 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
 
     factor_b: bytes = double_sha256(seed_b)
     if not 0 < int.from_bytes(factor_b, 'big') < secp256k1_n:
-        raise ValueError("Invalid EC encrypted WIF (Wallet Important Format)")
+        raise ValueError("Invalid EC encrypted WIF (Wallet Import Format)")
 
     pk_point = ec_point_multiplication(HDKey(pass_point).public_point(), int.from_bytes(factor_b, 'big'))
     k = HDKey((pk_point[0], pk_point[1]), compressed=compressed, witness_type='legacy', network=network)
@@ -1381,7 +1383,7 @@ class Key(object):
 
         :return str: Private Key WIF
         """
-        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, password)
+        priv, addresshash, compressed, _ = bip38_decrypt(encrypted_privkey, password)
 
         # Verify addresshash
         k = Key(priv, compressed=compressed, network=network)
@@ -1927,7 +1929,7 @@ class HDKey(Key):
 
         :return str: Private Key WIF
         """
-        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, password)
+        priv, addresshash, compressed, _ = bip38_decrypt(encrypted_privkey, password)
         # compressed = True if priv[-1:] == b'\1' else False
 
         # Verify addresshash
