@@ -2709,3 +2709,16 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         self.assertListEqual(sorted(w.witness_types()), ['legacy', 'p2sh-segwit', 'segwit'])
         self.assertListEqual(sorted(w.witness_types(account_id=101)), ['p2sh-segwit', 'segwit'])
         self.assertListEqual(w.witness_types(network='litecoin'), ['segwit'])
+
+    def test_wallet_mixed_witness_types_passphrase(self):
+        p1 = 'advance upset milk quit sword tide pumpkin unit weekend denial tobacco alien'
+        p2 = 'danger aspect north choose run bean short race prepare receive armed burst'
+        w = Wallet.create('multiwitnessmultisigtest', keys=[p1, p2], cosigner_id=0, db_uri=self.database_uri)
+        w.new_key()
+        w.new_key(network='litecoin', witness_type='p2sh-segwit')
+        w.new_key(witness_type='legacy')
+        w.new_key(witness_type='p2sh-segwit')
+        expected_addresslist = \
+            ['39h96ozh8F8W2sVrc2EhEbFwwdRoLHJAfB', '3LdJC6MSmFqKrn2WrxRfhd8DYkYYr8FNDr',
+             'MTSW4eC7xJiyp4YjwGZqpGmubsdm28Cdvc', 'bc1qgw8rg0057q9fmupx7ru6vtkxzy03gexc9ljycagj8z3hpzdfg7usvu56dp']
+        self.assertListEqual(sorted(w.addresslist()), expected_addresslist)
