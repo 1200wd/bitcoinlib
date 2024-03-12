@@ -82,6 +82,9 @@ SCRIPT_TYPES = {
     'signature_multisig': ('unlocking', [op.op_0, 'signature'], []),
     'locktime_cltv': ('unlocking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop], []),
     'locktime_csv': ('unlocking', ['locktime_csv', op.op_checksequenceverify, op.op_drop], []),
+    #
+    # List of nonstandard scripts, use for blockchain parsing. Must begin with 'nonstandard'
+    'nonstandard_0001': ('unlocking', [op.op_0], []),
 }
 
 SIGHASH_ALL = 1

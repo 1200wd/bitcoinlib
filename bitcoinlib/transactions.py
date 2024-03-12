@@ -381,9 +381,12 @@ class Input(object):
         output_n = raw.read(4)[::-1]
         unlocking_script_size = read_varbyteint(raw)
         unlocking_script = raw.read(unlocking_script_size)
+        script_type = None
+
         # TODO - handle non-standard input script b'\1\0',
         #  see tx 38cf5779d1c5ca32b79cd5052b54e824102e878f041607d3b962038f5a8cf1ed
-        # if unlocking_script_size == 1 and unlocking_script == b'\0':
+        if unlocking_script_size == 1 and unlocking_script == b'\0':
+            script_type = 'nonstandard_0001'
 
         inp_type = 'legacy'
         if witness_type == 'segwit' and not unlocking_script_size:
@@ -391,7 +394,8 @@ class Input(object):
         sequence_number = raw.read(4)
 
         return Input(prev_txid=prev_hash, output_n=output_n, unlocking_script=unlocking_script,
-                     witness_type=inp_type, sequence=sequence_number, index_n=index_n, strict=strict, network=network)
+                     witness_type=inp_type, sequence=sequence_number, index_n=index_n, strict=strict, network=network,
+                     script_type=script_type)
 
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
@@ -481,7 +485,7 @@ class Input(object):
         elif self.script_type == 'p2tr':  # segwit_v1
             self.redeemscript = self.witnesses[0]
             # FIXME: Address cannot be known without looking at previous transaction
-        elif self.script_type not in ['coinbase', 'unknown'] and self.strict:
+        elif self.script_type[:11] not in ['coinbase', 'unknown', 'nonstandard'] and self.strict:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
             self.address = Address(hashed_data=addr_data, encoding=self.encoding, network=self.network,
@@ -1571,6 +1575,8 @@ class Transaction(object):
             else:
                 r_witness += b'\0'
             if sign_id is None:
+                if i.script_type == 'nonstandard_0001':
+                    r += b'\1'
                 r += varstr(i.unlocking_script)
             elif sign_id == i.index_n:
                 r += varstr(i.unlocking_script_unsigned)

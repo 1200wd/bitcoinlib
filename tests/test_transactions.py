@@ -1279,6 +1279,15 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.inputs[0].witnesses[1].hex(), witness_1)
         self.assertEqual(t.inputs[0].witnesses[2].hex(), witness_2)
 
+    def test_transaction_non_standard_input_script_0001(self):
+        txid = '38cf5779d1c5ca32b79cd5052b54e824102e878f041607d3b962038f5a8cf1ed'
+        traw = \
+            '0100000001bf9fe5c8a75a849345150a323ce50466827e4df1f2626eac7e30122dd6d1a812000000000100ffffffff0180380100000000001976a9148f0da0329aa2638c17fda841347f2ed737b6e40088ac00000000'
+        t = Transaction.parse_hex(traw)
+        self.assertEqual(t.inputs[0].script_type, 'nonstandard_0001')
+        self.assertEqual(t.txid, txid)
+        self.assertEqual(traw, t.raw_hex())
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
@@ -1867,3 +1876,4 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t = Transaction.parse_hex(rawtx)
         self.assertEqual(t.vsize, 612)
         self.assertEqual(t.weight_units, 2445)
+        self.assertEqual(t.raw_hex(), rawtx)
