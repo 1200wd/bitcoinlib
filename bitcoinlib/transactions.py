@@ -1089,9 +1089,9 @@ class Transaction(object):
         :type version: bytes, int
         :param network: Network, leave empty for default network
         :type network: str, Network
-        :param fee: Fee in smallest denominator (ie Satoshi) for complete transaction
+        :param fee: Fee in the smallest denominator (ie Satoshi) for complete transaction
         :type fee: int
-        :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
+        :param fee_per_kb: Fee in the smallest denominator per kilobyte. Specify when exact transaction size is not known.
         :type fee_per_kb: int
         :param size: Transaction size in bytes
         :type size: int

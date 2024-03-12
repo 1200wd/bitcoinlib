@@ -874,7 +874,8 @@ class WalletTransaction(Transaction):
                 wallet_id=self.hdwallet.wallet_id, txid=bytes.fromhex(self.txid), block_height=self.block_height,
                 size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
                 input_total=self.input_total, output_total=self.output_total, network_name=self.network.name,
-                raw=self.rawtx, verified=self.verified, account_id=self.account_id)
+                raw=self.rawtx, verified=self.verified, account_id=self.account_id, locktime=self.locktime,
+                version=self.version_int, coinbase=self.coinbase, index=self.index)
             sess.add(new_tx)
             self.hdwallet._commit()
             txidn = new_tx.id
@@ -890,6 +891,7 @@ class WalletTransaction(Transaction):
             db_tx.network_name = self.network.name if self.network.name else db_tx.name
             db_tx.raw = self.rawtx if self.rawtx else db_tx.raw
             db_tx.verified = self.verified
+            db_tx.locktime = self.locktime
             self.hdwallet._commit()
 
         assert txidn
@@ -1041,8 +1043,8 @@ class Wallet(object):
 
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri, db_cache_uri,
-                db_password):
+                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path,
+                anti_fee_snipping, db_uri, db_cache_uri, db_password):
 
         db = Db(db_uri, db_password)
         session = db.session
@@ -1082,7 +1084,7 @@ class Wallet(object):
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
-                              key_path=key_path)
+                              key_path=key_path, anti_fee_snipping=anti_fee_snipping)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -1121,7 +1123,8 @@ class Wallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, db_uri=None, db_cache_uri=None, db_password=None):
+               cosigner_id=None, key_path=None, anti_fee_snipping=True, db_uri=None, db_cache_uri=None,
+               db_password=None):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
 
@@ -1192,6 +1195,8 @@ class Wallet(object):
             * All keys must be hardened, except for change, address_index or cosigner_id
             * Max length of path is 8 levels
         :type key_path: list, str
+        :param anti_fee_snipping: Set default locktime in transactions as current block height + 1  to avoid fee-snipping. Default is True
+        :type anti_fee_snipping: boolean
         :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
         :param db_cache_uri: URI of the cache database. If not specified  the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
@@ -1310,7 +1315,8 @@ class Wallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           key_path=main_key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
+                           anti_fee_snipping=anti_fee_snipping, key_path=main_key_path, db_uri=db_uri,
+                           db_cache_uri=db_cache_uri, db_password=db_password)
 
         if multisig:
             wlt_cos_id = 0
@@ -1328,7 +1334,8 @@ class Wallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
-                                db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
+                                anti_fee_snipping=anti_fee_snipping, db_uri=db_uri, db_cache_uri=db_cache_uri,
+                                db_password=db_password)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
             # hdpm._dbwallet = hdpm.session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id)
@@ -1414,6 +1421,7 @@ class Wallet(object):
                     self.depth_public_master = self.key_path.index(hardened_keys[-1])
                 self.key_depth = len(self.key_path) - 1
             self.last_updated = None
+            self.anti_fee_snipping = db_wlt.anti_fee_snipping
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -3706,6 +3714,12 @@ class Wallet(object):
                 transaction.add_output(value, addr)
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+
+        if not locktime and self.anti_fee_snipping:
+            blockcount = srv.blockcount()
+            if blockcount:
+                transaction.locktime = blockcount + 1
+
         transaction.fee_per_kb = None
         if isinstance(fee, int):
             fee_estimate = fee
@@ -3725,10 +3739,10 @@ class Wallet(object):
 
         # Add inputs
         sequence = 0xffffffff
-        if 0 < transaction.locktime < 0xffffffff:
-            sequence = SEQUENCE_ENABLE_LOCKTIME
-        elif replace_by_fee:
+        if replace_by_fee:
             sequence = SEQUENCE_REPLACE_BY_FEE
+        elif 0 < transaction.locktime < 0xffffffff:
+            sequence = SEQUENCE_ENABLE_LOCKTIME
         amount_total_input = 0
         if input_arr is None:
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,

@@ -248,6 +248,7 @@ class DbWallet(Base):
                           "* If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/ "
                           "* All keys must be hardened, except for change, address_index or cosigner_id "
                           " Max length of path is 8 levels")
+    anti_fee_snipping = Column(Boolean, default=True, doc="Set default locktime in transactions to avoid fee-snipping")
     default_account_id = Column(Integer, doc="ID of default account for this wallet if multiple accounts are used")
 
     __table_args__ = (
