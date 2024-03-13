@@ -109,7 +109,7 @@ def wallet_exists(wallet, db_uri=None, db_password=None):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, db_uri=None, db_cache_uri=None, db_password=None):
+        key_path=None, anti_fee_snipping=True, db_uri=None, db_cache_uri=None, db_password=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -124,7 +124,8 @@ def wallet_create_or_open(
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                              password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                             key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
+                             key_path, anti_fee_snipping, db_uri=db_uri, db_cache_uri=db_cache_uri,
+                             db_password=db_password)
 
 
 def wallet_delete(wallet, db_uri=None, force=False, db_password=None):
@@ -1195,7 +1196,7 @@ class Wallet(object):
             * All keys must be hardened, except for change, address_index or cosigner_id
             * Max length of path is 8 levels
         :type key_path: list, str
-        :param anti_fee_snipping: Set default locktime in transactions as current block height + 1  to avoid fee-snipping. Default is True
+        :param anti_fee_snipping: Set default locktime in transactions as current block height + 1  to avoid fee-snipping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
         :type anti_fee_snipping: boolean
         :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
