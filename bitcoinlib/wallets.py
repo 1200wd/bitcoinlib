@@ -109,7 +109,7 @@ def wallet_exists(wallet, db_uri=None, db_password=None):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, anti_fee_snipping=True, db_uri=None, db_cache_uri=None, db_password=None):
+        key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None, db_password=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -124,7 +124,7 @@ def wallet_create_or_open(
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                              password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                             key_path, anti_fee_snipping, db_uri=db_uri, db_cache_uri=db_cache_uri,
+                             key_path, anti_fee_sniping, db_uri=db_uri, db_cache_uri=db_cache_uri,
                              db_password=db_password)
 
 
@@ -1045,7 +1045,7 @@ class Wallet(object):
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
                 witness_type, encoding, multisig, sigs_required, cosigner_id, key_path,
-                anti_fee_snipping, db_uri, db_cache_uri, db_password):
+                anti_fee_sniping, db_uri, db_cache_uri, db_password):
 
         db = Db(db_uri, db_password)
         session = db.session
@@ -1085,7 +1085,7 @@ class Wallet(object):
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
-                              key_path=key_path, anti_fee_snipping=anti_fee_snipping)
+                              key_path=key_path, anti_fee_sniping=anti_fee_sniping)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -1124,7 +1124,7 @@ class Wallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, anti_fee_snipping=True, db_uri=None, db_cache_uri=None,
+               cosigner_id=None, key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None,
                db_password=None):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
@@ -1196,8 +1196,8 @@ class Wallet(object):
             * All keys must be hardened, except for change, address_index or cosigner_id
             * Max length of path is 8 levels
         :type key_path: list, str
-        :param anti_fee_snipping: Set default locktime in transactions as current block height + 1  to avoid fee-snipping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
-        :type anti_fee_snipping: boolean
+        :param anti_fee_sniping: Set default locktime in transactions as current block height + 1  to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
+        :type anti_fee_sniping: boolean
         :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
         :param db_cache_uri: URI of the cache database. If not specified  the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
@@ -1316,7 +1316,7 @@ class Wallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           anti_fee_snipping=anti_fee_snipping, key_path=main_key_path, db_uri=db_uri,
+                           anti_fee_sniping=anti_fee_sniping, key_path=main_key_path, db_uri=db_uri,
                            db_cache_uri=db_cache_uri, db_password=db_password)
 
         if multisig:
@@ -1335,7 +1335,7 @@ class Wallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
-                                anti_fee_snipping=anti_fee_snipping, db_uri=db_uri, db_cache_uri=db_cache_uri,
+                                anti_fee_sniping=anti_fee_sniping, db_uri=db_uri, db_cache_uri=db_cache_uri,
                                 db_password=db_password)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
@@ -1422,7 +1422,7 @@ class Wallet(object):
                     self.depth_public_master = self.key_path.index(hardened_keys[-1])
                 self.key_depth = len(self.key_path) - 1
             self.last_updated = None
-            self.anti_fee_snipping = db_wlt.anti_fee_snipping
+            self.anti_fee_sniping = db_wlt.anti_fee_sniping
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -3716,7 +3716,7 @@ class Wallet(object):
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
-        if not locktime and self.anti_fee_snipping:
+        if not locktime and self.anti_fee_sniping:
             blockcount = srv.blockcount()
             if blockcount:
                 transaction.locktime = blockcount + 1

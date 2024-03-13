@@ -87,6 +87,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         ]
         cmd_wlt_create = "%s %s new -w testms -m 2 2 %s -r -n testnet -d %s -o 0" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.database_uri)
+        print(cmd_wlt_create)
         cmd_wlt_delete = "%s %s -w testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.database_uri)
         output_wlt_create = "2NBrLTapyFqU4Wo29xG4QeEt8kn38KVWRR"
@@ -276,11 +277,14 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                     'ZYXRnhWiS3jjHqgeZ')
         pub_key3 = ('BC11mYrL5yBtMgaYxHEUg3anvLX3gcLi8hbtwbjymReCgGiP6hYifVMi96M3ejtvZpZbDvetBfbzgRxmu22ZkqP2i7yhFge'
                     'mSkHp7BRhoDubrQvs')
-        cmd_wlt_create1 = "%s %s new -w wlt_multisig_2_3_A -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q" % \
-                         (self.python_executable, self.clw_executable, pk1, pub_key2, pub_key3, self.database_uri)
+        cmd_wlt_create1 = ("%s %s new -w wlt_multisig_2_3_A -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q "
+                           "--disable-anti-fee-sniping") % \
+                          (self.python_executable, self.clw_executable, pk1, pub_key2, pub_key3, self.database_uri)
         Popen(cmd_wlt_create1, stdin=PIPE, stdout=PIPE, shell=True).communicate()
-        cmd_wlt_create2 = "%s %s new -w wlt_multisig_2_3_B -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q" % \
-                         (self.python_executable, self.clw_executable, pub_key1, pub_key2, pk3, self.database_uri)
+        cmd_wlt_create2 = ("%s %s new -w wlt_multisig_2_3_B -m 2 3 %s %s %s -d %s -n bitcoinlib_test -q "
+                           "--disable-anti-fee-sniping") % \
+                          (self.python_executable, self.clw_executable, pub_key1, pub_key2, pk3, self.database_uri)
+        print(cmd_wlt_create2)
         Popen(cmd_wlt_create2, stdin=PIPE, stdout=PIPE, shell=True).communicate()
 
         cmd_wlt_receive1 = "%s %s -w wlt_multisig_2_3_A -d %s -r -o 1 -q" % \
@@ -313,7 +317,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertIn("'verified': True,", response)
 
         filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'import_test.tx')
-        sign_import_tx_file =  "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx-file %s" % \
+        sign_import_tx_file = "%s %s -w wlt_multisig_2_3_B -d %s -o 1 --import-tx-file %s" % \
             (self.python_executable, self.clw_executable, self.database_uri, filename)
         output = Popen(sign_import_tx_file, stdin=PIPE, stdout=PIPE, shell=True).communicate()
         response2 = normalize_string(output[0])

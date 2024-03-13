@@ -2266,20 +2266,19 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t2.replace_by_fee)
         self.assertEqual(t2.inputs[0].sequence, SEQUENCE_REPLACE_BY_FEE)
 
-    def test_wallet_anti_fee_snipping(self):
-        w = wallet_create_or_open('antifeesnippingtestwallet', network='testnet', anti_fee_snipping=True,
-                                  db_uri=self.database_uri)
+    def test_wallet_anti_fee_sniping(self):
+        w = wallet_create_or_open('antifeesnipingtestwallet', network='testnet', db_uri=self.database_uri)
         w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         block_height = Service(network='testnet').blockcount()
         self.assertEqual(t.locktime, block_height+1)
 
-        w2 = wallet_create_or_open('antifeesnippingtestwallet2', network='testnet', anti_fee_snipping=True)
+        w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
         w2.utxo_add(w2.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w2.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456, locktime=1901070183)
         self.assertEqual(t.locktime, 1901070183)
 
-        w3 = wallet_create_or_open('antifeesnippingtestwallet3', network='testnet', anti_fee_snipping=False)
+        w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False)
         w3.utxo_add(w3.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w3.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         self.assertEqual(t.locktime, 0)

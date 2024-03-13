@@ -89,7 +89,9 @@ def parse_args():
     parser_new.add_argument('--yes', '-y', action='store_true', default=False,
                             help='Non-interactive mode, does not prompt for confirmation')
     parser_new.add_argument('--quiet', '-q', action='store_true',
-                            help='Quit mode, no output writen to console.')
+                            help='Quiet mode, no output writen to console.')
+    parser_new.add_argument('--disable-anti-fee-sniping', action='store_true', default=False,
+                            help='Disable anti-fee-sniping, and set locktime in all transaction to zero.')
 
     group_wallet = parser.add_argument_group("Wallet Actions")
     group_wallet.add_argument('--wallet-remove', action='store_true',
@@ -188,7 +190,8 @@ def create_wallet(wallet_name, args, db_uri, output_to):
                 passphrase = get_passphrase(args.passphrase_strength, args.yes, args.quiet)
                 key_list.append(HDKey.from_passphrase(passphrase, network=args.network))
         return Wallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
-                             cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
+                             cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type,
+                             anti_fee_sniping=not(args.disable_anti_fee_sniping))
     elif args.create_from_key:
         from bitcoinlib.keys import get_key_format
         import_key = args.create_from_key
