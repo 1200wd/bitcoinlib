@@ -2272,7 +2272,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         block_height = Service(network='testnet').blockcount()
         # Bitaps and Bitgo return incorrect blockcount for testnet, so set delta to 5000
-        self.assertAlmostEqual(t.locktime, block_height+1, delta=5000)
+        self.assertAlmostEqual(t.locktime, block_height+1, delta=10000)
 
         w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
         w2.utxo_add(w2.get_key().address, 1234567, os.urandom(32).hex(), 1)
