@@ -603,22 +603,16 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
-        srv = ServiceTest(min_providers=3)
-        n_blocks = None
-        for provider in srv.results:
-            if n_blocks is not None:
-                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
-                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
-            n_blocks = srv.results[provider]
-
-        # Test Litecoin network
-        srv = ServiceTest(min_providers=3, network='litecoin')
-        n_blocks = None
-        for provider in srv.results:
-            if n_blocks is not None:
-                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
-                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
-            n_blocks = srv.results[provider]
+        for nw in ['bitcoin', 'litecoin', 'testnet']:
+            srv = ServiceTest(min_providers=3, cache_uri='', network=nw)
+            srv.blockcount()
+            n_blocks = None
+            for provider in srv.results:
+                if n_blocks is not None:
+                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000 if nw == 'testnet' else 3,
+                                           msg="Network %s, provider %s value %d != %d" %
+                                               (nw, provider, srv.results[provider], n_blocks))
+                n_blocks = srv.results[provider]
 
     def test_service_max_providers(self):
         srv = ServiceTest(max_providers=1, cache_uri='')
