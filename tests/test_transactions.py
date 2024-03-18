@@ -195,7 +195,6 @@ class TestTransactions(unittest.TestCase):
         self.assertRaisesRegex(TransactionError,
                                 'Input transaction hash not found. Probably malformed raw transaction',
                                 Transaction.parse_hex, rawtx)
-        # FIXME: tx.parse_hex() should check remaining size
         rawtx = '01000000000101c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff0200' \
                 'e1f5050000000017a914e10a445f3084bd131394c66bf0023653dcc247ab877cdb3b0300000000220020701a8d401c84fb13' \
                 'e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004830450221009c5bd2fa1acb5884fca1612217bd65992c96' \
@@ -205,19 +204,8 @@ class TestTransactions(unittest.TestCase):
                 '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5' \
                 'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae000000'
         self.assertRaisesRegex(TransactionError,
-                                'Error when deserializing raw transaction, bytes left for locktime must be 4 not 3',
+                                'Invalid transaction size, locktime bytes incomplete',
                                 Transaction.parse, rawtx)
-        # rawtx = '01000000000101c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff0200' \
-        #         'e1f5050000000017a914e10a445f3084bd131394c66bf0023653dcc247ab877cdb3b0300000000220020701a8d401c84fb13' \
-        #         'e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004830450221009c5bd2fa1acb5884fca1612217bd65992c96' \
-        #         'c839accea226a3c59d7cc28779c502202cff98a71d195ab61c08fc126577466bb05ae0bfce5554b59455bd758309d4950148' \
-        #         '3045022100f81ce75339657d31698793e78f475c04fe56bafdb3cfc6e1035846aeeeb98f7902203ad5b1bcb96494457197cb' \
-        #         '3c12b67ddd3cf8127fe054dec971c858252c004bf8016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea36' \
-        #         '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70f01874496feff2103c96d495bfdd5' \
-        #         'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000'
-        # self.assertRaisesRegex(TransactionError,
-        #                         "Error when deserializing raw transaction, bytes left for locktime must be 4 not 3",
-        #                         Transaction.parse, rawtx)
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:

@@ -994,7 +994,11 @@ class Transaction(object):
 
                 inputs[n].update_scripts()
 
-        locktime = int.from_bytes(rawtx.read(4)[::-1], 'big')
+        locktime_bytes = rawtx.read(4)[::-1]
+        if len(locktime_bytes) != 4:
+            raise TransactionError("Invalid transaction size, locktime bytes incomplete")
+
+        locktime = int.from_bytes(locktime_bytes, 'big')
         raw_len = len(raw_bytes)
         if not raw_bytes:
             pos_end = rawtx.tell()
