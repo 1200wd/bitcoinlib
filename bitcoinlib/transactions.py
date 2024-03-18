@@ -888,24 +888,31 @@ class Transaction(object):
 
         :return Transaction:
         """
+        raw_bytes = b''
         if isinstance(rawtx, bytes):
+            raw_bytes = rawtx
             rawtx = BytesIO(rawtx)
         elif isinstance(rawtx, str):
+            raw_bytes = bytes.fromhex(rawtx)
             rawtx = BytesIO(bytes.fromhex(rawtx))
 
-        return cls.parse_bytesio(rawtx, strict, network)
+        return cls.parse_bytesio(rawtx, strict, network, raw_bytes=raw_bytes)
 
     @classmethod
-    def parse_bytesio(cls, rawtx, strict=True, network=DEFAULT_NETWORK, index=None):
+    def parse_bytesio(cls, rawtx, strict=True, network=DEFAULT_NETWORK, index=None, raw_bytes=b''):
         """
         Parse a raw transaction and create a Transaction object
 
-        :param rawtx: Raw transaction string
+        :param rawtx: Raw transaction bytes stream
         :type rawtx: BytesIO
         :param strict: Raise exception when transaction is malformed, incomplete or not understood
         :type strict: bool
         :param network: Network, leave empty for default network
         :type network: str, Network
+        :param index: index position in block
+        :type index: int
+        :param raw_bytes: Raw transaction as bytes if available
+        :param raw_bytes: bytes
 
         :return Transaction:
         """
@@ -915,7 +922,6 @@ class Transaction(object):
         network = network
         if not isinstance(network, Network):
             cls.network = Network(network)
-        raw_bytes = b''
 
         try:
             pos_start = rawtx.tell()
@@ -995,7 +1001,7 @@ class Transaction(object):
                 inputs[n].update_scripts()
 
         locktime_bytes = rawtx.read(4)[::-1]
-        if len(locktime_bytes) != 4:
+        if len(locktime_bytes) != 4 and strict:
             raise TransactionError("Invalid transaction size, locktime bytes incomplete")
 
         locktime = int.from_bytes(locktime_bytes, 'big')
@@ -1025,7 +1031,8 @@ class Transaction(object):
         :return Transaction:
         """
 
-        return cls.parse_bytesio(BytesIO(bytes.fromhex(rawtx)), strict, network)
+        raw_bytes = bytes.fromhex(rawtx)
+        return cls.parse_bytesio(BytesIO(raw_bytes), strict, network, raw_bytes=raw_bytes)
 
     @classmethod
     def parse_bytes(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
@@ -1043,7 +1050,7 @@ class Transaction(object):
         :return Transaction:
         """
 
-        return cls.parse(BytesIO(rawtx), strict, network)
+        return cls.parse(BytesIO(rawtx), strict, network, raw_bytes=raw_bytes)
 
     @staticmethod
     def load(txid=None, filename=None):
