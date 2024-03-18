@@ -3585,7 +3585,7 @@ class Wallet(object):
             else:
                 utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
         if skip_dust_amounts:
-            utxo_query = utxo_query.filter(DbTransactionOutput.value > dust_amount)
+            utxo_query = utxo_query.filter(DbTransactionOutput.value >= dust_amount)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
@@ -3717,9 +3717,10 @@ class Wallet(object):
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
         if not locktime and self.anti_fee_sniping:
+            srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
             blockcount = srv.blockcount()
             if blockcount:
-                transaction.locktime = blockcount + 1
+                transaction.locktime = blockcount
 
         transaction.fee_per_kb = None
         if isinstance(fee, int):

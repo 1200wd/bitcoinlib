@@ -724,7 +724,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
         transaction_hash = bytes.fromhex('43f0f6dfb58acc8ed05f5afc224c2f6c50523230bfcba5e5fd91d345e8a159ab')
         data = {'redeemscript': redeemscript}
-        self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
+        self.assertTrue(s.evaluate(message=transaction_hash, data=data))
 
     def test_script_verify_transaction_input_p2pk(self):
         pass
@@ -783,7 +783,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
                  Script([op.op_sha256, script_hash, op.op_equal])
         self.assertEqual(str(script), 'OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 '
                                       'data-32 OP_EQUAL')
-        self.assertTrue(script.evaluate(message=transaction_hash, tx_data={'redeemscript': redeemscript.serialize()}))
+        self.assertTrue(script.evaluate(message=transaction_hash, env_data={'redeemscript': redeemscript.serialize()}))
         self.assertEqual(script.stack, [])
 
     def test_script_deserialize_sig_pk2(self):

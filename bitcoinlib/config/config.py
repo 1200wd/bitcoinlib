@@ -67,6 +67,8 @@ SCRIPT_TYPES = {
     'p2tr': ('locking', ['op_n', 'data'], [32]),
     'multisig': ('locking', ['op_n', 'key', 'op_n', op.op_checkmultisig], []),
     'p2pk': ('locking', ['key', op.op_checksig], []),
+    'locktime_cltv_script': ('locking', ['locktime_cltv', op.op_checklocktimeverify, op.op_drop, op.op_dup,
+                                         op.op_hash160, 'data', op.op_equalverify, op.op_checksig], [20]),
     'nulldata': ('locking', [op.op_return, 'data'], [0]),
     'nulldata_1': ('locking', [op.op_return, op.op_0], []),
     'nulldata_2': ('locking', [op.op_return], []),

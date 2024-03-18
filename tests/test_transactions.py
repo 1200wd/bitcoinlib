@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
-#    © 2017 - 2022 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2024 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -45,7 +45,7 @@ class TestTransactionInputs(unittest.TestCase):
             b"\x15,\x03\x02 \x16\x170?c\x8e\x08\x94\x7f\x18i~\xdc\xb3\xa7\xa5:\xe6m\xf9O&)\xdb\x98\xdc\x0c\xc5\x07k4" \
             b"\xb7\x01!\x020\x9a\x19i\x19\xcf\xf1\xd1\x87T'\x1b\xe7\xeeT\xd1\xb3\x7fAL\xbb)+U\xd7\xed\x1f\r\xc8 \x9d" \
             b"\x13"
-        ti = Input(prev_txid, output_index, unlocking_script=unlock_scr)
+        ti = Input(prev_txid, output_index, unlocking_script=unlock_scr, witness_type='legacy')
         expected_dict = {
             'output_n': 0,
             'script': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617'
@@ -73,7 +73,8 @@ class TestTransactionInputs(unittest.TestCase):
 
     def test_transaction_input_locking_script(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        ti = Input(ph, 0, unlocking_script_unsigned='76a91423e102597c4a99516f851406f935a6e634dbccec88ac')
+        ti = Input(ph, 0, unlocking_script_unsigned='76a91423e102597c4a99516f851406f935a6e634dbccec88ac',
+                   witness_type='legacy')
         self.assertEqual(ti.address, '14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8')
 
     def test_transaction_compressed_mixup_error(self):
@@ -101,7 +102,7 @@ class TestTransactionInputs(unittest.TestCase):
         output_n = 0
         ki_public_hash = ki.hash160
         ti = Input(prev_txid=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='bitcoin',
-                   compressed = False)
+                   compressed = False, witness_type='legacy')
         self.assertEqual(ti.address, '1BbSBYZChXewL1KTTcZksPmpgvDZH93wtt')
 
     # TODO: Move and rewrite
@@ -257,7 +258,7 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_sign_1(self):
         pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
         inp = Input(prev_txid='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_n=1,
-                    keys=pk.public(), network='testnet')
+                    keys=pk.public(), network='testnet', witness_type='legacy')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         out = Output(880000, public_hash=pubkey.hash160, network='testnet')
@@ -1115,7 +1116,8 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         output_n = 0
         value = 9000
 
-        inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
+        inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature',
+                    witness_type='legacy')
         outp = Output(7000, k, network='testnet', script_type='p2pk')
         t = Transaction([inp], [outp], network='testnet', witness_type='legacy')
         t.sign(k.private_byte)
@@ -1132,7 +1134,8 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         value = Value.from_satoshi(9000, network='testnet')
         fee = 0.00002000
 
-        inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
+        inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature',
+                    witness_type='legacy')
         outp = Output(value - fee, k, network='testnet', script_type='p2pk')
         t = Transaction([inp], [outp], network='testnet', witness_type='legacy')
         t.sign(k.private_byte)

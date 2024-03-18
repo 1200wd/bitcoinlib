@@ -185,8 +185,6 @@ class Input(object):
         :type value: int, Value, str
         :param double_spend: Is this input also spend in another transaction
         :type double_spend: bool
-        :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
-        :type locktime_cltv: int
         :param locktime_csv: Check Sequence Verify value
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
@@ -253,9 +251,9 @@ class Input(object):
         self.locktime_csv = locktime_csv
         self.witness_type = witness_type
         if encoding is None:
-            self.encoding = 'base58'
-            if self.witness_type == 'segwit':
-                self.encoding = 'bech32'
+            self.encoding = 'bech32'
+            if self.witness_type == 'legacy' or self.witness_type == 'p2sh-segwit':
+                self.encoding = 'base58'
         else:
             self.encoding = encoding
         self.valid = None
@@ -311,6 +309,7 @@ class Input(object):
                 self.witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
                 self.witness_type = 'p2sh-segwit'
+                self.encoding = 'base58'
             else:
                 self.witness_type = 'legacy'
         elif self.witness_type == 'segwit' and self.script_type == 'sig_pubkey' and encoding is None:
@@ -494,8 +493,11 @@ class Input(object):
         if self.locktime_cltv:
             self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv,
                                                                       self.unlocking_script_unsigned)
-            self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
-        elif self.locktime_csv:
+            # if self.unlocking_script:
+            #     self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
+            # if self.witness_type == 'segwit':
+            #     self.witnesses.insert(0, script_add_locktime_cltv(self.locktime_cltv, b''))
+        if self.locktime_csv:
             self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
             self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
         return True
@@ -573,7 +575,7 @@ class Input(object):
             'sequence': self.sequence,
             'signatures': [s.hex() for s in self.signatures],
             'sigs_required': self.sigs_required,
-            'locktime_cltv': self.locktime_cltv,
+            # 'locktime_cltv': self.locktime_cltv,
             'locktime_csv': self.locktime_csv,
             'public_hash': self.public_hash.hex(),
             'script_code': self.script_code.hex(),
@@ -1309,12 +1311,12 @@ class Transaction(object):
                     print("  Relative timelock for %d seconds" % (512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Relative timelock for %d blocks" % ti.sequence)
-            if ti.locktime_cltv:
-                if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
-                    print("  Check Locktime Verify (CLTV) for %d seconds" %
-                          (512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
-                else:
-                    print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
+            # if ti.locktime_cltv:
+            #     if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
+            #         print("  Check Locktime Verify (CLTV) for %d seconds" %
+            #               (512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
+            #     else:
+            #         print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
             if ti.locktime_csv:
                 if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
                     print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
@@ -1342,7 +1344,7 @@ class Transaction(object):
         print("Confirmations: %s" % self.confirmations)
         print("Block: %s" % self.block_height)
 
-    def set_locktime_relative_blocks(self, blocks, input_index_n=0):
+    def set_locktime_relative_blocks(self, blocks, input_index_n=0, locktime=0):
         """
         Set nSequence relative locktime for this transaction. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
 
@@ -1354,6 +1356,8 @@ class Transaction(object):
         :type blocks: int
         :param input_index_n: Index number of input for nSequence locktime
         :type input_index_n: int
+        :param locktime: Overwrite default locktime, must be lower than current network blockcount. If anti-fee-sniping is used in a Wallet this value is already filled in.
+        :type locktime: int
 
         :return:
         """
@@ -1364,10 +1368,11 @@ class Transaction(object):
         if blocks > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.inputs[input_index_n].sequence = blocks
-        self.version_int = 2
+        self.version_int = 2 if self.version_int < 2 else self.version_int
+        self.locktime = locktime if locktime else self.locktime
         self.sign_and_update(index_n=input_index_n)
 
-    def set_locktime_relative_time(self, seconds, input_index_n=0):
+    def set_locktime_relative_time(self, seconds, input_index_n=0, locktime=0):
         """
         Set nSequence relative locktime for this transaction. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
 
@@ -1381,6 +1386,8 @@ class Transaction(object):
         :type seconds: int
         :param input_index_n: Index number of input for nSequence locktime
         :type input_index_n: int
+        :param locktime: Overwrite default locktime, must be lower than current network blockcount. If anti-fee-sniping is used in a Wallet this value is already filled in.
+        :type locktime: int
 
         :return:
         """
@@ -1393,7 +1400,8 @@ class Transaction(object):
         elif (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.inputs[input_index_n].sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
-        self.version_int = 2
+        self.version_int = 2 if self.version_int < 2 else self.version_int
+        self.locktime = locktime if locktime else self.locktime
         self.sign_and_update(index_n=input_index_n)
 
     def set_locktime_blocks(self, blocks):
@@ -1401,6 +1409,8 @@ class Transaction(object):
         Set nLocktime, a transaction level absolute lock time in blocks using the transaction sequence field.
 
         So for example if you set this value to 600000 the transaction will only be valid after block 600000.
+
+        You can also pass the locktime value directly to a Transaction object, or when sending from a wallet.
 
         :param blocks: Transaction is valid after supplied block number. Value must be between 0 and 500000000. Zero means no locktime.
         :type blocks: int
@@ -1424,6 +1434,8 @@ class Transaction(object):
     def set_locktime_time(self, timestamp):
         """
         Set nLocktime, a transaction level absolute lock time in timestamp using the transaction sequence field.
+
+        You can also pass the locktime value directly to a Transaction object, or when sending from a wallet.
 
         :param timestamp: Transaction is valid after the given timestamp. Value must be between 500000000 and 0xfffffffe
         :return:
@@ -1770,7 +1782,7 @@ class Transaction(object):
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
-                  value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
+                  value=None, double_spend=False,locktime_cltv=None, locktime_csv=None,
                   key_path='', witness_type=None, witnesses=None, encoding=None, strict=True):
         """
         Add input to this transaction
@@ -1809,8 +1821,6 @@ class Transaction(object):
         :type value: int
         :param double_spend: True if double spend is detected, depends on which service provider is selected
         :type double_spend: bool
-        :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
-        :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
