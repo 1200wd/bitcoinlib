@@ -105,29 +105,6 @@ class TestTransactionInputs(unittest.TestCase):
                    compressed = False, witness_type='legacy')
         self.assertEqual(ti.address, '1BbSBYZChXewL1KTTcZksPmpgvDZH93wtt')
 
-    # TODO: Move and rewrite
-    # def test_transaction_input_locktime(self):
-    #      rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
-    #              '022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b' \
-    #              '161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d097733' \
-    #              '7376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a32' \
-    #              '7696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c' \
-    #              '9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3a' \
-    #              'c99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66a' \
-    #              'dea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7ff' \
-    #              'f527757d5987ffffffff'
-    #      t = Transaction.parse_hex(rawtx)
-    #      t.inputs[0].set_locktime_relative_time(1000)
-    #      self.assertEqual(t.inputs[0].sequence, 4194305)
-    #      t.inputs[0].set_locktime_relative_time(0)
-    #      self.assertEqual(t.inputs[0].sequence, 0xffffffff)
-    #      t.inputs[0].set_locktime_relative_time(100)
-    #      self.assertEqual(t.inputs[0].sequence, 4194305)
-    #      t.inputs[0].set_locktime_relative_blocks(120)
-    #      self.assertEqual(t.inputs[0].sequence, 120)
-    #      t.inputs[0].set_locktime_relative_blocks(0)
-    #      self.assertEqual(t.inputs[0].sequence, 0xffffffff)
-
 
 class TestTransactionOutputs(unittest.TestCase):
 
@@ -219,17 +196,17 @@ class TestTransactions(unittest.TestCase):
                                 'Input transaction hash not found. Probably malformed raw transaction',
                                 Transaction.parse_hex, rawtx)
         # FIXME: tx.parse_hex() should check remaining size
-        # rawtx = '01000000000101c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff0200' \
-        #         'e1f5050000000017a914e10a445f3084bd131394c66bf0023653dcc247ab877cdb3b0300000000220020701a8d401c84fb13' \
-        #         'e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004830450221009c5bd2fa1acb5884fca1612217bd65992c96' \
-        #         'c839accea226a3c59d7cc28779c502202cff98a71d195ab61c08fc126577466bb05ae0bfce5554b59455bd758309d4950148' \
-        #         '3045022100f81ce75339657d31698793e78f475c04fe56bafdb3cfc6e1035846aeeeb98f7902203ad5b1bcb96494457197cb' \
-        #         '3c12b67ddd3cf8127fe054dec971c858252c004bf8016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea36' \
-        #         '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5' \
-        #         'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae000000'
-        # self.assertRaisesRegex(TransactionError,
-        #                         'Error when deserializing raw transaction, bytes left for locktime must be 4 not 3',
-        #                         Transaction.parse, rawtx)
+        rawtx = '01000000000101c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff0200' \
+                'e1f5050000000017a914e10a445f3084bd131394c66bf0023653dcc247ab877cdb3b0300000000220020701a8d401c84fb13' \
+                'e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004830450221009c5bd2fa1acb5884fca1612217bd65992c96' \
+                'c839accea226a3c59d7cc28779c502202cff98a71d195ab61c08fc126577466bb05ae0bfce5554b59455bd758309d4950148' \
+                '3045022100f81ce75339657d31698793e78f475c04fe56bafdb3cfc6e1035846aeeeb98f7902203ad5b1bcb96494457197cb' \
+                '3c12b67ddd3cf8127fe054dec971c858252c004bf8016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea36' \
+                '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5' \
+                'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae000000'
+        self.assertRaisesRegex(TransactionError,
+                                'Error when deserializing raw transaction, bytes left for locktime must be 4 not 3',
+                                Transaction.parse, rawtx)
         # rawtx = '01000000000101c114c54564ea09b33c73bfd0237a4d283fe9e73285ad6d34fd3fa42c99f194640300000000ffffffff0200' \
         #         'e1f5050000000017a914e10a445f3084bd131394c66bf0023653dcc247ab877cdb3b0300000000220020701a8d401c84fb13' \
         #         'e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004830450221009c5bd2fa1acb5884fca1612217bd65992c96' \
@@ -1623,6 +1600,28 @@ class TestTransactionsTimelocks(unittest.TestCase):
         t2.sign(pk1)
         t2.sign(pk2)
         self.assertTrue(t2.verify())
+
+    def test_transaction_set_locktimes(self):
+         rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
+                 '022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b' \
+                 '161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d097733' \
+                 '7376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a32' \
+                 '7696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c' \
+                 '9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3a' \
+                 'c99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66a' \
+                 'dea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7ff' \
+                 'f527757d5987ffffffff'
+         t = Transaction.parse_hex(rawtx)
+         t.set_locktime_relative_time(1000)
+         self.assertEqual(t.inputs[0].sequence, 4194305)
+         t.set_locktime_relative_time(0)
+         self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+         t.set_locktime_relative_time(100)
+         self.assertEqual(t.inputs[0].sequence, 4194305)
+         t.set_locktime_relative_blocks(120)
+         self.assertEqual(t.inputs[0].sequence, 120)
+         t.set_locktime_relative_blocks(0)
+         self.assertEqual(t.inputs[0].sequence, 0xffffffff)
 
     def test_transaction_locktime_cltv(self):
         # timelock = 533600
