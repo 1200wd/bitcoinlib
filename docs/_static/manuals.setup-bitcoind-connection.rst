@@ -1,4 +1,4 @@
-How to connect bitcoinlib to a bitcoin node
+How to connect bitcoinlib to a Bitcoin node
 ===========================================
 
 This manual explains how to connect to a bitcoind server on your localhost or an a remote server.
@@ -6,6 +6,10 @@ This manual explains how to connect to a bitcoind server on your localhost or an
 Running your own bitcoin node allows you to create a large number of requests, faster response times,
 and more control, privacy and independence. However you need to install and maintain it and it used
 a lot of resources.
+
+ Please note: With a standard Bitcoin node you can only retrieve block and transaction information. You can not
+ query the node for information about specific addresses. So it not suitable to run in combination with a Bitcoinlib
+ wallet. If you would like to use Bitcoinlib wallet you should use a `Bcoin <manuals.setup-bcoin.html>`_ node instead.
 
 
 Bitcoin node settings
@@ -16,18 +20,21 @@ For more information on how to install a full node read https://bitcoin.org/en/f
 
 Please make sure you have server and txindex option set to 1.
 
+Generate a RPC authorization configuration string online: https://jlopp.github.io/bitcoin-core-rpc-auth-generator/
+or with the Python tool you can find in the Bitcoin repository: https://github.com/bitcoin/bitcoin/blob/master/share/rpcauth/rpcauth.py
+
 So your bitcoin.conf file for testnet should look something like this. For mainnet use port 8332,
 and remove the 'testnet=1' line.
 
 .. code-block:: text
 
-    [rpc]
-    rpcuser=bitcoinrpc
-    rpcpassword=some_long_secure_password
     server=1
     port=18332
     txindex=1
     testnet=1
+    rpcauth=bitcoinlib:01cf8eb434e3c9434e244daf3fc1cc71$9cdfb346b76935569683c12858e13147eb5322399580ba51d2d878148a880d1d
+    rpcbind=0.0.0.0
+    rpcallowip=192.168.0.0/24
 
 
 Connect using config files
