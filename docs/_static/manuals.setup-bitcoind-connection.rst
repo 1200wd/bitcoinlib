@@ -37,33 +37,10 @@ and remove the 'testnet=1' line.
     rpcallowip=192.168.0.0/24
 
 
-Connect using config files
---------------------------
-
-Bitcoinlib looks for bitcoind config files on localhost. So if you running a full bitcoin node from
-your local PC as the same user everything should work out of the box.
-
-Config files are read from the following files in this order:
-* [USER_HOME_DIR]/.bitcoinlib/bitcoin.conf
-* [USER_HOME_DIR]/.bitcoin/bitcoin.conf
-
-If your config files are at another location, you can specify this when you create a BitcoindClient
-instance.
-
-.. code-block:: python
-
-    from bitcoinlib.services.bitcoind import BitcoindClient
-
-    bdc = BitcoindClient.from_config('/usr/local/src/.bitcoinlib/bitcoin.conf')
-    txid = 'e0cee8955f516d5ed333d081a4e2f55b999debfff91a49e8123d20f7ed647ac5'
-    rt = bdc.getrawtransaction(txid)
-    print("Raw: %s" % rt)
-
-
 Connect using provider settings
 -------------------------------
 
-Connection settings can also be added to the service provider settings file in
+Connection settings can be added to the service provider settings file in
 .bitcoinlib/config/providers.json
 
 Example:
@@ -86,7 +63,7 @@ Example:
 Connect using base_url argument
 -------------------------------
 
-Another options is to pass the 'base_url' argument to the BitcoindClient object directly.
+You can also directly pass connection string wit the 'base_url' argument in the BitcoindClient object.
 
 This provides more flexibility but also the responsibility to store user and password information in a secure way.
 
@@ -101,11 +78,27 @@ This provides more flexibility but also the responsibility to store user and pas
     print("Raw: %s" % rt)
 
 
+You can directly r
+
+.. code-block:: python
+
+    from bitcoinlib.services.bitcoind import BitcoindClient
+
+    # Retrieve some blockchain information and statistics
+    bdc.proxy.getblockchaininfo()
+    bdc.proxy.getchaintxstats()
+    bdc.proxy.getmempoolinfo()
+
+    # Add a node to the node list
+    bdc.proxy.addnode('blocksmurfer.io', 'add')
+
+
+
 Please note: Using a remote bitcoind server
 -------------------------------------------
 
 Using RPC over a public network is unsafe, so since bitcoind version 0.18 remote RPC for all network interfaces
-is disabled. The rpcallowip option cannot be used to listen on all network interfaces and rpcbind has to be used to
+are disabled. The rpcallowip option cannot be used to listen on all network interfaces and rpcbind has to be used to
 define specific IP addresses to listen on. See https://bitcoin.org/en/release/v0.18.0#configuration-option-changes
 
 You could setup a openvpn or ssh tunnel to connect to a remote server to avoid this issues.
