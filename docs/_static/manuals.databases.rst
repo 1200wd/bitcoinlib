@@ -62,6 +62,6 @@ And assume you unwisely have chosen the password 'secret' you can use the databa
 Encrypt database
 ----------------
 
-If you are using wallets with private keys it is advised to use an encrypted database.
+If you are using wallets with private keys it is advised to encrypt your database and / or private keys.
 
 Please read `Using Encrypted Databases <manuals.sqlcipher.html>`_ for more information.

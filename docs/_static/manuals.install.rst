@@ -169,15 +169,19 @@ location for a config file in the BCL_CONFIG_FILE:
     os.environ['BCL_CONFIG_FILE'] = '/var/www/blocksmurfer/bitcoinlib.ini'
 
 
-Tweak BitcoinLib
-----------------
+Service providers and local nodes
+---------------------------------
 
 You can `Add another service Provider <manuals.add-provider.html>`_ to this library by updating settings
 and write a new service provider class.
 
-If you use this library in a production environment it is advised to run your own Bcoin, Bitcoin, Litecoin or Dash node,
-both for privacy and reliability reasons. More setup information:
-`Setup connection to bitcoin node <manuals.setup-bitcoind-connection.html>`_
+To increase reliability, speed and privacy or if you use this library in a production environment it
+is advised to run your own Bcoin or Bitcoin node.
+
+More setup information:
+
+* `Setup connection to Bcoin node <manuals.setup-bcoin.html>`_
+* `Setup connection to Bitcoin node <manuals.setup-bitcoind-connection.html>`_
 
 Some service providers require an API key to function or allow additional requests.
 You can add this key to the provider settings file in .bitcoinlib/providers.json

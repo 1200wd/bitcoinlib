@@ -58,8 +58,7 @@ def wallets_list(db_uri=None, include_cosigners=False, db_password=None):
     :type db_uri: str
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
-    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see
-    documentation).
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see documentation).
     :type db_password: str
 
     :return dict: Dictionary of wallets defined in database

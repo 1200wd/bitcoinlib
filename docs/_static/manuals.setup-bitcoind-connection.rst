@@ -7,9 +7,10 @@ Running your own bitcoin node allows you to create a large number of requests, f
 and more control, privacy and independence. However you need to install and maintain it and it used
 a lot of resources.
 
- Please note: With a standard Bitcoin node you can only retrieve block and transaction information. You can not
- query the node for information about specific addresses. So it not suitable to run in combination with a Bitcoinlib
- wallet. If you would like to use Bitcoinlib wallet you should use a `Bcoin <manuals.setup-bcoin.html>`_ node instead.
+.. warning::
+    With a standard Bitcoin node you can only retrieve block and transaction information. You can not
+    query the node for information about specific addresses. So it not suitable to run in combination with a Bitcoinlib
+    wallet. If you would like to use Bitcoinlib wallets and not be dependent on external providers you should use a `Bcoin <manuals.setup-bcoin.html>`_ node instead.
 
 
 Bitcoin node settings

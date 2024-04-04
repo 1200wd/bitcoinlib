@@ -23,7 +23,7 @@ bitcoinlib. You can install them with the following command.
 Use Bcoin node with Bitcoinlib
 ------------------------------
 
-To use Bcoin with bitcoinlib add the credentials to the providers.json configuration file in the .bitcoilib directory.
+To use Bcoin with bitcoinlib add the credentials to the providers.json configuration file in the .bitcoinlib directory.
 
 .. code-block:: text
 
@@ -34,7 +34,7 @@ To use Bcoin with bitcoinlib add the credentials to the providers.json configura
         "provider_coin_id": "",
         "url": "https://user:pass@localhost:8332/",
         "api_key": "",
-        "priority": 10,
+        "priority": 20,
         "denominator": 100000000,
         "network_overrides": null
     },
