@@ -505,6 +505,20 @@ class WalletKey(object):
         self._dbkey.name = value
         self._commit()
 
+    @property
+    def keys_public(self):
+        if self.key_type == 'multisig':
+            return [k.public_byte for k in self.key()]
+        else:
+            return [self.key_public]
+
+    @property
+    def keys_private(self):
+        if self.key_type == 'multisig':
+            return [k.private_byte for k in self.key() if k.private_byte]
+        else:
+            return [self.key_private] if self.key_private else []
+
     def key(self):
         """
         Get HDKey object for current WalletKey
