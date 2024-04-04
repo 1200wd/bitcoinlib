@@ -734,8 +734,8 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         w1 = wallet_create_or_open('mstest', keys=[pubkey1, k2], sigs_required=2, cosigner_id=0,
                                    network='testnet', db_uri=self.DATABASE_URI)
         kms = w1.get_key()
-        self.assertListEqual(
-            kms.keys_public == [b'\x02\xfcg\xc1\xd2\x0c\x8c\xd3d\x9f\xff\x1e\x81\xf0S]\xe1\xb3@\x0b\x14=\xdf\xdc\\'
+        self.assertListEqual(kms.keys_public,
+                             [b'\x02\xfcg\xc1\xd2\x0c\x8c\xd3d\x9f\xff\x1e\x81\xf0S]\xe1\xb3@\x0b\x14=\xdf\xdc\\'
                                 b'\x80\x19(\x05,\xad\x04h',
                                 b'\x03K\xf5[\x136;\xedl\xfbn\x93\xb0\x1av\xf4\x91\xa4\x82\xb3\xef\xcd\xf1y\xe4\xc2'
                                 b'i\xbb4\xa3-\xf8\x11'])
