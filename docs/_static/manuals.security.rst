@@ -1,5 +1,5 @@
-10 Security and Privacy Tips
-============================
+Frequently Asked Questions
+==========================
 
 Ten tips for more privacy and security when using Bitcoin and Bitcoinlib:
 

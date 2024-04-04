@@ -210,6 +210,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    Encrypted Database <source/_static/manuals.sqlcipher>
    Security & Privacy <source/_static/manuals.security>
    source/_static/manuals.caching
+   FAQ <source/_static/manuals.faq>
 
 
 .. toctree::

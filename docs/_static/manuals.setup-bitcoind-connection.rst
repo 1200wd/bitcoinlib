@@ -10,7 +10,8 @@ a lot of resources.
 .. warning::
     With a standard Bitcoin node you can only retrieve block and transaction information. You can not
     query the node for information about specific addresses. So it not suitable to run in combination with a Bitcoinlib
-    wallet. If you would like to use Bitcoinlib wallets and not be dependent on external providers you should use a `Bcoin <manuals.setup-bcoin.html>`_ node instead.
+    wallet. If you would like to use Bitcoinlib wallets and not be dependent on external providers you should use a
+    `Bcoin node <manuals.setup-bcoin.html>`_ instead.
 
 
 Bitcoin node settings
