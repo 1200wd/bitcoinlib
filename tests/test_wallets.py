@@ -726,6 +726,27 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         self.assertFalse(w2.main_key.is_private)
         self.assertIsNone(w2.main_key.key_private)
 
+    def test_wallet_key_subkeys(self):
+        pkwif = ('vprv9DMUxX4ShgxMLP8LqQ5LVurmnSQ3QizUmg9mtq77a8Leyq8zHrGJ3HqwsTr9PcNbvdQhwEN9zsTQSVtqyEr5ssMuiYY'
+                 '9i9yEr8v8qTGKQrZ')
+        k2 = HDKey(pkwif)
+        pubkey1 = bytes.fromhex('032b927fed210977ed24230fb99f4c02ab410523bf6ffb184a6b3e8cf5cb75f8d8')
+        w1 = wallet_create_or_open('mstest', keys=[pubkey1, k2], sigs_required=2, cosigner_id=0,
+                                   network='testnet', db_uri=self.DATABASE_URI)
+        kms = w1.get_key()
+        self.assertListEqual(kms.keys_public,
+                             [b'\x02\xfcg\xc1\xd2\x0c\x8c\xd3d\x9f\xff\x1e\x81\xf0S]\xe1\xb3@\x0b\x14=\xdf\xdc\\'
+                                b'\x80\x19(\x05,\xad\x04h',
+                                b'\x03K\xf5[\x136;\xedl\xfbn\x93\xb0\x1av\xf4\x91\xa4\x82\xb3\xef\xcd\xf1y\xe4\xc2'
+                                b'i\xbb4\xa3-\xf8\x11'])
+        self.assertListEqual(kms.keys_private,
+                             [b'\x06\xf5\xa9P 6\xf7\xe7T)\x7f\x08\xfe\x1e\x7f;\\.5\xcdT2\xaa\x83R\x97\xb1\xe4\xfepY\xf5'])
+        w2 = wallet_create_or_open('mstest2', keys=k2, network='testnet')
+        kms2 = w2.get_key()
+        self.assertListEqual(kms2.keys_public,
+                             [b'\x02\xb9\\e\x19}\xff\xa8\x03\x08\xbc>=\xfa\xe4\x1b-\xf4\x00uOX\xb9\xcd\xf33\x02?H\x0c~{\x96'])
+        self.assertListEqual(kms2.keys_private,
+                             [b'w\xc5\x7fEC\xd2\xd2\xfa\xc8\xce\x9c\xa2\x96\x06\xda\xbc\xc7\xb3\xfav\x0b\xaeNl\x06*\xe2k\xf4-[\x12'])
 
 @parameterized_class(*params)
 class TestWalletElectrum(TestWalletMixin, unittest.TestCase):
