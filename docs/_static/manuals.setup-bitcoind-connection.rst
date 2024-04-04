@@ -38,6 +38,18 @@ and remove the 'testnet=1' line.
     rpcbind=0.0.0.0
     rpcallowip=192.168.0.0/24
 
+To increase your privacy and security, and for instance if you run a Bitcoin node on your home network, you can
+use TOR. Bitcoind has TOR support build in, and it is ease to setup.
+See https://en.bitcoin.it/wiki/Setting_up_a_Tor_hidden_service
+
+If you have a TOR service running you can add these lines to your bitcoin.conf settings to only use TOR.
+
+.. code-block:: text
+
+    proxy=127.0.0.1:9050
+    bind=127.0.0.1
+    onlynet=onion
+
 
 Connect using provider settings
 -------------------------------
