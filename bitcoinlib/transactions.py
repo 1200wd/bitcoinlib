@@ -1050,7 +1050,7 @@ class Transaction(object):
         :return Transaction:
         """
 
-        return cls.parse(BytesIO(rawtx), strict, network, raw_bytes=raw_bytes)
+        return cls.parse_bytesio(BytesIO(rawtx), strict, network, raw_bytes=rawtx)
 
     @staticmethod
     def load(txid=None, filename=None):
