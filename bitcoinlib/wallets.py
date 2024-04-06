@@ -412,8 +412,9 @@ class WalletKey(object):
                     session.commit()
                     return WalletKey(wk.id, session, k)
 
+            address_index = k.child_index % 0x80000000
             nk = DbKey(id=new_key_id, name=name[:80], wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
-                       account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
+                       account_id=account_id, depth=k.depth, change=change, address_index=address_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id,
@@ -1100,7 +1101,7 @@ class Wallet(object):
             session.commit()
 
             w = cls(new_wallet_id, db_uri=db_uri, db_cache_uri=db_cache_uri, main_key_object=mk.key())
-            w.key_for_path([0, 0], account_id=account_id, cosigner_id=cosigner_id)
+            w.key_for_path([], account_id=account_id, cosigner_id=cosigner_id, change=0, address_index=0)
         else:  # scheme == 'single':
             if not key:
                 key = HDKey(network=network, depth=key_depth)
@@ -1791,7 +1792,6 @@ class Wallet(object):
 
         if self.scheme == 'single':
             return [self.main_key]
-
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if network != self.network.name and "coin_type'" not in self.key_path:
             raise WalletError("Multiple networks not supported by wallet key structure")
@@ -1808,21 +1808,19 @@ class Wallet(object):
             _, purpose, encoding = get_key_structure_data(witness_type, self.multisig)
 
         address_index = 0
-        if (self.multisig and cosigner_id is not None and
+        if not((self.multisig and cosigner_id is not None and
                 (len(self.cosigner) > cosigner_id and self.cosigner[cosigner_id].key_path == 'm' or
-                 self.cosigner[cosigner_id].key_path == ['m'])):
-            req_path = []
-        else:
+                 self.cosigner[cosigner_id].key_path == ['m']))):
             prevkey = self.session.query(DbKey).\
                 filter_by(wallet_id=self.wallet_id, purpose=purpose, network_name=network, account_id=account_id,
                           witness_type=witness_type, change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
                 order_by(DbKey.address_index.desc()).first()
             if prevkey:
                 address_index = prevkey.address_index + 1
-            req_path = [change, address_index]
 
-        return self.keys_for_path(req_path, name=name, account_id=account_id, witness_type=witness_type, network=network,
-                                 cosigner_id=cosigner_id, address_index=address_index, number_of_keys=number_of_keys)
+        return self.keys_for_path([], name=name, account_id=account_id, witness_type=witness_type, network=network,
+                                 cosigner_id=cosigner_id, address_index=address_index, number_of_keys=number_of_keys,
+                                 change=change)
 
     def new_key_change(self, name='', account_id=None, witness_type=None, network=None):
         """
@@ -2126,8 +2124,10 @@ class Wallet(object):
 
         acckey = self.key_for_path([], level_offset=self.depth_public_master-self.key_depth, account_id=account_id,
                                    name=name, witness_type=witness_type, network=network)
-        self.key_for_path([0, 0], witness_type=witness_type, network=network, account_id=account_id)
-        self.key_for_path([1, 0], witness_type=witness_type, network=network, account_id=account_id)
+        self.key_for_path([], witness_type=witness_type, network=network, account_id=account_id, change=0,
+                          address_index=0)
+        self.key_for_path([], witness_type=witness_type, network=network, account_id=account_id, change=1,
+                          address_index=0)
         return acckey
 
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=0, address_index=None, change=0,
@@ -2276,7 +2276,8 @@ class Wallet(object):
                 else:
                     wk = wlt.keys_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
                                           cosigner_id=cosigner_id, network=network, recreate=recreate,
-                                          witness_type=witness_type, number_of_keys=number_of_keys)
+                                          witness_type=witness_type, number_of_keys=number_of_keys, change=change,
+                                          address_index=address_index)
                 public_keys.append(wk)
             keys_to_add = [public_keys]
             if type(public_keys[0]) is list:
@@ -2331,8 +2332,14 @@ class Wallet(object):
                     account_id = 0 if ("account'" not in self.key_path or
                                        self.key_path.index("account'") >= len(fullpath)) \
                         else int(fullpath[self.key_path.index("account'")][:-1])
-                change = None if "change" not in self.key_path or self.key_path.index("change") >= len(fullpath) \
-                    else int(fullpath[self.key_path.index("change")])
+                change_pos = [self.key_path.index(chg) for chg in ["change", "change'"] if chg in self.key_path]
+                change = None if not change_pos or change_pos[0] >= len(fullpath) else (
+                    int(fullpath[change_pos[0]].strip("'")))
+                # if "change" not in self.key_path or self.key_path.index("change") >= len(fullpath) \
+                    # else int(fullpath[self.key_path.index("change")])
+                # if change is None:
+                #     change = None if "change'" not in self.key_path or self.key_path.index("change'") >= len(fullpath) \
+                #         else int(fullpath[self.key_path.index("change'")].strip("'"))
                 if name and len(fullpath) == len(newpath.split('/')):
                     key_name = name
                 else:
@@ -2347,16 +2354,24 @@ class Wallet(object):
             if nkey:
                 new_keys.append(nkey)
             if len(new_keys) < number_of_keys:
+                parent_id = new_keys[0].parent_id
+                if parent_id not in self._key_objects:
+                    self.key(parent_id)
                 topkey = self._key_objects[new_keys[0].parent_id]
                 parent_key = topkey.key()
                 new_key_id = self.session.query(DbKey.id).order_by(DbKey.id.desc()).first()[0] + 1
-                keys_to_add = [str(k_id) for k_id in range(int(fullpath[-1]) + len(new_keys), int(fullpath[-1]) +
-                                                           number_of_keys)]
+                hardened_child = False
+                if fullpath[-1].endswith("'"):
+                    hardened_child = True
+                keys_to_add = [str(k_id) for k_id in range(int(fullpath[-1].strip("'")) + len(new_keys),
+                                                           int(fullpath[-1].strip("'")) + number_of_keys)]
 
                 for key_idx in keys_to_add:
                     new_key_id += 1
+                    if hardened_child:
+                        key_idx = "%s'" % key_idx
                     ck = parent_key.subkey_for_path(key_idx, network=network)
-                    key_name = 'address index %s' % key_idx
+                    key_name = 'address index %s' % key_idx.strip("'")
                     newpath = '/'.join(newpath.split('/')[:-1] + [key_idx])
                     new_keys.append(WalletKey.from_key(
                         key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
