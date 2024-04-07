@@ -813,7 +813,7 @@ class WalletTransaction(Transaction):
         if offline:
             return None
 
-        srv = Service(network=self.network.name, providers=self.hdwallet.providers,
+        srv = Service(network=self.network.name, wallet_name=self.hdwallet.name, providers=self.hdwallet.providers,
                       cache_uri=self.hdwallet.db_cache_uri)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
@@ -2604,7 +2604,7 @@ class Wallet(object):
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         balance = srv.getbalance(self.addresslist(account_id=account_id, network=network))
         if srv.results:
             new_balance = {
@@ -2828,8 +2828,7 @@ class Wallet(object):
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
-                    srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
-                    srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+                    srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
                     utxos = []
                     for address in addresslist:
                         if rescan_all:
@@ -3030,7 +3029,7 @@ class Wallet(object):
         :return:
         """
         network = self.network.name
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         blockcount = srv.blockcount()
         db_txs = self._session.query(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id,
@@ -3055,7 +3054,7 @@ class Wallet(object):
         txids = list(dict.fromkeys(txids))
 
         txs = []
-        srv = Service(network=self.network.name, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=self.network.name, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         for txid in txids:
             tx = srv.gettransaction(to_hexstring(txid))
             if tx:
@@ -3111,7 +3110,7 @@ class Wallet(object):
         if not key_id:
             self.transactions_update_confirmations()
 
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         blockcount = srv.blockcount()
         db_txs = self._session.query(DbTransaction).\
             filter(DbTransaction.wallet_id == self.wallet_id,
@@ -3550,7 +3549,7 @@ class Wallet(object):
                     addr = addr.key()
                 transaction.add_output(value, addr)
 
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
         transaction.fee_per_kb = None
         if isinstance(fee, int):
             fee_estimate = fee
@@ -4036,7 +4035,7 @@ class Wallet(object):
                 continue
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
 
         if isinstance(fee, str):
             n_outputs = 1 if not isinstance(to_address, list) else len(to_address)

@@ -55,7 +55,7 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
-                 max_errors=SERVICE_MAX_ERRORS, strict=True):
+                 max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None):
         """
         Create a service object for the specified network. By default, the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -131,6 +131,7 @@ class Service(object):
         self._blockcount = None
         self.cache = None
         self.cache_uri = cache_uri
+        self.wallet_name = wallet_name
         try:
             self.cache = Cache(self.network, db_uri=cache_uri)
         except Exception as e:
@@ -166,8 +167,13 @@ class Service(object):
                     continue
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
+
+                base_url = self.providers[sp]['url']
+                if 'bitcoind' in sp and self.wallet_name is not None:
+                    base_url = f"{base_url}/wallet/{self.wallet_name}"
+
                 pc_instance = providerclient(
-                    self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
+                    self.network, base_url, self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
                     self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
                 if not hasattr(pc_instance, method):
