@@ -223,7 +223,7 @@ class BitcoindClient(BaseClient):
         if len(txs_list) >= MAX_WALLET_TRANSACTIONS:
             raise ClientError("Bitcoind wallet contains too many transactions %d, use other service provider for this "
                               "wallet" % MAX_WALLET_TRANSACTIONS)
-        txids = list(set([(tx['txid'], tx['blockheight']) for tx in txs_list if tx['address'] == address]))
+        txids = list(set([(tx['txid'], tx.get('blockheight')) for tx in txs_list if tx['address'] == address]))
         for (txid, blockheight) in txids:
             tx_raw = self.proxy.getrawtransaction(txid, 1)
             t = self._parse_transaction(tx_raw, blockheight)

@@ -50,6 +50,7 @@ class BaseClient(object):
             if not isinstance(network, Network):
                 self.network = Network(network)
             self.provider = provider
+
             self.base_url = base_url
             self.resp = None
             self.units = denominator
