@@ -2335,11 +2335,6 @@ class Wallet(object):
                 change_pos = [self.key_path.index(chg) for chg in ["change", "change'"] if chg in self.key_path]
                 change = None if not change_pos or change_pos[0] >= len(fullpath) else (
                     int(fullpath[change_pos[0]].strip("'")))
-                # if "change" not in self.key_path or self.key_path.index("change") >= len(fullpath) \
-                    # else int(fullpath[self.key_path.index("change")])
-                # if change is None:
-                #     change = None if "change'" not in self.key_path or self.key_path.index("change'") >= len(fullpath) \
-                #         else int(fullpath[self.key_path.index("change'")].strip("'"))
                 if name and len(fullpath) == len(newpath.split('/')):
                     key_name = name
                 else:

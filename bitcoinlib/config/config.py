@@ -157,6 +157,11 @@ SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
 ENCODING_BECH32_PREFIXES = ['bc', 'tb', 'ltc', 'tltc', 'blt']
 DEFAULT_WITNESS_TYPE = 'segwit'
 BECH32M_CONST = 0x2bc830a3
+KEY_PATH_LEGACY = ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
+KEY_PATH_P2SH = ["m", "purpose'", "cosigner_index", "change", "address_index"]
+KEY_PATH_P2WSH = ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
+KEY_PATH_P2WPKH = ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+KEY_PATH_BITCOINCORE = ['m', "account'", "change'", "address_index'"]
 
 # Wallets
 WALLET_KEY_STRUCTURES = [
@@ -176,7 +181,7 @@ WALLET_KEY_STRUCTURES = [
         'multisig': False,
         'encoding': 'base58',
         'description': 'Legacy wallet using pay-to-public-key-hash scripts',
-        'key_path': ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
+        'key_path': KEY_PATH_LEGACY
     },
     {
         'purpose': 45,
@@ -185,7 +190,7 @@ WALLET_KEY_STRUCTURES = [
         'multisig': True,
         'encoding': 'base58',
         'description': 'Legacy multisig wallet using pay-to-script-hash scripts',
-        'key_path': ["m", "purpose'", "cosigner_index", "change", "address_index"]
+        'key_path': KEY_PATH_P2SH
     },
     {
         'purpose': 48,
@@ -194,7 +199,7 @@ WALLET_KEY_STRUCTURES = [
         'multisig': True,
         'encoding': 'base58',
         'description': 'Segwit multisig wallet using pay-to-wallet-script-hash scripts nested in p2sh scripts',
-        'key_path': ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
+        'key_path': KEY_PATH_P2WSH
     },
     {
         'purpose': 48,
@@ -203,7 +208,7 @@ WALLET_KEY_STRUCTURES = [
         'multisig': True,
         'encoding': 'bech32',
         'description': 'Segwit multisig wallet using native segwit pay-to-wallet-script-hash scripts',
-        'key_path': ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
+        'key_path': KEY_PATH_P2WSH
     },
     {
         'purpose': 49,
@@ -212,7 +217,7 @@ WALLET_KEY_STRUCTURES = [
         'multisig': False,
         'encoding': 'base58',
         'description': 'Segwit wallet using pay-to-wallet-public-key-hash scripts nested in p2sh scripts',
-        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+        'key_path': KEY_PATH_P2WPKH
     },
     {
         'purpose': 84,
@@ -221,7 +226,7 @@ WALLET_KEY_STRUCTURES = [
         'multisig': False,
         'encoding': 'bech32',
         'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts',
-        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+        'key_path': KEY_PATH_P2WPKH
     },
     # {
     #     'purpose': 86,
