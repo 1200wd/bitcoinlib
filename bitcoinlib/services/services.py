@@ -168,14 +168,11 @@ class Service(object):
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
 
-                base_url = self.providers[sp]['url']
-                if 'bitcoind' in sp and self.wallet_name is not None:
-                    base_url = f"{base_url}/wallet/{self.wallet_name}"
-
                 pc_instance = providerclient(
-                    self.network, base_url, self.providers[sp]['denominator'],
+                    self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
+                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict,
+                    self.wallet_name)
                 if not hasattr(pc_instance, method):
                     _logger.debug("Method %s not found for provider %s" % (method, sp))
                     continue

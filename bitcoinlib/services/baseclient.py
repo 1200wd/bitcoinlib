@@ -44,7 +44,7 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True, wallet_name=''):
         try:
             self.network = network
             if not isinstance(network, Network):
@@ -62,6 +62,7 @@ class BaseClient(object):
             if network_overrides is not None:
                 self.network_overrides = network_overrides
             self.strict = strict
+            self.wallet_name = wallet_name
         except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
