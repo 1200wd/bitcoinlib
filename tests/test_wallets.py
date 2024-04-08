@@ -684,6 +684,73 @@ class TestWalletKeys(unittest.TestCase):
         self.assertFalse(w2.main_key.is_private)
         self.assertIsNone(w2.main_key.key_private)
 
+    def test_wallet_key_derivation_bitcoin_core(self):
+        pkwif = \
+            "tprv8ZgxMBicQKsPdwXQbgq89TZiKB2jiPQqpG86D2TxkikdjuPSFBJX7kiuSqXUR3vjAajk84ekJAgDbNtm72DcNUqgrasvVyL4ugqg9M2jLNk"
+        wallet_delete_if_exists('wallet_bitcoinnode_keytest', force=True)
+        w = wallet_create_or_open('wallet_bitcoinnode_keytest', pkwif, network='testnet', witness_type='segwit',
+                                  key_path=KEY_PATH_BITCOINCORE)
+        expected_address = "tb1qet37ftfmj9qlnajf5370zymwdx0dxrg5s08406"
+        self.assertEqual(w.get_key().address, expected_address)
+
+        bitcoincore_legacy_keys = [
+            ("cT6RRQfmAKws5DiXeMqDoKQkdkpDeTxjR6hQSUMbAEYrQLowE2dA", "tb1qqqa20559evephf7k5vdl4kmkkkwzwq4r3fdqjn",
+             "m/0'/1'/33'"),
+            ("cRoLN8YaDq3MTGJZh4c2eA5kNvFRaiTy1t6o2tbs2FdSF3aWjYoE", "tb1qqzckpfc338h67c3wvdfxy80xyl3duerr9lzzeh",
+             "m/0'/0'/945'"),
+            ("cNRJJBHoVYYgVaZg4cighgh8dTnGN35fFAbSAak9hbsRybi88uUU", "tb1qqrvr94pkh57n3gqxz9wdvcuqqjrf7syr9lcezn",
+             "m/0'/0'/179'"),
+            ("cRsyfCoRxb37FR55gsdePjGvc2yP2b9zmK7xAcZnrfBDYi6qLpZH", "tb1qqrnwa6047e9weadsjkw4yvmq2hpcnsez5fscvg",
+             "m/0'/1'/114'"),
+            ("cPGrz5DJChNGUhXNp7uLTN1QyL8uSvDCeaQXE8XGtDnGpiFkwP2t", "tb1qqywxch6yqg0n2n43p8mh2jj8xn45zu0jd6w5qr",
+             "m/0'/0'/661'"),
+            ("cN3ftZiCws7rpibSN4bgwxNFjrwKFv8vBAhsGfWS181wvrQdvyW4", "tb1qqxxnzft5dcarhdke6jpqjxrh5pnj3jx28rquef",
+             "m/0'/0'/508'"),
+            ("cV7oNGCZedJ5AB6C8no5CPAJFFCL8562CzHV2WbTAbic3nFWCKWa", "tb1qqxaf72y6jsdly92d5djp0xgghunrctu69ej4l3",
+             "m/0'/0'/703'"),
+            ("cPHpS6LfJBuuKCwx9zBsbiuriGF84Vz7tZVbDeQSJ5eB8nFbmXN7", "tb1qq8l2ue64setgk5jyepk8vycs0qydxy4496tx5m",
+             "m/0'/0'/296'"),
+            ("cSTyAscq5QdPKEnBxs5hLHgMkfd2a6xVwU8QTh8DJTKVZK6Q535Q", "tb1qqgplnyw697xsfvpccy4qtzyflzn9ke7s97l8pq",
+             "m/0'/0'/335'"),
+            ("cUTMrBYCya9gMsxm5aGquQGNkcyc4eduuuzY3v6NpVbWqG6ixonP", "tb1qqg8x4cdcrv83nl0zv8djzhea4kl2647zsxh36l",
+             "m/0'/0'/589'"),
+            ("cVzxpZERuRgwvAcWUr4U7EtMSyzEsBCziwxTofnCTQN2EVBGjM5y", "tb1qqg8fzfddxet3zq5h334jsvl8x92p04hkfj9nf9",
+             "m/0'/0'/928'"),
+            ("cVhPAPYdZH6wbegMiuxYcNpGuxpbrTX519n5zKVjv3EGhd9w3xDx", "tb1qq2pe4z4undtc6ry38peefsw98apxaq0w0tdyvg",
+             "m/0'/0'/998'"),
+            ("cPyj6ziaPWDMX1rQQ2AYgtGmCWZkqyM9tuTdwiDvuEmQ6ZkzX7NQ", "tb1qq2epkw3vph82pl4ykjpvnnjxnka2grk8uv5d6h",
+             "m/0'/0'/232'"),
+            ("cRgxMBzg7vLmHjpzZW7ZsFBMEhFGHZxTU8oLLMUX8EbxXjrkRzxi", "tb1qqtqk529kenvdgymmdkg070kkyfc56lf0x9rqqw",
+             "m/0'/0'/375'"),
+            ("cQpyG8EaGfCzq5ficwsSz73krYS1LjELg9pRiydE7K9suMmNZirm", "tb1qqt93cacv5u8e40k995qxdfmzupnjst4h44px48",
+             "m/0'/0'/711'"),
+            ("cNyweGkXaFJ24k91tjpSGqbpzVvwu2c63FVKtJjztBGmoKtjhjDP", "tb1qqt4uwz330sfxkh7ug9tgpc4083r7ky3vpg22w6",
+             "m/0'/0'/320'"),
+            ("cQzDqSPb8KUeZ48BBaQt8DuLrsP1oQUgJDnWpnBVXnhrJ7ap4vjh", "tb1qqv8qkr0g76s6m4mguxag56hf6pgtyvy2c78c77",
+             "m/0'/0'/245'"),
+            ("cSCv6ByFqi6FGSA3yeb2oKfvPzokeKNGWZ1q3tSkovnBkDGvxJBR", "tb1qqdj4ruf23szh4jmkjt4nzx83utp7dlhydn2532",
+             "m/0'/0'/336'"),
+            ("cSpXvuvzNxSBp3YwUnXTbj2qa6MBMAdcK2gZXFnG6DoXUUzJj5ga", "tb1qqdax64eywry5yjw7npll7r6jg5afe4kc3a2ysa",
+             "m/0'/1'/185'"),
+            ("cUE6aGgcGGCidEqHUEFamsbVitQU3wtFnMU75oz36vQj2WPRAXfc", "tb1qqwgfqwm20kryx8py0n6escew8xgjqp5whpnfx0",
+             "m/0'/1'/54'"),
+            ("cVdndV7n3C2ga1uXHEWuehKWnfJxidcGf5tAxEPZgSxkGgQ5qmgr", "tb1qqw3fj4v90yy0at0muk8p9pjf25tjzpgw9wgy0t",
+             "m/0'/0'/302'"),
+            ("cVHfUViBhR62SE3R5RBiQeTYHVFVVh4YGy9YtiGg7auMrro646Cq", "tb1qqw5gcq4rk63sxrpy2s2prtylmgkrfa2sezck6d",
+             "m/0'/0'/716'"),
+            ("cQGYzBYwfuyuSGeTP3iKvUxnayXuDMcXbtQ1EwjfyLUuCHnv2qR4", "tb1qq0cy7pae98rrf6688xz47ryl90kuxh4jp65ll6",
+             "m/0'/0'/624'"),
+            ("cNS1Ket4FxnKBa93cmgTU3psQqwGnEMGjUHeMeNHgbE2KeVDqZQd", "tb1qqs6pr5jyautze32ummxpnpwhsyzf2rvptxxm0n",
+             "m/0'/1'/150'"),
+            ("cMrbo3BTBYLGHry8oeXhMaWGU8GWXSLFFAyLoEWMTPeZxwxxLMRN", "tb1qqsuuw0rfrz83svvsuatg8q7j2ea5z3geahr32g",
+             "m/0'/0'/157'"),
+        ]
+
+        for bc_key in bitcoincore_legacy_keys:
+            k = w.key_for_path(bc_key[2])
+            self.assertEqual(k.address, bc_key[1])
+            self.assertEqual(k.key().wif_key(), bc_key[0])
+
     @classmethod
     def tearDownClass(cls):
         del cls.database_uri
