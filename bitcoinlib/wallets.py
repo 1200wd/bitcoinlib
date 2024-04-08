@@ -58,8 +58,7 @@ def wallets_list(db_uri=None, include_cosigners=False, db_password=None):
     :type db_uri: str
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
-    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see
-    documentation).
+    :param db_password: Password to use for encrypted database. Requires the installation of sqlcipher (see documentation).
     :type db_password: str
 
     :return dict: Dictionary of wallets defined in database
@@ -527,6 +526,20 @@ class WalletKey(object):
         self._name = value
         self._dbkey.name = value
         self._commit()
+
+    @property
+    def keys_public(self):
+        if self.key_type == 'multisig':
+            return [k.public_byte for k in self.key()]
+        else:
+            return [self.key_public]
+
+    @property
+    def keys_private(self):
+        if self.key_type == 'multisig':
+            return [k.private_byte for k in self.key() if k.private_byte]
+        else:
+            return [self.key_private] if self.key_private else []
 
     def key(self):
         """
@@ -1442,7 +1455,7 @@ class Wallet(object):
             pass
 
     def __repr__(self):
-        db_uri = self.db_uri.split('?')[0]
+        db_uri = '' if not self.db_uri else self.db_uri.split('?')[0]
         if DEFAULT_DATABASE in db_uri:
             return "<Wallet(name=\"%s\")>" % self.name
         return "<Wallet(name=\"%s\", db_uri=\"%s\")>" % \
