@@ -138,7 +138,7 @@ class BitcoindClient(BaseClient):
             bdc = self.from_config('', network)
             base_url = bdc.base_url
             network = bdc.network
-        wallet_name = '' if not len(args) >= 6 else args[6]
+        wallet_name = '' if not len(args) > 6 else args[6]
         if wallet_name:
             base_url = base_url.replace("{wallet_name}", wallet_name)
         _logger.info("Connect to bitcoind")

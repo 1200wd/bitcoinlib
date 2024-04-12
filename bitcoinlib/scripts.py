@@ -127,7 +127,7 @@ def get_data_type(data):
     elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
             (data.startswith(b'\x04') and len(data) == 65):
         return 'key'
-    elif len(data) == 20 or len(data) == 32 or len(data) == 64 or 1 < len(data) <= 4:
+    elif len(data) == 20 or len(data) == 32 or len(data) == 64 or 1 <= len(data) <= 4:
         return 'data-%d' % len(data)
     else:
         return 'other'
