@@ -754,11 +754,17 @@ class TestScript(unittest.TestCase, CustomAssertions):
     def test_script_create_simple(self):
         script = Script([op.op_2, op.op_5, op.op_sub, op.op_1])
         self.assertEqual(str(script), 'OP_2 OP_5 OP_SUB OP_1')
-        self.assertEqual(repr(script), '<Script([op.op_2, op.op_5, op.op_sub, op.op_1])>')
+        self.assertEqual(repr(script), '<Script([OP_2, OP_5, OP_SUB, OP_1])>')
         self.assertEqual(script.serialize().hex(), '52559451')
         self.assertEqual(script.serialize_list(), [b'R', b'U', b'\x94', b'Q'])
         self.assertTrue(script.evaluate())
         self.assertEqual(script.stack, [b'\3'])
+
+    def test_script_calc_evaluate(self):
+        s = Script.parse('0101016293016387')
+        self.assertListEqual(s.blueprint, ['data-1', 'data-1', 147, 'data-1', 135])
+        self.assertTrue(s.view(), '01 62 OP_ADD 63 OP_EQUAL')
+        self.assertTrue(s.evaluate())
 
     def test_script_serialize(self):
         # Serialize p2sh_p2wsh tx 77ad5a0f9447dbfb9adcdb9b2437e91780519ec8ee24a8eda91b25a0666205cb from sigs and keys
@@ -882,6 +888,19 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,
                                redeemscript_error)
 
+    def test_script_view(self):
+        script = bytes.fromhex(
+            '483045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437df1ea8f98'
+            '19d344e05b9c93e38e88df1fc46abb6194506c50ce1012103e481f20561573cfd800e64efda61405917cb29e4bd20bed168c5'
+            '2b674937f53576a914f9cc73824051cc82d64a716c836c54467a21e22c88ac')
+        s = Script.parse(script)
+        expected_str = ('3045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437'
+                        'df1ea8f9819d344e05b9c93e38e88df1fc46abb6194506c50ce101 03e481f20561573cfd800e64efda6140591'
+                        '7cb29e4bd20bed168c52b674937f535 OP_DUP OP_HASH160 f9cc73824051cc82d64a716c836c54467a21e22c'
+                        ' OP_EQUALVERIFY OP_CHECKSIG')
+        self.assertEqual(s.view(), expected_str)
+        self.assertEqual(s.blueprint, s.view(blueprint=True, as_list=True, op_code_numbers=True))
+        self.assertEqual(str(s), s.view(blueprint=True))
 
 class TestScriptMPInumbers(unittest.TestCase):
 

@@ -223,7 +223,7 @@ class Script(object):
                         raise ScriptError("Cannot create script, please supply %s" % (tc if tc != 'data' else
                                           'public key hash'))
                     self.commands += command
-        if not (self.keys and self.signatures and self.blueprint):
+        if not (self.keys and self.signatures and self._blueprint):
             self._blueprint = []
             for c in self.commands:
                 if isinstance(c, int):
@@ -471,22 +471,11 @@ class Script(object):
         return cls.parse_bytesio(BytesIO(script), message, env_data, data_length, strict, _level)
 
     def __repr__(self):
-        s_items = []
-        for command in self.blueprint:
-            if isinstance(command, int):
-                s_items.append('op.' + opcodenames.get(command, 'unknown-op-%s' % command).lower())
-            else:
-                s_items.append(command)
+        s_items = self.view(blueprint=True, as_list=True)
         return '<Script([' + ', '.join(s_items) + '])>'
 
     def __str__(self):
-        s_items = []
-        for command in self.blueprint:
-            if isinstance(command, int):
-                s_items.append(opcodenames.get(command, 'unknown-op-%s' % command))
-            else:
-                s_items.append(command)
-        return ' '.join(s_items)
+        return self.view(blueprint=True)
 
     def __add__(self, other):
         self.commands += other.commands
@@ -512,7 +501,6 @@ class Script(object):
 
     @property
     def blueprint(self):
-        # TODO: create blueprint from commands if empty
         return self._blueprint
 
     @property
@@ -557,6 +545,27 @@ class Script(object):
             else:
                 clist.append(bytes(cmd))
         return clist
+
+    def view(self, blueprint=False, as_list=False, op_code_numbers=False):
+        s_items = []
+        i = 0
+        for command in self.commands:
+            if isinstance(command, int):
+                if op_code_numbers:
+                    s_items.append(command)
+                else:
+                    s_items.append(opcodenames.get(command, 'unknown-op-%s' % command))
+            else:
+                if blueprint:
+                    if self.blueprint and len(self.blueprint) >= i:
+                        s_items.append(self.blueprint[i])
+                    else:
+                        s_items.append('data-%d' % len(command))
+                else:
+                    s_items.append(command.hex())
+            i += 1
+
+        return s_items if as_list else ' '.join(str(i) for i in s_items)
 
     def evaluate(self, message=None, env_data=None):
         """
