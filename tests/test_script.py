@@ -726,8 +726,14 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertTrue(s.evaluate(message=transaction_hash, env_data=data))
 
     def test_script_verify_transaction_input_p2pk(self):
-        pass
-        # TODO
+        p2pk_lockscript = '210312ed54eee6c84b440dd90623a714360196bebd842bfa64c7c7767b71b92a238dac'  # key + checksig
+        p2pk_unlockscript = \
+            ('463043021f52f02788988b941e3b810357762ccea5148e405edf124ea6b3b7eb9eba15430220609a9261612aaaa7544b7dae34'
+             '7b5dc3e53b0fc304957d6c4a46e1ae90a5d30001')  # signature
+        script = p2pk_unlockscript + p2pk_lockscript
+        s = Script.parse_hex(script)
+        transaction_hash = bytes.fromhex("67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986")
+        self.assertTrue(s.evaluate(message=transaction_hash))
 
     def test_script_verify_transaction_output_return(self):
         script = bytes.fromhex('6a26062c74e4b802d60ffdd1daa37b848e39a2b0ecb2de72c6ca24d71b87813b5e056cb7f1e8c8b0')

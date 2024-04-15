@@ -1026,7 +1026,7 @@ class TestTransactions(unittest.TestCase):
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
     # def test_transaction_redeemscript_errors(self):
-    #     exp_error = "Redeemscripts with more then 15 keys are non-standard and could result in locked up funds"
+    #     exp_error = "Redeemscripts with more than 15 keys are non-standard and could result in locked up funds"
     #     keys = []
     #     for n in range(20):
     #         keys.append(HDKey().public_hex)
@@ -1061,6 +1061,19 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t = Transaction.parse_hex(rawtx)
         self.assertEqual(t.inputs[0].script_type, 'signature')
         self.assertEqual(t.outputs[0].script_type, 'p2pk')
+
+        wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \
+              'nQETYvZu3j'
+        k = HDKey(wif)
+        rawtx = ('0100000001cb7b368efcf5f17b09e9e43ec3907cbed622a5b4b33addb4c9c6f0b8ce855c9f0000000047463043021f52f0278'
+                 '8988b941e3b810357762ccea5148e405edf124ea6b3b7eb9eba15430220609a9261612aaaa7544b7dae347b5dc3e53b0fc304'
+                 '957d6c4a46e1ae90a5d30001ffffffff01581b00000000000023210312ed54eee6c84b440dd90623a714360196bebd842bfa6'
+                 '4c7c7767b71b92a238dac00000000')
+        t = Transaction.parse_hex(rawtx, network='testnet')
+        t.inputs[0].keys = [k.public()]
+        t.update_inputs(0)
+        t.sign_and_update()
+        self.assertTrue(t.verify())
 
     def test_transaction_sign_uncompressed(self):
         ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX',
