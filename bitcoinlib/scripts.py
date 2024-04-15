@@ -399,7 +399,7 @@ class Script(object):
         # Extract extra information from script data
         for st in s.script_types[:1]:
             if st == 'multisig':
-                s.redeemscript = s.raw
+                s.redeemscript = s.as_bytes()
                 s.sigs_required = s.commands[0] - 80
                 if s.sigs_required > len(keys):
                     raise ScriptError("Number of signatures required (%d) is higher then number of keys (%d)" %
@@ -479,7 +479,7 @@ class Script(object):
 
     def __add__(self, other):
         self.commands += other.commands
-        self._raw += other.raw
+        self._raw += other.as_bytes()
         if other.message and not self.message:
             self.message = other.message
         self.is_locking = None
@@ -497,17 +497,28 @@ class Script(object):
         return bool(self.commands)
 
     def __hash__(self):
-        return hash160(self.raw)
+        return hash160(self.as_bytes())
 
     @property
     def blueprint(self):
         return self._blueprint
 
     @property
+    @deprecated
     def raw(self):
         if not self._raw:
             self._raw = self.serialize()
         return self._raw
+
+    def as_bytes(self):
+        if not self._raw:
+            self._raw = self.serialize()
+        return self._raw
+
+    def as_hex(self):
+        if not self._raw:
+            self._raw = self.serialize()
+        return self._raw.hex()
 
     def serialize(self):
         """
@@ -588,7 +599,10 @@ class Script(object):
 
         :param message: Signed message to verify, normally a transaction hash. Leave empty to use Script.message. If supplied Script.message will be ignored.
         :type message: bytes
-        :param data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts. Leave emtpy to use Script.data. If supplied Script.data will be ignored
+        :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
+        :type env_data: dict()
+
+        multisignature scripts and 'blockcount' for time locked scripts. Leave emtpy to use Script.data. If supplied Script.data will be ignored
 
         :return bool: Valid or not valid
         """
