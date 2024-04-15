@@ -1335,6 +1335,32 @@ class Key(object):
     def hex(self):
         return self.public_hex
 
+    def as_hex(self, private=False):
+        """
+        Return hex representation of private or public key
+
+        :param private: Private or public key
+
+        :return str:
+        """
+        if private:
+            return self.private_byte
+        else:
+            return self.public_hex
+
+    def as_bytes(self, private=False):
+        """
+        Return bytes representation of private or public key
+
+        :param private: Private or public key
+
+        :return bytes:
+        """
+        if private:
+            return self.private_byte
+        else:
+            return self.public_byte
+
     def as_dict(self, include_private=False):
         """
         Get current Key class as dictionary. Byte values are represented by hexadecimal strings.
@@ -2565,6 +2591,12 @@ class Signature(object):
         if not self._signature:
             self._signature = self.r.to_bytes(32, 'big') + self.s.to_bytes(32, 'big')
         return self._signature
+
+    def as_hex(self):
+        return self.hex()
+
+    def as_bytes(self):
+        return self.bytes()
 
     def as_der_encoded(self, as_hex=False, include_hash_type=True):
         """

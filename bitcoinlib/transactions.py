@@ -1286,6 +1286,22 @@ class Transaction(object):
         adict = self.as_dict()
         return json.dumps(adict, indent=4, default=str)
 
+    def as_bytes(self):
+        """
+        Return raw serialized transaction as bytes string
+
+        :return bytes:
+        """
+        return self.raw()
+
+    def as_hex(self):
+        """
+        Return raw hex string of transaction as hex string
+
+        :return:
+        """
+        return self.raw_hex()
+
     def info(self):
         """
         Prints transaction information to standard output
