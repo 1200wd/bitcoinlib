@@ -1089,6 +1089,9 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         self.assertEqual(t.signature_hash(sign_id=0).hex(),
                          '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
+        t.sign_and_update()
+        self.assertEqual(t.txid, "a3e18689f2b03659ae10735e332277e451b4270dbc46072b196baf63fb9a838b")
+
 
     def test_transaction_sign_p2pk_value(self):
         wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \

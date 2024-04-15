@@ -2065,6 +2065,19 @@ class Transaction(object):
             if self.vsize:
                 self.fee_per_kb = int((self.fee / float(self.vsize)) * 1000)
 
+    def update_inputs(self, input_n=None):
+        """
+        Update input scripts to reflect changes you made to one of more inputs. All inputs will be updated unless
+        you specificy a specific input.
+
+        :param input_n: Input to update, leave empty to update all input scripts
+
+        :return:
+        """
+        input_list = range(0, len(self.inputs)) if input_n is None else [input_n]
+        for inp in input_list:
+            self.inputs[inp].update_scripts()
+
     def save(self, filename=None):
         """
         Store transaction object as file, so it can be imported in bitcoinlib later with the :func:`load` method.
