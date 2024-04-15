@@ -902,6 +902,19 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertEqual(s.blueprint, s.view(blueprint=True, as_list=True, op_code_numbers=True))
         self.assertEqual(str(s), s.view(blueprint=True))
 
+    def test_script_str(self):
+        script_str = "1 98 OP_ADD 99 OP_EQUAL"
+        s = Script.parse_str(script_str)
+        self.assertEqual(s.view(), script_str)
+        self.assertTrue(s.evaluate())
+        self.assertEqual(s.as_hex(), '0101016293016387')
+
+        script_str_2 = "OP_DUP OP_HASH160 af8e14a2cecd715c363b3a72b55b59a31e2acac9 OP_EQUALVERIFY OP_CHECKSIG"
+        s = Script.parse_str(script_str_2)
+        clist = [118, 169, b'\xaf\x8e\x14\xa2\xce\xcdq\\6;:r\xb5[Y\xa3\x1e*\xca\xc9', 136, 172]
+        self.assertListEqual(s.commands, clist)
+        self.assertEqual(s.view(), script_str_2)
+
 class TestScriptMPInumbers(unittest.TestCase):
 
     def test_encode_decode_numbers(self):

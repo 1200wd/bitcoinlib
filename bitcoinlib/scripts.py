@@ -470,6 +470,46 @@ class Script(object):
         data_length = len(script)
         return cls.parse_bytesio(BytesIO(script), message, env_data, data_length, strict, _level)
 
+    @classmethod
+    def parse_str(cls, script, message=None, env_data=None, strict=True, _level=0):
+        """
+        Parse script in string format and return Script object.
+        Extracts script commands, keys, signatures and other data.
+
+        >>> s = Script.parse_str("1 98 OP_ADD 99 OP_EQUAL")
+        >>> s
+        data-1 data-1 OP_ADD data-1 OP_EQUAL
+        >>> s.evaluate()
+        True
+
+        :param script: Raw script to parse in bytes format
+        :type script: str
+        :param message: Signed message to verify, normally a transaction hash
+        :type message: bytes
+        :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts
+        :type env_data: dict
+        :param strict: Raise exception when script is malformed or incomplete
+        :type strict: bool
+        :param _level: Internal argument used to avoid recursive depth
+        :type _level: int
+
+        :return Script:
+        """
+        items = script.split(' ')
+        s_items = []
+        for item in items:
+            if item.isdigit():
+                ival = int(item)
+                if 0 < ival <= 16:
+                    s_items.append(ival.to_bytes(1, 'big'))
+                else:
+                    s_items.append(int_to_varbyteint(ival))
+            elif item.startswith('OP_'):
+                s_items.append(getattr(op, item.lower(), 'unknown-command-%s' % item))
+            else:
+                s_items.append(bytes.fromhex(item))
+        return cls(s_items, message, env_data, strict, _level)
+
     def __repr__(self):
         s_items = self.view(blueprint=True, as_list=True)
         return '<Script([' + ', '.join(s_items) + '])>'
@@ -557,7 +597,21 @@ class Script(object):
                 clist.append(bytes(cmd))
         return clist
 
-    def view(self, blueprint=False, as_list=False, op_code_numbers=False):
+    def view(self, blueprint=False, as_list=False, op_code_numbers=False, show_1_byte_data_as_int=True):
+        """
+        View script as string in human-readable format.
+
+        :param blueprint: Show blueprint only, without detailed data.
+        :type blueprint: bool
+        :param as_list: Show script as list
+        :type as_list: bool
+        :param op_code_numbers: Show opcodes as numbers instead of string.
+        :type op_code_numbers: bool
+        :param show_1_byte_data_as_int: Show 1 byte data objects as integers.
+        :type show_1_byte_data_as_int: bool
+
+        :return str:
+        """
         s_items = []
         i = 0
         for command in self.commands:
@@ -573,7 +627,11 @@ class Script(object):
                     else:
                         s_items.append('data-%d' % len(command))
                 else:
-                    s_items.append(command.hex())
+                    chex = command.hex()
+                    if len(chex) == 2 and show_1_byte_data_as_int:
+                        s_items.append(int(chex, 16))
+                    else:
+                        s_items.append(chex)
             i += 1
 
         return s_items if as_list else ' '.join(str(i) for i in s_items)
