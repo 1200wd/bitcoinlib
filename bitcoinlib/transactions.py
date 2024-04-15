@@ -478,7 +478,7 @@ class Input(object):
             if self.keys:
                 self.script_code = varstr(self.keys[0].public_byte) + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
-                addr_data = self.keys[0].public_byte
+                addr_data = hash160(self.keys[0].public_byte)
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
         elif self.script_type == 'p2tr':  # segwit_v1
