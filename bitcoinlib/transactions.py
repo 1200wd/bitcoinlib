@@ -146,7 +146,7 @@ class Input(object):
     """
 
     def __init__(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
-                 unlocking_script_unsigned=None, script=None, script_type=None, address='',
+                 locking_script=None, script=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
                  witnesses=None, encoding=None, strict=True, network=DEFAULT_NETWORK):
@@ -165,8 +165,8 @@ class Input(object):
         :type public_hash: bytes
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param unlocking_script_unsigned: Unlocking script for signing transaction
-        :type unlocking_script_unsigned: bytes, hexstring
+        :param locking_script: Unlocking script for signing transaction
+        :type locking_script: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Address string or object for input
@@ -210,8 +210,8 @@ class Input(object):
             self.output_n_int = int.from_bytes(output_n, 'big')
             self.output_n = output_n
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
-        self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
-            else to_bytes(unlocking_script_unsigned)
+        self.locking_script = b'' if locking_script is None \
+            else to_bytes(locking_script)
         self.script = None
         self.hash_type = SIGHASH_ALL
         if isinstance(sequence, numbers.Number):
@@ -294,8 +294,8 @@ class Input(object):
             elif 'p2wsh' in self.script.script_types:
                 self.script_type = 'p2sh_p2wsh'
                 self.witness_type = 'p2sh-segwit'
-        if self.unlocking_script_unsigned and not self.signatures:
-            ls = Script.parse_bytes(self.unlocking_script_unsigned, strict=strict)
+        if self.locking_script and not self.signatures:
+            ls = Script.parse_bytes(self.locking_script, strict=strict)
             self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash
             if ls.script_types[0] in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
@@ -417,7 +417,7 @@ class Input(object):
             if not self.keys and not self.public_hash:
                 return
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
-            self.unlocking_script_unsigned = self.script_code
+            self.locking_script = self.script_code
             addr_data = self.public_hash
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() if hash_type else b'', self.keys[0].public_byte]
@@ -439,7 +439,7 @@ class Input(object):
                 else:
                     self.public_hash = hash160(self.redeemscript)
             addr_data = self.public_hash
-            self.unlocking_script_unsigned = self.redeemscript
+            # self.locking_script = self.redeemscript
 
             if self.redeemscript and self.keys:
                 n_tag = self.redeemscript[0:1]
@@ -477,7 +477,7 @@ class Input(object):
         elif self.script_type == 'signature':
             if self.keys:
                 self.script_code = varstr(self.keys[0].public_byte) + b'\xac'
-                self.unlocking_script_unsigned = self.script_code
+                self.locking_script = self.script_code
                 addr_data = hash160(self.keys[0].public_byte)
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
@@ -491,14 +491,14 @@ class Input(object):
                                    script_type=self.script_type, witness_type=self.witness_type).address
 
         if self.locktime_cltv:
-            self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv,
-                                                                      self.unlocking_script_unsigned)
+            self.locking_script = script_add_locktime_cltv(self.locktime_cltv,
+                                                                      self.locking_script)
             # if self.unlocking_script:
             #     self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
             # if self.witness_type == 'segwit':
             #     self.witnesses.insert(0, script_add_locktime_cltv(self.locktime_cltv, b''))
         if self.locktime_csv:
-            self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
+            self.locking_script = script_add_locktime_csv(self.locktime_csv, self.locking_script)
             self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
         return True
 
@@ -580,7 +580,7 @@ class Input(object):
             'public_hash': self.public_hash.hex(),
             'script_code': self.script_code.hex(),
             'unlocking_script': self.unlocking_script.hex(),
-            'unlocking_script_unsigned': self.unlocking_script_unsigned.hex(),
+            'locking_script': self.locking_script.hex(),
             'witness_type': self.witness_type,
             'witness': b''.join(self.witnesses).hex(),
             'sort': self.sort,
@@ -1618,7 +1618,10 @@ class Transaction(object):
                     r += b'\1'
                 r += varstr(i.unlocking_script)
             elif sign_id == i.index_n:
-                r += varstr(i.unlocking_script_unsigned)
+                if i.script_type == 'p2sh_multisig':
+                    r += varstr(i.redeemscript)
+                else:
+                    r += varstr(i.locking_script)
             else:
                 r += b'\0'
             r += i.sequence.to_bytes(4, 'little')
@@ -1807,7 +1810,7 @@ class Transaction(object):
             self.fee_per_kb = int((self.fee / float(self.vsize)) * 1000)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
-                  unlocking_script_unsigned=None, script_type=None, address='',
+                  locking_script=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False,locktime_cltv=None, locktime_csv=None,
                   key_path='', witness_type=None, witnesses=None, encoding=None, strict=True):
@@ -1828,8 +1831,8 @@ class Transaction(object):
         :type public_hash: bytes
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param unlocking_script_unsigned: TODO: find better name...
-        :type unlocking_script_unsigned: bytes, str
+        :param locking_script: TODO: find better name...
+        :type locking_script: bytes, str
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Specify address of input if known, default is to derive from key or scripts
@@ -1876,7 +1879,7 @@ class Transaction(object):
             self.version_int = 2
         self.inputs.append(
             Input(prev_txid=prev_txid, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
-                  unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
+                  unlocking_script=unlocking_script, locking_script=locking_script,
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,

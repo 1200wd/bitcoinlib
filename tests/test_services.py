@@ -545,7 +545,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'script_code': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
                     'sequence': 4294967295,
                     'sigs_required': 1,
-                    'unlocking_script_unsigned': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
+                    'locking_script': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
                     'value': 506323064}
                 ],
             'locktime': 0,

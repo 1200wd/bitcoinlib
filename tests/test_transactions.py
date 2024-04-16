@@ -73,7 +73,7 @@ class TestTransactionInputs(unittest.TestCase):
 
     def test_transaction_input_locking_script(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        ti = Input(ph, 0, unlocking_script_unsigned='76a91423e102597c4a99516f851406f935a6e634dbccec88ac',
+        ti = Input(ph, 0, locking_script='76a91423e102597c4a99516f851406f935a6e634dbccec88ac',
                    witness_type='legacy')
         self.assertEqual(ti.address, '14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8')
 
@@ -1638,7 +1638,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
         pass
         # rawtx = ''
         # print(t.raw_hex())
-        # print(t.inputs[0].unlocking_script_unsigned)
+        # print(t.inputs[0].locking_script)
 
     def test_transaction_cltv_error(self):
         # TODO
@@ -1827,7 +1827,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                       keys=['0236ab0a160e381d2eb6f01119937d29e697b78ca8be115617db972e0d95cef6b7',
                             '038b46795c92b8c9a6b40644a082be367e740f09b581a8b8c26b71d4b39f5cd963',
                             '03f93f3a5633478ed3ab3ff9d2fe5ddeecb8e755fb267c9a3bc9d7242f58e4f258'],
-                      unlocking_script_unsigned='52210236ab0a160e381d2eb6f01119937d29e697b78ca8be115617db972e0d95ce'
+                      locking_script='52210236ab0a160e381d2eb6f01119937d29e697b78ca8be115617db972e0d95ce'
                                                 'f6b721038b46795c92b8c9a6b40644a082be367e740f09b581a8b8c26b71d4b39f'
                                                 '5cd9632103f93f3a5633478ed3ab3ff9d2fe5ddeecb8e755fb267c9a3bc9d7242f'
                                                 '58e4f25853ae',

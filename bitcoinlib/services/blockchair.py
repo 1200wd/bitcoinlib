@@ -139,7 +139,7 @@ class BlockChairClient(BaseClient):
             else:
                 t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=ti['spending_signature_hex'], index_n=index_n, value=ti['value'],
-                            address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'],
+                            address=ti['recipient'], locking_script=ti['script_hex'],
                             sequence=ti['spending_sequence'], strict=self.strict)
             index_n += 1
         for to in res['data'][tx_id]['outputs']:

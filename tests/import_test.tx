@@ -29,7 +29,7 @@
              'sigs_required': 2,
              'sort': True,
              'unlocking_script': '',
-             'unlocking_script_unsigned': '52210289d3f95b15f53c666a4b70391e9a7cf6c771f6177d745557750a4160929a932e210331271d364803fd05e4a5b95acb2b0f200e9634dd75e95a577477762b8dacbcd32103547034e1e807362c5edd66d6951381ac2bde926b5244d5ce9cb1a82a4240bc8953ae',
+             'locking_script': '52210289d3f95b15f53c666a4b70391e9a7cf6c771f6177d745557750a4160929a932e210331271d364803fd05e4a5b95acb2b0f200e9634dd75e95a577477762b8dacbcd32103547034e1e807362c5edd66d6951381ac2bde926b5244d5ce9cb1a82a4240bc8953ae',
              'valid': None,
              'value': 100000000,
              'witness': '',

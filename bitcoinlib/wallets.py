@@ -3795,7 +3795,7 @@ class Wallet(object):
             for inp in input_arr:
                 locktime_cltv = None
                 locktime_csv = None
-                unlocking_script_unsigned = None
+                locking_script = None
                 unlocking_script_type = ''
                 if isinstance(inp, Input):
                     prev_txid = inp.prev_txid
@@ -3804,7 +3804,7 @@ class Wallet(object):
                     value = inp.value
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
-                    unlocking_script_unsigned = inp.unlocking_script_unsigned
+                    locking_script = inp.locking_script
                     unlocking_script_type = inp.script_type
                     address = inp.address
                     sequence = inp.sequence
@@ -3862,7 +3862,7 @@ class Wallet(object):
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
                                       unlocking_script=unlocking_script, address=address,
-                                      unlocking_script_unsigned=unlocking_script_unsigned,
+                                      locking_script=locking_script,
                                       sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv,
                                       witness_type=witness_type, key_path=key.path)
         # Calculate fees
