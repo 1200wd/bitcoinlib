@@ -1727,9 +1727,8 @@ class Wallet(object):
         # todo: pass key object, reuse key objects
         redeemscript = Script(script_types=['multisig'], keys=public_key_list,
                               sigs_required=self.multisig_n_required).serialize()
-        script_type = 'p2sh'
-        if witness_type == 'p2sh-segwit':
-            script_type = 'p2sh_p2wsh'
+        script_type = 'p2sh' if witness_type == 'legacy' else \
+            ('p2sh_p2wsh' if witness_type == 'p2sh-segwit' else 'p2wsh')
         address = Address(redeemscript, script_type=script_type, network=network, witness_type=witness_type)
         already_found_key = self.session.query(DbKey).filter_by(wallet_id=self.wallet_id,
                                                                  address=address.address).first()

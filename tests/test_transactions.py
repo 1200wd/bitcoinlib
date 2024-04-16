@@ -1009,7 +1009,7 @@ class TestTransactions(unittest.TestCase):
         transaction_output = Output(value=91234, address=addr)
         t = Transaction([transaction_input], [transaction_output])
         self.assertEqual(t.inputs[0].address, "1MMMMSUb1piy2ufrSguNUdFmAcvqrQF8M5")
-        self.assertEqual(t.outputs[0].address, "1KKKK6N21XKo48zWKuQKXdvSsCf95ibHFa")
+        self.assertEqual(t.outputs[0].address, "bc1qer5sn9k8ccyqacrzs3sqc6zwmyzdznzupzevph")
 
     def test_transaction_info(self):
         t = Transaction()

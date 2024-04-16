@@ -858,15 +858,11 @@ class Address(object):
         self.address_index = address_index
 
         if self.encoding is None:
-            # FIXME: Address should default to segwit if nothing is provided
-            # if self.script_type in ['p2pkh', 'p2sh', 'multisig', 'p2pk'] or self.witness_type == 'legacy':
-            #     self.encoding = 'base58'
-            # else:
-            #     self.encoding = 'bech32'
-            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr'] or self.witness_type == 'segwit':
-                self.encoding = 'bech32'
-            else:
+            if (self.script_type in ['p2pkh', 'p2sh', 'multisig', 'p2pk'] or self.witness_type == 'legacy' or
+                    self.witness_type == 'p2sh-segwit'):
                 self.encoding = 'base58'
+            else:
+                self.encoding = 'bech32'
         self.hash_bytes = to_bytes(hashed_data)
         self.prefix = prefix
         self.redeemscript = b''

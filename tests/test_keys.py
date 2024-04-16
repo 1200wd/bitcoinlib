@@ -806,10 +806,10 @@ class TestKeysAddress(unittest.TestCase):
 
     def test_keys_address_encodings(self):
         pk = '7cc7ed043b4240945e744387f8943151de86843025682bf40fa94ef086eeb686'
-        a = Address(pk, network='testnet')
+        a = Address(pk, network='testnet', witness_type='legacy')
         self.assertEqual(a.address, 'mmAXD1HJtV9pdffPvBJkuT4qQrbFMwb4pR')
         self.assertEqual(a.with_prefix(b'\x88'), 'wpcbpijWdzjj5W9ZXfdj2asW9U2q7gYCmw')
-        a = Address(pk, script_type='p2sh', network='testnet')
+        a = Address(pk, script_type='p2sh', network='testnet', witness_type='legacy')
         self.assertEqual(a.address, '2MxtnuEcoEpYJ9WWkzqcr87ChujVRk1DFsZ')
         a = Address(pk, encoding='bech32', network='testnet')
         self.assertEqual(a.address, 'tb1q8hehumvm039nxnwwtqdjr7qmm46sfxrdw7vc3g')
