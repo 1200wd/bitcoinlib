@@ -3811,16 +3811,6 @@ class Wallet(object):
                     locktime_cltv = inp.locktime_cltv
                     locktime_csv = inp.locktime_csv
                     witness_type = inp.witness_type
-                # elif isinstance(inp, DbTransactionOutput):
-                #     prev_txid = inp.transaction.txid
-                #     output_n = inp.output_n
-                #     key_id = inp.key_id
-                #     value = inp.value
-                #     signatures = None
-                #     # FIXME: This is probably not an unlocking_script
-                #     unlocking_script = inp.script
-                #     unlocking_script_type = get_unlocking_script_type(inp.script_type)
-                #     address = inp.key.address
                 else:
                     prev_txid = inp[0]
                     output_n = inp[1]

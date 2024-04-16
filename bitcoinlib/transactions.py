@@ -146,7 +146,7 @@ class Input(object):
     """
 
     def __init__(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
-                 locking_script=None, script=None, script_type=None, address='',
+                 locking_script=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
                  witnesses=None, encoding=None, strict=True, network=DEFAULT_NETWORK):
@@ -272,26 +272,24 @@ class Input(object):
         elif witnesses:
             self.witnesses = [bytes.fromhex(w) if isinstance(w, str) else w for w in witnesses]
         self.script_code = b''
-        self.script = script
 
         # If unlocking script is specified extract keys, signatures, type from script
-        if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys) and not script:
-            self.script = Script.parse_bytes(self.unlocking_script, strict=strict)
-            self.keys = self.script.keys
-            self.signatures = self.script.signatures
+        if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
+            script = Script.parse_bytes(self.unlocking_script, strict=strict)
+            self.keys = script.keys
+            self.signatures = script.signatures
             if len(self.signatures):
                 self.hash_type = self.signatures[0].hash_type
-            sigs_required = self.script.sigs_required
-            self.redeemscript = self.script.redeemscript if self.script.redeemscript else self.redeemscript
-            if len(self.script.script_types) == 1 and not self.script_type:
-                self.script_type = self.script.script_types[0]
-            elif self.script.script_types == ['signature_multisig', 'multisig']:
+            sigs_required = script.sigs_required
+            if len(script.script_types) == 1 and not self.script_type:
+                self.script_type = script.script_types[0]
+            elif script.script_types == ['signature_multisig', 'multisig']:
                 self.script_type = 'p2sh_multisig'
             # TODO: Check if this if is necessary
-            if 'p2wpkh' in self.script.script_types:
+            if 'p2wpkh' in script.script_types:
                 self.script_type = 'p2sh_p2wpkh'
                 self.witness_type = 'p2sh-segwit'
-            elif 'p2wsh' in self.script.script_types:
+            elif 'p2wsh' in script.script_types:
                 self.script_type = 'p2sh_p2wsh'
                 self.witness_type = 'p2sh-segwit'
         if self.locking_script and not self.signatures:
@@ -323,9 +321,6 @@ class Input(object):
             else:
                 kobj = key
             if kobj not in self.keys:
-                # if self.compressed is not None and kobj.compressed != self.compressed:
-                #     _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
-                #                     (kobj.compressed, self.compressed))
                 self.compressed = kobj.compressed
                 self.keys.append(kobj)
         if self.compressed is None:
@@ -439,7 +434,6 @@ class Input(object):
                 else:
                     self.public_hash = hash160(self.redeemscript)
             addr_data = self.public_hash
-            # self.locking_script = self.redeemscript
 
             if self.redeemscript and self.keys:
                 n_tag = self.redeemscript[0:1]
@@ -491,8 +485,7 @@ class Input(object):
                                    script_type=self.script_type, witness_type=self.witness_type).address
 
         if self.locktime_cltv:
-            self.locking_script = script_add_locktime_cltv(self.locktime_cltv,
-                                                                      self.locking_script)
+            self.locking_script = script_add_locktime_cltv(self.locktime_cltv, self.locking_script)
             # if self.unlocking_script:
             #     self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
             # if self.witness_type == 'segwit':
