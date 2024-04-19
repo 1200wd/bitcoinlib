@@ -384,11 +384,11 @@ def main():
                 if not args.quiet:
                     print_transaction(wt)
         elif args.sweep:
-            offline = True
+            broadcast = False
             print("Sweep wallet. Send all funds to %s" % args.sweep, file=output_to)
             if args.push:
-                offline = False
-            wt = wlt.sweep(args.sweep, offline=offline, network=args.network, fee_per_kb=args.fee_per_kb, fee=args.fee,
+                broadcast = True
+            wt = wlt.sweep(args.sweep, broadcast=broadcast, network=args.network, fee_per_kb=args.fee_per_kb, fee=args.fee,
                            replace_by_fee=args.rbf)
             if not wt:
                 raise WalletError("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)

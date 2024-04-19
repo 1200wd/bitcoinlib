@@ -60,7 +60,7 @@ if not w.balance():
 else:
     print("Found testnet coins. Wallet balance: %d" % w.balance())
     # Send some coins to our own wallet
-    t = w.send_to(w.get_key().address, 1000, fee=200, offline=False)
+    t = w.send_to(w.get_key().address, 1000, fee=200, broadcast=True)
     t.info()
 
 # If you now run bitcoin-cli listunspent 0, you should see the 1 or 2 new utxo's for this transaction.

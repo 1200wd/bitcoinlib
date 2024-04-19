@@ -102,7 +102,10 @@ class Benchmark:
             w.get_key(number_of_keys=2)
         w.utxos_update()
         to_address = HDKey(network=network).address()
-        t = w.sweep(to_address, offline=True)
+        if BITCOINLIB_VERSION >= '0.7.0':
+            t = w.sweep(to_address, broadcast=False)
+        else:
+            t = w.sweep(to_address, offline=True)
         key_pool = [i for i in range(0, n_keys - 1) if i != pk_n]
         while len(t.inputs[0].signatures) < sigs_req:
             co_id = random.choice(key_pool)

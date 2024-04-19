@@ -816,12 +816,12 @@ class WalletTransaction(Transaction):
         self.verify()
         self.error = ""
 
-    def send(self, offline=False):
+    def send(self, broadcast=True):
         """
         Verify and push transaction to network. Update UTXO's in database after successful send
 
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
-        :type offline: bool
+        :param broadcast: Verify transaction and broadcast, if set to False the transaction is verified but not broadcasted, i. Default is True
+        :type broadcast: bool
 
         :return None:
 
@@ -832,7 +832,7 @@ class WalletTransaction(Transaction):
             self.error = "Cannot verify transaction"
             return None
 
-        if offline:
+        if not broadcast:
             return None
 
         srv = Service(network=self.network.name, wallet_name=self.hdwallet.name, providers=self.hdwallet.providers,
@@ -4056,7 +4056,7 @@ class Wallet(object):
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=True, number_of_change_outputs=1,
+             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, broadcast=False, number_of_change_outputs=1,
              replace_by_fee=False):
         """
         Create a new transaction with specified outputs and push it to the network.
@@ -4066,7 +4066,7 @@ class Wallet(object):
         Uses the :func:`transaction_create` method to create a new transaction, and uses a random service client to send the transaction.
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
-        >>> t = w.send([('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000)], offline=True)
+        >>> t = w.send([('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000)])
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
@@ -4092,8 +4092,8 @@ class Wallet(object):
         :type max_utxos: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
-        :type offline: bool
+        :param broadcast: Just return the transaction object and do not send it when broadcast = False. Default is False
+        :type broadcast: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
         :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
@@ -4128,18 +4128,18 @@ class Wallet(object):
         transaction.calc_weight_units()
         transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.vsize) * 1000)
         transaction.txid = transaction.signature_hash()[::-1].hex()
-        transaction.send(offline)
+        transaction.send(broadcast)
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
-                priv_keys=None, locktime=0, offline=True, number_of_change_outputs=1, replace_by_fee=False):
+                priv_keys=None, locktime=0, broadcast=False, number_of_change_outputs=1, replace_by_fee=False):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
         Wrapper for wallet :func:`send` method.
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
-        >>> t = w.send_to('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000, offline=True)
+        >>> t = w.send_to('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000)
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
@@ -4163,8 +4163,8 @@ class Wallet(object):
         :type priv_keys: HDKey, list
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
-        :type offline: bool
+        :param broadcast: Just return the transaction object and do not send it when broadcast = False. Default is False
+        :type broadcast: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
         :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
@@ -4175,11 +4175,11 @@ class Wallet(object):
 
         outputs = [(to_address, amount)]
         return self.send(outputs, input_key_id=input_key_id, account_id=account_id, network=network, fee=fee,
-                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline,
+                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, broadcast=broadcast,
                          number_of_change_outputs=number_of_change_outputs, replace_by_fee=replace_by_fee)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
-              fee_per_kb=None, fee=None, locktime=0, offline=True, replace_by_fee=False):
+              fee_per_kb=None, fee=None, locktime=0, broadcast=False, replace_by_fee=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
 
@@ -4216,8 +4216,8 @@ class Wallet(object):
         :type fee: int, str
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is True
-        :type offline: bool
+        :param broadcast: Just return the transaction object and do not send it when broadcast = False. Default is False
+        :type broadcast: bool
         :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
         :type replace_by_fee: bool
 
@@ -4271,7 +4271,7 @@ class Wallet(object):
                               "outputs, use amount value = 0 to indicate a change/rest output")
 
         return self.send(to_list, input_arr, network=network, fee=fee, min_confirms=min_confirms, locktime=locktime,
-                         offline=offline, replace_by_fee=replace_by_fee)
+                         broadcast=broadcast, replace_by_fee=replace_by_fee)
 
     def wif(self, is_private=False, account_id=0):
         """

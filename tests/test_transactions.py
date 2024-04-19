@@ -1454,7 +1454,7 @@ class TestTransactionsMultisig(unittest.TestCase):
                'aeffffffff02a0acb903000000001976a9146170e2cc18a4415f807cc4b29c50e52bd1157c4b88ac787bb6030000000017a' \
                '914bb87f55537ee62a232f042f39fbc0d86b77d07fb8700000000'
         t = Transaction.parse(bytes.fromhex(traw))
-        t.inputs[0].value = 972612109
+        t.inputs[0].value = 124798308
         self.assertTrue(t.verify())
 
     def test_transaction_multisig_1_key_15_signatures(self):
