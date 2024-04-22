@@ -4067,7 +4067,7 @@ class Wallet(object):
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
              min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, broadcast=False, number_of_change_outputs=1,
-             replace_by_fee=False):
+             random_output_order=True, replace_by_fee=False):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -4106,6 +4106,8 @@ class Wallet(object):
         :type broadcast: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
+        :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
+        :type random_output_order: bool
         :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
         :type replace_by_fee: bool
 
@@ -4117,8 +4119,8 @@ class Wallet(object):
                               (len(input_arr), max_utxos))
 
         transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
-                                              min_confirms, max_utxos, locktime, number_of_change_outputs, True,
-                                              replace_by_fee)
+                                              min_confirms, max_utxos, locktime, number_of_change_outputs,
+                                              random_output_order, replace_by_fee)
         transaction.sign(priv_keys)
         # Calculate exact fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
@@ -4130,7 +4132,8 @@ class Wallet(object):
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network,
                                                       fee_exact, min_confirms, max_utxos, locktime,
-                                                      number_of_change_outputs, True, replace_by_fee)
+                                                      number_of_change_outputs, random_output_order,
+                                                      replace_by_fee)
                 transaction.sign(priv_keys)
 
         transaction.rawtx = transaction.raw()
@@ -4142,7 +4145,8 @@ class Wallet(object):
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
-                priv_keys=None, locktime=0, broadcast=False, number_of_change_outputs=1, replace_by_fee=False):
+                priv_keys=None, locktime=0, broadcast=False, number_of_change_outputs=1, random_output_order=True,
+                replace_by_fee=False):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
@@ -4177,6 +4181,8 @@ class Wallet(object):
         :type broadcast: bool
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
+        :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
+        :type random_output_order: bool
         :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
         :type replace_by_fee: bool
 
@@ -4186,7 +4192,8 @@ class Wallet(object):
         outputs = [(to_address, amount)]
         return self.send(outputs, input_key_id=input_key_id, account_id=account_id, network=network, fee=fee,
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, broadcast=broadcast,
-                         number_of_change_outputs=number_of_change_outputs, replace_by_fee=replace_by_fee)
+                         number_of_change_outputs=number_of_change_outputs, random_output_order=random_output_order,
+                         replace_by_fee=replace_by_fee)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
               fee_per_kb=None, fee=None, locktime=0, broadcast=False, replace_by_fee=False):
