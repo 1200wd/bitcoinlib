@@ -1035,9 +1035,19 @@ class WalletTransaction(Transaction):
         tx_query = session.query(DbTransaction).filter_by(txid=txid)
         tx = tx_query.scalar()
         session.query(DbTransactionOutput).filter_by(transaction_id=tx.id).delete()
+        for inp in tx.inputs:
+            prev_utxos = session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.txid == inp.prev_txid, DbTransactionOutput.output_n == inp.output_n,
+                       DbTransactionOutput.spent.is_(True), DbTransaction.wallet_id == self.hdwallet.wallet_id).all()
+            for u in prev_utxos:
+                u.spent = False
         session.query(DbTransactionInput).filter_by(transaction_id=tx.id).delete()
-        session.query(DbKey).filter_by(latest_txid=txid).update({DbKey.latest_txid: None})
+        qr = session.query(DbKey).filter_by(latest_txid=txid)
+        qr.update({DbKey.latest_txid: None, DbKey.used: False})
         res = tx_query.delete()
+        key = qr.scalar()
+        if key:
+            self.hdwallet._balance_update(key_id=key.id)
         self.hdwallet._commit()
         return res
 
@@ -3167,7 +3177,7 @@ class Wallet(object):
         """
         Add a single UTXO to the wallet database. To update all utxo's use :func:`utxos_update` method.
 
-        Use this method for testing, offline wallets or if you wish to override standard method of retreiving UTXO's
+        Use this method for testing, offline wallets or if you wish to override standard method of retrieving UTXO's
 
         This method does not check if UTXO exists or is still spendable.
 
@@ -3195,7 +3205,7 @@ class Wallet(object):
             'txid': txid,
             'value': value
         }
-        return self.utxos_update(utxos=[utxo])
+        return self.utxos_update(utxos=[utxo], rescan_all=False)
 
     def utxo_last(self, address):
         """
