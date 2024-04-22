@@ -2280,6 +2280,29 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         w.transactions()[0].delete()
         self.assertEqual(len(w.transactions()), 1)
 
+    def test_wallet_transaction_delete_reverse_latest(self):
+        pkm = 'elephant dust deer company win final'
+        expected_utxos = ['520208458b4f93ef7f1a4df447b6fedb50888aaa098ab501b32b1df3f88daa86',
+                          'ea7bd8fe970ca6430cebbbf914ce2feeb369c3ae95edc117725dbe21519ccdab']
+        expected_txid = '00c6f17bab32ac30979c284a36537f288ed85648810d5d479fcf2a526cdcd3f6'
+
+        w = Wallet.create("remove_utxos_test", keys=pkm, network="bitcoinlib_test", db_uri=self.database_uri)
+        w.utxos_update()
+        self.assertEqual([], [False for u in w.utxos() if u['txid'] not in expected_utxos])
+
+        w.get_key()
+        t = w.send_to("blt1qad80unqvexkhm96rxysra2mczy74zlszjr4ty9", "0.5 TST", broadcast=True,
+                      fee=4799, random_output_order=False)
+        self.assertEqual(w.balance(), 199995201)
+        self.assertEqual(t.txid, expected_txid)
+
+        wlt_utxos = [u['txid'] for u in w.utxos()]
+        self.assertEqual(wlt_utxos[2], expected_txid)
+
+        wt = w.transaction(t.txid)
+        wt.delete()
+        self.assertEqual([], [False for u in w.utxos() if u['txid'] not in expected_utxos])
+
     def test_wallet_create_import_key(self):
         w = wallet_create_or_open("test_wallet_create_import_key_private", network='bitcoinlib_test',
                                   db_uri=self.database_uri)

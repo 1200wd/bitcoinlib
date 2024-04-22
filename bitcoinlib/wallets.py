@@ -4247,6 +4247,7 @@ class Wallet(object):
         utxos = utxos[0:max_utxos]
         input_arr = []
         total_amount = 0
+
         if not utxos:
             raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
@@ -4257,17 +4258,18 @@ class Wallet(object):
             total_amount += utxo['value']
         srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
 
+        fee_modifier = 1 if self.witness_type == 'legacy' else 0.5
         if isinstance(fee, str):
             n_outputs = 1 if not isinstance(to_address, list) else len(to_address)
             fee_per_kb = srv.estimatefee(priority=fee)
             tr_size = 125 + (len(input_arr) * (77 + self.multisig_n_required * 72)) + n_outputs * 30
-            fee = 100 + int((tr_size / 1000.0) * fee_per_kb)
+            fee = int(100 + ((tr_size / 1000.0) * fee_per_kb * fee_modifier))
 
         if not fee:
             if fee_per_kb is None:
                 fee_per_kb = srv.estimatefee()
             tr_size = 125 + (len(input_arr) * 125)
-            fee = int((tr_size / 1000.0) * fee_per_kb)
+            fee = int((tr_size / 1000.0) * fee_per_kb * fee_modifier)
         if total_amount - fee <= self.network.dust_amount:
             raise WalletError("Amount to send is smaller then dust amount: %s" % (total_amount - fee))
 
