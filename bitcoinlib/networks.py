@@ -45,13 +45,12 @@ def _read_network_definitions():
     """
 
     fn = Path(BCL_DATA_DIR, 'networks.json')
-    f = fn.open('rb')
 
     try:
-        network_definitions = json.loads(f.read())
+        network_definitions = json.loads(fn.read_bytes())
     except json.decoder.JSONDecodeError as e:
         raise NetworkError("Error reading provider definitions from %s: %s" % (fn, e))
-    f.close()
+
     return network_definitions
 
 

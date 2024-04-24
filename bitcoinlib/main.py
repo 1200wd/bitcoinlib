@@ -23,32 +23,9 @@ import os
 import sys
 import functools
 import logging
-from logging.handlers import RotatingFileHandler
 from bitcoinlib.config.config import *
 
-
-# Initialize logging
 logger = logging.getLogger('bitcoinlib')
-logger.setLevel(LOGLEVEL)
-
-if ENABLE_BITCOINLIB_LOGGING:
-    handler = RotatingFileHandler(str(BCL_LOG_FILE), maxBytes=100 * 1024 * 1024, backupCount=2)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
-                                  datefmt='%Y/%m/%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    handler.setLevel(LOGLEVEL)
-    logger.addHandler(handler)
-
-    _logger = logging.getLogger(__name__)
-    logger.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
-    logger.info('Version: %s' % BITCOINLIB_VERSION)
-    logger.info('Logger name: %s' % logging.__name__)
-    logger.info('Read config from: %s' % BCL_CONFIG_FILE)
-    logger.info('Directory databases: %s' % BCL_DATABASE_DIR)
-    logger.info('Default database: %s' % DEFAULT_DATABASE)
-    logger.info('Logging to: %s' % BCL_LOG_FILE)
-    logger.info('Directory for data files: %s' % BCL_DATA_DIR)
-
 
 def script_type_default(witness_type=None, multisig=False, locking_script=False):
     """
@@ -146,5 +123,5 @@ def deprecated(func):
     def new_func(*args, **kwargs):
         logging.warning("Call to deprecated function {}.".format(func.__name__))
         return func(*args, **kwargs)
-    
+
     return new_func
