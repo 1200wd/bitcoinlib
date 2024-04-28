@@ -2294,11 +2294,13 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = w.send_to("blt1qad80unqvexkhm96rxysra2mczy74zlszjr4ty9", "0.5 TST", broadcast=True,
                       fee=4799, random_output_order=False)
         self.assertEqual(w.balance(), 199995201)
-        self.assertEqual(t.txid, expected_txid)
+        if USE_FASTECDSA:
+            self.assertEqual(t.txid, expected_txid)
+        else:
+            expected_txid = t.txid
 
         wlt_utxos = [u['txid'] for u in w.utxos()]
         self.assertEqual(wlt_utxos[2], expected_txid)
-
         wt = w.transaction(t.txid)
         wt.delete()
         self.assertEqual([], [False for u in w.utxos() if u['txid'] not in expected_utxos])
