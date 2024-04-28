@@ -146,10 +146,10 @@ class Input(object):
     """
 
     def __init__(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
-                 locking_script=None, script_type=None, address='',
-                 sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
-                 witnesses=None, encoding=None, strict=True, network=DEFAULT_NETWORK):
+                 locking_script=None, script_type=None, address='', sequence=0xffffffff, compressed=None,
+                 sigs_required=None, sort=False, index_n=0, value=0, double_spend=False, locktime_cltv=None,
+                 locktime_csv=None, key_path='', witness_type=None, witnesses=None, encoding=None, strict=True,
+                 network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -594,7 +594,7 @@ class Output(object):
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
                  output_n=0, script_type=None, witver=0, encoding=None, spending_txid='', spending_index_n=None,
-                 strict=True, network=DEFAULT_NETWORK):
+                 strict=True, change=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -631,6 +631,8 @@ class Output(object):
         :type spending_index_n: int
         :param strict: Raise exception when output is malformed, incomplete or not understood
         :type strict: bool
+        :param change: Is this a change output back to own wallet or not? Used for replace-by-fee.
+        :type change: bool
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -639,6 +641,7 @@ class Output(object):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
+        self.change = change
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
@@ -1354,6 +1357,8 @@ class Transaction(object):
                     spent_str = 'S'
                 elif to.spent is False:
                     spent_str = 'U'
+                if to.change:
+                    spent_str += 'C'
                 print("-", to.address, Value.from_satoshi(to.value, network=self.network).str(1), to.script_type,
                       spent_str)
         if replace_by_fee:
@@ -1880,7 +1885,8 @@ class Transaction(object):
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                   output_n=None, encoding=None, spending_txid=None, spending_index_n=None, strict=True):
+                   output_n=None, encoding=None, spending_txid=None, spending_index_n=None, strict=True,
+                   change=None):
         """
         Add an output to this transaction
 
@@ -1908,6 +1914,8 @@ class Transaction(object):
         :type spending_index_n: int
         :param strict: Raise exception when output is malformed or incomplete
         :type strict: bool
+        :param change: Is this a change output back to own wallet or not? Used for replace-by-fee.
+        :type change: bool
 
         :return int: Transaction output number (output_n)
         """
@@ -1923,7 +1931,7 @@ class Transaction(object):
         self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    encoding=encoding, spending_txid=spending_txid, spending_index_n=spending_index_n,
-                                   strict=strict, network=self.network.name))
+                                   strict=strict, change=change, network=self.network.name))
         return output_n
 
     def merge_transaction(self, transaction):
@@ -2137,3 +2145,44 @@ class Transaction(object):
         """
         self.shuffle_inputs()
         self.shuffle_outputs()
+
+    def bumpfee(self, fee=0, extra_fee=0):
+        if not self.fee:
+            raise TransactionError("Current transaction fee is zero, cannot increase fee")
+        if not self.vsize:
+            self.estimate_size()
+
+        minimal_required_fee = self.vsize
+        if fee:
+            if fee < self.fee + minimal_required_fee:
+                raise TransactionError("Fee cannot be less than minimal required fee")
+            extra_fee = fee - self.fee
+        elif extra_fee:
+            if extra_fee < minimal_required_fee:
+                raise TransactionError("Extra fee cannot be less than minimal required fee")
+            fee = self.fee + extra_fee
+        else:
+            fee = self.fee + (minimal_required_fee * BUMPFEE_DEFAULT_MULTIPLIER)
+            extra_fee = fee - self.fee
+
+        remaining_fee = extra_fee
+        outputs_to_delete = []
+        for outp in [o for o in self.outputs if o.change]:
+            if not remaining_fee:
+                break
+            if outp.value > remaining_fee * 2:
+                outp.value -= extra_fee
+                remaining_fee = 0
+            elif outp.value < remaining_fee:
+                remaining_fee -= outp.value
+                outputs_to_delete.append(outp)
+            else:
+                outputs_to_delete.append(outp)
+                remaining_fee = 0
+
+        if remaining_fee:
+            raise TransactionError("Not enough unspent outputs to bump transaction fee")
+        self.fee = fee
+        for o in outputs_to_delete:
+            self.outputs.remove(o)
+        self.sign_and_update()

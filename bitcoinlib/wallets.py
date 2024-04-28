@@ -3749,7 +3749,7 @@ class Wallet(object):
                 addr = o[0]
                 if isinstance(addr, WalletKey):
                     addr = addr.key()
-                transaction.add_output(value, addr)
+                transaction.add_output(value, addr, change=False)
 
         srv = Service(network=network, wallet_name=self.name, providers=self.providers, cache_uri=self.db_cache_uri)
 
@@ -3940,7 +3940,7 @@ class Wallet(object):
                 change_amounts = [transaction.change]
 
             for idx, ck in enumerate(change_keys):
-                on = transaction.add_output(change_amounts[idx], ck.address, encoding=self.encoding)
+                on = transaction.add_output(change_amounts[idx], ck.address, encoding=self.encoding, change=True)
                 transaction.outputs[on].key_id = ck.key_id
 
         # Shuffle output order to increase privacy

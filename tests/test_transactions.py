@@ -1273,6 +1273,139 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.txid, txid)
         self.assertEqual(traw, t.raw_hex())
 
+    def test_transaction_bumpfee(self):
+        prev_txid = '67f621f333f59492ac4652900bef1b803eb5d04b71dc363a815bbde0ffe374ab'
+        output_n = 0
+        value = 100000
+
+        # Test 1 - bumpfee, extra_fee and remove output
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        outputs = [
+            Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test')
+        self.assertEqual(t.fee, 5000)
+        self.assertEqual(len(t.outputs), 2)
+        txid_before = t.txid
+        t.bumpfee(extra_fee=5000)
+        self.assertEqual(t.fee, 10000)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertNotEqual(t.txid, txid_before)
+        self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
+
+        # Test 2 - bumpfee, extra_fee, round dust and remove output
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        outputs = [
+            Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test')
+        self.assertEqual(t.fee, 5000)
+        self.assertEqual(len(t.outputs), 2)
+        txid_before = t.txid
+        t.bumpfee(extra_fee=4000)
+        self.assertEqual(t.fee, 10000)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertNotEqual(t.txid, txid_before)
+        self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
+
+        # Test 3 - bumpfee, fee and remove output
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        outputs = [
+            Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test')
+        self.assertEqual(t.fee, 5000)
+        self.assertEqual(len(t.outputs), 2)
+        txid_before = t.txid
+        t.bumpfee(10000)
+        self.assertEqual(t.fee, 10000)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertNotEqual(t.txid, txid_before)
+        self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
+
+        # Test 4 - bumpfee, fee, round dust and remove output
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        outputs = [
+            Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test')
+        self.assertEqual(t.fee, 5000)
+        self.assertEqual(len(t.outputs), 2)
+        txid_before = t.txid
+        t.bumpfee(10000)
+        self.assertEqual(t.fee, 10000)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertNotEqual(t.txid, txid_before)
+        self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
+
+        # Test 5 - bumpfee, 2 change outputs, no parameters
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        outputs = [
+            Output(180000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(10000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test',
+                   change=True),
+            Output(6667, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test',
+                   change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test')
+        t.sign_and_update()
+        self.assertEqual(t.fee, 3333)
+        txid_before = t.txid
+        t.bumpfee()
+        self.assertEqual(t.fee, 4068)
+        self.assertNotEqual(t.txid, txid_before)
+        self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
+
+        # Test 6 - bumpfee, fee, 2 change outputs
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        outputs = [
+            Output(180000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(10000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test',
+                   change=True),
+            Output(6667, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test')
+        t.sign_and_update()
+        self.assertEqual(t.fee, 3333)
+        self.assertEqual(len(t.outputs), 3)
+        t.bumpfee(fee=18000)
+        self.assertEqual(t.fee, 20000)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
+
+    def test_transaction_bumpfee_errors(self):
+        prev_txid = '67f621f333f59492ac4652900bef1b803eb5d04b71dc363a815bbde0ffe374ab'
+        output_n = 0
+        value = 100000
+
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        outputs = [
+            Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(100000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test',
+                   change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test', fee=0)
+        self.assertEqual(t.fee, 0)
+        self.assertRaisesRegex(TransactionError, "Current transaction fee is zero, cannot increase fee", t.bumpfee)
+
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        outputs = [
+            Output(190000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(100, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test', fee=9900)
+        self.assertRaisesRegex(TransactionError, "Not enough unspent outputs to bump transaction fee", t.bumpfee)
+
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        outputs = [
+            Output(190000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(500, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test', fee=9500)
+        self.assertRaisesRegex(TransactionError, "Fee cannot be less than minimal required fee", t.bumpfee, fee=100)
+
+        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        outputs = [
+            Output(190000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
+            Output(500, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
+        t = Transaction([inp], outputs, network='bitcoinlib_test', fee=9500)
+        self.assertRaisesRegex(TransactionError, "Extra fee cannot be less than minimal required fee", t.bumpfee,
+                               extra_fee=100)
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
