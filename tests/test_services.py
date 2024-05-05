@@ -604,7 +604,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_blockcount(self):
         for nw in ['bitcoin', 'litecoin', 'testnet']:
-            srv = ServiceTest(min_providers=3, cache_uri='', network=nw)
+            srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo', 'bitaps'])
             srv.blockcount()
             n_blocks = None
             for provider in srv.results:
