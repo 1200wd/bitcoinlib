@@ -2365,7 +2365,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         w = wallet_create_or_open('antifeesnipingtestwallet', network='testnet', db_uri=self.database_uri)
         w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
-        block_height = Service(network='testnet', exclude_providers=['bitgo', 'bitaps']).blockcount()
+        block_height = Service(network='testnet', exclude_providers=['bitgo', 'bitaps'], cache_uri='').blockcount()
         # Bitaps and Bitgo return incorrect blockcount for testnet, so set delta
         self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
 

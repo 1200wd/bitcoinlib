@@ -113,9 +113,9 @@ class Service(object):
             if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
                     (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
-        for nop in exclude_providers:
-            if nop in self.providers:
-                del(self.providers[nop])
+        exclude_providers_keys = {pi: self.providers[pi]['provider'] for pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
+        for provider_key in exclude_providers_keys:
+            del(self.providers[provider_key])
 
         if not self.providers:
             raise ServiceError("No providers found for network %s" % network)
@@ -141,7 +141,8 @@ class Service(object):
         self.ignore_priority = ignore_priority
         self.strict = strict
         if self.min_providers > 1:
-            self._blockcount = Service(network=network, cache_uri=cache_uri).blockcount()
+            self._blockcount = Service(network=network, cache_uri=cache_uri, providers=providers,
+                                       exclude_providers=exclude_providers, timeout=timeout).blockcount()
         else:
             self._blockcount = self.blockcount()
 
