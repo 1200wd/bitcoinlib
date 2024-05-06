@@ -2485,7 +2485,8 @@ class Wallet(object):
                 keys2.append({k: v for (k, v) in key.items()
                               if k[:1] != '_' and k != 'wallet' and k not in private_fields})
             return keys2
-        qr.session.close()
+        # qr.session.close()
+        qr.session.commit()
         return keys
 
     def keys_networks(self, used=None, as_dict=False):
