@@ -496,6 +496,7 @@ class DbTransactionOutput(Base):
     spent = Column(Boolean, default=False, doc="Indicated if output is already spent in another transaction")
     spending_txid = Column(LargeBinary(33), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
+    is_change = Column(Boolean, default=False, doc="Is this a change output / output to own wallet?")
 
     __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'),)
 

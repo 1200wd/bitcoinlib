@@ -1351,7 +1351,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.fee, 3333)
         txid_before = t.txid
         t.bumpfee()
-        self.assertEqual(t.fee, 4068)
+        self.assertEqual(t.fee, 4598)
         self.assertNotEqual(t.txid, txid_before)
         self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
 

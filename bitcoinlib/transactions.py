@@ -158,7 +158,7 @@ class Input(object):
         :param output_n: Output number in previous transaction.
         :type output_n: bytes, int
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
-        :type keys: list (bytes, str, Key)
+        :type keys: list (bytes, str, Key, HDKey)
         :param signatures: Specify optional signatures
         :type signatures: list (bytes, str, Signature)
         :param public_hash: Public key hash or script hash. Specify if key is not available
@@ -1822,15 +1822,15 @@ class Transaction(object):
         :param output_n: Output number in previous transaction.
         :type output_n: bytes, int
         :param keys: Public keys can be provided to construct an Unlocking script. Optional
-        :type keys: bytes, str
+        :type keys: list (bytes, str, Key, HDKey)
         :param signatures: Add signatures to input if already known
         :type signatures: bytes, str
         :param public_hash: Specify public hash from key or redeemscript if key is not available
         :type public_hash: bytes
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param locking_script: TODO: find better name...
-        :type locking_script: bytes, str
+        :param locking_script: Locking script (scriptPubKey) of previous output if known
+        :type locking_script: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Specify address of input if known, default is to derive from key or scripts
@@ -2147,6 +2147,23 @@ class Transaction(object):
         self.shuffle_outputs()
 
     def bumpfee(self, fee=0, extra_fee=0):
+        """
+        Increase fee for this transaction. If replace-by-fee is signaled in this transaction the fee can be
+        increased to speed up inclusion on the blockchain.
+
+        If not fee or extra_fee is provided the extra fee will be increased by the formule you can find in the code
+        below using the BUMPFEE_DEFAULT_MULTIPLIER from the config settings.
+
+        The extra fee will be deducted from change output. This method fails if there are not enough change outputs
+        to cover fees.
+
+        :param fee: New fee for this transaction
+        :type fee: int
+        :param extra_fee: Extra fee to add to current transaction fee
+        :type extra_fee: int
+
+        :return None:
+        """
         if not self.fee:
             raise TransactionError("Current transaction fee is zero, cannot increase fee")
         if not self.vsize:
@@ -2162,7 +2179,8 @@ class Transaction(object):
                 raise TransactionError("Extra fee cannot be less than minimal required fee")
             fee = self.fee + extra_fee
         else:
-            fee = self.fee + (minimal_required_fee * BUMPFEE_DEFAULT_MULTIPLIER)
+            fee = int(self.fee * (1.03 ** BUMPFEE_DEFAULT_MULTIPLIER) +
+                      (minimal_required_fee * BUMPFEE_DEFAULT_MULTIPLIER))
             extra_fee = fee - self.fee
 
         remaining_fee = extra_fee

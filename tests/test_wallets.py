@@ -2365,8 +2365,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         w = wallet_create_or_open('antifeesnipingtestwallet', network='testnet', db_uri=self.database_uri)
         w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
+        # FIXME: Bitaps and Bitgo return incorrect blockcount for testnet
         block_height = Service(network='testnet', exclude_providers=['bitgo', 'bitaps'], cache_uri='').blockcount()
-        # Bitaps and Bitgo return incorrect blockcount for testnet, so set delta
         self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
 
         w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
@@ -2835,3 +2835,64 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
             ['39h96ozh8F8W2sVrc2EhEbFwwdRoLHJAfB', '3LdJC6MSmFqKrn2WrxRfhd8DYkYYr8FNDr',
              'MTSW4eC7xJiyp4YjwGZqpGmubsdm28Cdvc', 'bc1qgw8rg0057q9fmupx7ru6vtkxzy03gexc9ljycagj8z3hpzdfg7usvu56dp']
         self.assertListEqual(sorted(w.addresslist()), expected_addresslist)
+
+    def test_wallet_transactions_add_input_from_wallet(self):
+        w = wallet_create_or_open('add_input_from_wallet_test', network='bitcoinlib_test',
+                                  db_uri=self.database_uri)
+        w.utxos_update()
+        t = WalletTransaction(w, network='bitcoinlib_test')
+        t.add_input_from_wallet()
+        t.add_output(100000, 'blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag')
+        t.add_output(99000000, 'blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', change=True)
+        t.sign_and_update()
+        self.assertTrue(t.verified)
+        self.assertEqual(t.fee, 900000)
+        self.assertEqual(len(t.outputs), 2)
+        self.assertEqual(t.inputs[0].witness_type, 'segwit')
+
+    def test_wallet_transactions_bumpfee(self):
+        pkm = 'elephant dust deer company win final'
+        wallet_delete_if_exists('bumpfeetest01', force=True)
+        w = wallet_create_or_open('bumpfeetest01', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
+        w.utxos_update()
+        t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 99900000, fee=100000,
+                      broadcast=True)
+        self.assertEqual(w.balance(), 100000000)
+        self.assertEqual(len(t.inputs), 1)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertEqual(w.utxos()[0]['txid'], 'ea7bd8fe970ca6430cebbbf914ce2feeb369c3ae95edc117725dbe21519ccdab')
+        t.bumpfee(broadcast=True)
+        self.assertEqual(len(t.inputs), 2)
+        self.assertEqual(len(t.outputs), 2)
+        self.assertEqual(w.balance(), 99999325)
+
+        w = wallet_create_or_open('bumpfeetest02', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
+        w.utxos_update()
+        t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 50000000, fee=100000,
+                      broadcast=True)
+        self.assertEqual(w.balance(), 149900000)
+        self.assertEqual(len(t.inputs), 1)
+        self.assertEqual(len(t.outputs), 2)
+        t.bumpfee(fee=200000, broadcast=True)
+        self.assertEqual(len(t.inputs), 1)
+        self.assertEqual(len(t.outputs), 2)
+        self.assertEqual(w.balance(), 149800000)
+
+        w = wallet_create_or_open('bumpfeetest03', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
+        w.utxos_update()
+        t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 99900000, fee=50000,
+                      broadcast=True)
+        self.assertEqual(w.balance(), 100050000)
+        self.assertEqual(len(t.inputs), 1)
+        self.assertEqual(len(t.outputs), 2)
+        t.bumpfee(extra_fee=50000, broadcast=True)
+        self.assertEqual(len(t.inputs), 1)
+        self.assertEqual(len(t.outputs), 1)
+        self.assertEqual(w.balance(), 100000000)
+        self.assertEqual(len(w.utxos()), 1)
+
+        w = wallet_create_or_open('bumpfeetest04', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
+        w.utxos_update()
+        t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 199900000, fee=100000,
+                      broadcast=True)
+        self.assertRaisesRegex(TransactionError, "Not enough unspent inputs found for transaction", t.bumpfee)

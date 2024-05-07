@@ -30,7 +30,7 @@ from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
 from bitcoinlib.values import Value, value_to_satoshi
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import Input, Output, Transaction, get_unlocking_script_type
+from bitcoinlib.transactions import Input, Output, Transaction, get_unlocking_script_type, TransactionError
 from bitcoinlib.scripts import Script
 from sqlalchemy import func, or_
 
@@ -753,7 +753,7 @@ class WalletTransaction(Transaction):
                         public_key = key.key().public_hex
             outputs.append(Output(value=out.value, address=address, public_key=public_key,
                                   lock_script=out.script, spent=out.spent, output_n=out.output_n,
-                                  script_type=out.script_type, network=network))
+                                  script_type=out.script_type, network=network, change=out.is_change))
 
         return cls(hdwallet=hdwallet, inputs=inputs, outputs=outputs, locktime=db_tx.locktime,
                    version=db_tx.version, network=network, fee=db_tx.fee, fee_per_kb=fee_per_kb,
@@ -949,7 +949,7 @@ class WalletTransaction(Transaction):
             if not tx_output:
                 new_tx_item = DbTransactionOutput(
                     transaction_id=txidn, output_n=to.output_n, key_id=key_id, address=to.address, value=to.value,
-                    spent=spent, script=to.lock_script, script_type=to.script_type)
+                    spent=spent, script=to.lock_script, script_type=to.script_type, is_change=to.change)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
@@ -1040,7 +1040,10 @@ class WalletTransaction(Transaction):
                 filter(DbTransaction.txid == inp.prev_txid, DbTransactionOutput.output_n == inp.output_n,
                        DbTransactionOutput.spent.is_(True), DbTransaction.wallet_id == self.hdwallet.wallet_id).all()
             for u in prev_utxos:
-                u.spent = False
+                # Check if output is spent in another transaction
+                if session.query(DbTransactionInput).filter(DbTransactionInput.transaction_id ==
+                                                            inp.transaction_id).first():
+                    u.spent = False
         session.query(DbTransactionInput).filter_by(transaction_id=tx.id).delete()
         qr = session.query(DbKey).filter_by(latest_txid=txid)
         qr.update({DbKey.latest_txid: None, DbKey.used: False})
@@ -1051,6 +1054,80 @@ class WalletTransaction(Transaction):
         self.hdwallet._commit()
         return res
 
+    def bumpfee(self, fee=0, extra_fee=0, broadcast=False):
+        """
+        Increase fee for this transaction. If replace-by-fee is signaled in this transaction the fee can be
+        increased to speed up inclusion on the blockchain.
+
+        If not fee or extra_fee is provided the extra fee will be increased by the formule you can find in the code
+        below using the BUMPFEE_DEFAULT_MULTIPLIER from the config settings.
+
+        The extra fee will be deducted from change output. This method fails if there are not enough change outputs
+        to cover fees.
+
+        If this transaction does not have enough inputs to cover extra fee, an extra wallet utxo will be aaded to
+        inputs if available.
+
+        Previous broadcasted transaction will be removed from wallet with this replace-by-fee transaction and wallet
+        information updated.
+
+        :param fee: New fee for this transaction
+        :type fee: int
+        :param extra_fee: Extra fee to add to current transaction fee
+        :type extra_fee: int
+        :param broadcast: Increase fee and directly broadcast transaction to the network
+        :type broadcast: bool
+
+        :return None:
+        """
+        fees_not_provided = not (fee or extra_fee)
+        old_txid = self.txid
+        try:
+            super(WalletTransaction, self).bumpfee(fee, extra_fee)
+        except TransactionError as e:
+            if str(e) != "Not enough unspent outputs to bump transaction fee":
+                raise TransactionError(str(e))
+            else:
+                # Add extra input to cover fee
+                if fees_not_provided:
+                    extra_fee = int(self.fee * (0.03 ** BUMPFEE_DEFAULT_MULTIPLIER) +
+                              (self.vsize * BUMPFEE_DEFAULT_MULTIPLIER))
+                new_inp = self.add_input_from_wallet(amount_min=extra_fee)
+                # Add value of extra input to change output
+                change_outputs = [o for o in self.outputs if o.change]
+                if change_outputs:
+                    change_outputs[0].value += self.inputs[new_inp].value
+                else:
+                    self.add_output(self.inputs[new_inp].value, self.hdwallet.get_key().address, change=True)
+                    if fees_not_provided:
+                        extra_fee += 25 * BUMPFEE_DEFAULT_MULTIPLIER
+                super(WalletTransaction, self).bumpfee(fee, extra_fee)
+        # remove previous transaction and update wallet
+        if self.pushed:
+            self.hdwallet.transaction_delete(old_txid)
+        if broadcast:
+            self.send()
+
+    def add_input_from_wallet(self, amount_min=0, key_id=None, min_confirms=0):
+        if not amount_min:
+            amount_min = self.network.dust_amount
+        utxos = self.hdwallet.utxos(self.account_id, network=self.network.name, min_confirms=min_confirms,
+                                    key_id=key_id)
+        current_inputs = [(i.prev_txid.hex(), i.output_n_int) for i in self.inputs]
+        unused_inputs = [u for u in utxos
+                         if (u['txid'], u['output_n']) not in current_inputs and u['value'] >= amount_min]
+        if not unused_inputs:
+            raise TransactionError("Not enough unspent inputs found for transaction %s" %
+                                   self.txid)
+        # take first input
+        utxo = unused_inputs[0]
+        inp_keys, key = self.hdwallet._objects_by_key_id(utxo['key_id'])
+        unlock_script_type = get_unlocking_script_type(utxo['script_type'], self.witness_type,
+                                                       multisig=self.hdwallet.multisig)
+        return self.add_input(utxo['txid'], utxo['output_n'], keys=inp_keys, script_type=unlock_script_type,
+                              sigs_required=self.hdwallet.multisig_n_required, sort=self.hdwallet.sort_keys,
+                              compressed=key.compressed, value=utxo['value'], address=utxo['address'],
+                              locking_script=utxo['script'], witness_type=key.witness_type)
 
 class Wallet(object):
     """
@@ -3559,6 +3636,12 @@ class Wallet(object):
     def update_transactions_from_block(block, network=None):
         pass
 
+    def transaction_delete(self, txid):
+        wt = self.transaction(txid)
+        if wt:
+            wt.delete()
+        else:
+            raise WalletError("Transaction %s not found in this wallet" % txid)
 
     def _objects_by_key_id(self, key_id):
         key = self.session.query(DbKey).filter_by(id=key_id).scalar()
