@@ -1108,7 +1108,22 @@ class WalletTransaction(Transaction):
         if broadcast:
             self.send()
 
-    def add_input_from_wallet(self, amount_min=0, key_id=None, min_confirms=0):
+    def add_input_from_wallet(self, amount_min=0, key_id=None, min_confirms=1):
+        """
+        Add a new input from an utxo of this wallet. If not key_id is specified it adds the first input it finds with
+        the minimum amount and minimum confirms specified.
+
+        WARNING: Change output and fees are not updated, so you risk overpaying fees!
+
+        :param amount_min: Minimum value of new input
+        :type amount_min: int
+        :param key_id: Filter by this key id
+        :type key_id: int
+        :param min_confirms: Minimum confirms of utxo
+        :type min_confirms: int
+
+        :return int: Index number of new input
+        """
         if not amount_min:
             amount_min = self.network.dust_amount
         utxos = self.hdwallet.utxos(self.account_id, network=self.network.name, min_confirms=min_confirms,
@@ -1127,7 +1142,7 @@ class WalletTransaction(Transaction):
         return self.add_input(utxo['txid'], utxo['output_n'], keys=inp_keys, script_type=unlock_script_type,
                               sigs_required=self.hdwallet.multisig_n_required, sort=self.hdwallet.sort_keys,
                               compressed=key.compressed, value=utxo['value'], address=utxo['address'],
-                              locking_script=utxo['script'], witness_type=key.witness_type)
+                              witness_type=key.witness_type)
 
 class Wallet(object):
     """
@@ -2815,15 +2830,13 @@ class Wallet(object):
         :return list of str:
         """
 
-        # network, account_id, _ = self._get_account_defaults(network, account_id)
         qr = self.session.query(DbKey.witness_type).filter_by(wallet_id=self.wallet_id)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
         qr = qr.group_by(DbKey.witness_type).all()
-        return [x[0] for x in qr]
-
+        return [x[0] for x in qr] if qr else [self.witness_type]
 
     def networks(self, as_dict=False):
         """
@@ -3637,11 +3650,34 @@ class Wallet(object):
         pass
 
     def transaction_delete(self, txid):
+        """
+        Remove specified transaction from wallet and update related transactions.
+
+        :param txid: Transaction ID of transaction to remove
+        :type txid: str
+
+        :return:
+        """
         wt = self.transaction(txid)
         if wt:
             wt.delete()
         else:
             raise WalletError("Transaction %s not found in this wallet" % txid)
+
+    def transactions_remove_unconfirmed(self, account_id=None, network=None):
+        """
+        Removes all unconfirmed transactions from this wallet and updates related transactions / utxos.
+
+        :param account_id: Filter by Account ID. Leave empty for default account_id
+        :type account_id: int, None
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str, None
+        :return:
+        """
+        txs = self.transactions(account_id=account_id, network=network)
+        for tx in txs:
+            if not tx.confirmations:
+                self.transaction_delete(tx.txid)
 
     def _objects_by_key_id(self, key_id):
         key = self.session.query(DbKey).filter_by(id=key_id).scalar()
