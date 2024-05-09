@@ -23,6 +23,7 @@ from itertools import groupby
 from operator import itemgetter
 import numpy as np
 import pickle
+from datetime import timedelta
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -3664,10 +3665,12 @@ class Wallet(object):
         else:
             raise WalletError("Transaction %s not found in this wallet" % txid)
 
-    def transactions_remove_unconfirmed(self, account_id=None, network=None):
+    def transactions_remove_unconfirmed(self, hours_old=0, account_id=None, network=None):
         """
         Removes all unconfirmed transactions from this wallet and updates related transactions / utxos.
 
+        :param hours_old: Only delete unconfirmed transaction which are x hours old. You can also use decimals, ie: 0.5 for half an hour
+        :type hours_old: int, float
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int, None
         :param network: Filter by network name. Leave empty for default network
@@ -3675,8 +3678,9 @@ class Wallet(object):
         :return:
         """
         txs = self.transactions(account_id=account_id, network=network)
+        t = datetime.now() - timedelta(hours=hours_old)
         for tx in txs:
-            if not tx.confirmations:
+            if not tx.confirmations and tx.date < t:
                 self.transaction_delete(tx.txid)
 
     def _objects_by_key_id(self, key_id):
