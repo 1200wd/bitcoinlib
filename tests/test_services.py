@@ -795,7 +795,10 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_exlude_providers(self):
         srv = ServiceTest(network='testnet', cache_uri='')
         providers = [srv.providers[pi]['provider'] for pi in srv.providers]
-        srv2 = ServiceTest(network='testnet', exclude_providers=providers[1:], cache_uri='')
+        try:
+            srv2 = ServiceTest(network='testnet', exclude_providers=providers[1:], cache_uri='')
+        except ServiceError:
+            self.skipTest("Blockcount for provider %s was not successful" % providers[0])
         self.assertEqual(len(srv2.providers), 1)
 
 
