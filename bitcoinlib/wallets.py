@@ -3678,9 +3678,9 @@ class Wallet(object):
         :return:
         """
         txs = self.transactions(account_id=account_id, network=network)
-        t = datetime.now() - timedelta(hours=hours_old)
+        td = datetime.utcnow() - timedelta(hours=hours_old)
         for tx in txs:
-            if not tx.confirmations and tx.date < t:
+            if not tx.confirmations and tx.date < td:
                 self.transaction_delete(tx.txid)
 
     def _objects_by_key_id(self, key_id):
