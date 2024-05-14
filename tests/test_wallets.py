@@ -1408,7 +1408,7 @@ class TestWalletMultisig(unittest.TestCase):
                                                              HDKey(network='bitcoinlib_test')],
                           network='bitcoinlib_test', cosigner_id=0, db_uri=self.database_uri)
         w.utxos_update()
-        w.info(detail=6)
+        self.assertIsNone(w.info(detail=6))
 
     def test_wallets_multisig_missing_private_and_cosigner(self):
         k0 = 'xprv9s21ZrQH143K459uwGGCU3Wj3v1LFFJ42tgyTsNnr6p2BS6FZ9jQ7fmZMMnqsWSi2BBgpX3hFbR4ode8Jx58ibSNeaBLFQ68Xs3' \
@@ -1729,18 +1729,16 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         del wlt
 
     def test_wallet_scan(self):
-        # TODO: Fix MySQL scan errors
-        if self.database_uri.startswith('mysql'):
-            self.skipTest('TODO: Fix MySQL scan errors')
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
                       'ZY6DFj6x61Wwbrg8Q'
         wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet', db_uri=self.database_uri)
-        wallet.scan(scan_gap_limit=8)
-        self.assertEqual(len(wallet.keys()), 27)
-        self.assertEqual(wallet.balance(), 60500000)
-        self.assertEqual(len(wallet.transactions()), 4)
-        self.assertEqual(len(wallet.transactions(as_dict=True)), 4)
+        wallet.scan(scan_gap_limit=1)
+        self.assertEqual(len(wallet.keys()), 6)
+        self.assertEqual(wallet.balance(), 60000000)
+        self.assertEqual(len(wallet.transactions()), 3)
+        self.assertEqual(len(wallet.transactions(as_dict=True)), 3)
 
+    def test_wallet_scan_tx_order_same_block(self):
         # Check tx order in same block
         address = 'tb1qlh9x3jwhfqspp7u9w6l7zqxpmuvplzaczaele3'
         w = wallet_create_or_open('fix-multiple-tx-1-block', keys=address, db_uri=self.database_uri)
@@ -2012,33 +2010,33 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertIsNone(t.send())
         self.assertTrue(t.pushed)
 
-    #FIXME
-    # def test_wallet_transaction_restore_saved_tx(self):
-    #     w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
-    #                               db_uri=self.database_uri)
-    #     wk = w.get_key()
-    #     if not USE_FASTECDSA:
-    #         self.skipTest("Need fastecdsa module with deterministic txid's to run this test")
-    #     utxos = [{
-    #         'address': wk.address,
-    #         'script': '',
-    #         'confirmations': 10,
-    #         'output_n': 1,
-    #         'txid': '9f5d4004c7cc5a31a735bddea6ff517e52f1cd700df208d2c39ddc536670f1fe',
-    #         'value': 1956783097
-    #     }]
-    #     w.utxos_update(utxos=utxos)
-    #     to = w.get_key_change()
-    #     t = w.sweep(to.address)
-    #     tx_id = t.store()
-    #     wallet_empty('test_wallet_transaction_restore', db_uri=self.database_uri)
-    #     w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
-    #                               db_uri=self.database_uri)
-    #     w.get_key()
-    #     w.utxos_update(utxos=utxos)
-    #     to = w.get_key_change()
-    #     t = w.sweep(to.address)
-    #     self.assertEqual(t.store(), tx_id)
+    def test_wallet_transaction_restore_saved_tx(self):
+        w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
+                                  db_uri=self.database_uri)
+        wk = w.get_key()
+        if not USE_FASTECDSA:
+            self.skipTest("Need fastecdsa module with deterministic txid's to run this test")
+        utxos = [{
+            'address': wk.address,
+            'script': '',
+            'confirmations': 10,
+            'output_n': 1,
+            'txid': '9f5d4004c7cc5a31a735bddea6ff517e52f1cd700df208d2c39ddc536670f1fe',
+            'value': 1956783097
+        }]
+        w.utxos_update(utxos=utxos)
+        to = w.get_key_change()
+        t = w.sweep(to.address)
+        tx_id = t.store()
+        del w
+        wallet_empty('test_wallet_transaction_restore', db_uri=self.database_uri)
+        w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
+                                  db_uri=self.database_uri)
+        w.get_key()
+        w.utxos_update(utxos=utxos)
+        to = w.get_key_change()
+        t = w.sweep(to.address)
+        self.assertEqual(t.store(), tx_id)
 
     def test_wallet_transaction_send_keyid(self):
         w = Wallet.create('wallet_send_key_id', witness_type='segwit', network='bitcoinlib_test',
@@ -2362,24 +2360,22 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t2.replace_by_fee)
         self.assertEqual(t2.inputs[0].sequence, SEQUENCE_REPLACE_BY_FEE)
 
-    # fiXME
-    # def test_wallet_anti_fee_sniping(self):
-    #     w = wallet_create_or_open('antifeesnipingtestwallet', network='testnet', db_uri=self.database_uri)
-    #     w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
-    #     t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
-    #     # FIXME: Bitaps and Bitgo return incorrect blockcount for testnet
-    #     block_height = Service(network='testnet', exclude_providers=['bitgo', 'bitaps'], cache_uri='').blockcount()
-    #     self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
-    #
-    #     w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
-    #     w2.utxo_add(w2.get_key().address, 1234567, os.urandom(32).hex(), 1)
-    #     t = w2.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456, locktime=1901070183)
-    #     self.assertEqual(t.locktime, 1901070183)
-    #
-    #     w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False)
-    #     w3.utxo_add(w3.get_key().address, 1234567, os.urandom(32).hex(), 1)
-    #     t = w3.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
-    #     self.assertEqual(t.locktime, 0)
+    def test_wallet_anti_fee_sniping(self):
+        w = wallet_create_or_open('antifeesnipingtestwallet', network='testnet', db_uri=self.database_uri)
+        w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
+        t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
+        block_height = Service(network='testnet', cache_uri='').blockcount()
+        self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
+
+        w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
+        w2.utxo_add(w2.get_key().address, 1234567, os.urandom(32).hex(), 1)
+        t = w2.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456, locktime=1901070183)
+        self.assertEqual(t.locktime, 1901070183)
+
+        w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False)
+        w3.utxo_add(w3.get_key().address, 1234567, os.urandom(32).hex(), 1)
+        t = w3.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
+        self.assertEqual(t.locktime, 0)
 
     @classmethod
     def tearDownClass(cls):

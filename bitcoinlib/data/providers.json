@@ -32,17 +32,6 @@
     "denominator": 1,
     "network_overrides": null
   },
-  "bitgo.testnet": {
-    "provider": "bitgo",
-    "network": "testnet",
-    "client_class": "BitGoClient",
-    "provider_coin_id": "",
-    "url": "https://test.bitgo.com/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 1,
-    "network_overrides": null
-  },
   "blockcypher.litecoin": {
     "provider": "blockcypher",
     "network": "litecoin",
@@ -137,17 +126,6 @@
     "client_class": "BitapsClient",
     "provider_coin_id": "",
     "url": "https://api.bitaps.com/btc/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "bitaps.testnet": {
-    "provider": "bitaps",
-    "network": "testnet",
-    "client_class": "BitapsClient",
-    "provider_coin_id": "",
-    "url": "https://api.bitaps.com/btc/testnet/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -324,6 +302,17 @@
     "client_class": "BlockCypher",
     "provider_coin_id": "",
     "url": "https://api.blockcypher.com/v1/doge/main/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blockcypher.testnet": {
+    "provider": "blockcypher",
+    "network": "testnet",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/btc/test3/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,

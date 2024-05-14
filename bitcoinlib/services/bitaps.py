@@ -172,6 +172,8 @@ class BitapsClient(BaseClient):
     # def estimatefee
 
     def blockcount(self):
+        if self.network == 'testnet':
+            raise ClientError('Providers return incorrect blockcount for testnet')
         return self.compose_request('block', 'last')['data']['height']
 
     # def mempool(self, txid):
