@@ -2011,13 +2011,12 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.pushed)
 
     def test_wallet_transaction_restore_saved_tx(self):
-        if os.getenv('UNITTEST_DATABASE') == 'mysql':  # fixme
-            self.skipTest("Unittest not working for mysql at the moment")
+        if not USE_FASTECDSA:
+            self.skipTest("Need fastecdsa module with deterministic txid's to run this test")
+
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   db_uri=self.database_uri)
         wk = w.get_key()
-        if not USE_FASTECDSA:
-            self.skipTest("Need fastecdsa module with deterministic txid's to run this test")
         utxos = [{
             'address': wk.address,
             'script': '',
@@ -2028,7 +2027,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         }]
         w.utxos_update(utxos=utxos)
         to = w.get_key_change()
-        t = w.sweep(to.address)
+        t = w.sweep(to.address, fee=10000)
         tx_id = t.store()
         del w
         wallet_empty('test_wallet_transaction_restore', db_uri=self.database_uri)
@@ -2037,8 +2036,9 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         w.get_key()
         w.utxos_update(utxos=utxos)
         to = w.get_key_change()
-        t = w.sweep(to.address)
-        self.assertEqual(t.store(), tx_id)
+        t2 = w.sweep(to.address, fee=10000)
+        self.assertEqual(t.txid, t2.txid)
+        self.assertEqual(t2.store(), tx_id)
 
     def test_wallet_transaction_send_keyid(self):
         w = Wallet.create('wallet_send_key_id', witness_type='segwit', network='bitcoinlib_test',
