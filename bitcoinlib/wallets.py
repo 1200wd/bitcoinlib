@@ -1236,7 +1236,7 @@ class Wallet(object):
             self.session.commit()
         except Exception:
             self.session.rollback()
-            raise
+            raise WalletError("Could not commit to database, rollback performed!")
 
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
@@ -1673,6 +1673,7 @@ class Wallet(object):
     @property
     def session(self):
         if not self._session:
+            logger.info("Opening database session %s" % self.db_uri)
             dbinit = Db(db_uri=self.db_uri, password=self._db_password)
             self._session = dbinit.session
             self._engine = dbinit.engine
@@ -1737,7 +1738,6 @@ class Wallet(object):
             if kp and kp[0] == 'M':
                 kp = self.key_path[:self.depth_public_master+1] + kp[1:]
             self.key_for_path(kp, recreate=True)
-
         self._commit()
         return self.main_key
 
@@ -3684,6 +3684,7 @@ class Wallet(object):
                 self.transaction_delete(tx.txid)
 
     def _objects_by_key_id(self, key_id):
+        self.session.expire_all()
         key = self.session.query(DbKey).filter_by(id=key_id).scalar()
         if not key:
             raise WalletError("Key '%s' not found in this wallet" % key_id)
