@@ -1816,8 +1816,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
                             db_uri=self.database_uri)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        t = wlt.send_to(to_key.address, 99992000, broadcast=True)
-        t.info()
+        t = wlt.send_to(to_key.address, 99992000, fee=7500, broadcast=True)
         self.assertEqual(t.fee, 8000)
         del wlt
 
@@ -2013,7 +2012,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
     def test_wallet_transaction_restore_saved_tx(self):
         if os.getenv('UNITTEST_DATABASE') == 'mysql':  # fixme
-            self.skipTest()
+            self.skipTest("Unittest not working for mysql at the moment")
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   db_uri=self.database_uri)
         wk = w.get_key()
