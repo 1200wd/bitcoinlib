@@ -443,7 +443,7 @@ class DbTransactionInput(Base):
     transaction = relationship("DbTransaction", back_populates='inputs', doc="Related DbTransaction object")
     index_n = Column(Integer, primary_key=True, doc="Index number of transaction input")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this input")
-    key = relationship("DbKey", back_populates="transaction_inputs", doc="Related DbKey object")
+    key = relationship("DbKey", doc="Related DbKey object")
     address = Column(String(255),
                      doc="Address string of input, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key or a redeemscript")
@@ -484,7 +484,7 @@ class DbTransactionOutput(Base):
                                doc="Link to transaction object")
     output_n = Column(BigInteger, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
-    key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
+    key = relationship("DbKey", doc="List of DbKey object used in this output")
     address = Column(String(255),
                      doc="Address string of output, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key or a redeemscript")

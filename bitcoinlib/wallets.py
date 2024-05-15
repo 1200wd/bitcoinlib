@@ -3748,7 +3748,14 @@ class Wallet(object):
                 utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
         if skip_dust_amounts:
             utxo_query = utxo_query.filter(DbTransactionOutput.value >= dust_amount)
-        utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
+        utxo_query = utxo_query.order_by(DbTransaction.confirmations.desc())
+        try:
+            utxos = utxo_query.all()
+        except Exception as e:
+            self.session.close()
+            logger.warning("Error when querying database, retry: %s" % str(e))
+            utxos = utxo_query.all()
+
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
 

@@ -19,6 +19,7 @@
 #
 
 import unittest
+import time
 from random import shuffle
 
 try:
@@ -2943,6 +2944,7 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         w.transactions_remove_unconfirmed(1)
         self.assertEqual(len(w.utxos()), 5)
         self.assertEqual(w.balance(), 104441651)
+        time.sleep(3)
         w.transactions_remove_unconfirmed(0)
         self.assertEqual(len(w.utxos()), 3)
         self.assertEqual(w.balance(), 102057170)
