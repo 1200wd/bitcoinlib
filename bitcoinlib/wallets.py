@@ -546,14 +546,15 @@ class WalletKey(object):
         """
         Get HDKey object for current WalletKey
 
-        :return HDKey:
+        :return HDKey, list of HDKey:
         """
 
         self._hdkey_object = None
         if self.key_type == 'multisig':
             self._hdkey_object = []
             for kc in self._dbkey.multisig_children:
-                self._hdkey_object.append(HDKey.from_wif(kc.child_key.wif, network=kc.child_key.network_name, compressed=self.compressed))
+                self._hdkey_object.append(HDKey.from_wif(kc.child_key.wif, network=kc.child_key.network_name,
+                                                         compressed=self.compressed))
         if self._hdkey_object is None and self.wif:
             self._hdkey_object = HDKey.from_wif(self.wif, network=self.network_name, compressed=self.compressed)
         return self._hdkey_object
