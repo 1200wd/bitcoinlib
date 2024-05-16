@@ -5,7 +5,7 @@
 #    EXAMPLES - Using Bitcoin Core wallets with Bitcoinlib
 #
 #    Method 1 - Create wallet in Bitcoin Core and use the same wallet in Bitcoinlib using the bitcoin node to
-#    receive and send bitcoin transactions.
+#    receive and send bitcoin transactions. Only works for legacy wallets.
 #
 #    © 2024 April - 1200 Web Development <http://1200wd.com/>
 #

@@ -78,6 +78,8 @@ class Service(object):
         :type exclude_providers: list of str
         :param strict: Strict checks of valid signatures, scripts and transactions. Normally use strict=True for wallets, transaction validations etcetera. For blockchain parsing strict=False should be used, but be sure to check warnings in the log file. Default is True.
         :type strict: bool
+        :param wallet_name: Name of wallet if connecting to bitcoin node
+        :type wallet_name: str
 
         """
 
