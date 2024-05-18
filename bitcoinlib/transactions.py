@@ -271,7 +271,6 @@ class Input(object):
                 self.witnesses.append(witness)
         elif witnesses:
             self.witnesses = [bytes.fromhex(w) if isinstance(w, str) else w for w in witnesses]
-        self.script_code = b''
 
         # If unlocking script is specified extract keys, signatures, type from script
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
@@ -411,8 +410,7 @@ class Input(object):
                 self.public_hash = self.keys[0].hash160
             if not self.keys and not self.public_hash:
                 return
-            self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
-            self.locking_script = self.script_code
+            self.locking_script = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             addr_data = self.public_hash
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() if hash_type else b'', self.keys[0].public_byte]
@@ -453,25 +451,22 @@ class Input(object):
                     else:
                         unlock_script = unlock_script_obj.serialize()
                 if self.witness_type == 'segwit':
-                    script_code = b''
+                    self.locking_script = b''
                     for k in self.keys:
-                        script_code += varstr(k.public_byte) + b'\xad\xab'
-                    if len(script_code) > 3:
-                        script_code = script_code[:-2] + b'\xac'
-                    self.script_code = script_code
+                        self.locking_script += varstr(k.public_byte) + b'\xad\xab'
+                    if len(self.locking_script) > 3:
+                        self.locking_script = self.locking_script[:-2] + b'\xac'
                     if signatures:
                         self.witnesses = unlock_script
                 elif self.witness_type == 'p2sh-segwit':
                     self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-                    self.script_code = self.unlocking_script
                     if signatures:
                         self.witnesses = unlock_script
                 elif unlock_script != b'' and self.strict:
                     self.unlocking_script = unlock_script
         elif self.script_type == 'signature':
             if self.keys:
-                self.script_code = varstr(self.keys[0].public_byte) + b'\xac'
-                self.locking_script = self.script_code
+                self.locking_script = varstr(self.keys[0].public_byte) + b'\xac'
                 addr_data = hash160(self.keys[0].public_byte)
             if self.signatures and not self.unlocking_script:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded())
@@ -571,7 +566,6 @@ class Input(object):
             # 'locktime_cltv': self.locktime_cltv,
             'locktime_csv': self.locktime_csv,
             'public_hash': self.public_hash.hex(),
-            'script_code': self.script_code.hex(),
             'unlocking_script': self.unlocking_script.hex(),
             'locking_script': self.locking_script.hex(),
             'witness_type': self.witness_type,
@@ -1565,7 +1559,7 @@ class Transaction(object):
                                    sign_id)
 
         if not self.inputs[sign_id].redeemscript:
-            self.inputs[sign_id].redeemscript = self.inputs[sign_id].script_code
+            self.inputs[sign_id].redeemscript = self.inputs[sign_id].locking_script
 
         if (not self.inputs[sign_id].redeemscript or self.inputs[sign_id].redeemscript == b'\0') and \
                 self.inputs[sign_id].redeemscript != 'unknown' and not is_coinbase:
