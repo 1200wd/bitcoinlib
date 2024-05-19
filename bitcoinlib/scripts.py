@@ -57,7 +57,7 @@ def _get_script_types(blueprint):
             bp.append(item)
 
     script_types = [key for key, values in SCRIPT_TYPES.items() if values[1] == bp]
-    if script_types:
+    if len(script_types) == 1:
         return script_types
 
     bp_len = [int(c.split('-')[1]) for c in blueprint if isinstance(c, str) and c[:4] == 'data']

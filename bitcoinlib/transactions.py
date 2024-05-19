@@ -146,10 +146,10 @@ class Input(object):
     """
 
     def __init__(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
-                 locking_script=None, script_type=None, address='', sequence=0xffffffff, compressed=None,
-                 sigs_required=None, sort=False, index_n=0, value=0, double_spend=False, locktime_cltv=None,
-                 locktime_csv=None, key_path='', witness_type=None, witnesses=None, encoding=None, strict=True,
-                 network=DEFAULT_NETWORK):
+                 locking_script=None, redeemscript=None, script_type=None, address='', sequence=0xffffffff,
+                 compressed=None, sigs_required=None, sort=False, index_n=0, value=0, double_spend=False,
+                 locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None, witnesses=None, encoding=None,
+                 strict=True, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -167,6 +167,8 @@ class Input(object):
         :type unlocking_script: bytes, hexstring
         :param locking_script: Unlocking script for signing transaction
         :type locking_script: bytes, hexstring
+        :param redeemscript: Redeem script for p2sh transaction. Will be automatically created for standard scripts
+        :type redeemscript: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Address string or object for input
@@ -210,8 +212,7 @@ class Input(object):
             self.output_n_int = int.from_bytes(output_n, 'big')
             self.output_n = output_n
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
-        self.locking_script = b'' if locking_script is None \
-            else to_bytes(locking_script)
+        self.locking_script = b'' if locking_script is None else to_bytes(locking_script)
         self.script = None
         self.hash_type = SIGHASH_ALL
         if isinstance(sequence, numbers.Number):
@@ -242,7 +243,7 @@ class Input(object):
         else:
             self.address = address
         self.signatures = []
-        self.redeemscript = b''
+        self.redeemscript = b'' if not redeemscript else redeemscript
         self.script_type = script_type
         if self.prev_txid == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -282,15 +283,22 @@ class Input(object):
             sigs_required = script.sigs_required
             if len(script.script_types) == 1 and not self.script_type:
                 self.script_type = script.script_types[0]
-            elif script.script_types == ['signature_multisig', 'multisig']:
-                self.script_type = 'p2sh_multisig'
-            # TODO: Check if this if is necessary
-            if 'p2wpkh' in script.script_types:
+            # elif script.script_types == ['signature_multisig', 'multisig']:
+            #     self.script_type = 'p2sh_multisig'
+            # If unlocking script type is an embedded p2sh script
+            if self.script_type == 'p2wpkh':
                 self.script_type = 'p2sh_p2wpkh'
                 self.witness_type = 'p2sh-segwit'
-            elif 'p2wsh' in script.script_types:
+            elif self.script_type == 'p2wsh':
                 self.script_type = 'p2sh_p2wsh'
                 self.witness_type = 'p2sh-segwit'
+            # TODO: Check if this if is necessary
+            # if 'p2wpkh' in script.script_types:
+            #     self.script_type = 'p2sh_p2wpkh'
+            #     self.witness_type = 'p2sh-segwit'
+            # elif 'p2wsh' in script.script_types:
+            #     self.script_type = 'p2sh_p2wsh'
+            #     self.witness_type = 'p2sh-segwit'
         if self.locking_script and not self.signatures:
             ls = Script.parse_bytes(self.locking_script, strict=strict)
             self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash
@@ -405,7 +413,7 @@ class Input(object):
 
         addr_data = b''
         unlock_script = b''
-        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh']:  # fixme: p2wpkh == p2sh_p2wpkh
+        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
             if not self.public_hash and self.keys:
                 self.public_hash = self.keys[0].hash160
             if not self.keys and not self.public_hash:
@@ -422,11 +430,11 @@ class Input(object):
                     self.unlocking_script = b''
                 elif unlock_script != b'':
                     self.unlocking_script = unlock_script
-        elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh', 'p2wsh']:  # fixme: p2sh_p2wsh == p2wsh
+        elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
             if not self.redeemscript and self.keys:
                 self.redeemscript = Script(script_types=['multisig'], keys=self.keys,
                                            sigs_required=self.sigs_required).serialize()
-            if self.redeemscript:
+            if self.redeemscript and not self.public_hash:
                 if self.witness_type == 'segwit' or self.witness_type == 'p2sh-segwit':
                     self.public_hash = hashlib.sha256(self.redeemscript).digest()
                 else:
@@ -462,7 +470,7 @@ class Input(object):
                     self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
                     if signatures:
                         self.witnesses = unlock_script
-                elif unlock_script != b'' and self.strict:
+                elif unlock_script != b'': # and self.strict:
                     self.unlocking_script = unlock_script
         elif self.script_type == 'signature':
             if self.keys:
@@ -478,16 +486,16 @@ class Input(object):
         if addr_data and not self.address:
             self.address = Address(hashed_data=addr_data, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
-
-        if self.locktime_cltv:
-            self.locking_script = script_add_locktime_cltv(self.locktime_cltv, self.locking_script)
-            # if self.unlocking_script:
-            #     self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
-            # if self.witness_type == 'segwit':
-            #     self.witnesses.insert(0, script_add_locktime_cltv(self.locktime_cltv, b''))
-        if self.locktime_csv:
-            self.locking_script = script_add_locktime_csv(self.locktime_csv, self.locking_script)
-            self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
+        # FIXME: need to add locktime script to redeemscript
+        # if self.locktime_cltv:
+        #     self.locking_script = script_add_locktime_cltv(self.locktime_cltv, self.locking_script)
+        #     # if self.unlocking_script:
+        #     #     self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
+        #     # if self.witness_type == 'segwit':
+        #     #     self.witnesses.insert(0, script_add_locktime_cltv(self.locktime_cltv, b''))
+        # if self.locktime_csv:
+        #     self.locking_script = script_add_locktime_csv(self.locktime_csv, self.locking_script)
+        #     self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
         return True
 
     def verify(self, transaction_hash):
