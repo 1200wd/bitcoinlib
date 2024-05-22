@@ -41,7 +41,7 @@ class ScriptError(Exception):
         return self.msg
 
 
-def _get_script_types(blueprint):
+def _get_script_types(blueprint, is_locking=None):
     # Convert blueprint to more generic format
     bp = []
     for item in blueprint:
@@ -56,7 +56,14 @@ def _get_script_types(blueprint):
         else:
             bp.append(item)
 
-    script_types = [key for key, values in SCRIPT_TYPES.items() if values[1] == bp]
+    if is_locking is None:
+        locktype = ['locking', 'unlocking']
+    elif is_locking:
+        locktype = ['locking']
+    else:
+        locktype = ['unlocking']
+
+    script_types = [key for key, values in SCRIPT_TYPES.items() if values[1] == bp and values[0] in locktype]
     if len(script_types) == 1:
         return script_types
 
@@ -65,7 +72,7 @@ def _get_script_types(blueprint):
     while len(bp):
         # Find all possible matches with blueprint
         matches = [(key, len(values[1]), values[2]) for key, values in SCRIPT_TYPES.items() if
-                   values[1] == bp[:len(values[1])]]
+                   values[1] == bp[:len(values[1])] and values[0] in locktype]
         if not matches:
             script_types.append('unknown')
             break
@@ -80,9 +87,10 @@ def _get_script_types(blueprint):
                     match_id = matches.index(match)
                     break
 
-        # Add script type to list
+        # Add script type to list, if
         script_type = matches[match_id][0]
-        if script_type == 'multisig' and script_types[-1:] == ['signature_multisig']:
+        if (script_type == 'multisig' or script_type == 'multisig_redeemscript') \
+                and script_types[-1:] == ['signature_multisig']:
             script_types.pop()
             script_type = 'p2sh_multisig'
         script_types.append(script_type)
@@ -240,7 +248,7 @@ class Script(object):
                         self._blueprint.append('data-%d' % len(c))
 
     @classmethod
-    def parse(cls, script, message=None, env_data=None, strict=True, _level=0):
+    def parse(cls, script, message=None, env_data=None, is_locking=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -255,6 +263,8 @@ class Script(object):
         :type message: bytes
         :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts
         :type env_data: dict
+        :param is_locking: Is this a locking script or not, use None if not known and derive from script.
+        :param is_locking: bool, None
         :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
@@ -269,10 +279,10 @@ class Script(object):
         elif isinstance(script, str):
             data_length = len(script)
             script = BytesIO(bytes.fromhex(script))
-        return cls.parse_bytesio(script, message, env_data, data_length, strict, _level)
+        return cls.parse_bytesio(script, message, env_data, data_length, is_locking, strict, _level)
 
     @classmethod
-    def parse_bytesio(cls, script, message=None, env_data=None, data_length=0, strict=True, _level=0):
+    def parse_bytesio(cls, script, message=None, env_data=None, data_length=0, is_locking=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -284,6 +294,8 @@ class Script(object):
         :type env_data: dict
         :param data_length: Length of script data if known. Supply if you can to increase efficiency and lower change of incorrect parsing
         :type data_length: int
+        :param is_locking: Is this a locking script or not, use None if not known and derive from script.
+        :param is_locking: bool, None
         :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
@@ -392,7 +404,7 @@ class Script(object):
         script.seek(0)
         s._raw = script.read()
 
-        s.script_types = _get_script_types(blueprint)
+        s.script_types = _get_script_types(blueprint, is_locking=is_locking)
         if 'unknown' in s.script_types:
             s.script_types = ['unknown']
 
@@ -407,7 +419,7 @@ class Script(object):
                 if len(s.keys) != s.commands[-2] - 80:
                     raise ScriptError("%d keys found but %d keys expected" %
                                       (len(s.keys), s.commands[-2] - 80))
-            elif st in ['p2wpkh', 'p2wsh', 'p2sh', 'p2tr'] and len(s.commands) > 1:
+            elif st in ['p2wpkh', 'p2wsh', 'p2sh', 'p2tr', 'p2sh_p2wpkh', 'p2sh_p2wsh'] and len(s.commands) > 1:
                 s.public_hash = s.commands[1]
             elif st == 'p2tr_unlock':
                 s.public_hash = s.commands[0]
@@ -422,7 +434,7 @@ class Script(object):
         return s
 
     @classmethod
-    def parse_hex(cls, script, message=None, env_data=None, strict=True, _level=0):
+    def parse_hex(cls, script, message=None, env_data=None, is_locking=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -437,6 +449,8 @@ class Script(object):
         :type message: bytes
         :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts
         :type env_data: dict
+        :param is_locking: Is this a locking script or not, use None if not known and derive from script.
+        :param is_locking: bool, None
         :param strict: Raise exception when script is malformed, incomplete or not understood. Default is True
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
@@ -445,10 +459,11 @@ class Script(object):
         :return Script:
         """
         data_length = len(script) // 2
-        return cls.parse_bytesio(BytesIO(bytes.fromhex(script)), message, env_data, data_length, strict, _level)
+        return cls.parse_bytesio(BytesIO(bytes.fromhex(script)), message, env_data, data_length, is_locking, strict,
+                                 _level)
 
     @classmethod
-    def parse_bytes(cls, script, message=None, env_data=None, strict=True, _level=0):
+    def parse_bytes(cls, script, message=None, env_data=None, is_locking=None, strict=True, _level=0):
         """
         Parse raw script and return Script object. Extracts script commands, keys, signatures and other data.
 
@@ -460,6 +475,8 @@ class Script(object):
         :type message: bytes
         :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts
         :type env_data: dict
+        :param is_locking: Is this a locking script or not, use None if not known and derive from script.
+        :param is_locking: bool, None
         :param strict: Raise exception when script is malformed or incomplete
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
@@ -468,10 +485,10 @@ class Script(object):
         :return Script:
         """
         data_length = len(script)
-        return cls.parse_bytesio(BytesIO(script), message, env_data, data_length, strict, _level)
+        return cls.parse_bytesio(BytesIO(script), message, env_data, data_length, is_locking, strict, _level)
 
     @classmethod
-    def parse_str(cls, script, message=None, env_data=None, strict=True, _level=0):
+    def parse_str(cls, script, message=None, env_data=None, is_locking=None, strict=True, _level=0):
         """
         Parse script in string format and return Script object.
         Extracts script commands, keys, signatures and other data.
@@ -488,6 +505,8 @@ class Script(object):
         :type message: bytes
         :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for multisignature scripts and 'blockcount' for time locked scripts
         :type env_data: dict
+        :param is_locking: Is this a locking script or not, use None if not known and derive from script.
+        :param is_locking: bool, None
         :param strict: Raise exception when script is malformed or incomplete
         :type strict: bool
         :param _level: Internal argument used to avoid recursive depth
@@ -508,7 +527,7 @@ class Script(object):
                 s_items.append(getattr(op, item.lower(), 'unknown-command-%s' % item))
             else:
                 s_items.append(bytes.fromhex(item))
-        return cls(s_items, message, env_data, strict, _level)
+        return cls(s_items, message, env_data, is_locking=is_locking)
 
     def __repr__(self):
         s_items = self.view(blueprint=True, as_list=True)

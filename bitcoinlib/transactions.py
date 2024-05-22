@@ -275,7 +275,7 @@ class Input(object):
 
         # If unlocking script is specified extract keys, signatures, type from script
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
-            script = Script.parse_bytes(self.unlocking_script, strict=strict)
+            script = Script.parse_bytes(self.unlocking_script, is_locking=False, strict=strict)
             self.keys = script.keys
             self.signatures = script.signatures
             if len(self.signatures):
@@ -283,24 +283,8 @@ class Input(object):
             sigs_required = script.sigs_required
             if len(script.script_types) == 1 and not self.script_type:
                 self.script_type = script.script_types[0]
-            # elif script.script_types == ['signature_multisig', 'multisig']:
-            #     self.script_type = 'p2sh_multisig'
-            # If unlocking script type is an embedded p2sh script
-            if self.script_type == 'p2wpkh':
-                self.script_type = 'p2sh_p2wpkh'
-                self.witness_type = 'p2sh-segwit'
-            elif self.script_type == 'p2wsh':
-                self.script_type = 'p2sh_p2wsh'
-                self.witness_type = 'p2sh-segwit'
-            # TODO: Check if this if is necessary
-            # if 'p2wpkh' in script.script_types:
-            #     self.script_type = 'p2sh_p2wpkh'
-            #     self.witness_type = 'p2sh-segwit'
-            # elif 'p2wsh' in script.script_types:
-            #     self.script_type = 'p2sh_p2wsh'
-            #     self.witness_type = 'p2sh-segwit'
         if self.locking_script and not self.signatures:
-            ls = Script.parse_bytes(self.locking_script, strict=strict)
+            ls = Script.parse_bytes(self.locking_script, is_locking=True, strict=strict)
             self.public_hash = self.public_hash if not ls.public_hash else ls.public_hash
             if ls.script_types[0] in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
@@ -309,7 +293,6 @@ class Input(object):
         if self.script_type is None and self.witness_type is None and self.witnesses:
             self.witness_type = 'segwit'
         if self.witness_type is None or self.witness_type == 'legacy':
-            # if self.script_type in ['p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
@@ -673,7 +656,7 @@ class Output(object):
             self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
-        self.script = Script.parse_bytes(self.lock_script, strict=strict)
+        self.script = Script.parse_bytes(self.lock_script, strict=strict, is_locking=True)
         self.witver = witver
 
         if self._address_obj:
@@ -968,7 +951,7 @@ class Transaction(object):
                         witness = rawtx.read(item_size)
                     inputs[n].witnesses.append(witness)
                     if not is_taproot:
-                        s = Script.parse_bytes(witness, strict=strict)
+                        s = Script.parse_bytes(witness, strict=strict, is_locking=False)
                         if s.script_types == ['p2tr_unlock']:
                             # FIXME: Support Taproot unlocking scripts
                             _logger.warning("Taproot is not supported at the moment, rest of parsing input transaction "
