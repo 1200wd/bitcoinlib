@@ -87,7 +87,7 @@ def _get_script_types(blueprint, is_locking=None):
                     match_id = matches.index(match)
                     break
 
-        # Add script type to list, if
+        # Add script type to list, if script is p2sh embedded multisig set type to p2sh_multisig
         script_type = matches[match_id][0]
         if (script_type == 'multisig' or script_type == 'multisig_redeemscript') \
                 and script_types[-1:] == ['signature_multisig']:
@@ -655,7 +655,7 @@ class Script(object):
 
         return s_items if as_list else ' '.join(str(i) for i in s_items)
 
-    def evaluate(self, message=None, env_data=None):
+    def evaluate(self, message=None, env_data=None, trace=False):
         """
         Evaluate script, run all commands and check if it is valid
 
@@ -690,6 +690,13 @@ class Script(object):
         commands = self.commands[:]
         while len(commands):
             command = commands.pop(0)
+            if trace:
+                print("----------")
+                print("Stack:")
+                [print(f"- {i.hex()}") for i in self.stack]
+                cmd = opcodenames[command] if isinstance(command, int) else command.hex()
+                print(f"Command: {cmd}")
+                print("\n")
             if isinstance(command, int):
                 if command == op.op_0:  # OP_0
                     self.stack.append(encode_num(0))
