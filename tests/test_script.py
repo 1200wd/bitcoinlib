@@ -624,10 +624,10 @@ class TestScript(unittest.TestCase, CustomAssertions):
 
         script = unlock_script + lock_script
         s = Script.parse_bytes(script)
-        self.assertEqual(s.blueprint, [0, 'signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 169,
+        self.assertEqual(s.blueprint, [0, 'signature', 'signature', [82, 'key', 'key', 'key', 83, 174], 169,
                                        'data-20', 135])
         self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
-        self.assertEqual(str(s), "OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_HASH160 "
+        self.assertEqual(str(s), "OP_0 signature signature redeemscript OP_HASH160 "
                                  "data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('5a805853bf82bcdd865deb09c73ccdd61d2331ac19d8c2911f17c7d954aec059')
         self.assertTrue(s.evaluate(message=transaction_hash))
@@ -673,13 +673,12 @@ class TestScript(unittest.TestCase, CustomAssertions):
         script = unlock_script + lock_script
         s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, [0, 'signature', 'signature', 'signature', 'signature', 'signature',
-                                       'signature', 'signature', 'signature', 88, 'key', 'key', 'key', 'key',
+                                       'signature', 'signature', 'signature', [88, 'key', 'key', 'key', 'key',
                                        'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key',
-                                       95, 174, 169, 'data-20', 135])
+                                       95, 174], 169, 'data-20', 135])
         self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
         self.assertEqual(str(s), "OP_0 signature signature signature signature signature signature signature "
-                                 "signature OP_8 key key key key key key key key key key key key key key key OP_15 "
-                                 "OP_CHECKMULTISIG OP_HASH160 data-20 OP_EQUAL")
+                                 "signature redeemscript OP_HASH160 data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('8d190df3d02369999cad3eb222ac18b3315ff2bdc449b8fb30eb14db45730fe3')
         self.assertEqual(s.redeemscript, redeemscript)
         self.assertTrue(s.evaluate(message=transaction_hash))
@@ -884,7 +883,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
 
         redeemscript_size = '4dff01' + redeemscript
         s = Script.parse_hex(redeemscript_size)
-        self.assertEqual((str(s)), redeemscript_str)
+        self.assertEqual((str(s)), "redeemscript OP_15 OP_CHECKMULTISIG")
 
         redeemscript_error = '4d0101' + redeemscript
         self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,

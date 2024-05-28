@@ -53,6 +53,8 @@ def _get_script_types(blueprint, is_locking=None):
             bp[-1] = 'key'
         elif item == 'signature' and len(bp) and bp[-1] == 'signature':
             bp[-1] = 'signature'
+        elif isinstance(item, list):
+            bp.append('redeemscript')
         else:
             bp.append(item)
 
@@ -130,6 +132,8 @@ def get_data_type(data):
         return 'key_object'
     elif isinstance(data, Signature):
         return 'signature_object'
+    elif isinstance(data, list):
+        return 'redeemscript'
     elif data.startswith(b'\x30') and 69 <= len(data) <= 74:
         return 'signature'
     elif ((data.startswith(b'\x02') or data.startswith(b'\x03')) and len(data) == 33) or \
@@ -365,8 +369,8 @@ class Script(object):
                         else:
                             s2 = Script.parse_bytes(data, _level=_level+1, strict=strict)
                             commands.pop()
-                            commands += s2.commands
-                            blueprint += s2.blueprint
+                            commands += [s2.commands]
+                            blueprint += [s2.blueprint]
                             keys += s2.keys
                             signatures += s2.signatures
                             redeemscript = s2.redeemscript
@@ -399,6 +403,10 @@ class Script(object):
             chb = script.read(1)
             ch = int.from_bytes(chb, 'big')
 
+        if len(commands) == 1 and isinstance(commands[0], list):
+            commands = commands[0]
+        if len(blueprint) == 1 and isinstance(blueprint[0], list):
+            blueprint = blueprint[0]
         s = cls(commands, message, keys=keys, signatures=signatures, blueprint=blueprint, env_data=env_data,
                 hash_type=hash_type)
         script.seek(0)
@@ -639,6 +647,8 @@ class Script(object):
                     s_items.append(command)
                 else:
                     s_items.append(opcodenames.get(command, 'unknown-op-%s' % command))
+            elif isinstance(command, list):
+                s_items.append('redeemscript')
             else:
                 if blueprint:
                     if self.blueprint and len(self.blueprint) >= i:
@@ -687,7 +697,12 @@ class Script(object):
         self.env_data = self.env_data if env_data is None else env_data
         self.stack = Stack()
 
-        commands = self.commands[:]
+        commands = []
+        for c in self.commands:
+            if isinstance(c, list):
+                commands += c
+            else:
+                commands.append(c)
         while len(commands):
             command = commands.pop(0)
             if trace:
