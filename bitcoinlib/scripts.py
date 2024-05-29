@@ -732,8 +732,13 @@ class Script(object):
                         method = getattr(self.stack, method_name)
                         if method_name == 'op_checksig' or method_name == 'op_checksigverify':
                             res = method(self.message)
-                        elif method_name == 'op_checkmultisig' or method_name == 'op_checkmultisigverify':
+                        elif method_name == 'op_checkmultisig':
+                            method(self.message, self.env_data)
+                            res = self.stack.op_verify()
+                            self.stack.append(self.env_data['redeemscript'])
+                        elif method_name == 'op_checkmultisigverify':
                             res = method(self.message, self.env_data)
+                            self.stack.append(self.env_data['redeemscript'])
                         elif method_name == 'op_checklocktimeverify':
                             res = self.stack.op_checklocktimeverify(
                                 self.env_data['sequence'], self.env_data.get('locktime'))
@@ -1179,10 +1184,7 @@ class Stack(list):
                     break
 
         if sigcount == len(signatures):
-            if data and 'redeemscript' in data:
-                self.append(data['redeemscript'])
-            else:
-                self.append(b'\1')
+            self.append(b'\1')
         else:
             self.append(b'')
         return True
