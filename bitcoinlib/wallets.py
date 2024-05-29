@@ -390,14 +390,14 @@ class WalletKey(object):
                     path = "M"
             address = k.address(encoding=encoding, script_type=script_type)
 
-            if commit:
-                keyexists = session.query(DbKey).\
-                    filter(DbKey.wallet_id == wallet_id,
-                           DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
-                if keyexists:
-                    _logger.warning("Key already exists in this wallet. Key ID: %d" % keyexists.id)
-                    return WalletKey(keyexists.id, session, k)
+            keyexists = session.query(DbKey).\
+                filter(DbKey.wallet_id == wallet_id,
+                       DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
+            if keyexists:
+                _logger.warning("Key already exists in this wallet. Key ID: %d" % keyexists.id)
+                return WalletKey(keyexists.id, session, k)
 
+            if commit:
                 wk = session.query(DbKey).filter(
                     DbKey.wallet_id == wallet_id,
                     or_(DbKey.public == k.public_byte,
