@@ -920,6 +920,12 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertListEqual(s.commands, clist)
         self.assertEqual(s.view(), script_str_2)
 
+    def test_script_locking_type(self):
+        script_str = (b'"\x00 \x04\x7f\x8d]S\x04\xb8\xa1x\xbf\xfb\xd7\xc1\xc0\xc7\xc2To\xc9O\xc3\xb2\x91\n\xdb\x9db'
+                      b'\x19\x85{]\x9f')
+        self.assertEqual(Script.parse(script_str, is_locking=True).script_types, ['p2wsh'])
+        self.assertEqual(Script.parse(script_str, is_locking=False).script_types, ['p2sh_p2wsh'])
+
 class TestScriptMPInumbers(unittest.TestCase):
 
     def test_encode_decode_numbers(self):
