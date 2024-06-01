@@ -236,7 +236,7 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_sign_2(self):
         pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import
         inp = Input(prev_txid='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
-                    output_n=1, keys=pk.public())
+                    output_n=1, keys=pk.public(), witness_type='legacy')
         out = Output(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
         t = Transaction([inp], [out])
         t.sign(pk)
@@ -261,8 +261,8 @@ class TestTransactions(unittest.TestCase):
         utxo_hash = '0177ac29fa8b2960051321c730c6f15017503aa5b9c1dd2d61e7286e366fbaba'
         pk1 = HDKey(wif1)
         pk2 = HDKey(wif2)
-        input1 = Input(prev_txid=utxo_hash, output_n=0, keys=pk1.public_byte, index_n=0)
-        input2 = Input(prev_txid=utxo_hash, output_n=1, keys=pk2.public_byte, index_n=1)
+        input1 = Input(prev_txid=utxo_hash, output_n=0, keys=pk1.public_byte, index_n=0, witness_type='legacy')
+        input2 = Input(prev_txid=utxo_hash, output_n=1, keys=pk2.public_byte, index_n=1, witness_type='legacy')
 
         # Create a transaction with 2 inputs, and add 2 outputs below
         osm_address = '1J3pt9koWJZTo2jarg98RL89iJqff9Kobp'
@@ -306,14 +306,16 @@ class TestTransactions(unittest.TestCase):
         t = Transaction(witness_type='legacy')
         t.add_output(2710000, '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
-        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
+        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0,
+                    witness_type='legacy')
         self.assertEqual(t.estimate_size(), 227)
 
     def test_transactions_estimate_size_nulldata(self):
         t = Transaction(witness_type='legacy')
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
         t.add_output(0, lock_script=lock_script)
-        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
+        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0,
+                    witness_type='legacy')
         self.assertEqual(t.estimate_size(number_of_change_outputs=1), 241)
 
     def test_transaction_very_large(self):
@@ -1081,7 +1083,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
         output_n = 0
         t = Transaction()
-        t.add_input(prev_txid=prev_tx, output_n=output_n, compressed=False)
+        t.add_input(prev_txid=prev_tx, output_n=output_n, compressed=False, witness_type='legacy')
         t.add_output(99900000, '1EHmhQH4HjJF7e4tyX61PVzzVevRJfsPMg')
         t.sign(ki.private_byte)
         self.assertTrue(t.verify())
@@ -1178,7 +1180,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t2 = Transaction([Input('a8d4eb4ba80e5cc87fc38c0a7df44461e995fb021ed33bfd5ecf0d12137fb85e', 0,
                                 '033c152137b251654f971bc4b2335646186e1298bfcbb0b7608ec33609ac08cc6f',
                                 '1e989d20c6f25bd36df33ef0206398b0708069ac7d1d7cdb0cd756dcb05f4dcc3c6ad2ca53cd3b5b82fc6969'
-                                'e43f4825bded505e351e7b4a3492b5c6f0054c94')],
+                                'e43f4825bded505e351e7b4a3492b5c6f0054c94', witness_type='legacy')],
                          [Output(3077, '1Bj8rNK1tRsic6TRgJgVc6vF5FMAZVicaN', '75a94834a58225d5aa1d0403f3c72f7d8b01b0dd',
                                  script_type='p2pkh')],
                          )
@@ -1279,7 +1281,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         value = 100000
 
         # Test 1 - bumpfee, extra_fee and remove output
-        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        inp = Input(prev_txid, output_n, address='zyJgheqe9HEXmmn7VP45dawA5P6BAYY4NG', value=value)
         outputs = [
             Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
             Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
@@ -1294,7 +1296,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
 
         # Test 2 - bumpfee, extra_fee, round dust and remove output
-        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        inp = Input(prev_txid, output_n, address='zyJgheqe9HEXmmn7VP45dawA5P6BAYY4NG', value=value)
         outputs = [
             Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
             Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
@@ -1309,7 +1311,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
 
         # Test 3 - bumpfee, fee and remove output
-        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        inp = Input(prev_txid, output_n, address='zyJgheqe9HEXmmn7VP45dawA5P6BAYY4NG', value=value)
         outputs = [
             Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
             Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
@@ -1324,7 +1326,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
 
         # Test 4 - bumpfee, fee, round dust and remove output
-        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=value)
+        inp = Input(prev_txid, output_n, address='zyJgheqe9HEXmmn7VP45dawA5P6BAYY4NG', value=value)
         outputs = [
             Output(90000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
             Output(5000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test', change=True)]
@@ -1339,7 +1341,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
 
         # Test 5 - bumpfee, 2 change outputs, no parameters
-        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        inp = Input(prev_txid, output_n, address='zyJgheqe9HEXmmn7VP45dawA5P6BAYY4NG', value=200000)
         outputs = [
             Output(180000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
             Output(10000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test',
@@ -1356,7 +1358,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(sum([i.value for i in t.inputs]) - sum([o.value for o in t.outputs]), t.fee)
 
         # Test 6 - bumpfee, fee, 2 change outputs
-        inp = Input(prev_txid, output_n, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', value=200000)
+        inp = Input(prev_txid, output_n, address='zyJgheqe9HEXmmn7VP45dawA5P6BAYY4NG', value=200000)
         outputs = [
             Output(180000, address='blt1q68x6ghc7anelyzm4v7hwl2g245e07agee8yfag', network='bitcoinlib_test'),
             Output(10000, address='blt1qy0dlpnmfd8ldt5ns5kp0m4ery79wjaw5fz30t3', network='bitcoinlib_test',
@@ -1422,7 +1424,7 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
                     keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='p2sh_multisig',
-                    sigs_required=2, compressed=False, sort=False)
+                    sigs_required=2, compressed=False, sort=False, witness_type='legacy')
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
         t.sign([pk1, pk2])
@@ -1439,7 +1441,7 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         pubk2 = Key(self.keylist[2]).public()
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
                     keys=[pubk0, self.keylist[0], pubk2], script_type='p2sh_multisig',
-                    sigs_required=2, compressed=False, sort=False)
+                    sigs_required=2, compressed=False, sort=False, witness_type='legacy')
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
         t.sign([pk1])
@@ -1476,7 +1478,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         # Create 2-of-2 multisig transaction with 1 input and 1 output
         t = Transaction(network='testnet')
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
-                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
+                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2,
+                    witness_type='legacy')
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
         # Sign with private key and verify
         t.sign(pk1)
@@ -1491,7 +1494,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t = Transaction(network='testnet')
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
-                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3)
+                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3, witness_type='legacy')
 
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
@@ -1503,10 +1506,10 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertTrue(t.verify())
 
     def test_transaction_multisig_sign_2_of_5_not_enough(self):
-        t = Transaction(network='testnet')
+        t = Transaction(network='testnet', witness_type='legacy')
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
-                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3)
+                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3, witness_type='legacy')
 
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
@@ -1520,7 +1523,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t = Transaction(network='testnet')
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
-                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3)
+                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3, witness_type='legacy')
 
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
@@ -1534,7 +1537,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t = Transaction(network='testnet')
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
-                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3)
+                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3, witness_type='legacy')
 
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
@@ -1558,7 +1561,7 @@ class TestTransactionsMultisig(unittest.TestCase):
 
         t = Transaction(network=network, witness_type='legacy')
         t.add_input(prev_txid, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
-                    sigs_required=2)
+                    sigs_required=2, witness_type='legacy')
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
         self.assertEqual(t.estimate_size(), 339)
 
@@ -1570,7 +1573,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t = Transaction(network=network)
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [pk1.public_byte, pk2.public_byte, pk3.public_byte],
-                    script_type='p2sh_multisig', sigs_required=2)
+                    script_type='p2sh_multisig', sigs_required=2, witness_type='legacy')
         t.add_output(100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
         t.sign(pk1)
         self.assertFalse(t.verify())
@@ -1729,7 +1732,8 @@ class TestTransactionsTimelocks(unittest.TestCase):
 
         t = Transaction(network='testnet')
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
-                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
+                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2,
+                    witness_type='legacy')
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
         self.assertFalse(t.verify())
         t.save()

@@ -236,12 +236,21 @@ class Input(object):
         if not isinstance(signatures, list):
             signatures = [signatures]
         self.sort = sort
+
+        self.address = ''
+        self.address_obj = None
         if isinstance(address, Address):
+            self.address_obj = address
             self.address = address.address
             self.encoding = address.encoding
             self.network = address.network
-        else:
+            self.witness_type = address.witness_type
+        elif address:
             self.address = address
+            self.address_obj = Address.parse(address)
+        if self.address_obj:
+            encoding = self.address_obj.encoding
+            witness_type = self.address_obj.witness_type if self.address_obj.witness_type else witness_type
         self.signatures = []
         self.redeemscript = b'' if not redeemscript else redeemscript
         self.script_type = script_type
@@ -293,13 +302,14 @@ class Input(object):
         if self.script_type is None and self.witness_type is None and self.witnesses:
             self.witness_type = 'segwit'
         if self.witness_type is None or self.witness_type == 'legacy':
-            if self.script_type in ['p2wpkh', 'p2wsh']:
-                self.witness_type = 'segwit'
-            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+            if self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
                 self.witness_type = 'p2sh-segwit'
                 self.encoding = 'base58'
-            else:
-                self.witness_type = 'legacy'
+            elif not self.witness_type:
+                if not self.witnesses:
+                    self.witness_type = 'legacy'
+                else:
+                    self.witness_type = 'segwit'
         elif self.witness_type == 'segwit' and self.script_type == 'sig_pubkey' and encoding is None:
             self.encoding = 'bech32'
         if not self.script_type:

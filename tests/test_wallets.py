@@ -1767,9 +1767,9 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         utxos = wlt.utxos()
 
         inp1 = Input(prev_txid=utxos[0]['txid'], output_n=utxos[0]['output_n'], keys=key.key_public,
-                     network='bitcoinlib_test')
+                     network='bitcoinlib_test', witness_type='legacy')
         inp2 = Input(prev_txid=utxos[1]['txid'], output_n=utxos[1]['output_n'], keys=key.key_public,
-                     network='bitcoinlib_test')
+                     network='bitcoinlib_test', witness_type='legacy')
         out = Output(10000000, address=key.address, network='bitcoinlib_test')
 
         t = Transaction(inputs=[inp1, inp2], outputs=[out], network='testnet')
