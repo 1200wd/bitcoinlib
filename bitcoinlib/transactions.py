@@ -589,7 +589,7 @@ class Output(object):
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
                  output_n=0, script_type=None, witver=0, encoding=None, spending_txid='', spending_index_n=None,
-                 strict=True, change=None, network=DEFAULT_NETWORK):
+                 strict=True, change=None, witness_type=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -628,6 +628,8 @@ class Output(object):
         :type strict: bool
         :param change: Is this a change output back to own wallet or not? Used for replace-by-fee.
         :type change: bool
+        :param witness_type: Specify witness type: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
+        :type witness_type: str
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -652,33 +654,33 @@ class Output(object):
             public_key = address.public_byte
             if not script_type:
                 script_type = script_type_default(address.witness_type, address.multisig, True)
-            self.public_hash = address.hash160
+            # self.public_hash = address.hash160
+            # self.witness_type = address.witness_type
         else:
             self._address = address
             self._address_obj = None
         self.public_key = to_bytes(public_key)
         self.compressed = True
-        self.k = None
         self.versionbyte = self.network.prefix_address
         self.script_type = script_type
         self.encoding = encoding
-        if not self._address and self.encoding is None:
-            self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
         self.script = Script.parse_bytes(self.lock_script, strict=strict, is_locking=True)
         self.witver = witver
+        self.witness_type = witness_type
 
         if self._address_obj:
             self.script_type = self._address_obj.script_type if script_type is None else script_type
+            # if not script_type:
+            #     script_type = script_type_default(address.witness_type, address.multisig, True)
             self.public_hash = self._address_obj.hash_bytes
             self.network = self._address_obj.network
             self.encoding = self._address_obj.encoding
+            self.witness_type = self._address_obj.witness_type
 
         if self.script:
             self.script_type = self.script_type if not self.script.script_types else self.script.script_types[0]
-            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr']:
-                self.encoding = 'bech32'
             self.public_hash = self.script.public_hash
             if self.script.keys:
                 self.public_key = self.script.keys[0].public_byte
@@ -686,8 +688,7 @@ class Output(object):
                 self.witver = self.script.commands[0] - 80
 
         if self.public_key and not self.public_hash:
-            k = Key(self.public_key, is_private=False, network=network)
-            self.public_hash = k.hash160
+            self.public_hash = hash160(self.public_key)
         elif self._address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self._address, self.encoding, self.network.name)
             if address_dict['script_type'] and not script_type:
@@ -703,10 +704,13 @@ class Output(object):
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
                                        "in %s" % (self._address, self.network.name, network_guesses))
             self.public_hash = address_dict['public_key_hash_bytes']
+            self.witness_type = address_dict['witness_type']
         if not self.encoding:
-            self.encoding = 'base58'
-            if self.script_type in ['p2wpkh', 'p2wsh', 'p2tr']:
-                self.encoding = 'bech32'
+            self.encoding = 'bech32'
+            if self.script_type in ['p2pkh', 'p2sh', 'p2pk'] or self.witness_type == 'legacy':
+                self.encoding = 'base58'
+            else:
+                self.witness_type = 'segwit'
 
         if self.script_type is None:
             self.script_type = 'p2pkh'

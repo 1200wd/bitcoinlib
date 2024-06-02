@@ -852,6 +852,10 @@ class Address(object):
             elif self.script_type == 'p2tr':
                 witness_type = 'taproot'
                 self.witver = 1 if self.witver == 0 else self.witver
+            elif self.encoding == 'base58':
+                witness_type = 'legacy'
+            else:
+                witness_type = 'segwit'
         self.witness_type = witness_type
         self.depth = depth
         self.change = change

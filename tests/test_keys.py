@@ -792,7 +792,7 @@ class TestKeysBulk(unittest.TestCase):
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
 
-class TestKeysAddress(unittest.TestCase):
+class TestAddress(unittest.TestCase):
     """
     Tests for Address class. Address format, conversion and representation
 
@@ -897,6 +897,18 @@ class TestKeysAddress(unittest.TestCase):
         addr = Address(hashed_data=hashed_data, script_type='p2tr', prefix='bcrt',
                        encoding='bech32').address
         self.assertEqual(addr, 'bcrt1pq77c6jeemv8wxlsh5h5pfdq6323naua8yapte3juw9hyec83mr8sw2eggg')
+
+    def test_keys_address_witness_types(self):
+        data = b'\x03\xb0\x12\x86\x15bt\xc9\x0f\xa7\xd0\xf6\xe6\x17\xc9\xc6\xafS\xa0u/ou\x8d\xa5\x1d\x1c\xc9h4nl\xb8'
+        a = Address(data)
+        self.assertEqual(a.address, 'bc1q36cn4tunsaptdskkf29lerzym0uznqw26pxffm')
+        self.assertEqual(a.witness_type, 'segwit')
+        a = Address(data, witness_type='segwit')
+        self.assertEqual(a.address, 'bc1q36cn4tunsaptdskkf29lerzym0uznqw26pxffm')
+        self.assertEqual(a.witness_type, 'segwit')
+        a = Address(data, witness_type='legacy')
+        self.assertEqual(a.address, '1E1VGLvZ2YpgcSgr3DYm7ZTHbovKw9xLw6')
+        self.assertEqual(a.witness_type, 'legacy')
 
 
 class TestKeysSignatures(unittest.TestCase):

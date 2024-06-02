@@ -108,29 +108,37 @@ class TestTransactionInputs(unittest.TestCase):
 
 class TestTransactionOutputs(unittest.TestCase):
 
-    def test_transaction_output_add_address(self):
+    def test_transaction_output_address(self):
         to = Output(1000, '1QhnmvncrbZFkjt5R8hs8yHDM7xXX3feg')
         self.assertEqual(b'v\xa9\x14\x04{\x9d\xc2=\xda\xa9\x17\x1e\xa5\x11\xe1\x93t\xabUo\xaa\xbbD\x88\xac',
                          to.lock_script)
         self.assertEqual(repr(to), '<Output(value=1000, address=1QhnmvncrbZFkjt5R8hs8yHDM7xXX3feg, type=p2pkh)>')
 
-    def test_transaction_output_add_address_p2sh(self):
+    def test_transaction_output_address_p2sh(self):
         to = Output(1000, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK', network='testnet')
         self.assertEqual(b'\xa9\x14\x86\x7f\x84`u\x87\xf7\xc2\x05G@\xc6\xca\xe0\x92\x98\xcc\xbc\xd5(\x87',
                          to.lock_script)
 
-    def test_transaction_output_add_public_key(self):
-        to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470'
-                                           '243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6')
+    def test_transaction_output_public_key_legacy(self):
+        to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522'
+                                           'CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6',
+                    witness_type='legacy')
         self.assertEqual(b"v\xa9\x14\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\x88\xac",
                          to.lock_script)
 
-    def test_transaction_output_add_public_key_hash(self):
-        to = Output(1000, public_hash='010966776006953d5567439e5e39f86a0d273bee')
+    def test_transaction_output_public_key(self):
+        to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522'
+                                           'CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6')
+        self.assertEqual(b"\x00\x14\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee",
+                         to.lock_script)
+        self.assertEqual('segwit', to.witness_type)
+
+    def test_transaction_output_public_key_hash(self):
+        to = Output(1000, public_hash='010966776006953d5567439e5e39f86a0d273bee', witness_type='legacy')
         self.assertEqual(b"v\xa9\x14\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\x88\xac",
                          to.lock_script)
 
-    def test_transaction_output_add_script(self):
+    def test_transaction_output_script(self):
         to = Output(1000, lock_script='76a91423e102597c4a99516f851406f935a6e634dbccec88ac')
         self.assertEqual('14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8', to.address)
 
@@ -139,6 +147,22 @@ class TestTransactionOutputs(unittest.TestCase):
         self.assertEqual(to.value, 132)
         self.assertRaisesRegex(ValueError, "Value uses different network \(bitcoin\) then supplied network: testnet",
                                Output, '1 BTC', address=HDKey(network='testnet').address(), network='testnet')
+
+    def test_transaction_output_witness_types(self):
+        k = HDKey(witness_type='segwit')
+        o = Output(10000, k)
+        self.assertEqual(o.witness_type, 'segwit')
+        self.assertEqual(o.script_type, 'p2wpkh')
+
+        k = HDKey(witness_type='legacy')
+        o = Output(10000, k)
+        self.assertEqual(o.witness_type, 'legacy')
+        self.assertEqual(o.script_type, 'p2pkh')
+
+        k = HDKey()
+        o = Output(10000, k)
+        self.assertEqual(o.witness_type, 'segwit')
+        self.assertEqual(o.script_type, 'p2wpkh')
 
 
 class TestTransactions(unittest.TestCase):
@@ -226,7 +250,7 @@ class TestTransactions(unittest.TestCase):
                     keys=pk.public(), network='testnet', witness_type='legacy')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        out = Output(880000, public_hash=pubkey.hash160, network='testnet')
+        out = Output(880000, public_hash=pubkey.hash160, network='testnet', witness_type='legacy')
         t = Transaction([inp], [out], network='testnet')
         t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
