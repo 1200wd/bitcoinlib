@@ -95,7 +95,7 @@ SCRIPT_TYPES = {
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
-SIGHASH_ANYONECANPAY = 80
+SIGHASH_ANYONECANPAY = 0x80
 
 SEQUENCE_LOCKTIME_DISABLE_FLAG = (1 << 31)  # To enable sequence time locks
 SEQUENCE_LOCKTIME_TYPE_FLAG = (1 << 22)  # If set use timestamp based lock otherwise use block height

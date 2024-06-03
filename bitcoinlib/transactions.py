@@ -1716,6 +1716,9 @@ class Transaction(object):
         :return None:
         """
 
+        if hash_type != SIGHASH_ALL:
+            raise TransactionError("Hash type othen than SIGHASH_ALL are not supported at the moment")
+
         if index_n is None:
             tids = range(len(self.inputs))
         else:
@@ -1743,7 +1746,7 @@ class Transaction(object):
             n_total_sigs = len(self.inputs[tid].keys)
             sig_domain = [''] * n_total_sigs
 
-            txid = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
+            txid = self.signature_hash(tid, hash_type, self.inputs[tid].witness_type)
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
@@ -1758,7 +1761,7 @@ class Transaction(object):
 
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
-                sig = sign(txid, key)
+                sig = sign(txid, key, hash_type=hash_type)
                 newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = sig
                 n_signs += 1

@@ -2386,7 +2386,7 @@ class Signature(object):
                          hash_type=hash_type)
 
     @staticmethod
-    def create(txid, private, use_rfc6979=True, k=None):
+    def create(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
         """
         Sign a transaction hash and create a signature with provided private key.
 
@@ -2408,7 +2408,9 @@ class Signature(object):
         :type use_rfc6979: bool
         :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
         :type k: int
-        
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
         :return Signature: 
         """
         if isinstance(txid, bytes):
@@ -2445,7 +2447,7 @@ class Signature(object):
             )
             if int(s) > secp256k1_n / 2:
                 s = secp256k1_n - int(s)
-            return Signature(r, s, txid, secret, public_key=pub_key, k=k)
+            return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
             txid_bytes = to_bytes(txid)
@@ -2455,7 +2457,7 @@ class Signature(object):
             s = int(signature[64:], 16)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
-            return Signature(r, s, txid, secret, public_key=pub_key, k=k)
+            return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
 
     def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL):
@@ -2680,7 +2682,7 @@ class Signature(object):
             return True
 
 
-def sign(txid, private, use_rfc6979=True, k=None):
+def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
@@ -2700,10 +2702,12 @@ def sign(txid, private, use_rfc6979=True, k=None):
     :type use_rfc6979: bool
     :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
     :type k: int
-        
+    :param hash_type: Specific hash type, default is SIGHASH_ALL
+    :type hash_type: int
+
     :return Signature: 
     """
-    return Signature.create(txid, private, use_rfc6979, k)
+    return Signature.create(txid, private, use_rfc6979, k, hash_type=hash_type)
 
 
 def verify(txid, signature, public_key=None):
