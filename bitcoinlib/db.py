@@ -18,15 +18,15 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, LargeBinary, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
+from sqlalchemy.orm import sessionmaker, relationship, session
 from urllib.parse import urlparse
 from bitcoinlib.main import *
-from bitcoinlib.encoding import aes_encrypt, aes_decrypt
+from bitcoinlib.encoding import aes_encrypt, aes_decrypt, double_sha256
 
 _logger = logging.getLogger(__name__)
 Base = declarative_base()
@@ -44,7 +44,7 @@ class Db:
     Bitcoinlib Database object used by Service() and HDWallet() class. Initialize database and open session when
     creating database object.
 
-    Create new database if is doesn't exist yet
+    Create new database if it doesn't exist yet
 
     """
     def __init__(self, db_uri=None, password=None):
@@ -67,9 +67,11 @@ class Db:
         if self.o.scheme == 'mysql':
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += 'binary_prefix=true'
+        if self.o.scheme == 'postgresql':
+            db_uri = self.o._replace(scheme="postgresql+psycopg").geturl()
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
-        Session = sessionmaker(bind=self.engine)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
         Base.metadata.create_all(self.engine)
         self._import_config_data(Session)
         self.session = Session()
@@ -96,8 +98,8 @@ class Db:
     def drop_db(self, yes_i_am_sure=False):
         if yes_i_am_sure:
             self.session.commit()
-            self.session.close_all()
-            close_all_sessions()
+            self.session.close()
+            session.close_all_sessions()
             Base.metadata.drop_all(self.engine)
 
     @staticmethod
@@ -128,7 +130,26 @@ def add_column(engine, table_name, column):
     """
     column_name = column.compile(dialect=engine.dialect)
     column_type = column.type.compile(engine.dialect)
-    engine.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table_name, column_name, column_type))
+    statement = text("ALTER TABLE %s ADD COLUMN %s %s" % (table_name, column_name, column_type))
+    with engine.connect() as conn:
+        result = conn.execute(statement)
+    return result
+
+
+def _get_encryption_key(default_impl):
+    impl = default_impl
+    key = None
+    if DATABASE_ENCRYPTION_ENABLED:
+        if not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
+            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
+                            "environment. Please supply 32 bytes key as hexadecimal string.")
+    if DB_FIELD_ENCRYPTION_KEY:
+        impl = LargeBinary
+        key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    elif DB_FIELD_ENCRYPTION_PASSWORD:
+        impl = LargeBinary
+        key = double_sha256(bytes(DB_FIELD_ENCRYPTION_PASSWORD, 'utf8'))
+    return key, impl
 
 
 class EncryptedBinary(TypeDecorator):
@@ -136,23 +157,16 @@ class EncryptedBinary(TypeDecorator):
     FieldType for encrypted Binary storage using EAS encryption
     """
 
-    impl = LargeBinary
     cache_ok = True
-    key = None
-    if DATABASE_ENCRYPTION_ENABLED:
-        if not DB_FIELD_ENCRYPTION_KEY:
-            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
-                            "environment. Please supply 32 bytes key as hexadecimal string.")
-        else:
-            key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    key, impl = _get_encryption_key(LargeBinary)
 
     def process_bind_param(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         return aes_encrypt(value, self.key)
 
     def process_result_value(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         return aes_decrypt(value, self.key)
 
@@ -162,26 +176,20 @@ class EncryptedString(TypeDecorator):
     FieldType for encrypted String storage using EAS encryption
     """
 
-    impl = String
     cache_ok = True
-    key = None
-    if DATABASE_ENCRYPTION_ENABLED:
-        if not DB_FIELD_ENCRYPTION_KEY:
-            _logger.warning("Database encryption is enabled but value DB_FIELD_ENCRYPTION_KEY not found in "
-                            "environment. Please supply 32 bytes key as hexadecimal string.")
-        else:
-            impl = LargeBinary
-            key = bytes().fromhex(DB_FIELD_ENCRYPTION_KEY)
+    key, impl = _get_encryption_key(String)
 
     def process_bind_param(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
             return value
         if not isinstance(value, bytes):
             value = bytes(value, 'utf8')
         return aes_encrypt(value, self.key)
 
     def process_result_value(self, value, dialect):
-        if value is None or self.key is None or not DATABASE_ENCRYPTION_ENABLED:
+        if value is None or self.key is None or not (DB_FIELD_ENCRYPTION_KEY or DB_FIELD_ENCRYPTION_PASSWORD):
+            if isinstance(value, bytes):
+                raise ValueError("Data is encrypted please provide key in environment")
             return value
         return aes_decrypt(value, self.key).decode('utf8')
 
@@ -212,8 +220,9 @@ class DbWallet(Base):
     purpose = Column(Integer,
                      doc="Wallet purpose ID. BIP-44 purpose field, indicating which key-scheme is used default is 44")
     scheme = Column(String(25), doc="Key structure type, can be BIP-32 or single")
-    witness_type = Column(String(20), default='legacy',
-                          doc="Wallet witness type. Can be 'legacy', 'segwit' or 'p2sh-segwit'. Default is legacy.")
+    witness_type = Column(String(20), default='segwit',
+                          doc="Wallet witness type. Can be 'legacy', 'segwit', 'p2sh-segwit' or 'mixed. Default is "
+                              "segwit.")
     encoding = Column(String(15), default='base58',
                       doc="Default encoding to use for address generation, i.e. base58 or bech32. Default is base58.")
     main_key_id = Column(Integer,
@@ -239,12 +248,14 @@ class DbWallet(Base):
                           "* If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/ "
                           "* All keys must be hardened, except for change, address_index or cosigner_id "
                           " Max length of path is 8 levels")
+    anti_fee_sniping = Column(Boolean, default=True, doc="Set default locktime in transactions to avoid fee-sniping")
     default_account_id = Column(Integer, doc="ID of default account for this wallet if multiple accounts are used")
 
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
-        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='wallet_constraint_allowed_types'),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit', 'p2tr']),
+                        name='wallet_constraint_allowed_types'),
     )
 
     def __repr__(self):
@@ -281,12 +292,12 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(LargeBinary(128), index=True, doc="Bytes representation of public key")
+    public = Column(LargeBinary(65), index=True, doc="Bytes representation of public key")
     private = Column(EncryptedBinary(48), doc="Bytes representation of private key")
-    wif = Column(EncryptedString(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
+    wif = Column(EncryptedString(128), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
     key_type = Column(String(10), default='bip32', doc="Type of key: single, bip32 or multisig. Default is bip32")
-    address = Column(String(255), index=True,
+    address = Column(String(100), index=True,
                      doc="Address representation of key. An cryptocurrency address is a hash of the public key")
     cosigner_id = Column(Integer, doc="ID of cosigner, used if key is part of HD Wallet")
     encoding = Column(String(15), default='base58', doc='Encoding used to represent address: base58 or bech32')
@@ -303,8 +314,11 @@ class DbKey(Base):
     used = Column(Boolean, default=False, doc="Has key already been used on the blockchain in as input or output? "
                                               "Default is False")
     network_name = Column(String(20), ForeignKey('networks.name'),
-                          doc="Name of key network, i.e. bitcoin, litecoin, dash")
-    latest_txid = Column(LargeBinary(32), doc="TxId of latest transaction downloaded from the blockchain")
+                          doc="Name of key network, i.e. bitcoin, litecoin")
+    latest_txid = Column(LargeBinary(33), doc="TxId of latest transaction downloaded from the blockchain")
+    witness_type = Column(String(20), default='segwit',
+                          doc="Key witness type, only specify when using mixed wallets. Can be 'legacy', 'segwit' or "
+                              "'p2sh-segwit'. Default is segwit.")
     network = relationship("DbNetwork", doc="DbNetwork object for this key")
     multisig_parents = relationship("DbKeyMultisigChildren", backref='child_key',
                                     primaryjoin=id == DbKeyMultisigChildren.child_id,
@@ -336,7 +350,7 @@ class DbNetwork(Base):
 
     """
     __tablename__ = 'networks'
-    name = Column(String(20), unique=True, primary_key=True, doc="Network name, i.e.: bitcoin, litecoin, dash")
+    name = Column(String(20), unique=True, primary_key=True, doc="Network name, i.e.: bitcoin, litecoin")
     description = Column(String(50))
 
     def __repr__(self):
@@ -361,20 +375,20 @@ class DbTransaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True,
                 doc="Unique transaction index for internal usage")
-    txid = Column(LargeBinary(32), index=True, doc="Bytes representation of transaction ID")
+    txid = Column(LargeBinary(33), index=True, doc="Bytes representation of transaction ID")
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True,
                        doc="ID of wallet which contains this transaction")
     account_id = Column(Integer, index=True, doc="ID of account")
     wallet = relationship("DbWallet", back_populates="transactions",
                           doc="Link to Wallet object which contains this transaction")
-    witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
+    witness_type = Column(String(20), default='segwit', doc="Is this a legacy or segwit transaction?")
     version = Column(BigInteger, default=1,
                      doc="Tranaction version. Default is 1 but some wallets use another version number")
     locktime = Column(BigInteger, default=0,
                       doc="Transaction level locktime. Locks the transaction until a specified block "
                           "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
                           " Default value is 0 for transactions without locktime")
-    date = Column(DateTime, default=datetime.utcnow,
+    date = Column(DateTime, default=datetime.now(timezone.utc),
                   doc="Date when transaction was confirmed and included in a block. "
                       "Or when it was created when transaction is not send or confirmed")
     coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
@@ -403,6 +417,7 @@ class DbTransaction(Base):
     raw = Column(LargeBinary,
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
     verified = Column(Boolean, default=False, doc="Is transaction verified. Default is False")
+    index = Column(Integer, doc="Index of transaction in block")
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'txid', name='constraint_wallet_transaction_hash_unique'),
@@ -428,14 +443,14 @@ class DbTransactionInput(Base):
     transaction = relationship("DbTransaction", back_populates='inputs', doc="Related DbTransaction object")
     index_n = Column(Integer, primary_key=True, doc="Index number of transaction input")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this input")
-    key = relationship("DbKey", back_populates="transaction_inputs", doc="Related DbKey object")
+    key = relationship("DbKey", doc="Related DbKey object")
     address = Column(String(255),
                      doc="Address string of input, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key or a redeemscript")
     witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
-    witness_type = Column(String(20), default='legacy',
-                          doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
-    prev_txid = Column(LargeBinary(32),
+    witness_type = Column(String(20), default='segwit',
+                          doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is segwit")
+    prev_txid = Column(LargeBinary(33),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
@@ -467,9 +482,9 @@ class DbTransactionOutput(Base):
                             doc="Transaction ID of parent transaction")
     transaction = relationship("DbTransaction", back_populates='outputs',
                                doc="Link to transaction object")
-    output_n = Column(Integer, primary_key=True, doc="Sequence number of transaction output")
+    output_n = Column(BigInteger, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
-    key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
+    key = relationship("DbKey", doc="List of DbKey object used in this output")
     address = Column(String(255),
                      doc="Address string of output, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key or a redeemscript")
@@ -479,8 +494,9 @@ class DbTransactionOutput(Base):
                              "'nulldata', 'unknown', 'p2wpkh', 'p2wsh', 'p2tr'. Default is p2pkh")
     value = Column(BigInteger, default=0, doc="Total transaction output value")
     spent = Column(Boolean, default=False, doc="Indicated if output is already spent in another transaction")
-    spending_txid = Column(LargeBinary(32), doc="Transaction hash of input which spends this output")
+    spending_txid = Column(LargeBinary(33), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
+    is_change = Column(Boolean, default=False, doc="Is this a change output / output to own wallet?")
 
     __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'),)
 
@@ -501,5 +517,13 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
         column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
         add_column(db.engine, 'transaction_inputs', column)
         # version_db = db_update_version_id(db, '0.6.4')
+    if version_db < '0.7.0' and code_version >= '0.7.0':
+        raise ValueError("Old database version %s is not supported in version 0.7+. "
+                         "Please copy private keys and recreate wallets" % version_db)
+        # TODO: write update script to copy private keys from db
+        # column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
+        #                                                      "'p2sh-segwit'. Default is segwit.")
+        # add_column(db.engine, 'keys', column)
+
     version_db = db_update_version_id(db, code_version)
     return version_db

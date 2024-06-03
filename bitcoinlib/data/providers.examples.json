@@ -153,39 +153,6 @@
     "denominator": 100000000,
     "network_overrides": {"prefix_address_p2sh": "32"}
   },
-  "dashd": {
-    "provider": "dashd",
-    "network": "dash",
-    "client_class": "DashdClient",
-    "url": "",
-    "provider_coin_id": "",
-    "api_key": "",
-    "priority": 20,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "dashd.testnet": {
-    "provider": "dashd",
-    "network": "dash_testnet",
-    "client_class": "DashdClient",
-    "url": "",
-    "provider_coin_id": "",
-    "api_key": "",
-    "priority": 20,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "cryptoid.dash": {
-    "provider": "cryptoid",
-    "network": "dash",
-    "client_class": "CryptoID",
-    "provider_coin_id": "dash",
-    "url": "https://chainz.cryptoid.info/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "litecoreio.litecoin": {
     "provider": "litecoreio",
     "network": "litecoin",
@@ -329,17 +296,6 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "insightdash": {
-    "provider": "insightdash",
-    "network": "dash",
-    "client_class": "InsightDashClient",
-    "provider_coin_id": "",
-    "url": "https://insight.dash.org/api/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "smartbit": {
     "provider": "smartbit",
     "network": "bitcoin",
@@ -455,28 +411,6 @@
     "network": "litecoin_legacy",
     "client_class": "ChainSo",
     "provider_coin_id": "LTC",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.dash": {
-    "provider": "chainso",
-    "network": "dash",
-    "client_class": "ChainSo",
-    "provider_coin_id": "DASH",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.dash.testnet": {
-    "provider": "chainso",
-    "network": "dash_testnet",
-    "client_class": "ChainSo",
-    "provider_coin_id": "DASHTEST",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,

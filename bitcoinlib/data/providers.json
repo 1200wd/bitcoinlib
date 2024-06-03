@@ -32,17 +32,6 @@
     "denominator": 1,
     "network_overrides": null
   },
-  "bitgo.testnet": {
-    "provider": "bitgo",
-    "network": "testnet",
-    "client_class": "BitGoClient",
-    "provider_coin_id": "",
-    "url": "https://test.bitgo.com/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 1,
-    "network_overrides": null
-  },
   "blockcypher.litecoin": {
     "provider": "blockcypher",
     "network": "litecoin",
@@ -87,17 +76,6 @@
     "denominator": 100000000,
     "network_overrides": {"prefix_address_p2sh": "32"}
   },
-  "cryptoid.dash": {
-    "provider": "cryptoid",
-    "network": "dash",
-    "client_class": "CryptoID",
-    "provider_coin_id": "dash",
-    "url": "https://chainz.cryptoid.info/",
-    "api_key": "api-key-needed",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "blockchair": {
     "provider": "blockchair",
     "network": "bitcoin",
@@ -131,17 +109,6 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "blockchair.dash": {
-    "provider": "blockchair",
-    "network": "dash",
-    "client_class": "BlockChairClient",
-    "provider_coin_id": "",
-    "url": "https://api.blockchair.com/dash/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "blockchair.dogecoin": {
     "provider": "blockchair",
     "network": "dogecoin",
@@ -159,17 +126,6 @@
     "client_class": "BitapsClient",
     "provider_coin_id": "",
     "url": "https://api.bitaps.com/btc/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "bitaps.testnet": {
-    "provider": "bitaps",
-    "network": "testnet",
-    "client_class": "BitapsClient",
-    "provider_coin_id": "",
-    "url": "https://api.bitaps.com/btc/testnet/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -241,23 +197,12 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "litecoinblockexplorer.dash": {
-    "provider": "litecoinblockexplorer",
-    "network": "dash",
-    "client_class": "LitecoinBlockexplorerClient",
-    "provider_coin_id": "",
-    "url": "https://dashblockexplorer.com/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "litecoinblockexplorer.testnet2": {
     "provider": "litecoinblockexplorer",
     "network": "testnet",
     "client_class": "LitecoinBlockexplorerClient",
     "provider_coin_id": "",
-    "url": "https://tbtc1.blockbook.bitaccess.net/api/v1/",
+    "url": "https://tbtc1.trezor.io/api/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -307,23 +252,12 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "blockbook.dash": {
-    "provider": "blockbook",
-    "network": "dash",
-    "client_class": "BlockbookClient",
-    "provider_coin_id": "",
-    "url": "https://dashblockexplorer.com/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "blockbook.testnet2": {
     "provider": "blockbook",
     "network": "testnet",
     "client_class": "BlockbookClient",
     "provider_coin_id": "",
-    "url": "https://tbtc1.blockbook.bitaccess.net/api/v2/",
+    "url": "https://tbtc2.trezor.io/api/v2/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -335,17 +269,6 @@
     "client_class": "BlockbookClient",
     "provider_coin_id": "",
     "url": "https://dogeblocks.com/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "insightdash": {
-    "provider": "insightdash",
-    "network": "dash",
-    "client_class": "InsightDashClient",
-    "provider_coin_id": "",
-    "url": "https://insight.dash.org/api/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -379,6 +302,17 @@
     "client_class": "BlockCypher",
     "provider_coin_id": "",
     "url": "https://api.blockcypher.com/v1/doge/main/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blockcypher.testnet": {
+    "provider": "blockcypher",
+    "network": "testnet",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/btc/test3/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,

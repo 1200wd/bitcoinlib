@@ -251,11 +251,13 @@ class Block:
         raw.seek(tx_start_pos)
         transactions = []
 
+        index = 0
         while parse_transactions and raw.tell() < txs_data_size:
             if limit != 0 and len(transactions) >= limit:
                 break
-            t = Transaction.parse_bytesio(raw, strict=False)
+            t = Transaction.parse_bytesio(raw, strict=False, index=index)
             transactions.append(t)
+            index += 1
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))
@@ -267,81 +269,6 @@ class Block:
         block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, height,
                     network=network)
         block.txs_data = raw
-        block.tx_count = tx_count
-        return block
-
-    @classmethod
-    @deprecated
-    def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):  # pragma: no cover
-        """
-        Create Block object from raw serialized block in bytes.
-
-        Get genesis block:
-
-        >>> from bitcoinlib.services.services import Service
-        >>> srv = Service()
-        >>> b = srv.getblock(0)
-        >>> b.block_hash.hex()
-        '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'
-        
-        :param raw: Raw serialize block
-        :type raw: bytes
-        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
-        :type block_hash: bytes
-        :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
-        :type height: int
-        :param parse_transactions: Indicate if transactions in raw block need to be parsed and converted to Transaction objects. Default is False
-        :type parse_transactions: bool
-        :param limit: Maximum number of transactions to parse. Default is 0: parse all transactions. Only used if parse_transaction is set to True
-        :type limit: int
-        :param network: Name of network
-        :type network: str
-
-        :return Block:
-        """
-        block_hash_calc = double_sha256(raw[:80])[::-1]
-        if not block_hash:
-            block_hash = block_hash_calc
-        elif block_hash != block_hash_calc:
-            raise ValueError("Provided block hash does not correspond to calculated block hash %s" %
-                             block_hash_calc.hex())
-
-        version = raw[0:4][::-1]
-        prev_block = raw[4:36][::-1]
-        merkle_root = raw[36:68][::-1]
-        time = raw[68:72][::-1]
-        bits = raw[72:76][::-1]
-        nonce = raw[76:80][::-1]
-        tx_count, size = varbyteint_to_int(raw[80:89])
-        txs_data = BytesIO(raw[80+size:])
-
-        # Parse coinbase transaction so we can extract extra information
-        # transactions = [Transaction.parse(txs_data, network=network)]
-        # txs_data = BytesIO(txs_data[transactions[0].size:])
-        # block_txs_data = txs_data.read()
-        txs_data_size = txs_data.seek(0, 2)
-        txs_data.seek(0)
-        transactions = []
-
-        while parse_transactions and txs_data and txs_data.tell() < txs_data_size:
-            if limit != 0 and len(transactions) >= limit:
-                break
-            t = Transaction.parse_bytesio(txs_data, strict=False)
-            transactions.append(t)
-            # t = transaction_deserialize(txs_data, network=network, check_size=False)
-            # transactions.append(t)
-            # txs_data = txs_data[t.size:]
-            # TODO: verify transactions, need input value from previous txs
-            # if verify and not t.verify():
-            #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))
-
-        if parse_transactions and limit == 0 and tx_count != len(transactions):
-            raise ValueError("Number of found transactions %d is not equal to expected number %d" %
-                             (len(transactions), tx_count))
-
-        block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, height,
-                    network=network)
-        block.txs_data = txs_data
         block.tx_count = tx_count
         return block
 
@@ -373,11 +300,13 @@ class Block:
         """
         transactions_dict = []
         txs_data_orig = deepcopy(self.txs_data)
+        index = 0
         while self.txs_data and len(self.transactions) < self.tx_count:
-            tx = self.parse_transaction_dict()
+            tx = self.parse_transaction_dict(index)
             if not tx:
                 break
             transactions_dict.append(tx)
+            index += 1
         self.txs_data = txs_data_orig
         return transactions_dict
             
@@ -394,7 +323,7 @@ class Block:
             return t
         return False
 
-    def parse_transaction_dict(self):
+    def parse_transaction_dict(self, index=None):
         """
         Parse a single transaction from Block, if transaction data is available in txs_data attribute. Add
         Transaction object in Block and return the transaction
@@ -480,6 +409,7 @@ class Block:
             tx['txid'] = double_sha256(tx['version'][::-1] + raw_n_inputs + inputs_raw + raw_n_outputs + outputs_raw
                                        + tx_locktime)[::-1]
             tx['size'] = len(tx['rawtx'])
+            tx['index'] = index
             # TODO: tx['vsize'] = len(tx['rawtx'])
             return tx
         return False

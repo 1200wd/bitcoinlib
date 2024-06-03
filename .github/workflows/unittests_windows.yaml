@@ -1,4 +1,4 @@
-name: Bitcoinlib Windows Unittests
+name: Bitcoinlib Tests Windows
 on: [push]
 
 jobs:
@@ -7,9 +7,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           architecture: 'x64'
@@ -18,7 +18,6 @@ jobs:
           python -m pip install .[dev]
       - name: Test with coverage
         env:
-          BCL_CONFIG_FILE: config.ini.unittest
-          UNITTESTS_FULL_DATABASE_TEST: False
+          BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
           PYTHONUTF8: 1
         run: coverage run --source=bitcoinlib -m unittest -v

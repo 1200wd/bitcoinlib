@@ -105,6 +105,38 @@ def get_encoding_from_witness(witness_type=None):
         raise ValueError("Unknown witness type %s" % witness_type)
 
 
+def get_key_structure_data(witness_type, multisig=False, purpose=None, encoding=None):
+    """
+    Get data from wallet key structure. Provide witness_type and multisig to determine key path, purpose (BIP44
+    reference) and encoding.
+
+    :param witness_type: Witness type used for transaction validation
+    :type witness_type: str
+    :param multisig: Multisig or single keys wallet, default is False: single key / 1-of-1 wallet
+    :type multisig: bool
+    :param purpose: Overrule purpose found in wallet structure. Do not use unless you known what you are doing.
+    :type purpose: int
+    :param encoding: Overrule encoding found in wallet structure. Do not use unless you known what you are doing.
+    :type encoding: str
+
+    :return: (key_path, purpose, encoding)
+    """
+    if not witness_type:
+        return None, purpose, encoding
+    ks = [k for k in WALLET_KEY_STRUCTURES if
+          k['witness_type'] == witness_type and k['multisig'] == multisig and k['purpose'] is not None]
+    if len(ks) > 1:
+        raise ValueError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                        "witness_type - multisig combination: %s, %s" % (witness_type, multisig))
+    if not ks:
+        raise ValueError("Please check definitions in WALLET_KEY_STRUCTURES. No options found for "
+                         "witness_type - multisig combination: %s, %s" % (witness_type, multisig))
+    purpose = ks[0]['purpose'] if not purpose else purpose
+    path_template = ks[0]['key_path']
+    encoding = ks[0]['encoding'] if not encoding else encoding
+    return path_template, purpose, encoding
+
+
 def deprecated(func):
     """
     This is a decorator which can be used to mark functions as deprecated. It will result in a warning being emitted when the function is used.

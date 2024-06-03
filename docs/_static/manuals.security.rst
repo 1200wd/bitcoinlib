@@ -13,7 +13,7 @@ Ten tips for more privacy and security when using Bitcoin and Bitcoinlib:
 4. Use a random number of change outputs and shuffle order of inputs and outputs. This way it is not visible
    which output is the change output. In the Wallet object you can set the number_of_change_outputs to zero to
    generate a random number of change outputs.
-5. `Encrypt your database <manuals.sqlcipher.html>`_ with SQLCipher.
+5. `Encrypt your database or private keys <manuals.sqlcipher.html>`_ with SQLCipher or AES.
 6. Use password protected private keys. For instance use a password when
    `creating wallets <https://bitcoinlib.readthedocs.io/en/latest/source/bitcoinlib.wallets.html#bitcoinlib.wallets.Wallet.create>`_.
 7. Backup private keys and passwords! I have no proof but I assume more bitcoins are lost because of lost private keys then there are lost due to hacking...

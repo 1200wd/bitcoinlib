@@ -26,8 +26,35 @@
       "wif": "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7",
       "address": "1HmPbwsvG5qJ3KJfxzsZRZWhbm1xBMuS8B",
       "description": "no EC multiply / compression #2"
+    },
+    {
+      "passphrase": "TestingOneTwoThree",
+      "passphrase_code": "passphrasepxFy57B9v8HtUsszJYKReoNDV6VHjUSGt8EVJmux9n1J3Ltf1gRxyDGXqnf9qm",
+      "bip38": "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX",
+      "wif": "5K4caxezwjGCGfnoPTZ8tMcJBLB7Jvyjv4xxeacadhq8nLisLR2",
+      "address": "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX",
+      "description": "EC multiply / no compression / no lot sequence numbers #1",
+      "test_encrypt": false
+    },
+    {
+      "passphrase": "Satoshi",
+      "passphrase_code": "passphraseoRDGAXTWzbp72eVbtUDdn1rwpgPUGjNZEc6CGBo8i5EC1FPW8wcnLdq4ThKzAS",
+      "bip38": "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd",
+      "wif": "5KJ51SgxWaAYR13zd9ReMhJpwrcX47xTJh2D3fGPG9CM8vkv5sH",
+      "address": "1CqzrtZC6mXSAhoxtFwVjz8LtwLJjDYU3V",
+      "description": "EC multiply / no compression / no lot sequence numbers #2",
+      "test_encrypt": false
+    },
+    {
+      "passphrase": "MOLON LABE",
+      "passphrase_code": "passphraseaB8feaLQDENqCgr4gKZpmf4VoaT6qdjJNJiv7fsKvjqavcJxvuR1hy25aTu5sX",
+      "bip38": "6PgNBNNzDkKdhkT6uJntUXwwzQV8Rr2tZcbkDcuC9DZRsS6AtHts4Ypo1j",
+      "wif": "5JLdxTtcTHcfYcmJsNVy1v2PMDx432JPoYcBTVVRHpPaxUrdtf8",
+      "address": "1Jscj8ALrYu2y9TD8NrpvDBugPedmbj4Yh",
+      "description": "EC multiply / no compression / lot sequence numbers #1",
+      "test_encrypt": false
     }
-  ],
+],
   "invalid": {
     "decrypt": [],
     "encrypt": [],

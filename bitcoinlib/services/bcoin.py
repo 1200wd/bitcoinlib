@@ -54,11 +54,12 @@ class BcoinClient(BaseClient):
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
-        t.date = datetime.utcfromtimestamp(tx['time']) if tx['time'] else None
+        t.date = datetime.fromtimestamp(tx['time'], timezone.utc) if tx['time'] else None
         t.confirmations = tx['confirmations']
         t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
         t.status = status
+        t.index = tx['index']
         if not t.coinbase:
             for i in t.inputs:
                 i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']

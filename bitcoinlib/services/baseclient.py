@@ -19,6 +19,7 @@
 #
 
 import requests
+import urllib3
 from urllib.parse import urlencode
 import json
 from bitcoinlib.main import *
@@ -26,6 +27,9 @@ from bitcoinlib.networks import Network
 from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
+
+# Disable warnings about insecure requests, as we only connect to familiar sources and local nodes
+urllib3.disable_warnings()
 
 
 class ClientError(Exception):
@@ -40,12 +44,13 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True, wallet_name=''):
         try:
             self.network = network
             if not isinstance(network, Network):
                 self.network = Network(network)
             self.provider = provider
+
             self.base_url = base_url
             self.resp = None
             self.units = denominator
@@ -57,6 +62,7 @@ class BaseClient(object):
             if network_overrides is not None:
                 self.network_overrides = network_overrides
             self.strict = strict
+            self.wallet_name = wallet_name
         except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 

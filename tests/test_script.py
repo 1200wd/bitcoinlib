@@ -464,23 +464,22 @@ class TestStack(unittest.TestCase):
         for n in [None, 1] + list(range(4, 11)):
             self.assertTrue(getattr(Stack(), 'op_nop%s' % (str(n) if n else ''))())
 
-    # TODO: Add
-    # def test_op_checklocktimeverify(self):
-        # cur_timestamp = int(datetime.now().timestamp())
-        # st = Stack([encode_num(500)])
-        # self.assertTrue(st.op_checklocktimeverify(tx_locktime=1000, sequence=1))
-        # self.assertFalse(st.op_checklocktimeverify(tx_locktime=1000, sequence=0xffffffff))
-        # self.assertFalse(st.op_checklocktimeverify(tx_locktime=499, sequence=1))
-        # self.assertTrue(st.op_checklocktimeverify(tx_locktime=500, sequence=1))
-        # self.assertFalse(st.op_checklocktimeverify(tx_locktime=cur_timestamp, sequence=1))
-        #
-        # st = Stack([encode_num(cur_timestamp-100)])
-        # self.assertTrue(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=cur_timestamp))
-        # self.assertFalse(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=660600))
-        #
-        # cur_timestamp = int(datetime.now().timestamp())
-        # st = Stack([encode_num(cur_timestamp+100)])
-        # self.assertFalse(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=cur_timestamp))
+    def test_op_checklocktimeverify(self):
+        cur_timestamp = int(datetime.now().timestamp())
+        st = Stack([encode_num(500)])
+        self.assertTrue(st.op_checklocktimeverify(tx_locktime=1000, sequence=1))
+        self.assertFalse(st.op_checklocktimeverify(tx_locktime=1000, sequence=0xffffffff))
+        self.assertFalse(st.op_checklocktimeverify(tx_locktime=499, sequence=1))
+        self.assertTrue(st.op_checklocktimeverify(tx_locktime=500, sequence=1))
+        self.assertFalse(st.op_checklocktimeverify(tx_locktime=cur_timestamp, sequence=1))
+
+        st = Stack([encode_num(cur_timestamp-100)])
+        self.assertTrue(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=cur_timestamp))
+        self.assertFalse(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=660600))
+
+        cur_timestamp = int(datetime.now().timestamp())
+        st = Stack([encode_num(cur_timestamp+100)])
+        self.assertFalse(st.op_checklocktimeverify(sequence=0xfffffffe, tx_locktime=cur_timestamp))
 
     # TODO: Add
     # def test_op_checksequenceverify(self):
@@ -560,7 +559,7 @@ class TestScriptTypes(unittest.TestCase):
     def test_script_type_empty_unknown(self):
         s = Script.parse(b'')
         self.assertEqual(s.commands, [])
-        self.assertEqual(s.raw, b'')
+        self.assertEqual(s.as_bytes(), b'')
 
     def test_script_deserialize_sig_pk(self):
         scr = '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a' \
@@ -625,10 +624,10 @@ class TestScript(unittest.TestCase, CustomAssertions):
 
         script = unlock_script + lock_script
         s = Script.parse_bytes(script)
-        self.assertEqual(s.blueprint, [0, 'signature', 'signature', 82, 'key', 'key', 'key', 83, 174, 169,
+        self.assertEqual(s.blueprint, [0, 'signature', 'signature', [82, 'key', 'key', 'key', 83, 174], 169,
                                        'data-20', 135])
         self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
-        self.assertEqual(str(s), "OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_HASH160 "
+        self.assertEqual(str(s), "OP_0 signature signature redeemscript OP_HASH160 "
                                  "data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('5a805853bf82bcdd865deb09c73ccdd61d2331ac19d8c2911f17c7d954aec059')
         self.assertTrue(s.evaluate(message=transaction_hash))
@@ -674,13 +673,12 @@ class TestScript(unittest.TestCase, CustomAssertions):
         script = unlock_script + lock_script
         s = Script.parse_bytes(script)
         self.assertEqual(s.blueprint, [0, 'signature', 'signature', 'signature', 'signature', 'signature',
-                                       'signature', 'signature', 'signature', 88, 'key', 'key', 'key', 'key',
+                                       'signature', 'signature', 'signature', [88, 'key', 'key', 'key', 'key',
                                        'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key', 'key',
-                                       95, 174, 169, 'data-20', 135])
+                                       95, 174], 169, 'data-20', 135])
         self.assertEqual(s.script_types, ['p2sh_multisig', 'p2sh'])
         self.assertEqual(str(s), "OP_0 signature signature signature signature signature signature signature "
-                                 "signature OP_8 key key key key key key key key key key key key key key key OP_15 "
-                                 "OP_CHECKMULTISIG OP_HASH160 data-20 OP_EQUAL")
+                                 "signature redeemscript OP_HASH160 data-20 OP_EQUAL")
         transaction_hash = bytes.fromhex('8d190df3d02369999cad3eb222ac18b3315ff2bdc449b8fb30eb14db45730fe3')
         self.assertEqual(s.redeemscript, redeemscript)
         self.assertTrue(s.evaluate(message=transaction_hash))
@@ -724,11 +722,17 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertEqual(str(s), "signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 data-32 OP_EQUAL")
         transaction_hash = bytes.fromhex('43f0f6dfb58acc8ed05f5afc224c2f6c50523230bfcba5e5fd91d345e8a159ab')
         data = {'redeemscript': redeemscript}
-        self.assertTrue(s.evaluate(message=transaction_hash, tx_data=data))
+        self.assertTrue(s.evaluate(message=transaction_hash, env_data=data))
 
     def test_script_verify_transaction_input_p2pk(self):
-        pass
-        # TODO
+        p2pk_lockscript = '210312ed54eee6c84b440dd90623a714360196bebd842bfa64c7c7767b71b92a238dac'  # key + checksig
+        p2pk_unlockscript = \
+            ('463043021f52f02788988b941e3b810357762ccea5148e405edf124ea6b3b7eb9eba15430220609a9261612aaaa7544b7dae34'
+             '7b5dc3e53b0fc304957d6c4a46e1ae90a5d30001')  # signature
+        script = p2pk_unlockscript + p2pk_lockscript
+        s = Script.parse_hex(script)
+        transaction_hash = bytes.fromhex("67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986")
+        self.assertTrue(s.evaluate(message=transaction_hash))
 
     def test_script_verify_transaction_output_return(self):
         script = bytes.fromhex('6a26062c74e4b802d60ffdd1daa37b848e39a2b0ecb2de72c6ca24d71b87813b5e056cb7f1e8c8b0')
@@ -755,11 +759,17 @@ class TestScript(unittest.TestCase, CustomAssertions):
     def test_script_create_simple(self):
         script = Script([op.op_2, op.op_5, op.op_sub, op.op_1])
         self.assertEqual(str(script), 'OP_2 OP_5 OP_SUB OP_1')
-        self.assertEqual(repr(script), '<Script([op.op_2, op.op_5, op.op_sub, op.op_1])>')
+        self.assertEqual(repr(script), '<Script([OP_2, OP_5, OP_SUB, OP_1])>')
         self.assertEqual(script.serialize().hex(), '52559451')
         self.assertEqual(script.serialize_list(), [b'R', b'U', b'\x94', b'Q'])
         self.assertTrue(script.evaluate())
         self.assertEqual(script.stack, [b'\3'])
+
+    def test_script_calc_evaluate(self):
+        s = Script.parse('0101016293016387')
+        self.assertListEqual(s.blueprint, ['data-1', 'data-1', 147, 'data-1', 135])
+        self.assertTrue(s.view(), '01 62 OP_ADD 63 OP_EQUAL')
+        self.assertTrue(s.evaluate())
 
     def test_script_serialize(self):
         # Serialize p2sh_p2wsh tx 77ad5a0f9447dbfb9adcdb9b2437e91780519ec8ee24a8eda91b25a0666205cb from sigs and keys
@@ -773,7 +783,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         key3 = bytes.fromhex('0221b302fb92b25f171f1cd57bd22e60a1d2956f5831df17d94b3e9c3490aad598')
         redeemscript = Script([op.op_2, key1, key2, key3, op.op_3, op.op_checkmultisig])
         script_hash = bytes.fromhex('b0fcc0caed77aeba9786f39920151162dfaf90e679aafab7a71e9b978e7d3f39')
-        self.assertEqual(redeemscript.raw.hex(),
+        self.assertEqual(redeemscript.as_hex(),
                          '522102cd9107f8f1505ffd779bb7d8596ee686afc116e340f01b435871a038922255eb210297faa15d33e14e80c'
                          'a8a8616030b677941245fea12c4ef2ca28b14bd35ed42e1210221b302fb92b25f171f1cd57bd22e60a1d2956f58'
                          '31df17d94b3e9c3490aad59853ae')
@@ -783,7 +793,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
                  Script([op.op_sha256, script_hash, op.op_equal])
         self.assertEqual(str(script), 'OP_0 signature signature OP_2 key key key OP_3 OP_CHECKMULTISIG OP_SHA256 '
                                       'data-32 OP_EQUAL')
-        self.assertTrue(script.evaluate(message=transaction_hash, tx_data={'redeemscript': redeemscript.serialize()}))
+        self.assertTrue(script.evaluate(message=transaction_hash, env_data={'redeemscript': redeemscript.serialize()}))
         self.assertEqual(script.stack, [])
 
     def test_script_deserialize_sig_pk2(self):
@@ -804,7 +814,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
         script = b'\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
         s1 = Script.parse(script_size_byte)
         s2 = Script.parse(script)
-        s1._raw = s2.raw
+        s1._raw = s2.as_bytes()
         self.assertDictEqualExt(s1.__dict__, s2.__dict__)
 
     def test_script_parse_redeemscript(self):
@@ -830,7 +840,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
                        '00bd217870a8b4f1f09f3a8e8353ae'
         self.assertEqual(expected_redeemscript, redeemscript.serialize().hex())
 
-        redeemscript3 = b'\x52' + b''.join([varstr(k) for k in keylist]) + b'\x53\xae'
+        redeemscript3 = b'\x52' + b''.join([varstr(k.public_byte) for k in keylist]) + b'\x53\xae'
         self.assertEqual(redeemscript3, redeemscript.serialize())
 
     def test_script_create_redeemscript_2(self):
@@ -873,7 +883,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
 
         redeemscript_size = '4dff01' + redeemscript
         s = Script.parse_hex(redeemscript_size)
-        self.assertEqual((str(s)), redeemscript_str)
+        self.assertEqual((str(s)), "redeemscript OP_15 OP_CHECKMULTISIG")
 
         redeemscript_error = '4d0101' + redeemscript
         self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,
@@ -883,6 +893,38 @@ class TestScript(unittest.TestCase, CustomAssertions):
         self.assertRaisesRegex(ScriptError, "Malformed script, not enough data found", Script.parse_hex,
                                redeemscript_error)
 
+    def test_script_view(self):
+        script = bytes.fromhex(
+            '483045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437df1ea8f98'
+            '19d344e05b9c93e38e88df1fc46abb6194506c50ce1012103e481f20561573cfd800e64efda61405917cb29e4bd20bed168c5'
+            '2b674937f53576a914f9cc73824051cc82d64a716c836c54467a21e22c88ac')
+        s = Script.parse(script)
+        expected_str = ('3045022100ba2ec7c40257b3d22864c9558738eea4d8771ab97888368124e176fdd6d7cd8602200f47c8d0c437'
+                        'df1ea8f9819d344e05b9c93e38e88df1fc46abb6194506c50ce101 03e481f20561573cfd800e64efda6140591'
+                        '7cb29e4bd20bed168c52b674937f535 OP_DUP OP_HASH160 f9cc73824051cc82d64a716c836c54467a21e22c'
+                        ' OP_EQUALVERIFY OP_CHECKSIG')
+        self.assertEqual(s.view(), expected_str)
+        self.assertEqual(s.blueprint, s.view(blueprint=True, as_list=True, op_code_numbers=True))
+        self.assertEqual(str(s), s.view(blueprint=True))
+
+    def test_script_str(self):
+        script_str = "1 98 OP_ADD 99 OP_EQUAL"
+        s = Script.parse_str(script_str)
+        self.assertEqual(s.view(), script_str)
+        self.assertTrue(s.evaluate())
+        self.assertEqual(s.as_hex(), '0101016293016387')
+
+        script_str_2 = "OP_DUP OP_HASH160 af8e14a2cecd715c363b3a72b55b59a31e2acac9 OP_EQUALVERIFY OP_CHECKSIG"
+        s = Script.parse_str(script_str_2)
+        clist = [118, 169, b'\xaf\x8e\x14\xa2\xce\xcdq\\6;:r\xb5[Y\xa3\x1e*\xca\xc9', 136, 172]
+        self.assertListEqual(s.commands, clist)
+        self.assertEqual(s.view(), script_str_2)
+
+    def test_script_locking_type(self):
+        script_str = (b'"\x00 \x04\x7f\x8d]S\x04\xb8\xa1x\xbf\xfb\xd7\xc1\xc0\xc7\xc2To\xc9O\xc3\xb2\x91\n\xdb\x9db'
+                      b'\x19\x85{]\x9f')
+        self.assertEqual(Script.parse(script_str, is_locking=True).script_types, ['p2wsh'])
+        self.assertEqual(Script.parse(script_str, is_locking=False).script_types, ['p2sh_p2wsh'])
 
 class TestScriptMPInumbers(unittest.TestCase):
 

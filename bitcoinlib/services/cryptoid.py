@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -106,7 +106,7 @@ class CryptoID(BaseClient):
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
-        t.date = datetime.utcfromtimestamp(tx['time'])
+        t.date = datetime.fromtimestamp(tx['time'], timezone.utc)
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']
@@ -123,6 +123,8 @@ class CryptoID(BaseClient):
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        if not self.api_key:
+            raise ClientError("Method gettransactions() is not available for CryptoID without API key")
         address = self._address_convert(address)
         txs = []
         txids = []

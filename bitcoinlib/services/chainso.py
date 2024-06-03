@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -80,7 +80,7 @@ class ChainSo(BaseClient):
                 'size': 0,
                 'value': int(round(float(tx['value']) * self.units, 0)),
                 'script': tx['script_hex'],
-                'date': datetime.utcfromtimestamp(tx['time']),
+                'date': datetime.fromtimestamp(tx['time'], timezone.utc),
             })
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
@@ -119,7 +119,7 @@ class ChainSo(BaseClient):
         t.confirmations = tx['confirmations']
         if tx['confirmations']:
             t.status = 'confirmed'
-            t.date = datetime.utcfromtimestamp(tx['time'])
+            t.date = datetime.fromtimestamp(tx['time'], timezone.utc)
         else:
             t.status = 'unconfirmed'
             t.date = None

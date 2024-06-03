@@ -521,7 +521,7 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
     >>> addr_base58_to_pubkeyhash('142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ', as_hex=True)
     '21342f229392d7c9ed82c932916cee6517fbc9a2'
 
-    :param address: Crypto currency address in base-58 format
+    :param address: Cryptocurrency address in base-58 format
     :type address: str, bytes
     :param as_hex: Output as hexstring
     :type as_hex: bool
@@ -772,7 +772,7 @@ def convertbits(data, frombits, tobits, pad=True):
         if bits:
             ret.append((acc << (tobits - bits)) & maxv)
     elif bits >= frombits or ((acc << (tobits - bits)) & maxv):
-        return None
+        raise EncodingError("Invalid padding bits")
     return ret
 
 
@@ -884,6 +884,23 @@ def double_sha256(string, as_hex=False):
         return hashlib.sha256(hashlib.sha256(string).digest()).hexdigest()
 
 
+def sha256(string, as_hex=False):
+    """
+    Get SHA256 hash of string
+
+    :param string: String to be hashed
+    :type string: bytes
+    :param as_hex: Return value as hexadecimal string. Default is False
+    :type as_hex: bool
+
+    :return bytes, str:
+    """
+    if not as_hex:
+        return hashlib.sha256(string).digest()
+    else:
+        return hashlib.sha256(string).hexdigest()
+
+
 def ripemd160(string):
     try:
         return RIPEMD160.new(string).digest()
@@ -946,99 +963,26 @@ def aes_decrypt(encrypted_data, key):
     ct = encrypted_data[:-16]
     tag = encrypted_data[-16:]
     cipher2 = AES.new(key, AES.MODE_SIV)
-    return cipher2.decrypt_and_verify(ct, tag)
-
-
-def bip38_decrypt(encrypted_privkey, password):
-    """
-    BIP0038 non-ec-multiply decryption. Returns WIF private key.
-    Based on code from https://github.com/nomorecoin/python-bip38-testing
-    This method is called by Key class init function when importing BIP0038 key.
-
-    :param encrypted_privkey: Encrypted private key using WIF protected key format
-    :type encrypted_privkey: str
-    :param password: Required password for decryption
-    :type password: str
-
-    :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
-    """
-    d = change_base(encrypted_privkey, 58, 256)
-    identifier = d[0:2]
-    flagbyte = d[2:3]
-    d = d[3:]
-    # ec_multiply = False
-    if identifier  == b'\x01\x43':
-        # ec_multiply = True
-        raise EncodingError("EC multiply BIP38 keys are not supported at the moment")
-    elif identifier != b'\x01\x42':
-        raise EncodingError("Unknown BIP38 identifier, value must be 0x0142 (non-EC-multiplied) or "
-                            "0x0143 (EC-multiplied)")
-    if flagbyte == b'\xc0':
-        compressed = False
-    elif flagbyte == b'\xe0' or flagbyte == b'\x20':
-        compressed = True
-    else:
-        raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")
-    if isinstance(password, str):
-        password = password.encode('utf-8')
-    addresshash = d[0:4]
-    d = d[4:-4]
     try:
-        key = scrypt(password, addresshash, 64, 16384, 8, 8)
-    except Exception:
-        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
-    derivedhalf1 = key[0:32]
-    derivedhalf2 = key[32:64]
-    encryptedhalf1 = d[0:16]
-    encryptedhalf2 = d[16:32]
-    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-    aes = AES.new(derivedhalf2, AES.MODE_ECB)
-    decryptedhalf2 = aes.decrypt(encryptedhalf2)
-    decryptedhalf1 = aes.decrypt(encryptedhalf1)
-    priv = decryptedhalf1 + decryptedhalf2
-    priv = (int.from_bytes(priv, 'big') ^ int.from_bytes(derivedhalf1, 'big')).to_bytes(32, 'big')
-    # if compressed:
-    #     # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
-    #     priv += b'\1'
-    return priv, addresshash, compressed
+        res = cipher2.decrypt_and_verify(ct, tag)
+    except ValueError as e:
+        raise EncodingError("Could not decrypt value (password incorrect?): %s" % e)
+    return res
 
 
-def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
+def scrypt_hash(password, salt, key_len=64, N=16384, r=8, p=1, buflen=64):
     """
-    BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
-    Based on code from https://github.com/nomorecoin/python-bip38-testing
+    Wrapper for Scrypt method for scrypt or Cryptodome library
 
-    :param private_hex: Private key in hex format
-    :type private_hex: str
-    :param address: Address string
-    :type address: str
-    :param password: Required password for encryption
-    :type password: str
-    :param flagbyte: Flagbyte prefix for WIF
-    :type flagbyte: bytes
+    For documentation see methods in referring libraries
 
-    :return str: BIP38 password encrypted private key
     """
-    if isinstance(address, str):
-        address = address.encode('utf-8')
-    if isinstance(password, str):
-        password = password.encode('utf-8')
-    addresshash = double_sha256(address)[0:4]
-    try:
-        key = scrypt(password, addresshash, 64, 16384, 8, 8)
-    except Exception:
-        key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
-    derivedhalf1 = key[0:32]
-    derivedhalf2 = key[32:64]
-    aes = AES.new(derivedhalf2, AES.MODE_ECB)
-    # aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-    encryptedhalf1 = \
-        aes.encrypt((int(private_hex[0:32], 16) ^ int.from_bytes(derivedhalf1[0:16], 'big')).to_bytes(16, 'big'))
-    encryptedhalf2 = \
-        aes.encrypt((int(private_hex[32:64], 16) ^ int.from_bytes(derivedhalf1[16:32], 'big')).to_bytes(16, 'big'))
-    encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
-    encrypted_privkey += double_sha256(encrypted_privkey)[:4]
-    return base58encode(encrypted_privkey)
+    try:               # Try scrypt from Cryptodome
+        key = scrypt(password, salt, key_len, N, r, p)
+    except TypeError:  # Use scrypt module
+        key = scrypt.hash(password, salt, N, r, p, key_len)
+    return key
+
 
 
 class Quantity:
