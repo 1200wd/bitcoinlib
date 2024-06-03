@@ -75,7 +75,7 @@ class BitapsClient(BaseClient):
                             sequence=ti['sequence'], index_n=int(n), value=0)
             else:
                 t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
-                            unlocking_script_unsigned=ti['scriptPubKey'], witnesses=ti.get('txInWitness', []),
+                            locking_script=ti['scriptPubKey'], witnesses=ti.get('txInWitness', []),
                             address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
                             index_n=int(n), value=ti['amount'], strict=self.strict)
 
@@ -172,6 +172,8 @@ class BitapsClient(BaseClient):
     # def estimatefee
 
     def blockcount(self):
+        if self.network == 'testnet':
+            raise ClientError('Providers return incorrect blockcount for testnet')
         return self.compose_request('block', 'last')['data']['height']
 
     # def mempool(self, txid):

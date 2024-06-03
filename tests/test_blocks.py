@@ -150,6 +150,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.tx_count, 81)
         self.assertEqual(b.transactions[0].txid, 'dfd63430f8d14f6545117d74b20da63efd4a75c7e28f723b3dead431b88469ee')
         self.assertEqual(b.transactions[4].txid, '717bc8b42f12baf771b6719c2e3b2742925fe3912917c716abef03e35fe49020')
+        self.assertEqual(b.transactions[4].index, 4)
         self.assertEqual(len(b.transactions), 5)
         b.parse_transactions(70)
         self.assertEqual(len(b.transactions), 75)
@@ -207,5 +208,6 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(2668, len(b.transactions))
         i = 0
         for tx in tx_dict:
+            self.assertEqual(tx['index'], i)
             assert(tx['txid'].hex() == b.transactions[i].txid)
             i += 1

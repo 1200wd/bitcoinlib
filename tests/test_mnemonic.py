@@ -40,7 +40,7 @@ class TestMnemonics(unittest.TestCase):
             # print("Test %s => %s" % (v[0], phrase))
             self.assertEqual(v[1], phrase)
             self.assertEqual(v[2], seed)
-            k = HDKey.from_seed(seed)
+            k = HDKey.from_seed(seed, witness_type='legacy')
             self.assertEqual(k.wif(is_private=True), v[3])
 
     # From Copyright (c) 2013 Pavol Rusnak <https://github.com/trezor/python-mnemonic>

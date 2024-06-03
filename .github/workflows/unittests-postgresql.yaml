@@ -1,0 +1,40 @@
+name: Bitcoinlib Tests Ubuntu - PostgreSQL
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: bitcoinlib_test
+
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+          python-version: '3.10'
+          architecture: 'x64'
+    - name: Install dependencies
+      run: |
+        python -m pip install .[dev]
+    - name: Test with coverage
+      env:
+        BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
+        UNITTEST_DATABASE: postgresql
+        DB_FIELD_ENCRYPTION_PASSWORD: verybadpassword
+      run: coverage run --source=bitcoinlib -m unittest -v

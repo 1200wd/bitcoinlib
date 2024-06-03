@@ -59,6 +59,7 @@ class BcoinClient(BaseClient):
         t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
         t.status = status
+        t.index = tx['index']
         if not t.coinbase:
             for i in t.inputs:
                 i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']

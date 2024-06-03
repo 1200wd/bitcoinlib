@@ -96,7 +96,7 @@ if utxos:
     print("\nNew unspent outputs found!")
     print("Now a new transaction will be created to sweep this wallet and send bitcoins to a testnet faucet")
     send_to_address = '2NGZrVvZG92qGYqzTLjCAewvPZ7JE8S8VxE'
-    t = wallet3o5.sweep(send_to_address, min_confirms=0, offline=True)
+    t = wallet3o5.sweep(send_to_address, min_confirms=0, broadcast=False)
     print("Now send the raw transaction hex to one of the other cosigners to sign using sign_raw.py")
     print("Raw transaction: %s" % t.raw_hex())
 else:

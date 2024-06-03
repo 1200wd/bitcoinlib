@@ -128,6 +128,8 @@ class BitcoindClient(BaseClient):
         :type: str
         :param denominator: Denominator for this currency. Should be always 100000000 (Satoshi's) for bitcoin
         :type: str
+        :param wallet_name: Name of Bitcoin core wallet to use. Make sure the wallet exists, otherwise connection will fail.
+        :type str
         """
         if isinstance(network, Network):
             network = network.name
@@ -136,6 +138,9 @@ class BitcoindClient(BaseClient):
             bdc = self.from_config('', network)
             base_url = bdc.base_url
             network = bdc.network
+        wallet_name = '' if not len(args) > 6 else args[6]
+        if wallet_name:
+            base_url = base_url.replace("{wallet_name}", wallet_name)
         _logger.info("Connect to bitcoind")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
@@ -227,7 +232,7 @@ class BitcoindClient(BaseClient):
         if len(txs_list) >= MAX_WALLET_TRANSACTIONS:
             raise ClientError("Bitcoind wallet contains too many transactions %d, use other service provider for this "
                               "wallet" % MAX_WALLET_TRANSACTIONS)
-        txids = list(set([(tx['txid'], tx['blockheight']) for tx in txs_list if tx['address'] == address]))
+        txids = list(set([(tx['txid'], tx.get('blockheight')) for tx in txs_list if tx['address'] == address]))
         for (txid, blockheight) in txids:
             tx_raw = self.proxy.getrawtransaction(txid, 1)
             t = self._parse_transaction(tx_raw, blockheight)

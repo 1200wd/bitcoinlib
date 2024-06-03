@@ -5,12 +5,12 @@ Bitcoinlib uses the SQLite database by default, because it easy to use and requi
 
 But you can also use other databases. At this moment Bitcoinlib is tested with MySQL and PostgreSQL.
 
+The database URI can be passed to the Wallet or Service object, or you can set the database URI for wallets and / or cache in configuration file at ~/.bitcoinlib/config.ini
 
-Using MySQL database
---------------------
+Using MariaDB / MySQL database
+------------------------------
 
-We assume you have a MySQL server at localhost. Unlike with the SQLite database MySQL databases are not created
-automatically, so create one from the mysql command prompt:
+We assume you have a MySQL server at localhost. Unlike with the SQLite database MySQL databases are not created automatically, so create one from the mysql command prompt:
 
 .. code-block:: mysql
 
@@ -32,6 +32,7 @@ In your application you can create a database link. The database tables are crea
     w = wallet_create_or_open('wallet_mysql', db_uri=db_uri)
     w.info()
 
+At the moment it is not possible to use MySQL database for `caching <manuals.caching.html>`_, because the BLOB transaction ID's are used as primary key. For caching you need to use a PostgreSQL or SQLite database.
 
 Using PostgreSQL database
 -------------------------
@@ -54,14 +55,23 @@ And assume you unwisely have chosen the password 'secret' you can use the databa
 
 .. code-block:: python
 
-    db_uri = 'postgresql://bitcoinlib:secret@localhost:5432/'
+    db_uri = 'postgresql+psycopg://bitcoinlib:secret@localhost:5432/'
     w = wallet_create_or_open('wallet_mysql', db_uri=db_uri)
     w.info()
 
+Please note 'postgresql+psycopg' has to be used as scheme, because SQLalchemy uses the latest version 3 of psycopg, if not provided it will use psycopg2.
 
-Encrypt database
-----------------
+PostgreSQL can also be used for `caching <manuals.caching.html>`_ of service requests. The URI can be passed to the Service object or provided in the configuration file (~/.bitcoiinlib/config.ini)
 
-If you are using wallets with private keys it is advised to encrypt your database and / or private keys.
+.. code-block:: python
 
-Please read `Using Encrypted Databases <manuals.sqlcipher.html>`_ for more information.
+    srv = Service(cache_uri='postgresql+psycopg://postgres:postgres@localhost:5432/)
+    res = srv.gettransactions('12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL')
+
+
+Encrypt database or private keys
+--------------------------------
+
+If you are using wallets with private keys it is advised to use an encrypted database and / or to encrypt the private key fields.
+
+Please read `Encrypt Database or Private Keys <manuals.sqlcipher.html>`_ for more information.
