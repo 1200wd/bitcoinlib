@@ -288,13 +288,11 @@ def read_config():
     BCL_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     default_databasefile = DEFAULT_DATABASE = \
         config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
-    if not (default_databasefile.startswith('postgresql') or default_databasefile.startswith('mysql') or
-            default_databasefile.startswith('mariadb')):
+    if not default_databasefile.startswith('postgresql') and not default_databasefile.startswith('mysql') and not default_databasefile.startswith('mariadb'):
         DEFAULT_DATABASE = str(Path(BCL_DATABASE_DIR, default_databasefile))
     default_databasefile_cache = DEFAULT_DATABASE_CACHE = \
         config_get('locations', 'default_databasefile_cache', fallback='bitcoinlib_cache.sqlite')
-    if not (default_databasefile_cache.startswith('postgresql') or default_databasefile_cache.startswith('mysql') or
-            default_databasefile_cache.startswith('mariadb')):
+    if not default_databasefile_cache.startswith('postgresql') and not default_databasefile_cache.startswith('mysql') and not default_databasefile_cache.startswith('mariadb'):
         DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
     ALLOW_DATABASE_THREADS = config_get("common", "allow_database_threads", fallback=True, is_boolean=True)
     SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
