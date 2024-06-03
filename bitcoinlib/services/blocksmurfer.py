@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -88,7 +88,7 @@ class BlocksmurferClient(BaseClient):
         # FIXME: Blocksmurfer returns 'date' or 'time', should be consistent
         tx_date = None if not tx.get('date') else datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
         if not tx_date and 'time' in tx:
-            tx_date = datetime.utcfromtimestamp(tx['time'])
+            tx_date = datetime.fromtimestamp(tx['time'], timezone.utc)
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, input_total=tx['input_total'],
                         output_total=tx['output_total'], confirmations=confirmations, block_height=block_height,

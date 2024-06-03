@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -82,7 +82,8 @@ class MempoolClient(BaseClient):
                 'size': 0,
                 'value': a['value'],
                 'script': '',
-                'date': None if 'block_time' not in a['status'] else datetime.utcfromtimestamp(a['status']['block_time'])
+                'date': None if 'block_time' not in a['status'] else
+                datetime.fromtimestamp(a['status']['block_time'], timezone.utc)
             })
             if a['txid'] == after_txid:
                 utxos = []
@@ -97,7 +98,7 @@ class MempoolClient(BaseClient):
             if block_height:
                 self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
                 confirmations = self.latest_block - block_height + 1
-            tx_date = datetime.utcfromtimestamp(tx['status']['block_time'])
+            tx_date = datetime.fromtimestamp(tx['status']['block_time'], timezone.utc)
             status = 'confirmed'
 
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, block_height=block_height,

@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
@@ -48,7 +48,7 @@ class BlockbookClient(BaseClient):
             status = 'confirmed'
         else:
             status = 'unconfirmed'
-        txdate = datetime.utcfromtimestamp(tx['blockTime'])
+        txdate = datetime.fromtimestamp(tx['blockTime'], timezone.utc)
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.input_total = int(tx['valueIn'])
         t.output_total = int(tx['value'])

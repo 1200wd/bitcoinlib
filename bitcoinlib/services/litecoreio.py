@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
@@ -56,7 +56,7 @@ class LitecoreIOClient(BaseClient):
             isCoinbase = True
         txdate = None
         if 'blocktime' in tx:
-            txdate = datetime.utcfromtimestamp(tx['blocktime'])
+            txdate = datetime.fromtimestamp(tx['blocktime'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], txid=tx['txid'],
                         date=txdate, confirmations=tx['confirmations'],

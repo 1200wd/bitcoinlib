@@ -388,7 +388,7 @@ class DbTransaction(Base):
                       doc="Transaction level locktime. Locks the transaction until a specified block "
                           "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
                           " Default value is 0 for transactions without locktime")
-    date = Column(DateTime, default=datetime.utcnow,
+    date = Column(DateTime, default=datetime.now(timezone.utc),
                   doc="Date when transaction was confirmed and included in a block. "
                       "Or when it was created when transaction is not send or confirmed")
     coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
