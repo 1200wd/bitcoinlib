@@ -1,3 +1,10 @@
+RELEASE 0.6.15 - Small bugfixes, documentation updates
+======================================================
+* Some small bugfixes
+* New properties for WalletKey class for multisig wallets
+* Add Bcoin documentation, add FAQ, update other documentation
+* Add dockerfile for Linux Mint
+
 RELEASE 0.6.14 - Update installation instruction, docker & bugfixes
 ===================================================================
 * Update installation instructions
