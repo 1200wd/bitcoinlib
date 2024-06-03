@@ -116,7 +116,7 @@ class BlockstreamClient(BaseClient):
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address='' if 'scriptpubkey_address' not in ti['prevout']
                             else ti['prevout']['scriptpubkey_address'], sequence=ti['sequence'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=self.strict)
+                            locking_script=ti['prevout']['scriptpubkey'], witnesses=witnesses, strict=self.strict)
             index_n += 1
         index_n = 0
         if len(tx['vout']) > 101:

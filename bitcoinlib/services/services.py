@@ -25,7 +25,7 @@ from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr, varbyteint_to_int
+from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -55,7 +55,7 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
-                 max_errors=SERVICE_MAX_ERRORS, strict=True):
+                 max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None):
         """
         Create a service object for the specified network. By default, the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -78,6 +78,8 @@ class Service(object):
         :type exclude_providers: list of str
         :param strict: Strict checks of valid signatures, scripts and transactions. Normally use strict=True for wallets, transaction validations etcetera. For blockchain parsing strict=False should be used, but be sure to check warnings in the log file. Default is True.
         :type strict: bool
+        :param wallet_name: Name of wallet if connecting to bitcoin node
+        :type wallet_name: str
 
         """
 
@@ -113,9 +115,9 @@ class Service(object):
             if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
                     (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
-        for nop in exclude_providers:
-            if nop in self.providers:
-                del(self.providers[nop])
+        exclude_providers_keys = {pi: self.providers[pi]['provider'] for pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
+        for provider_key in exclude_providers_keys:
+            del(self.providers[provider_key])
 
         if not self.providers:
             raise ServiceError("No providers found for network %s" % network)
@@ -131,6 +133,7 @@ class Service(object):
         self._blockcount = None
         self.cache = None
         self.cache_uri = cache_uri
+        self.wallet_name = wallet_name
         try:
             self.cache = Cache(self.network, db_uri=cache_uri)
         except Exception as e:
@@ -140,15 +143,10 @@ class Service(object):
         self.ignore_priority = ignore_priority
         self.strict = strict
         if self.min_providers > 1:
-            self._blockcount = Service(network=network, cache_uri=cache_uri).blockcount()
+            self._blockcount = Service(network=network, cache_uri=cache_uri, providers=providers,
+                                       exclude_providers=exclude_providers, timeout=timeout).blockcount()
         else:
             self._blockcount = self.blockcount()
-
-    def __exit__(self):
-        try:
-            self.cache.session.close()
-        except Exception:
-            pass
 
     def _reset_results(self):
         self.results = {}
@@ -167,15 +165,17 @@ class Service(object):
             if self.resultcount >= self.max_providers:
                 break
             try:
-                if sp not in ['bitcoind', 'litecoind', 'dashd', 'dogecoind', 'caching'] and not self.providers[sp]['url'] and \
+                if sp not in ['bitcoind', 'litecoind', 'dogecoind', 'caching'] and not self.providers[sp]['url'] and \
                         self.network.name != 'bitcoinlib_test':
                     continue
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
+
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict)
+                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict,
+                    self.wallet_name)
                 if not hasattr(pc_instance, method):
                     _logger.debug("Method %s not found for provider %s" % (method, sp))
                     continue
@@ -388,11 +388,11 @@ class Service(object):
             if len(txs):
                 last_txid = bytes.fromhex(txs[-1:][0].txid)
             if len(self.results):
-                order_n = 0
+                index = 0
                 for t in txs:
                     if t.confirmations != 0:
-                        res = self.cache.store_transaction(t, order_n, commit=False)
-                        order_n += 1
+                        res = self.cache.store_transaction(t, index, commit=False)
+                        index += 1
                         # Failure to store transaction: stop caching transaction and store last tx block height - 1
                         if res is False:
                             if t.block_height:
@@ -439,12 +439,12 @@ class Service(object):
         """
         return self._provider_execute('sendrawtransaction', rawtx)
 
-    def estimatefee(self, blocks=3, priority=''):
+    def estimatefee(self, blocks=5, priority=''):
         """
         Estimate fee per kilobyte for a transaction for this network with expected confirmation within a certain
         amount of blocks
 
-        :param blocks: Expected confirmation time in blocks. Default is 3.
+        :param blocks: Expected confirmation time in blocks.
         :type blocks: int
         :param priority: Priority for transaction: can be 'low', 'medium' or 'high'. Overwrites value supplied in 'blocks' argument
         :type priority: str
@@ -454,9 +454,9 @@ class Service(object):
         self.results_cache_n = 0
         if priority:
             if priority == 'low':
-                blocks = 10
+                blocks = 25
             elif priority == 'high':
-                blocks = 1
+                blocks = 2
         if self.min_providers <= 1:  # Disable cache if comparing providers
             fee = self.cache.estimatefee(blocks)
             if fee:
@@ -562,11 +562,11 @@ class Service(object):
             block.page = page
 
             if parse_transactions and self.min_providers <= 1:
-                order_n = (page-1)*limit
+                index = (page-1)*limit
                 for tx in block.transactions:
                     if isinstance(tx, Transaction):
-                        self.cache.store_transaction(tx, order_n, commit=False)
-                    order_n += 1
+                        self.cache.store_transaction(tx, index, commit=False)
+                    index += 1
                 self.cache.commit()
             self.complete = True if len(block.transactions) == block.tx_count else False
             self.cache.store_block(block)
@@ -694,12 +694,6 @@ class Cache(object):
             self.session = DbCache(db_uri=db_uri).session
         self.network = network
 
-    def __exit__(self):
-        try:
-            self.session.close()
-        except Exception:
-            pass
-
     def cache_enabled(self):
         """
         Check if caching is enabled. Returns False if SERVICE_CACHING_ENABLED is False or no session is defined.
@@ -728,7 +722,8 @@ class Cache(object):
     def _parse_db_transaction(db_tx):
         t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
                         fee=db_tx.fee, txid=db_tx.txid.hex(), date=db_tx.date, confirmations=db_tx.confirmations,
-                        block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value)
+                        block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value,
+                        index=db_tx.index)
         for n in db_tx.nodes:
             if n.is_input:
                 if n.ref_txid == b'\00' * 32:
@@ -805,7 +800,7 @@ class Cache(object):
                         filter(DbCacheTransactionNode.address == address,
                                DbCacheTransaction.block_height >= after_tx.block_height,
                                DbCacheTransaction.block_height <= db_addr.last_block).\
-                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
+                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.index).all()
                     db_txs2 = []
                     for d in db_txs:
                         db_txs2.append(d)
@@ -817,7 +812,7 @@ class Cache(object):
             else:
                 db_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode). \
                     filter(DbCacheTransactionNode.address == address). \
-                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
+                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.index).all()
             for db_tx in db_txs:
                 t = self._parse_db_transaction(db_tx)
                 if t:
@@ -847,8 +842,8 @@ class Cache(object):
         n_from = (page-1) * limit
         n_to = page * limit
         db_txs = self.session.query(DbCacheTransaction).\
-            filter(DbCacheTransaction.block_height == height, DbCacheTransaction.order_n >= n_from,
-                   DbCacheTransaction.order_n < n_to).all()
+            filter(DbCacheTransaction.block_height == height, DbCacheTransaction.index >= n_from,
+                   DbCacheTransaction.index < n_to).all()
         txs = []
         for db_tx in db_txs:
             t = self._parse_db_transaction(db_tx)
@@ -877,7 +872,7 @@ class Cache(object):
         """
         Get list of unspent outputs (UTXO's) for specified address from database cache.
 
-        Sorted from old to new, so highest number of confirmations first.
+        Sorted from old to new, so the highest number of confirmations first.
 
         :param address: Address string
         :type address: str
@@ -892,7 +887,7 @@ class Cache(object):
                                       DbCacheTransactionNode.value, DbCacheTransaction.confirmations,
                                       DbCacheTransaction.block_height, DbCacheTransaction.fee,
                                       DbCacheTransaction.date, DbCacheTransaction.txid).join(DbCacheTransaction). \
-            order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n). \
+            order_by(DbCacheTransaction.block_height, DbCacheTransaction.index). \
             filter(DbCacheTransactionNode.address == address, DbCacheTransactionNode.is_input == False,
                    DbCacheTransaction.network_name == self.network.name).all()
         utxos = []
@@ -1002,14 +997,14 @@ class Cache(object):
         self.session.merge(dbvar)
         self.commit()
 
-    def store_transaction(self, t, order_n=None, commit=True):
+    def store_transaction(self, t, index=None, commit=True):
         """
         Store transaction in cache. Use order number to determine order in a block
 
         :param t: Transaction
         :type t: Transaction
-        :param order_n: Order in block
-        :type order_n: int
+        :param index: Order in block
+        :type index: int
         :param commit: Commit transaction to database. Default is True. Can be disabled if a larger number of transactions are added to cache, so you can commit outside this method.
         :type commit: bool
 
@@ -1034,7 +1029,7 @@ class Cache(object):
             return
         new_tx = DbCacheTransaction(txid=txid, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, network_name=t.network.name,
-                                    fee=t.fee, order_n=order_n, version=t.version_int,
+                                    fee=t.fee, index=index, version=t.version_int,
                                     locktime=t.locktime, witness_type=t.witness_type)
         self.session.add(new_tx)
         for i in t.inputs:

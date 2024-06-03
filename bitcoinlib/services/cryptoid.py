@@ -123,6 +123,8 @@ class CryptoID(BaseClient):
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        if not self.api_key:
+            raise ClientError("Method gettransactions() is not available for CryptoID without API key")
         address = self._address_convert(address)
         txs = []
         txids = []

@@ -6,10 +6,9 @@ SQLAlchemy>=2.0.0
 numpy>=1.22.0
 sphinx>=6.0.0
 coveralls>=3.0.1
-psycopg2>=2.9.2
+psycopg>=3.0.0
 mysql-connector-python>=8.0.27
 mysqlclient>=2.1.0
-parameterized>=0.8.1
 sphinx_rtd_theme>=1.0.0
 Cython>=3.0.0
 win-unicode-console;platform_system=="Windows"

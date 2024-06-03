@@ -22,10 +22,9 @@ import unittest
 import logging
 try:
     import mysql.connector
-    from parameterized import parameterized_class
-    import psycopg2
-    from psycopg2 import sql
-    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+    import psycopg
+    from psycopg import sql
+    # from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 except ImportError as e:
     print("Could not import all modules. Error: %s" % e)
     # from psycopg2cffi import compat  # Use for PyPy support
@@ -39,19 +38,23 @@ _logger = logging.getLogger(__name__)
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
-DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
-DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
-DATABASE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
-# FIXME: MySQL databases are not supported. Not allowed to create indexes/primary keys on binary fields
-DATABASE_CACHE_MYSQL = 'mysql://root:root@localhost:3306/bitcoinlibcache.unittest'
+CACHE_DBNAME1 = 'bitcoinlib_cache_unittest1'
+CACHE_DBNAME2 = 'bitcoinlib_cache_unittest2'
+# FIXME: Mariadb for cache database does not work due to problem with BLOB indexing
+# if os.getenv('UNITTEST_DATABASE') == 'mysql' or os.getenv('UNITTEST_DATABASE') == 'mariadb':
+#     DATABASE_CACHE_UNITTESTS = 'mariadb://root:root@localhost:3306/%s' % CACHE_DBNAME1
+#     DATABASE_CACHE_UNITTESTS2 = 'mariadb://root:root@localhost:3306/%s' % CACHE_DBNAME2
+if os.getenv('UNITTEST_DATABASE') == 'postgresql':
+    DATABASE_CACHE_UNITTESTS = 'postgresql+psycopg://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME1
+    DATABASE_CACHE_UNITTESTS2 = 'postgresql+psycopg://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME2
+else:
+    DATABASE_CACHE_UNITTESTS =  os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME1) + '.sqlite'
+    DATABASE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME2) + '.sqlite'
+
 DATABASES_CACHE = [
-    DATABASEFILE_CACHE_UNITTESTS2,
+    DATABASE_CACHE_UNITTESTS,
+    DATABASE_CACHE_UNITTESTS2,
 ]
-if UNITTESTS_FULL_DATABASE_TEST:
-    DATABASES_CACHE += [
-        DATABASE_CACHE_POSTGRESQL,
-        DATABASE_CACHE_MYSQL
-    ]
 
 TIMEOUT_TEST = 3
 
@@ -60,7 +63,7 @@ TIMEOUT_TEST = 3
 class ServiceTest(Service):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_TEST, cache_uri=DATABASEFILE_CACHE_UNITTESTS, ignore_priority=True,
+                 timeout=TIMEOUT_TEST, cache_uri=DATABASE_CACHE_UNITTESTS, ignore_priority=True,
                  exclude_providers=None, max_errors=SERVICE_MAX_ERRORS, strict=True):
         super(self.__class__, self).__init__(network, min_providers, max_providers, providers, timeout, cache_uri,
                                              ignore_priority, exclude_providers, max_errors, strict)
@@ -94,15 +97,6 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '1976a914c1b1668730f13dd1772977e8ce96e3f5f78d290388ac00000000'
         self.assertEqual(raw_tx, ServiceTest(network='litecoin').getrawtransaction(tx_id))
 
-    # FIXME: Disabled for now, too many broken dash service providers
-    # def test_service_transaction_get_raw_dash(self):
-    #     tx_id = '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf'
-    #     raw_tx = '0100000001edfbcd24cd10350844061d62d03be6f3ed9c28b26b0b8082539c5d29454f7cb3010000006b483045022100e' \
-    #              '87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc0f33d036c1c60a7d561de060' \
-    #              '67528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520e' \
-    #              'dc21ed2ffffffff0200f90295000000001976a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488aca0fc7c040000' \
-    #              '00001976a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac00000000'
-    #     self.assertEqual(raw_tx, ServiceTest(network='dash').getrawtransaction(tx_id))
 
     def test_service_sendrawtransaction(self):
         raw_tx = \
@@ -117,7 +111,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         except ServiceError:
             pass
         for provider in srv.errors:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             prov_error = str(srv.errors[provider])
             if isinstance(srv.errors[provider], Exception) or 'response [429]' in prov_error \
                     or 'response [503]' in prov_error:
@@ -134,7 +128,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, nothing to compare. Errors %s" % srv.errors)
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
@@ -148,7 +142,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         if len(srv.results) < 2:
             self.skipTest("Only 1 or less service providers found, nothing to compare. Errors %s" % srv.errors)
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
@@ -172,7 +166,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(min_providers=3)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
@@ -181,7 +175,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
         for provider in srv.results:
-            print("Testing provider %s" % provider)
+            # print("Testing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_get_utxos_litecoin(self):
@@ -189,7 +183,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         txid = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_get_utxos_litecoin_after_txid(self):
@@ -198,7 +192,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
         for provider in srv.results:
-            print("Comparing provider %s" % provider)
+            # print("Comparing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_estimatefee(self):
@@ -212,7 +206,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         # Normalize with dust amount, to avoid errors on small differences
         dust = Network().dust_amount
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             if srv.results[provider] < average_fee and average_fee - srv.results[provider] > dust:
                 srv.results[provider] += dust
             elif srv.results[provider] > average_fee and srv.results[provider] - average_fee > dust:
@@ -270,7 +264,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(min_providers=3)
         srv.gettransactions(address)
         for provider in srv.results:
-            print("Testing: %s" % provider)
+            # print("Testing: %s" % provider)
             res = srv.results[provider]
             t = [r for r in res if r.txid == txid][0]
 
@@ -309,15 +303,9 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_gettransactions_after_txid_segwit(self):
         res = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['blockcypher']).\
-            gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
-                            after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
-        tx_ids = [
-            '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803',
-            'a4bc261faf9ca47722760c9f9f075ab974c7351d8da7b0b5e5a316b3aa7aefa2',
-            '04be18177781f8060d63390a705cf89ffed2252a3506fab69be7079bc7ba9410']
-        self.assertIn(res[0].txid, tx_ids)
-        self.assertIn(res[1].txid, tx_ids)
-        self.assertIn(res[2].txid, tx_ids)
+            gettransactions('bc1qj9hlju59t0m4389033r2x8mlxwc86qgqm9flm626sd22cdhfs9jsyrrp6q',
+                            after_txid='bd430d52f35166a7dd6251c73a48559ad8b5f41b6c5bc4a6c4c1a3e3702f4287')
+        self.assertEqual(res[0].txid, 'cab75da6d7fe1531c881d4efdb4826410a2604aa9e6442ab12a08363f34fb408')
 
     def test_service_gettransactions_after_txid_litecoin(self):
         res = ServiceTest('litecoin').gettransactions(
@@ -425,50 +413,10 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
 
         for provider in srv.results:
-            print("Comparing provider %s" % provider)
+            # print("Comparing provider %s" % provider)
             self.assertTrue(srv.results[provider].verify())
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
-
-    # FIXME: Disabled, not enough working providers
-    # def test_service_gettransaction_dash(self):
-    #     expected_dict = {'block_hash': '000000000000002eddff510f4f6c61243e350102c58bdf8c986430b405ce7a22',
-    #                      'network': 'dash', 'input_total': 2575500000, 'fee_per_kb': None, 'outputs': [
-    #             {'public_key_hash': 'de4b569d39f05bfc43f56a1b22d7783a7d0661d4', 'output_n': 0, 'spent': True,
-    #              'public_key': '', 'address': 'XvxE6SRkZMbhBW34QfrgxPqcNmgTsRvyeJ', 'script_type': 'p2pkh',
-    #              'script': '76a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488ac', 'value': 2500000000},
-    #             {'public_key_hash': '1495ac5ca428a17197c7cb5065614d8eabfcf8cb', 'output_n': 1, 'spent': True,
-    #              'public_key': '', 'address': 'XcZgeaA4cwUqBqtKUPfZHUme8a5G3gA8LC', 'script_type': 'p2pkh',
-    #              'script': '76a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac', 'value': 75300000}],
-    #                      'output_total': 2575300000, 'block_height': 900147, 'locktime': 0, 'flag': None,
-    #                      'coinbase': False,
-    #                      'status': 'confirmed', 'version': 1,
-    #                      'hash': '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf', 'size': 226,
-    #                      'fee': 200000, 'inputs': [
-    #             {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
-    #              'sequence': 4294967295,
-    #              'prev_txid': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
-    #              'signatures': [
-    #                  'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
-    #                  '6067528fffca52292d803b75e53f7dfbf63d',
-    #                  'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
-    #                  '6067528fffca52292d803b75e53f7dfbf63d'],
-    #              'public_key': '028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520edc21ed2', 'index_n': 0,
-    #              'script_type': 'sig_pubkey',
-    #              'script': '483045022100e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc'
-    #                        '0f33d036c1c60a7d561de06067528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a'
-    #                        '277ad1b331f78add78c6723eed00097520edc21ed2',
-    #              'value': 2575500000}], 'date': datetime(2018, 7, 8, 21, 35, 58)}
-    #
-    #     srv = ServiceTest(network='dash', min_providers=3)
-    #
-    #     # Get transactions by hash
-    #     srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
-    #     for provider in srv.results:
-    #         print("Comparing provider %s" % provider)
-    #         self.assertTrue(srv.results[provider].verify())
-    #         self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
-    #                                 ['block_hash', 'block_height', 'spent', 'value'])
 
     def test_service_gettransactions_litecoin(self):
         txid = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
@@ -490,7 +438,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(min_providers=3, network='litecoin')
         srv.gettransactions(address)
         for provider in srv.results:
-            print("Provider %s" % provider)
+            # print("Provider %s" % provider)
             res = srv.results[provider]
             txs = [r for r in res if r.txid == txid]
             t = txs[0]
@@ -597,7 +545,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'script_code': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
                     'sequence': 4294967295,
                     'sigs_required': 1,
-                    'unlocking_script_unsigned': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
+                    'locking_script': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
                     'value': 506323064}
                 ],
             'locktime': 0,
@@ -617,7 +565,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:
-            print("\nComparing provider %s" % provider)
+            # print("\nComparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
@@ -655,32 +603,16 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
-        srv = ServiceTest(min_providers=3)
-        n_blocks = None
-        for provider in srv.results:
-            if n_blocks is not None:
-                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
-                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
-            n_blocks = srv.results[provider]
-
-        # Test Litecoin network
-        srv = ServiceTest(min_providers=3, network='litecoin')
-        n_blocks = None
-        for provider in srv.results:
-            if n_blocks is not None:
-                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
-                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
-            n_blocks = srv.results[provider]
-
-        # FIXME: Disabled, not enough working providers
-        # # Test Dash network
-        # srv = ServiceTest(min_providers=3, network='dash')
-        # n_blocks = None
-        # for provider in srv.results:
-        #     if n_blocks is not None:
-        #         self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
-        #                                msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
-        #     n_blocks = srv.results[provider]
+        for nw in ['bitcoin', 'litecoin', 'testnet']:
+            srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo', 'bitaps'])
+            srv.blockcount()
+            n_blocks = None
+            for provider in srv.results:
+                if n_blocks is not None:
+                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=200,
+                                           msg="Network %s, provider %s value %d != %d" %
+                                               (nw, provider, srv.results[provider], n_blocks))
+                n_blocks = srv.results[provider]
 
     def test_service_max_providers(self):
         srv = ServiceTest(max_providers=1, cache_uri='')
@@ -707,23 +639,6 @@ class TestService(unittest.TestCase, CustomAssertions):
             # print("Mempool: Comparing ltc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])
 
-        # FIXME: Disabled, not enough working providers
-        # txid = '15641a37e21a0cf7611a1633954be645512f1ab725a0d5077a9ad0aa0ca20bed'
-        # srv = ServiceTest(min_providers=3, network='dash')
-        # srv.mempool(txid)
-        # for provider in srv.results:
-        #     # print("Mempool: Comparing dash provider %s" % provider)
-        #     self.assertListEqual(srv.results[provider], [])
-
-    # FIXME: Disabled, not enough working providers
-    # def test_service_dash(self):
-    #     srv = ServiceTest(network='dash')
-    #     address = 'XoLTipv6ryWECYu94vbkmDjntAXqNgouTW'
-    #     txid = 'f770f05d2b1c63b71b2650227252da06ef226661982c4ee9b136b64f77bbbd0c'
-    #     self.assertGreaterEqual(srv.getbalance(address), 50000000000)
-    #     self.assertEqual(srv.getutxos(address)[0]['txid'], txid)
-    #     self.assertEqual(srv.gettransactions(address)[0].txid, txid)
-
     def test_service_getblock_id(self):
         srv = ServiceTest(min_providers=3, timeout=TIMEOUT_TEST, cache_uri='')
         srv.getblock('0000000000000a3290f20e75860d505ce0e948a1d1d846bec7e39015d242884b', parse_transactions=False)
@@ -748,7 +663,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_height(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
         self.assertEqual(to_hexstring(b.block_hash), '00000000000000000003ecd827f336c6971f6f77a0b9fba362398dd867975645')
         self.assertEqual(to_hexstring(b.merkle_root), 'ca13ce7f21619f73fb5a062696ec06a4427c6ad9e523e7bc1cf5287c137ddcea')
@@ -774,7 +689,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_parse_tx_paging(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(120000, parse_transactions=True, limit=25, page=2)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
         self.assertEqual(b.height, 120000)
@@ -793,7 +708,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_litecoin(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, network='litecoin', cache_uri='')
         b = srv.getblock(1000000, parse_transactions=True, limit=2)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 1000000)
         self.assertEqual(to_hexstring(b.block_hash), '8ceae698f0a2d338e39b213eb9c253a91a270ca6451a4d9bba7bf2c9e637dfda')
         self.assertEqual(to_hexstring(b.merkle_root),
@@ -877,37 +792,56 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIsNone(t.date)
         self.assertIsNone(t.block_height)
 
+    def test_service_exlude_providers(self):
+        srv = ServiceTest(network='testnet', cache_uri='')
+        providers = [srv.providers[pi]['provider'] for pi in srv.providers]
+        try:
+            srv2 = ServiceTest(network='testnet', exclude_providers=providers[1:], cache_uri='')
+        except ServiceError:
+            self.skipTest("Blockcount for provider %s was not successful" % providers[0])
+        self.assertEqual(len(srv2.providers), 1)
+
 
 class TestServiceCache(unittest.TestCase):
 
-    # TODO: Add mysql support
     @classmethod
     def setUpClass(cls):
-        try:
-            if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS2):
-                os.remove(DATABASEFILE_CACHE_UNITTESTS2)
-        except Exception:
-            pass
-        try:
-            DbCache(DATABASE_CACHE_POSTGRESQL).drop_db()
-            # DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
-        except Exception:
-            pass
+        if os.getenv('UNITTEST_DATABASE') == 'postgresql':
+            try:
+                con = psycopg.connect(user='postgres', host='localhost', password='postgres', autocommit=True)
+                cur = con.cursor()
+                try:
+                    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(CACHE_DBNAME1)))
+                    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(CACHE_DBNAME2)))
+                    cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(CACHE_DBNAME1)))
+                    cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(CACHE_DBNAME2)))
+                except:
+                    pass
+                cur.close()
+                con.close()
+            except Exception:
+                pass
+        # elif os.getenv('UNITTEST_DATABASE') == 'mysql':
+        #     con = mysql.connector.connect(user='root', host='localhost', password='root')
+        #     cur = con.cursor()
+        #     cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME1))
+        #     cur.execute("DROP DATABASE IF EXISTS {}".format(CACHE_DBNAME2))
+        #     cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME1))
+        #     cur.execute("CREATE DATABASE {}".format(CACHE_DBNAME2))
+        #     con.commit()
+        #     cur.close()
+        #     con.close()
+        else:
+            if os.path.isfile(DATABASE_CACHE_UNITTESTS):
+                try:
+                    os.remove(DATABASE_CACHE_UNITTESTS)
+                    os.remove(DATABASE_CACHE_UNITTESTS2)
+                except:
+                    pass
 
-        try:
-            con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-            cur = con.cursor()
-            cur.execute(sql.SQL("CREATE DATABASE {}").format(
-                sql.Identifier('bitcoinlibcache.unittest'))
-            )
-            cur.close()
-            con.close()
-        except Exception:
-            pass
 
     def test_service_cache_transactions(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         address = '1JQ7ybfFBoWhPJpjoihezpeAjd2xv9nXaN'
         # Get 2 transactions, nothing in cache
         res = srv.gettransactions(address, limit=2)
@@ -931,7 +865,7 @@ class TestServiceCache(unittest.TestCase):
 
     # FIXME: Disabled, lack of providers
     # def test_service_cache_gettransaction(self):
-    #     srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+    #     srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASE_CACHE_UNITTESTS2)
     #     txid = 'b6533d361daac291f64fff32a5c157a4785b423ce36e2eac27117879f93973da'
     #
     #     t = srv.gettransaction(txid)
@@ -956,7 +890,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
@@ -976,7 +910,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
     def test_service_cache_transaction_coinbase(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
         if t:
             self.assertGreaterEqual(srv.results_cache_n, 0)
@@ -1000,7 +934,7 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(t.raw_hex(), rawtx)
 
     def test_service_cache_with_latest_tx_query(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         address = 'bc1qxfrgfhs49d7dtcfzlhp7f7cwsp8zpp60hywp0f'
         after_txid = '13401ad121c8ae91e18b4bb0db5d8f350a2b0b5ddd5ca26165137bf07fefad90'
         srv.gettransaction('4156e78f347e47d2ccdd4a19614d958c6e4502d09a68f63ed0c72691f63a5028')
@@ -1010,7 +944,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(txs), 5)
 
     def test_service_cache_correctly_update_spent_info(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
         self.assertTrue(txs[0].outputs[0].spent)
@@ -1034,7 +968,7 @@ class TestServiceCache(unittest.TestCase):
         for cache_db in DATABASES_CACHE:
             srv = ServiceTest(cache_uri=cache_db, exclude_providers=['blockchair', 'bitcoind'])
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
-            print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
+            # print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
             check_block_128594(b)
             self.assertEqual(srv.results_cache_n, 0)
 
@@ -1052,10 +986,18 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transaction_p2sh_p2wpkh_input(self):
         txid = '6ab6432a6b7b04ecc335c6e8adccc45c25f46e33752478f0bcacaf3f1b61ad92'
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         t = srv.gettransaction(txid)
         self.assertEqual(t.size, 249)
         self.assertEqual(srv.results_cache_n, 0)
         t2 = srv.gettransaction(txid)
         self.assertEqual(t2.size, 249)
         self.assertEqual(srv.results_cache_n, 1)
+
+    def test_service_cache_transaction_index(self):
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
+        srv.getblock(104444, parse_transactions=True)
+        t = srv.gettransaction('d7795eb181ef87a35298e8689cabf852e831824ded4c23b1a7f711df119a6599')
+        if not srv.results_cache_n:
+            self.skipTest('Transaction not indexed for selected provider')
+        self.assertEqual(t.index, 5)

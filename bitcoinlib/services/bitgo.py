@@ -166,6 +166,8 @@ class BitGoClient(BaseClient):
         return res['feePerKb']
 
     def blockcount(self):
+        if self.network == 'testnet':
+            raise ClientError('Providers return incorrect blockcount for testnet')
         return self.compose_request('block', 'latest')['height']
 
     # def mempool
