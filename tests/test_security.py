@@ -21,7 +21,7 @@
 import os
 from unittest import TestCase, main
 from sqlalchemy.sql import text
-from bitcoinlib.db import BCL_DATABASE_DIR
+from bitcoinlib.config import config
 from bitcoinlib.wallets import Wallet
 from bitcoinlib.keys import HDKey
 from bitcoinlib.encoding import EncodingError
@@ -53,7 +53,8 @@ elif os.getenv('UNITTEST_DATABASE') == 'mysql':
     con.close()
     DATABASEFILE_UNITTESTS_ENCRYPTED = 'mysql://root:root@localhost:3306/bitcoinlib_security'
 else:
-    DATABASEFILE_UNITTESTS_ENCRYPTED = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest_security.sqlite')
+    assert config.BCL_DATABASE_DIR, "must be nonempty"
+    DATABASEFILE_UNITTESTS_ENCRYPTED = os.path.join(str(config.BCL_DATABASE_DIR), 'bitcoinlib.unittest_security.sqlite')
     if os.path.isfile(DATABASEFILE_UNITTESTS_ENCRYPTED):
         os.remove(DATABASEFILE_UNITTESTS_ENCRYPTED)
 

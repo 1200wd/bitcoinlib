@@ -19,6 +19,7 @@
 #
 
 import configparser
+from bitcoinlib.config import config
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -86,7 +87,7 @@ class BitcoindClient(BaseClient):
                 if cfn.exists():
                     break
         else:
-            cfn = Path(BCL_DATA_DIR, 'config', configfile)
+            cfn = Path(config.BCL_DATA_DIR, 'config', configfile)
 
         if not cfn or not cfn.is_file():
             raise ConfigError("Config file %s not found. Please install bitcoin client and specify a path to config "
