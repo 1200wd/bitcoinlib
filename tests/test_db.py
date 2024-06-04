@@ -19,6 +19,7 @@
 #
 
 import unittest
+from bitcoinlib.config import config
 from bitcoinlib.db import *
 from bitcoinlib.db_cache import *
 from bitcoinlib.wallets import Wallet, WalletError, WalletTransaction
@@ -59,7 +60,7 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'mysql://root:root@localhost:3306/' + dbname
     else:
-        dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
+        dburi = os.path.join(str(config.BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):
             try:
                 os.remove(dburi)

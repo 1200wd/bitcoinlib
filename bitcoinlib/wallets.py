@@ -24,6 +24,7 @@ from operator import itemgetter
 import numpy as np
 import pickle
 from datetime import timedelta
+from bitcoinlib.config import config
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -1013,11 +1014,11 @@ class WalletTransaction(Transaction):
         :return:
         """
         if not filename:
-            p = Path(BCL_DATA_DIR, '%s.tx' % self.txid)
+            p = Path(config.BCL_DATA_DIR, '%s.tx' % self.txid)
         else:
             p = Path(filename)
             if not p.parent or str(p.parent) == '.':
-                p = Path(BCL_DATA_DIR, filename)
+                p = Path(config.BCL_DATA_DIR, filename)
         f = p.open('wb')
         t = self.to_transaction()
         pickle.dump(t, f)
@@ -4504,11 +4505,11 @@ class Wallet(object):
         if not filename and not txid:
             raise WalletError("Please supply filename or txid")
         elif not filename and txid:
-            p = Path(BCL_DATA_DIR, '%s.tx' % txid)
+            p = Path(config.BCL_DATA_DIR, '%s.tx' % txid)
         else:
             p = Path(filename)
             if not p.parent or str(p.parent) == '.':
-                p = Path(BCL_DATA_DIR, filename)
+                p = Path(config.BCL_DATA_DIR, filename)
         f = p.open('rb')
         t = pickle.load(f)
         f.close()

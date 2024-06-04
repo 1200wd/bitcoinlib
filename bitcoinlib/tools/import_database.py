@@ -9,11 +9,13 @@
 
 import sqlalchemy as sa
 from sqlalchemy.sql import text
+from bitcoinlib.config import config
 from bitcoinlib.main import *
 from bitcoinlib.wallets import Wallet, wallet_create_or_open
 
 
-DATABASE_TO_IMPORT = 'sqlite:///' + os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib_test.sqlite')
+assert config.BCL_DATABASE_DIR
+DATABASE_TO_IMPORT = 'sqlite:///' + os.path.join(str(config.BCL_DATABASE_DIR), 'bitcoinlib_test.sqlite')
 
 def import_database():
     print(DATABASE_TO_IMPORT)

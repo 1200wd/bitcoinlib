@@ -14,6 +14,7 @@
 from __future__ import print_function
 
 from pprint import pprint
+from bitcoinlib.config import config
 from bitcoinlib.wallets import wallet_exists, Wallet
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
@@ -93,8 +94,8 @@ if not wallet_exists(WALLET_NAME):
     print("wlt.get_key()")
     print("wlt.info()")
 else:
-    from bitcoinlib.config.config import BITCOINLIB_VERSION, BCL_DATABASE_DIR
-    online_wallet = Wallet(WALLET_NAME, db_uri=BCL_DATABASE_DIR + '/bitcoinlib.tmp.sqlite')
+    assert config.BCL_DATABASE_DIR
+    online_wallet = Wallet(WALLET_NAME, db_uri=str(config.BCL_DATABASE_DIR) + '/bitcoinlib.tmp.sqlite')
     online_wallet.utxos_update()
     online_wallet.info()
     utxos = online_wallet.utxos()
