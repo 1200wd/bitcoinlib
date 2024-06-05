@@ -1,3 +1,60 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+
+omit = [
+    "*bitcoinlib/tools/*",
+    "*dashd.py",
+    "*bitcoind.py",
+    "*dogecoind.py",
+    "*bcoin.py",
+    "*litecoind.py",
+    "*authproxy.py",
+    "*cryptoid.py",
+    "*chainso.py",
+    "*litecoreio.py",
+    "*insightdash.py",
+    "*litecoinblockexplorer.py",
+    "*bitflyer.py",
+]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+
+    # Bitcoinlib
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if not PY3",
+    ]
+omit = [
+]
+
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"
