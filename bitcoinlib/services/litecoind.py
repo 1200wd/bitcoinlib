@@ -19,7 +19,6 @@
 #
 
 import configparser
-from bitcoinlib.config import config
 from bitcoinlib.main import *
 from datetime import datetime, timezone
 from bitcoinlib.networks import Network
@@ -85,7 +84,7 @@ class LitecoindClient(BaseClient):
                 if cfn.exists():
                     break
         else:
-            cfn = Path(config.BCL_DATA_DIR, 'config', configfile)
+            cfn = Path(BCL_DATA_DIR, 'config', configfile)
 
         if not cfn or not cfn.is_file():
             raise ConfigError("Config file %s not found. Please install Litecoin client and specify a path to config "

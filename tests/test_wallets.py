@@ -32,13 +32,14 @@ except ImportError as e:
     # compat.register()
     pass  # Only necessary when mysql or postgres is used
 from bitcoinlib.wallets import *
-from bitcoinlib.config import config
 from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey, BKeyError
 from bitcoinlib.values import Value
 from tests.test_custom import CustomAssertions
 
+DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
+DATABASEFILE_UNITTESTS_2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest2.sqlite')
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
@@ -69,7 +70,7 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'mysql://root:root@localhost:3306/' + dbname
     else:
-        dburi = os.path.join(str(config.BCL_DATABASE_DIR), '%s.sqlite' % dbname)
+        dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):
             try:
                 os.remove(dburi)

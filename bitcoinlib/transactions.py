@@ -1064,11 +1064,11 @@ class Transaction(object):
         if not filename and not txid:
             raise TransactionError("Please supply filename or txid")
         elif not filename and txid:
-            p = Path(config.BCL_DATA_DIR, '%s.tx' % txid)
+            p = Path(BCL_DATA_DIR, '%s.tx' % txid)
         else:
             p = Path(filename)
             if not p.parent or str(p.parent) == '.':
-                p = Path(config.BCL_DATA_DIR, filename)
+                p = Path(BCL_DATA_DIR, filename)
         f = p.open('rb')
         t = pickle.load(f)
         f.close()
@@ -2110,11 +2110,11 @@ class Transaction(object):
         :return:
         """
         if not filename:
-            p = Path(config.BCL_DATA_DIR, '%s.tx' % self.txid)
+            p = Path(BCL_DATA_DIR, '%s.tx' % self.txid)
         else:
             p = Path(filename)
             if not p.parent or str(p.parent) == '.':
-                p = Path(config.BCL_DATA_DIR, filename)
+                p = Path(BCL_DATA_DIR, filename)
         f = p.open('wb')
         pickle.dump(self, f)
         f.close()

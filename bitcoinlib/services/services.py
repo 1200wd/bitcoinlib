@@ -24,7 +24,6 @@ import time
 from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
-from bitcoinlib.config import config
 from bitcoinlib.networks import Network
 from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr
 from bitcoinlib.db_cache import *
@@ -89,7 +88,7 @@ class Service(object):
             self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
-        fn = Path(config.BCL_DATA_DIR, 'providers.json')
+        fn = Path(BCL_DATA_DIR, 'providers.json')
         f = fn.open("r")
 
         try:

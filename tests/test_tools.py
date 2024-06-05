@@ -18,8 +18,7 @@ try:
 except ImportError:
     pass  # Only necessary when mysql or postgres is used
 
-from bitcoinlib.config import config
-from bitcoinlib.db import session
+from bitcoinlib.db import BCL_DATABASE_DIR, session
 from bitcoinlib.encoding import normalize_string
 
 DATABASE_NAME = 'bitcoinlib_unittest'
@@ -49,7 +48,7 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'mysql://root:root@localhost:3306/' + dbname
     else:
-        dburi = os.path.join(str(config.BCL_DATABASE_DIR), '%s.sqlite' % dbname)
+        dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):
             os.remove(dburi)
         return dburi

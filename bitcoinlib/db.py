@@ -25,7 +25,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker, relationship, session
 from urllib.parse import urlparse
-from bitcoinlib.config import config
 from bitcoinlib.main import *
 from bitcoinlib.encoding import aes_encrypt, aes_decrypt, double_sha256
 
@@ -50,12 +49,7 @@ class Db:
     """
     def __init__(self, db_uri=None, password=None):
         if db_uri is None:
-            # Default configuration, populate and use the home dir config.
-            config.initialize_lib()
-            config.initialize_db()
-            config.initialize_logging()
-            db_uri = config.DEFAULT_DATABASE
-        assert db_uri
+            db_uri = DEFAULT_DATABASE
         self.o = urlparse(db_uri)
         if not self.o.scheme or \
                 len(self.o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
@@ -82,11 +76,8 @@ class Db:
         self._import_config_data(Session)
         self.session = Session()
 
-        # Partial URL to avoid printing credentials.
-        _logger.info(
-            "Using database: %s://%s:%s/%s",
-            self.o.scheme or '', self.o.hostname or '', self.o.port or '', self.o.path or ''
-        )
+        _logger.info("Using database: %s://%s:%s/%s" % (self.o.scheme or '', self.o.hostname or '',
+                                                        self.o.port or '', self.o.path or ''))
         self.db_uri = db_uri
 
         # VERIFY AND UPDATE DATABASE

@@ -20,7 +20,6 @@
 
 import json
 from bitcoinlib.encoding import *
-from bitcoinlib.config import config
 
 
 _logger = logging.getLogger(__name__)
@@ -45,13 +44,14 @@ def _read_network_definitions():
     :return dict: Network definitions
     """
 
-    fn = Path(config.BCL_DATA_DIR, 'networks.json')
+    fn = Path(BCL_DATA_DIR, 'networks.json')
+    f = fn.open('rb')
 
     try:
-        network_definitions = json.loads(fn.read_bytes())
+        network_definitions = json.loads(f.read())
     except json.decoder.JSONDecodeError as e:
         raise NetworkError("Error reading provider definitions from %s: %s" % (fn, e))
-
+    f.close()
     return network_definitions
 
 

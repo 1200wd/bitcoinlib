@@ -18,19 +18,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import functools
 import os
 import locale
-import logging
 import platform
 import configparser
 import enum
-from logging.handlers import RotatingFileHandler
+from .opcodes import *
 from pathlib import Path
 from datetime import datetime, timezone
-from .opcodes import *
-
-logger = logging.getLogger('bitcoinlib')
 
 # General defaults
 TYPE_TEXT = str
@@ -39,7 +34,6 @@ LOGLEVEL = 'WARNING'
 
 
 # File locations
-CONFIG_FILE_NAME = os.environ.get('BCL_CONFIG_FILE')
 BCL_CONFIG_FILE = ''
 BCL_INSTALL_DIR = Path(__file__).parents[1]
 BCL_DATA_DIR = ''
@@ -54,7 +48,6 @@ ALLOW_DATABASE_THREADS = None
 DATABASE_ENCRYPTION_ENABLED = False
 DB_FIELD_ENCRYPTION_KEY = None
 DB_FIELD_ENCRYPTION_PASSWORD = None
-CONFIG = configparser.ConfigParser()
 
 # Services
 TIMEOUT_REQUESTS = 5
@@ -255,108 +248,43 @@ WALLET_KEY_STRUCTURES = [
 SERVICE_CACHING_ENABLED = True
 
 
-def config_get(section, var, fallback, is_boolean=False):
-    try:
-        env_key = 'BCL_%s_%s' % (section.upper(), var.upper())
-        if env_key in os.environ:
-            env_val = os.environ[env_key]
-            if is_boolean:
-                return env_val.lower() not in ('', 'off', 'false')
-            return env_val
-
-        if is_boolean:
-            return CONFIG.getboolean(section, var, fallback=fallback)
-
-        return CONFIG.get(section, var, fallback=fallback)
-
-    except Exception:
-        return fallback
-
-
-@functools.lru_cache(maxsize=None)
 def read_config():
-    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, BCL_DATA_DIR, BCL_CONFIG_FILE
+    config = configparser.ConfigParser()
+
+    def config_get(section, var, fallback, is_boolean=False):
+        try:
+            if is_boolean:
+                val = config.getboolean(section, var, fallback=fallback)
+            else:
+                val = config.get(section, var, fallback=fallback)
+            return val
+        except Exception:
+            return fallback
+
+    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_DATA_DIR, BCL_CONFIG_FILE
+    global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
     global SERVICE_CACHING_ENABLED, DATABASE_ENCRYPTION_ENABLED, DB_FIELD_ENCRYPTION_KEY, DB_FIELD_ENCRYPTION_PASSWORD
     global SERVICE_MAX_ERRORS, BLOCK_COUNT_CACHE_TIME, MAX_TRANSACTIONS
 
-    CONFIG_DIR = Path('~/.config/bitcoinlib').expanduser()
-    if not CONFIG_DIR.exists():
-        CONFIG_DIR = Path('~/.bitcoinlib').expanduser()
-
-    # Read settings from Configuration file provided in OS environment or home config directory
-    if CONFIG_FILE_NAME:
-        BCL_CONFIG_FILE = Path(CONFIG_FILE_NAME)
+    # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
+    config_file_name = os.environ.get('BCL_CONFIG_FILE')
+    if not config_file_name:
+        BCL_CONFIG_FILE = Path('~/.bitcoinlib/config.ini').expanduser()
     else:
-        BCL_CONFIG_FILE = Path(CONFIG_DIR, 'config.ini')
-
-    if not BCL_CONFIG_FILE.is_absolute():
-        BCL_CONFIG_FILE = Path(CONFIG_DIR, BCL_CONFIG_FILE)
-    if not BCL_CONFIG_FILE.exists():
-        BCL_CONFIG_FILE = Path(BCL_INSTALL_DIR, 'data', CONFIG_FILE_NAME or "config.ini")
-    if not BCL_CONFIG_FILE.exists():
-        raise IOError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
-    config_data = CONFIG.read(str(BCL_CONFIG_FILE))
-
-    default_data_dir = str(BCL_CONFIG_FILE.parent)
-    BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback=default_data_dir)).expanduser()
-    BCL_DATABASE_DIR = Path(config_get('locations', 'database_dir', fallback='database'))
-    if not BCL_DATABASE_DIR.is_absolute():
-        BCL_DATABASE_DIR = Path(CONFIG_DIR, BCL_DATABASE_DIR)
-
-    # Log settings
-    ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
-    BCL_LOG_FILE = Path(CONFIG_DIR, config_get('logs', 'log_file', fallback='bitcoinlib.log'))
-    LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
-
-    # Service settings
-    TIMEOUT_REQUESTS = int(config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS))
-    SERVICE_MAX_ERRORS = int(config_get('common', 'service_max_errors', fallback=SERVICE_MAX_ERRORS))
-    MAX_TRANSACTIONS = int(config_get('common', 'max_transactions', fallback=MAX_TRANSACTIONS))
-    BLOCK_COUNT_CACHE_TIME = int(config_get('common', 'block_count_cache_time', fallback=BLOCK_COUNT_CACHE_TIME))
-
-    # Other settings
-    DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
-    DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
-    DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
-
-    return bool(config_data)
-
-
-@functools.lru_cache(maxsize=None)
-def initialize_logging():
-    if not ENABLE_BITCOINLIB_LOGGING:
-        return
-
-    logger.setLevel(LOGLEVEL)
-    if not logger.handlers:
-        BCL_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        handler = RotatingFileHandler(str(BCL_LOG_FILE), maxBytes=100 * 1024 * 1024, backupCount=2)
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
-                                      datefmt='%Y/%m/%d %H:%M:%S')
-        handler.setFormatter(formatter)
-        handler.setLevel(LOGLEVEL)
-        logger.addHandler(handler)
-
-    logger.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
-    logger.info('Version: %s', BITCOINLIB_VERSION)
-    logger.info('Logger name: %s', logger.name)
-    logger.info('Read config from: %s', BCL_CONFIG_FILE)
-    logger.info('Databases directory: %s', BCL_DATABASE_DIR)
-    logger.info('Default database: %s', DEFAULT_DATABASE)
-    logger.info('Logging to: %s', BCL_LOG_FILE)
-    logger.info('Directory for data files: %s', BCL_DATA_DIR)
-
-
-@functools.lru_cache(maxsize=None)
-def initialize_db():
-    global DEFAULT_DATABASE, ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
-    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, DATABASE_ENCRYPTION_ENABLED, DB_FIELD_ENCRYPTION_KEY
-
-    read_config()
+        BCL_CONFIG_FILE = Path(config_file_name)
+        if not BCL_CONFIG_FILE.is_absolute():
+            BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
+        if not BCL_CONFIG_FILE.exists():
+            BCL_CONFIG_FILE = Path(BCL_INSTALL_DIR, 'data', config_file_name)
+        if not BCL_CONFIG_FILE.exists():
+            raise IOError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
+    data = config.read(str(BCL_CONFIG_FILE))
+    BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
     # Database settings
+    BCL_DATABASE_DIR = Path(BCL_DATA_DIR, config_get('locations', 'database_dir', 'database'))
     BCL_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     default_databasefile = DEFAULT_DATABASE = \
         config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
@@ -372,16 +300,30 @@ def initialize_db():
     DB_FIELD_ENCRYPTION_KEY = os.environ.get('DB_FIELD_ENCRYPTION_KEY')
     DB_FIELD_ENCRYPTION_PASSWORD = os.environ.get('DB_FIELD_ENCRYPTION_PASSWORD')
 
-    full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
-    if full_db_test in [1, True, 'True', 'true', 'TRUE']:
-        UNITTESTS_FULL_DATABASE_TEST = True
+    # Log settings
+    ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
+    BCL_LOG_FILE = Path(BCL_DATA_DIR, config_get('logs', 'log_file', fallback='bitcoinlib.log'))
+    BCL_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
+
+    # Service settings
+    TIMEOUT_REQUESTS = int(config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS))
+    SERVICE_MAX_ERRORS = int(config_get('common', 'service_max_errors', fallback=SERVICE_MAX_ERRORS))
+    MAX_TRANSACTIONS = int(config_get('common', 'max_transactions', fallback=MAX_TRANSACTIONS))
+    BLOCK_COUNT_CACHE_TIME = int(config_get('common', 'block_count_cache_time', fallback=BLOCK_COUNT_CACHE_TIME))
+
+    # Other settings
+    DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
+    DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
+    DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
+
+    if not data:
+        return False
+    return True
 
 
 # Copy data and settings to default settings directory if install.log is not found
-@functools.lru_cache(maxsize=None)
 def initialize_lib():
-    read_config()
-
     global BCL_INSTALL_DIR, BCL_DATA_DIR, BITCOINLIB_VERSION
     instlogfile = Path(BCL_DATA_DIR, 'install.log')
     if instlogfile.exists():
@@ -408,10 +350,10 @@ def initialize_lib():
     for file in Path(BCL_INSTALL_DIR, 'data').iterdir():
         if file.suffix not in ['.ini', '.json']:
             continue
-        target_path = Path(BCL_DATA_DIR, file.name)
-        if not target_path.exists():
-            copyfile(str(file), target_path)
+        copyfile(str(file), Path(BCL_DATA_DIR, file.name))
 
 
+# Initialize library
 read_config()
 BITCOINLIB_VERSION = Path(BCL_INSTALL_DIR, 'config/VERSION').open().read().strip()
+initialize_lib()

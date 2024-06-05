@@ -30,7 +30,6 @@ except ImportError as e:
     # from psycopg2cffi import compat  # Use for PyPy support
     # compat.register()
     pass  # Only necessary when mysql or postgres is used
-from bitcoinlib.config import config
 from bitcoinlib.services.services import *
 from bitcoinlib.encoding import to_hexstring
 from tests.test_custom import CustomAssertions
@@ -49,9 +48,8 @@ if os.getenv('UNITTEST_DATABASE') == 'postgresql':
     DATABASE_CACHE_UNITTESTS = 'postgresql+psycopg://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME1
     DATABASE_CACHE_UNITTESTS2 = 'postgresql+psycopg://postgres:postgres@localhost:5432/%s' % CACHE_DBNAME2
 else:
-    assert config.BCL_DATABASE_DIR, "must be nonempty"
-    DATABASE_CACHE_UNITTESTS =  os.path.join(str(config.BCL_DATABASE_DIR), CACHE_DBNAME1) + '.sqlite'
-    DATABASE_CACHE_UNITTESTS2 = os.path.join(str(config.BCL_DATABASE_DIR), CACHE_DBNAME2) + '.sqlite'
+    DATABASE_CACHE_UNITTESTS =  os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME1) + '.sqlite'
+    DATABASE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), CACHE_DBNAME2) + '.sqlite'
 
 DATABASES_CACHE = [
     DATABASE_CACHE_UNITTESTS,
