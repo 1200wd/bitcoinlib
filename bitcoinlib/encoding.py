@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Methods for encoding and conversion
-#    © 2016 - 2023 May - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -493,7 +493,7 @@ def addr_to_pubkeyhash(address, as_hex=False, encoding=None):
 
     Wrapper for the :func:`addr_base58_to_pubkeyhash` and :func:`addr_bech32_to_pubkeyhash` method
 
-    :param address: Crypto currency address in base-58 format
+    :param address: Cryptocurrency address in base-58 format
     :type address: str
     :param as_hex: Output as hexstring
     :type as_hex: bool

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    VALUE class - representing cryptocurrency values
-#    © 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -56,7 +56,7 @@ class Value:
         Initialize Value class with the smallest denominator as input. Such as represented in script and transactions
         cryptocurrency values.
 
-        :param value: Amount of Satoshi's / smallest denominator for this network
+        :param value: Amount of Satoshi's / the smallest denominator for this network
         :type value: int
         :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols.
         :type denominator: int, float, str
@@ -133,7 +133,7 @@ class Value:
         >>> hex(Value("10.1 BTC"))
         '0x3c336080'
 
-        :param value: Value as integer, float or string. Numeric values must be supllied in smallest denominator such as Satoshi's. String values must be in the format: <value> [<denominator>][<currency_symbol>]
+        :param value: Value as integer, float or string. Numeric values must be supllied in the smallest denominator such as Satoshi's. String values must be in the format: <value> [<denominator>][<currency_symbol>]
         :type value: int, float, str
         :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols.
         :type denominator: int, float, str

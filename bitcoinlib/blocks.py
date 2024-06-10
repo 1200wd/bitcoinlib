@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BLOCK parsing and construction
-#    © 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -145,7 +145,7 @@ class Block:
 
         :param raw: Raw serialize block
         :type raw: BytesIO, bytes
-        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different from specified hash.
         :type block_hash: bytes
         :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
         :type height: int
@@ -182,7 +182,7 @@ class Block:
 
         :param raw_bytes: Raw serialize block
         :type raw_bytes: bytes
-        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different from specified hash.
         :type block_hash: bytes
         :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
         :type height: int
@@ -217,7 +217,7 @@ class Block:
 
         :param raw: Raw serialize block
         :type raw: BytesIO
-        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different from specified hash.
         :type block_hash: bytes
         :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
         :type height: int
@@ -464,7 +464,7 @@ class Block:
     @property
     def difficulty(self):
         """
-        Block difficulty calculated from bits / target. Human readable representation of block's target.
+        Block difficulty calculated from bits / target. Human-readable representation of block's target.
 
         Genesis block has difficulty of 1.0
 
@@ -484,7 +484,7 @@ class Block:
         """
         Serialize raw block in bytes.
 
-        A block consists of a 80 bytes header:
+        A block consists of an 80 bytes header:
         * version - 4 bytes
         * previous block - 32 bytes
         * merkle root - 32 bytes

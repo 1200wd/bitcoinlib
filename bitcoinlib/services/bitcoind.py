@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Client for bitcoind deamon
-#    © 2017 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2024 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as

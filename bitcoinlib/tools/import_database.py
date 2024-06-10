@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    IMPORT DATABASE - Extract wallet keys and information from old Bitcoinlib database and move to actual database
-#    © 2024 Februari - 1200 Web Development <http://1200wd.com/>
+#    © 2024 February - 1200 Web Development <http://1200wd.com/>
 #
 # TODO: Currently skips multisig wallets
 

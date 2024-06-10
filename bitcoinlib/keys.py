@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -615,7 +615,7 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     Intermediate passphrase generator for EC multiplied BIP38 encrypted private keys.
     Source: https://github.com/meherett/python-bip38/blob/master/bip38/bip38.py
 
-    Use intermediate password to create a encrypted WIF key with the :func:`bip38_create_new_encrypted_wif` method.
+    Use intermediate password to create an encrypted WIF key with the :func:`bip38_create_new_encrypted_wif` method.
 
     :param passphrase: Passphrase or password text
     :type passphrase: str
@@ -668,7 +668,7 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
 def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, seed=os.urandom(24),
                                    network=DEFAULT_NETWORK):
     """
-    Create new encrypted WIF BIP38 EC multiplied key. Use :func:`bip38_intermediate_password` to create a
+    Create new encrypted WIF BIP38 EC multiplied key. Use :func:`bip38_intermediate_password` to create an
     intermediate passphrase first.
 
     :param intermediate_passphrase: Intermediate passphrase text
@@ -1155,7 +1155,7 @@ class Key(object):
                 #         raise BKeyError("More then one network found with this versionbyte, please specify network. "
                 #                         "Networks found: %s" % found_networks)
                 #     else:
-                #         _logger.warning("Current network %s is different then the one found in key: %s" %
+                #         _logger.warning("Current network %s is different from the one found in key: %s" %
                 #                         (network, found_networks[0]))
                 #         self.network = Network(found_networks[0])
                 if key[-1:] == b'\x01':
@@ -1601,7 +1601,7 @@ class HDKey(Key):
     """
     Class for Hierarchical Deterministic keys as defined in BIP0032
 
-    Besides a private or public key a HD Key has a chain code, allowing to create
+    Besides a private or public key a HDKey has a chain code, allowing to create
     a structure of related keys.
 
     The structure and key-path are defined in BIP0043 and BIP0044.
@@ -1774,7 +1774,7 @@ class HDKey(Key):
                 # Generate new Master Key
                 seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
-            # If key is 64 bytes long assume a HD Key with key and chain part
+            # If key is 64 bytes long assume a HDKey with key and chain part
             elif isinstance(import_key, bytes) and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]

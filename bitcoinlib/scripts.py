@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Scripts class - Parse, Serialize and Evaluate scripts
-#    © 2022 - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -688,6 +688,8 @@ class Script(object):
         :type message: bytes
         :param env_data: Dictionary with extra information needed to verify script. Such as 'redeemscript' for
         :type env_data: dict()
+        :param trace: Write trace information to stdout
+        :type trace: bool
 
         multisignature scripts and 'blockcount' for time locked scripts. Leave emtpy to use Script.data. If supplied Script.data will be ignored
 
@@ -793,7 +795,7 @@ class Stack(list):
 
         :return list of int:
         """
-        # TODO: What to do with data/hashes?
+        # This converts data to integers as well, which might be no always useful
         return Stack([decode_num(x) for x in self])
 
     def pop_as_number(self):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2024 February - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -905,7 +905,7 @@ class WalletTransaction(Transaction):
             db_tx.status = self.status if self.status else db_tx.status
             db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
-            db_tx.network_name = self.network.name if self.network.name else db_tx.name
+            db_tx.network_name = self.network.name if self.network.name else db_tx.network_name
             db_tx.raw = self.rawtx if self.rawtx else db_tx.raw
             db_tx.verified = self.verified
             db_tx.locktime = self.locktime
@@ -1900,7 +1900,7 @@ class Wallet(object):
         :type witness_type: str
         :param number_of_keys: Number of keys to generate. Use positive integer
         :type number_of_keys: int
-       :param network: Network name. Leave empty for default network
+        :param network: Network name. Leave empty for default network
         :type network: str
 
         :return list of WalletKey:
@@ -1946,6 +1946,8 @@ class Wallet(object):
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
+        :param witness_type: Use to create key with different witness_type
+        :type witness_type: str
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -2597,7 +2599,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict):
+        :return list of DbKey, list of dict:
 
         """
 
@@ -3645,8 +3647,8 @@ class Wallet(object):
             return qr.transaction.txid.hex()
 
 
-    def update_transactions_from_block(block, network=None):
-        pass
+    # def update_transactions_from_block(block, network=None):
+    #     pass
 
     def transaction_delete(self, txid):
         """
@@ -4465,6 +4467,8 @@ class Wallet(object):
         :type name: str
         :param as_private: Export public or private key, default is False
         :type as_private: bool
+        :param witness_type: Witness type, leave empty for default witness_type
+        :type witness_type: str
         :param network: Network name. Leave empty for default network
         :type network: str
 

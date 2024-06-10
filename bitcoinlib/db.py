@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2016 - 2023 May - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -265,7 +265,7 @@ class DbWallet(Base):
 class DbKeyMultisigChildren(Base):
     """
     Use many-to-many relationship for multisig keys. A multisig keys contains 2 or more child keys
-    and a child key can be used in more then one multisig key.
+    and a child key can be used in more than one multisig key.
 
     """
     __tablename__ = 'key_multisig_children'
@@ -520,7 +520,6 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):  # pragma: no co
     if version_db < '0.7.0' and code_version >= '0.7.0':
         raise ValueError("Old database version %s is not supported in version 0.7+. "
                          "Please copy private keys and recreate wallets" % version_db)
-        # TODO: write update script to copy private keys from db
         # column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
         #                                                      "'p2sh-segwit'. Default is segwit.")
         # add_column(db.engine, 'keys', column)

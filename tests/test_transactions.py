@@ -1906,8 +1906,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t2.sign([pk1], 0)
         self.assertTrue(t2.verify())
-        # fixme: should be p2wpkh?
-        # self.assertEqual(t2.inputs[0].script_type, 'p2sh_p2wpkh')
+        self.assertEqual(t2.inputs[0].script_type, 'p2sh_p2wpkh')
 
     def test_transaction_segwit_p2wsh(self):
         key1 = Key('241e4ec8680a77404bfd8ec8618c5db99dcb6c3eadd913d28a5e85bf28a29d92')

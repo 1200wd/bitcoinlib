@@ -132,19 +132,6 @@ with new versions if you delete the .bitcoinlib/install.log file.
 
     $ rm .bitcoinlib/install.log
 
-If the new release contains database updates you have to migrate the database with the updatedb.py command.
-This program extracts keys and some wallet information from the old database and then creates a new database.
-The updatedb.py command is just a helper tool and not guaranteed to work, it might fail if there are a lot
-of database changes. So backup database / private keys first and use at your own risk!
-
-.. code-block:: none
-
-    $ python updatedb.py
-    Wallet and Key data will be copied to new database. Transaction data will NOT be copied
-    Updating database file: /home/guest/.bitcoinlib/database/bitcoinlib.sqlite
-    Old database will be backed up to /home/guest/.bitcoinlib/database/bitcoinlib.sqlite.backup-20180711-01:46
-    Type 'y' or 'Y' to continue or any other key to cancel: y
-
 
 Troubleshooting
 ---------------

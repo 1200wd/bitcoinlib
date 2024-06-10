@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2022 - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -24,7 +24,7 @@ import pickle
 import random
 from io import BytesIO
 from bitcoinlib.encoding import *
-from bitcoinlib.config.opcodes import *
+# from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
 from bitcoinlib.values import Value, value_to_satoshi
@@ -46,22 +46,22 @@ class TransactionError(Exception):
         return self.msg
 
 
-@deprecated  # Replaced by Script class in version 0.6
-def script_add_locktime_cltv(locktime_cltv, script):  # pragma: no cover
-    lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
-    if script and len(script) > 6:
-        if script[4:6] == lockbytes:
-            return script
-    return varstr(locktime_cltv.to_bytes(4, 'little')) + lockbytes + script
-
-
-@deprecated  # Replaced by Script class in version 0.6
-def script_add_locktime_csv(locktime_csv, script):  # pragma: no cover
-    lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
-    if script and len(script) > 6:
-        if script[4:6] == lockbytes:
-            return script
-    return varstr(locktime_csv.to_bytes(4, 'little')) + lockbytes + script
+# @deprecated  # Replaced by Script class in version 0.6
+# def script_add_locktime_cltv(locktime_cltv, script):  # pragma: no cover
+#     lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
+#     if script and len(script) > 6:
+#         if script[4:6] == lockbytes:
+#             return script
+#     return varstr(locktime_cltv.to_bytes(4, 'little')) + lockbytes + script
+#
+#
+# @deprecated  # Replaced by Script class in version 0.6
+# def script_add_locktime_csv(locktime_csv, script):  # pragma: no cover
+#     lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
+#     if script and len(script) > 6:
+#         if script[4:6] == lockbytes:
+#             return script
+#     return varstr(locktime_csv.to_bytes(4, 'little')) + lockbytes + script
 
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
@@ -341,10 +341,8 @@ class Input(object):
                 if sig.hash_type:
                     self.hash_type = sig.hash_type
 
-        # fixme: p2wpkh == p2sh_p2wpkh
-        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh', 'p2wpkh'] and self.witnesses and not self.signatures and \
-                self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and len(self.witnesses) == 2 and \
-                b'\0' not in self.witnesses:
+        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh'] and self.witnesses and not self.signatures and \
+                len(self.witnesses) == 2 and b'\0' not in self.witnesses:
             self.signatures = [Signature.parse_bytes(self.witnesses[0])]
             self.hash_type = self.signatures[0].hash_type
             self.keys = [Key(self.witnesses[1], network=self.network, strict=self.strict)]
@@ -1851,6 +1849,8 @@ class Transaction(object):
         :type value: int
         :param double_spend: True if double spend is detected, depends on which service provider is selected
         :type double_spend: bool
+        :param locktime_cltv: Check Locktime Verify value.
+        :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
@@ -1975,7 +1975,7 @@ class Transaction(object):
         witness_size = 2
         if self.witness_type != 'legacy':
             est_size += 2
-        # TODO: if no inputs assume 1 input
+        # If no inputs assume 1 input
         if not self.inputs:
             est_size += 125
             witness_size += 72
