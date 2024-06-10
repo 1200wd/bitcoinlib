@@ -432,6 +432,15 @@ class TestEncodingEncryption(unittest.TestCase):
         quote = aes_decrypt(encrypted_data, key)
         self.assertEqual(data, quote)
 
+class TestEncodingCrypto(unittest.TestCase):
+
+    def test_sha256(self):
+
+        self.assertEqual(sha256(b'a' * 1000000).hex(),
+            'cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0')
+        self.assertEqual(sha256(b'a' * 1000000, as_hex=True),
+            'cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0')
+
 
 if __name__ == '__main__':
     unittest.main()
