@@ -8,6 +8,7 @@ relative_files = true
 debug = true
 omit = [
     "*bitcoinlib/tools/*",
+    "*tools/*",
     "*dashd.py",
     "*bitcoind.py",
     "*dogecoind.py",
@@ -53,6 +54,7 @@ exclude_also = [
     ]
 omit = [
     "*bitcoinlib/tools/*",
+    "*tools/*",
     "*dashd.py",
     "*bitcoind.py",
     "*dogecoind.py",
