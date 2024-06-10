@@ -73,6 +73,13 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.tx_count, 1)
         self.assertEqual(str(b),
                          '<Block(000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f, 0, transactions: 1)>')
+        t = b.parse_transaction()
+        self.assertEqual(t.outputs[0].address, '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
+        self.assertEqual(b.total_out, 0)
+        b.update_totals()
+        self.assertEqual(b.total_in, 0)
+        self.assertEqual(b.total_out, 5000000000)
+
 
     def test_blocks_create_block(self):
         block_hash = '00000000000023b05c9ae15577257daf17029604eba0a58824e93306e44d0c62'

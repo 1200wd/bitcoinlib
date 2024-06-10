@@ -628,6 +628,12 @@ class TestHDKeys(unittest.TestCase):
         k.network_change('litecoin')
         self.assertEqual(k.address(), 'LPsPTgctprGZ6FEc7QFAugr6qg8XV3X4tg')
 
+    def test_hdkey_formats(self):
+        pkhex = '036e770e764c8c03acd620030c2844dd09d7c756ecedeb0521fe075301caf0e6ad'
+        k = HDKey(pkhex)
+        self.assertEqual(k.as_bytes(), bytes.fromhex(pkhex))
+        self.assertEqual(k.as_hex(), pkhex)
+
 
 class TestBip38(unittest.TestCase):
 

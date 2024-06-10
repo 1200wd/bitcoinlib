@@ -119,7 +119,7 @@ class Db:
         session.close()
 
 
-def add_column(engine, table_name, column):
+def add_column(engine, table_name, column):  # pragma: no cover
     """
     Used to add new column to database with migration and update scripts
 
@@ -501,7 +501,7 @@ class DbTransactionOutput(Base):
     __table_args__ = (UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'),)
 
 
-def db_update_version_id(db, version):
+def db_update_version_id(db, version):  # pragma: no cover
     _logger.info("Updated BitcoinLib database to version %s" % version)
     db.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
         {DbConfig.value: version})
@@ -509,7 +509,7 @@ def db_update_version_id(db, version):
     return version
 
 
-def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
+def db_update(db, version_db, code_version=BITCOINLIB_VERSION):  # pragma: no cover
     # Database changes from version 0.5+
     #
     if version_db <= '0.6.3' and code_version > '0.6.3':
