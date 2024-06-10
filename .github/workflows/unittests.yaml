@@ -24,19 +24,18 @@ jobs:
         BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
       run: coverage run --source=bitcoinlib -m unittest -v
 
-    - name: Coveralls
-      uses: AndreMiras/coveralls-python-action@develop
+    - name: Coveralls Parallel
+      uses: coverallsapp/github-action@v2
       with:
         parallel: true
-        flag-name: Unit Test
-        debug: true
+        github-token: ${{ github.token }}
 
   coveralls_finish:
     needs: test
     runs-on: ubuntu-latest
     steps:
     - name: Coveralls Finished
-      uses: AndreMiras/coveralls-python-action@develop
+      uses: coverallsapp/github-action@v2
       with:
         parallel-finished: true
         debug: true
