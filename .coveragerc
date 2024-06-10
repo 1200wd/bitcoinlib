@@ -1,8 +1,11 @@
 [run]
 relative_files = True
 omit =
-    *bitcoinlib/tools/*
-    *tools/*
+    *clw.py
+    *import_database.py
+    *mnemonic_key_create.py
+    *sign_raw.py
+    *wallet_multisig_2of3.py
     *dashd.py
     *bitcoind.py
     *dogecoind.py
