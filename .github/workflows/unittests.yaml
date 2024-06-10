@@ -22,12 +22,13 @@ jobs:
     - name: Test with coverage
       env:
         BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
-      run: coverage run --source=bitcoinlib -m unittest -v
+      run: coverage run --source=bitcoinlib -m unittest -v -c .coveragerc
 
     - name: Coveralls Parallel
       uses: coverallsapp/github-action@v2
       with:
         parallel: true
+        flag-name: run-${{ join(matrix.*, '-') }}
         github-token: ${{ github.token }}
 
   coveralls_finish:
@@ -39,3 +40,4 @@ jobs:
       with:
         parallel-finished: true
         debug: true
+        carryforward: "run-3.8,run-3.11,run-3.12"
