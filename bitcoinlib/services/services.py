@@ -373,6 +373,9 @@ class Service(object):
             txs = self._provider_execute('gettransactions', address, qry_after_txid.hex(),  limit)
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
+            for tx in txs:
+                if not tx.date.tzinfo:
+                    tx.date = tx.date.replace(tzinfo=timezone.utc)
 
         # Store transactions and address in cache
         # - disable cache if comparing providers or if after_txid is used and no cache is available
