@@ -22,7 +22,7 @@ jobs:
     - name: Test with coverage
       env:
         BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
-      run: coverage run --source=bitcoinlib -m unittest -v -c .coveragerc
+      run: coverage run --source=bitcoinlib -m unittest -v
 
     - name: Coveralls Parallel
       uses: coverallsapp/github-action@v2

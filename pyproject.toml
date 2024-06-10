@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.coverage.run]
 branch = true
 relative_files = true
-
+debug = true
 omit = [
     "*bitcoinlib/tools/*",
     "*dashd.py",
@@ -52,6 +52,19 @@ exclude_also = [
     "if not PY3",
     ]
 omit = [
+    "*bitcoinlib/tools/*",
+    "*dashd.py",
+    "*bitcoind.py",
+    "*dogecoind.py",
+    "*bcoin.py",
+    "*litecoind.py",
+    "*authproxy.py",
+    "*cryptoid.py",
+    "*chainso.py",
+    "*litecoreio.py",
+    "*insightdash.py",
+    "*litecoinblockexplorer.py",
+    "*bitflyer.py",
 ]
 
 ignore_errors = true
