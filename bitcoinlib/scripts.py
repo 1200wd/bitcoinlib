@@ -155,7 +155,7 @@ class Script(object):
 
         >>> s = Script([op.op_2, op.op_4, op.op_add])
         >>> s
-        <Script([op.op_2, op.op_4, op.op_add])>
+        <Script([op_2, op_4, op_add])>
         >>> s.blueprint
         [82, 84, 147]
         >>> s.evaluate()
@@ -259,7 +259,7 @@ class Script(object):
         Wrapper for the :func:`parse_bytesio` method. Convert hexadecimal string or bytes script to BytesIO.
 
         >>> Script.parse('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
-        <Script([op.op_dup, op.op_hash160, data-20, op.op_equalverify, op.op_checksig])>
+        <Script([op_dup, op_hash160, data-20, op_equalverify, op_checksig])>
 
         :param script: Raw script to parse in bytes, BytesIO or hexadecimal string format
         :type script: BytesIO, bytes, str
@@ -449,7 +449,7 @@ class Script(object):
         Wrapper for the :func:`parse_bytesio` method. Convert hexadecimal string script to BytesIO.
 
         >>> Script.parse_hex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
-        <Script([op.op_dup, op.op_hash160, data-20, op.op_equalverify, op.op_checksig])>
+        <Script([op_dup, op_hash160, data-20, op_equalverify, op_checksig])>
 
         :param script: Raw script to parse in hexadecimal string format
         :type script: str
@@ -503,7 +503,7 @@ class Script(object):
 
         >>> s = Script.parse_str("1 98 OP_ADD 99 OP_EQUAL")
         >>> s
-        data-1 data-1 OP_ADD data-1 OP_EQUAL
+        <Script([data-1, data-1, op_add, data-1, op_equal])>
         >>> s.evaluate()
         True
 
@@ -539,7 +539,7 @@ class Script(object):
 
     def __repr__(self):
         s_items = self.view(blueprint=True, as_list=True)
-        return '<Script([' + ', '.join(s_items) + '])>'
+        return '<Script([' + ', '.join(s_items).lower() + '])>'
 
     def __str__(self):
         return self.view(blueprint=True)
@@ -671,7 +671,7 @@ class Script(object):
 
         >>> s = Script([op.op_2, op.op_4, op.op_add])
         >>> s
-        <Script([op.op_2, op.op_4, op.op_add])>
+        <Script([op_2, op_4, op_add])>
         >>> s.blueprint
         [82, 84, 147]
         >>> s.evaluate()

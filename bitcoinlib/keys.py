@@ -107,10 +107,10 @@ def get_key_format(key, is_private=None):
     This method does not validate if a key is valid.
 
     >>> get_key_format('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
-    {'format': 'wif_compressed', 'networks': ['bitcoin', 'regtest'], 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+    {'format': 'wif_compressed', 'networks': ['bitcoin', 'regtest'], 'is_private': True, 'script_types': [], 'witness_types': ['segwit'], 'multisig': [False]}
 
     >>> get_key_format('becc7ac3b383cd609bd644aa5f102a811bac49b6a34bbd8afe706e32a9ac5c5e')
-    {'format': 'hex', 'networks': None, 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+    {'format': 'hex', 'networks': None, 'is_private': True, 'script_types': [], 'witness_types': ['segwit'], 'multisig': [False]}
 
     >>> get_key_format('Zpub6vZyhw1ShkEwNxtqfjk7jiwoEbZYMJdbWLHvEwo6Ns2fFc9rdQn3SerYFQXYxtZYbA8a1d83shW3g4WbsnVsymy2L8m7wpeApiuPxug3ARu')
     {'format': 'hdkey_public', 'networks': ['bitcoin', 'regtest'], 'is_private': False, 'script_types': ['p2wsh'], 'witness_types': ['segwit'], 'multisig': [True]}
@@ -242,7 +242,7 @@ def deserialize_address(address, encoding=None, network=None):
     If more networks and or script types are found you can find these in the 'networks' field.
 
     >>> deserialize_address('1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
-    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest'], 'witver': None}
+    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest'], 'checksum': b'\xcf\xa4I0', 'witver': None}
 
     :param address: A base58 or bech32 encoded address
     :type address: str
@@ -1730,7 +1730,7 @@ class HDKey(Key):
         >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
         >>> k = HDKey(private_hex)
         >>> k
-        <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW, network=bitcoin)>
+        <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=zpub6jftahH18ngZw8pNbq6arfqFD7przPySpW3jhhzQiBKYpzJxqwhBEpCk8rh9p7JQ5JrAMu1Pfq1wCXfDfZL8i9zJvxeehCTAAVTev5oZKCn, network=bitcoin)>
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
         :type import_key: str, bytes, int, tuple
@@ -1980,7 +1980,7 @@ class HDKey(Key):
         >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
         >>> k = HDKey(private_hex)
         >>> k.wif()
-        'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW'
+        'zpub6jftahH18ngZw8pNbq6arfqFD7przPySpW3jhhzQiBKYpzJxqwhBEpCk8rh9p7JQ5JrAMu1Pfq1wCXfDfZL8i9zJvxeehCTAAVTev5oZKCn'
 
         :param is_private: Return public or private key
         :type is_private: bool
@@ -2149,7 +2149,7 @@ class HDKey(Key):
         >>> k = HDKey(private_hex)
         >>> pm = k.public_master()
         >>> pm.wif()
-        'xpub6CjFexgdDZEtHdW7V4LT8wS9rtG3m187pM9qhTpoZdViFhSv3tW9sWonQNtFN1TCkRGAQGKj1UC2ViHTqb7vJV3X67xSKuCDzv14tBHR3Y7'
+        'zpub6qN4WhSaerCBXv28QdRXwY4EvnAUbCSLCWUF5ZNSsyrupWwBRv4irjjQ6vpz5WFM7Z7zyy3eQBzijfszpvqdoiyAVLc44MsL4mVQDTwSHpT'
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
@@ -2221,7 +2221,7 @@ class HDKey(Key):
         >>> k = HDKey(private_hex)
         >>> ck = k.child_private(10)
         >>> ck.address()
-        '1FgHK5JUa87ASxz5mz3ypeaUV23z9yW654'
+        'bc1q5rlenzyn95pt4rur6jcnrgx5s3u6kw0nnwjrtt'
         >>> ck.depth
         1
         >>> ck.child_index
@@ -2272,7 +2272,7 @@ class HDKey(Key):
         >>> k = HDKey(private_hex)
         >>> ck = k.child_public(15)
         >>> ck.address()
-        '1PfLJJgKs8nUbMPpaQUucbGmr8qyNSMGeK'
+        'bc1qlzf2a6tskk8g6g55nsda7akmwsevasv5p4muuf'
         >>> ck.depth
         1
         >>> ck.child_index

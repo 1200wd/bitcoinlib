@@ -759,7 +759,7 @@ class TestScript(unittest.TestCase, CustomAssertions):
     def test_script_create_simple(self):
         script = Script([op.op_2, op.op_5, op.op_sub, op.op_1])
         self.assertEqual(str(script), 'OP_2 OP_5 OP_SUB OP_1')
-        self.assertEqual(repr(script), '<Script([OP_2, OP_5, OP_SUB, OP_1])>')
+        self.assertEqual(repr(script), '<Script([op_2, op_5, op_sub, op_1])>')
         self.assertEqual(script.serialize().hex(), '52559451')
         self.assertEqual(script.serialize_list(), [b'R', b'U', b'\x94', b'Q'])
         self.assertTrue(script.evaluate())

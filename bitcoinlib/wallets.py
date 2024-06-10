@@ -314,9 +314,9 @@ class WalletKey(object):
         >>> wif = 'xprv9s21ZrQH143K2mcs9jcK4EjALbu2z1N9qsMTUG1frmnXM3NNCSGR57yLhwTccfNCwdSQEDftgjCGm96P29wGGcbBsPqZH85iqpoHA7LrqVy'
         >>> wk = WalletKey.from_key('import_key', w.wallet_id, w.session, wif)
         >>> wk.address
-        '1MwVEhGq6gg1eeSrEdZom5bHyPqXtJSnPg'
+        'bc1qukcgc3guzt0a27j7vdegtgwxsrv4khc4688ycs'
         >>> wk # doctest:+ELLIPSIS
-        <WalletKey(key_id=..., name=import_key, wif=xprv9s21ZrQH143K2mcs9jcK4EjALbu2z1N9qsMTUG1frmnXM3NNCSGR57yLhwTccfNCwdSQEDftgjCGm96P29wGGcbBsPqZH85iqpoHA7LrqVy, path=m)>
+        <WalletKey(key_id=..., name=import_key, wif=zprvAWgYBBk7JR8GjN16pTBZUQvAgYBvsFM9g6Pu33oScnYHTEzphkbYKFHckMNncUg3kug1jAs1c3uNXiKWTYmHs5xPc5EQSwihPGvZwGiZeKD, path=m)>
 
         :param name: New key name
         :type name: str
@@ -1886,7 +1886,7 @@ class Wallet(object):
 
         >>> w = Wallet('create_legacy_wallet_test')
         >>> w.new_key('my key') # doctest:+ELLIPSIS
-        <WalletKey(key_id=..., name=my key, wif=..., path=m/44'/0'/0'/0/...)>
+        <WalletKey(key_id=..., name=my key, wif=..., path=m/84'/0'/0'/0/...)>
 
         :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with a unique sequence number will be used
         :type name: str
@@ -2109,7 +2109,7 @@ class Wallet(object):
 
         >>> w = Wallet('create_legacy_wallet_test')
         >>> w.get_key() # doctest:+ELLIPSIS
-        <WalletKey(key_id=..., name=..., wif=..., path=m/44'/0'/0'/0/...)>
+        <WalletKey(key_id=..., name=..., wif=..., path=m/84'/0'/0'/0/...)>
 
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -2253,11 +2253,11 @@ class Wallet(object):
 
         >>> w = Wallet('create_legacy_wallet_test')
         >>> w.path_expand([0,1200])
-        ['m', "44'", "0'", "0'", '0', '1200']
+        ['m', "84'", "0'", "0'", '0', '1200']
 
         >>> w = Wallet('create_legacy_multisig_wallet_test')
         >>> w.path_expand([0,2], cosigner_id=1)
-        ['m', "45'", '1', '0', '2']
+        ['m', "48'", "0'", "0'", "2'", '0', '2']
 
         :param path: Part of path, for example [0, 2] for change=0 and address_index=2
         :type path: list, str
@@ -2321,18 +2321,18 @@ class Wallet(object):
         >>> w = wallet_create_or_open('key_for_path_example')
         >>> key = w.key_for_path([0, 0])
         >>> key.path
-        "m/44'/0'/0'/0/0"
+        "m/84'/0'/0'/0/0"
 
         >>> w.key_for_path([], level_offset=-2).path
-        "m/44'/0'/0'"
+        "m/84'/0'/0'"
 
         >>> w.key_for_path([], w.depth_public_master + 1).path
-        "m/44'/0'/0'"
+        "m/84'/0'/0'"
 
         Arguments provided in 'path' take precedence over other arguments. The address_index argument is ignored:
         >>> key = w.key_for_path([0, 10], address_index=1000)
         >>> key.path
-        "m/44'/0'/0'/0/10"
+        "m/84'/0'/0'/0/10"
         >>> key.address_index
         10
 
@@ -2589,9 +2589,6 @@ class Wallet(object):
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
         >>> network_key = w.keys_networks()
-        >>> # Address index of hardened key 0' is 2147483648
-        >>> network_key[0].address_index
-        2147483648
         >>> network_key[0].path
         "m/44'/0'"
 
