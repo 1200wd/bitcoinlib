@@ -118,7 +118,7 @@ class BitcoindClient(BaseClient):
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url, **kwargs)
 
-    def __init__(self, base_url, network='bitcoin', denominator=100000000, *args):
+    def __init__(self, network='bitcoin', base_url='', denominator=100000000, *args):
         """
         Open connection to bitcoin node
 
@@ -134,10 +134,7 @@ class BitcoindClient(BaseClient):
         if isinstance(network, Network):
             network = network.name
         if not base_url:
-            _logger.warning("Please provide rpc connection url to bitcoind node")
-            bdc = self.from_config('', network)
-            base_url = bdc.base_url
-            network = bdc.network
+            raise ValueError("Please provide rpc connection url to bitcoind node")
         wallet_name = '' if not len(args) > 6 else args[6]
         if wallet_name:
             base_url = base_url.replace("{wallet_name}", wallet_name)
