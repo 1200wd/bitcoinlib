@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Block examples
 #
-#    © 2020 July - 1200 Web Development <http://1200wd.com/>
+#    © 2020 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -24,7 +24,7 @@ pprint(b.as_dict())
 
 print("=== Parse raw block (block 100) ===")
 raw_block = "010000007de867cc8adc5cc8fb6b898ca4462cf9fd667d7830a275277447e60800000000338f121232e169d3100edd82004dc2a1f0e1f030c6c488fa61eafa930b0528fe021f7449ffff001d36b4af9a0101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0804ffff001d02fd04ffffffff0100f2052a01000000434104f5eeb2b10c944c6b9fbcfff94c35bdeecd93df977882babc7f3a2cf7f5c81d3b09a68db7f0e04f21de5d4230e75e6dbe7ad16eefe0d4325a62067dc6f369446aac00000000"
-b = Block.from_raw(bytes.fromhex(raw_block), height=100, parse_transactions=True)
+b = Block.parse_bytes(bytes.fromhex(raw_block), height=100, parse_transactions=True)
 pprint(b.as_dict())
 
 

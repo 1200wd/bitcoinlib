@@ -112,15 +112,6 @@ litecoin_wallet.new_key()
 litecoin_wallet.info(detail=3)
 del litecoin_wallet
 
-print("\n=== Create Dash wallet ===")
-dash_wallet = Wallet.create(
-    db_uri=test_database,
-    name='Dash Wallet',
-    network='dash')
-dash_wallet.new_key()
-dash_wallet.info(detail=3)
-del dash_wallet
-
 print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
 words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
 # Or use generate method:

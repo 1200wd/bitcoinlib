@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Key and HDKey Class
 #
-#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -73,10 +73,6 @@ print("\n=== Generate random Litecoin key ===")
 lk = HDKey(network='litecoin')
 lk.info()
 
-print("\n=== Generate random Dash key ===")
-lk = HDKey(network='dash')
-lk.info()
-
 print("\n=== Import simple private key as HDKey ===")
 k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
 print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.wif())
@@ -122,7 +118,6 @@ print(Address(pk, script_type='p2sh').address)
 print(Address(pk, encoding='bech32').address)
 print(Address(pk, script_type='p2sh', encoding='bech32').address)
 print(Address(pk, encoding='bech32', network='litecoin').address)
-print(Address(pk, encoding='bech32', network='dash').address)
 
 
 #

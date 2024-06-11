@@ -175,7 +175,7 @@ To create a new Bitcoin wallet
 
    - NETWORK: bitcoin -
    - - Keys
-     182 m/84'/0'/0'/0/0              bc1qza24j7snqlmx7603z8qplm4rzfkr0p0mneraqv    address index 0                        0.00000000 ₿
+     182 m/84`/0`/0`/0/0              bc1qza24j7snqlmx7603z8qplm4rzfkr0p0mneraqv    address index 0                        0.00000000 ₿
 
    - - Transactions Account 0 (0)
 

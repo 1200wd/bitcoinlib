@@ -118,18 +118,18 @@ class BitcoindClient(BaseClient):
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url, **kwargs)
 
-    def __init__(self, network='bitcoin', base_url='', denominator=100000000, *args):
+    def __init__(self, base_url, network='bitcoin', denominator=100000000, *args):
         """
         Open connection to bitcoin node
 
-        :param network: Bitcoin mainnet or testnet. Default is bitcoin mainnet
-        :type: str
         :param base_url: Connection URL in format http(s)://user:password@host:port.
+        :type: str
+        :param network: Bitcoin mainnet or testnet. Default is bitcoin mainnet
         :type: str
         :param denominator: Denominator for this currency. Should be always 100000000 (Satoshi's) for bitcoin
         :type: str
         :param wallet_name: Name of Bitcoin core wallet to use. Make sure the wallet exists, otherwise connection will fail.
-        :type str
+        :type: str
         """
         if isinstance(network, Network):
             network = network.name

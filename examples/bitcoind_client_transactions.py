@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Use bitcoind as service provider
 #
-#    © 2018 March - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint

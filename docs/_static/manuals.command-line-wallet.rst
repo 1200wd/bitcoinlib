@@ -240,7 +240,7 @@ generate a new receiving address with the -r / --receive option and update the u
 
     - NETWORK: bitcoinlib_test -
     - - Keys
-      193 m/48'/9999999'/0'/2'/0/0     blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p Multisig Key 185/192                   2.00000000 T
+      193 m/48`/9999999`/0`/2`/0/0     blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p Multisig Key 185/192                   2.00000000 T
 
     - - Transactions Account 0 (2)
     7b020ae9c7f8ba84a5a5136ae32e6195af5a4f25316f790a1278e04f479ca77d blt1qxu6z7evkrmz5s7sk63dr0u3h9xsf2j2vys88reg75cjvjuz4vf2srkxp7p       10          1.00000000 T U

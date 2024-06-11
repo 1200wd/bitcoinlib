@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Script and Stack Class
 #
-#    © 2021 September - 1200 Web Development <http://1200wd.com/>
+#    © 2021 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 
 from bitcoinlib.scripts import *
@@ -78,7 +78,7 @@ traw = '010000000182406edfc43449e2f94097867316cbc631dfdf9dc57dcc125297b0b59d3a2e
 t = Transaction.parse_hex(traw)
 i = t.inputs[0]
 transaction_hash_input_0 = transaction_hash = t.signature_hash(i.index_n)
-s = Script.parse(i.unlocking_script + i.script_code)
+s = Script.parse(i.unlocking_script + i.locking_script)
 print("Validation script input 0: %s" % s)
 print("Evaluate: %s" % s.evaluate(transaction_hash_input_0))
 
@@ -122,11 +122,11 @@ print("\nmultisig: %s" % s.script_types[0])
 print(s)
 
 script = b"\x00\x14\xdc'M\xf8\x110Ke\xbd\x95\x1fq\xa3\x81\x0e\xc1\x91\x0b\xd7\x96"
-s = Script.parse(script)
+s = Script.parse(script, is_locking=True)
 print("\np2wpkh: %s" % s.script_types[0])
 print(s)
 
 script = b'\x00 X|\x82_z\xb2\xdcV!\x0f\x92q\x15\x85\xed\x0cj\x84\x930]~\xa7\xb2\xd4\xb3a\x1e\\\xda\x85*'
-s = Script.parse(script)
+s = Script.parse(script, is_locking=True)
 print("\np2wsh: %s" % s.script_types[0])
 print(s)

@@ -1297,8 +1297,7 @@ class Wallet(object):
         :type sort_keys: bool
         :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
         :type password: str
-        :param witness_type: Specify witness type, default is 'segwit', for native segregated witness
-        wallet. Use 'legacy' for an old-style wallets or 'p2sh-segwit' for legacy compatible wallets
+        :param witness_type: Specify witness type, default is 'segwit', for native segregated witness wallet. Use 'legacy' for an old-style wallets or 'p2sh-segwit' for legacy compatible wallets
         :type witness_type: str
         :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
         :type encoding: str

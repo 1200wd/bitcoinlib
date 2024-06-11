@@ -5,7 +5,7 @@
 #    EXAMPLES - Deserialize and Verify all transactions from the latest block
 #    Just use for testing and experimenting, this library is not optimized for blockchain parsing!
 #
-#    © 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2024 June - 1200 Web Development <http://1200wd.com/>
 #
 
 from bitcoinlib.services.services import *
@@ -13,7 +13,8 @@ from bitcoinlib.services.bitcoind import *
 from pprint import pprint
 
 
-bdc = BitcoindClient()
+url = 'http://user:pass@server:18332'
+bdc = BitcoindClient(url)
 
 # Check bitcoind connection
 pprint(bdc.proxy.getnetworkinfo())
@@ -25,7 +26,7 @@ latest_block = bdc.proxy.getblock(latest_block_hash)
 transactions = latest_block['tx']
 print("Found %d transactions" % len(transactions))
 
-srv = Service(network='bitcoin')
+srv = Service(network='testnet')
 
 MAX_TRANSACTIONS = 100
 count = 0
