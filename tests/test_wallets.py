@@ -1429,11 +1429,11 @@ class TestWalletMultisig(unittest.TestCase):
 
     def test_wallets_multisig_with_single_key_cosigner(self):
         k0 = 'xprv9s21ZrQH143K459uwGGCU3Wj3v1LFFJ42tgyTsNnr6p2BS6FZ9jQ7fmZMMnqsWSi2BBgpX3hFbR4ode8Jx58ibSNeaBLFQ68Xs3' \
-             'jwg4QFLh'
+             'jwg4QFLh'  # cosigner 2
         k1 = 'xpub661MyMwAqRbcGcJB4UPQpR2mUQtdUVbjjNC84DEK9ptZ2XgAC54U1onrH6tEMueYbzGPCRRPoDx5npvCS4Xryz8toVVEQ4ZFfkU' \
-             'cJobNZfn'
+             'cJobNZfn'  # cosigner 1
         k2 = 'xpub661MyMwAqRbcFD9fBAsKxxRPgikEvig5KYT1CEnAp7FcfcFeu2ZxdNcj6DDUxNreWgftXody6NqDHmFmh8tRZ4UNAecucovtW4M' \
-             'bGjYRJFP'
+             'bGjYRJFP'  # cosigner 0
         hdkey0 = HDKey(k0).public_master_multisig()
         hdkey1 = HDKey(k1, key_type='single')
         hdkey2 = HDKey(k2, key_type='single')
@@ -1448,15 +1448,19 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertEqual(len(w.addresslist()), 3)
         self.assertEqual(w.keys()[0].address, '39b2tosg9To6cQTrqnZLhuhW5auqCqXKsH')
         self.assertEqual(w.keys()[1].address, '3K2eBv2hm3SjhVRaJJK8Dt7wMb8mRTWcMH')
+        self.assertEqual(w.keys()[2].address, '3PprnP2HcaivRGaUSBm9Z724NHvjibb4c7')
 
         w2 = wallet_create_or_open('test_wallets_multisig_with_single_key_cosigner2', keys=[hdkey0, hdkey1, hdkey2],
                                    cosigner_id=2, db_uri=self.database_uri)
         w2.new_key()
         w2.new_key()
+        w2.new_key(cosigner_id=0)
         self.assertEqual(w2.keys()[0].address, '39b2tosg9To6cQTrqnZLhuhW5auqCqXKsH')
         self.assertEqual(w2.keys()[1].address, '3K2eBv2hm3SjhVRaJJK8Dt7wMb8mRTWcMH')
+        self.assertEqual(w2.keys()[2].address, '3PprnP2HcaivRGaUSBm9Z724NHvjibb4c7')
         self.assertEqual(w2.keys()[0].path, "M/2/0/0")
         self.assertEqual(w2.keys()[1].path, "M/2/0/1")
+        self.assertEqual(w2.keys()[2].path, "M/0/0/0")
 
         # Close wallet and reopen to test for database issues for example
         del w

@@ -1305,7 +1305,7 @@ class Wallet(object):
         :type multisig: bool
         :param sigs_required: Number of signatures required for validation if using a multisignature wallet. For example 2 for 2-of-3 multisignature. Default is all keys must be signed
         :type sigs_required: int
-        :param cosigner_id: Set this if wallet contains only public keys, more than one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the cosigned_id may be different.
+        :param cosigner_id: Set this if wallet contains only public keys, more than one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the wallet's cosigner_id may be different.
         :type cosigner_id: int
         :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
             * Path start with masterkey (m) and end with change / address_index
@@ -1353,8 +1353,8 @@ class Wallet(object):
                               "locked up funds")
 
         hdkey_list = []
-        if keys and isinstance(keys, list) and sort_keys:
-            keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
+        # if keys and isinstance(keys, list) and sort_keys:
+        #     keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
         for key in keys:
             if isinstance(key, HDKey):
                 if network and network != key.network.name:
@@ -1417,7 +1417,13 @@ class Wallet(object):
         main_key_path = key_path
         if multisig:
             if sort_keys:
+                # FIXME: Think of simple construction to distinct between key order and cosigner id, the solution below is a bit confusing
+                # cosigner_id_key = None if cosigner_id is None else hdkey_list[cosigner_id].public_byte
                 hdkey_list.sort(key=lambda x: x.public_byte)
+                # Update cosigner id if order of keys changed
+                # cosigner_id = cosigner_id if (cosigner_id is None or cosigner_id_key is None) else (
+                #     hdkey_list.index([k for k in hdkey_list if k.public_byte == cosigner_id_key][0]))
+
             cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
             if cosigner_id is None:
                 if not cos_prv_lst:
