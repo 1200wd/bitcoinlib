@@ -374,7 +374,7 @@ class Service(object):
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
             for tx in txs:
-                if not tx.date.tzinfo:
+                if tx.date and not tx.date.tzinfo:
                     tx.date = tx.date.replace(tzinfo=timezone.utc)
 
         # Store transactions and address in cache
