@@ -1,3 +1,25 @@
+RELEASE 0.7.0 BETA - Add bumpfee, bitcoin core connection and many more
+=======================================================================
+* Improve connections with bitcoin core wallet
+* Support multiple bitcoin core wallets
+* Allow to bump transaction fee
+* Allow to remove old unconfirmed transactions from wallet
+* Use segwit as default for all classes
+* Add debugger to Script class
+* Improve Script class
+* Cleanup Input class and improve speed
+* Improve fee estimates
+* Fix various provider issues
+* Fix MySQL en PostgreSQL issues and unittesting
+* Fix p2pk script issues
+* Fix issues with redeemscripts
+* Rename Transaction.offline to Transaction.broadcast
+* Allow to disable random transaction output order
+* Use timezone UTC for all dates
+* Fix SQLAlchemy session and database issues
+* Check and update examples and documentation
+* Add support for Python 3.12
+
 RELEASE 0.6.15 - Small bugfixes, documentation updates
 ======================================================
 * Some small bugfixes
