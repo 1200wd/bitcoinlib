@@ -192,7 +192,7 @@ class Script(object):
         :param sigs_required: Nubmer of signatures required to create multisig script
         :type sigs_required: int
         :param redeemscript: Provide redeemscript to create a new (multisig) script
-        :type redeemscript: bytes
+        :type redeemscript: bytes, Script
         :param hash_type: Specific script hash type, default is SIGHASH_ALL
         :type hash_type: int
         """
@@ -207,7 +207,12 @@ class Script(object):
         self._blueprint = blueprint if blueprint else []
         self.env_data = {} if not env_data else env_data
         self.sigs_required = sigs_required if sigs_required else len(self.keys) if len(self.keys) else 1
-        self.redeemscript = redeemscript
+        self.redeemscript_obj = None
+        if isinstance(redeemscript, Script):
+            self.redeemscript_obj = redeemscript
+            self.redeemscript = redeemscript.as_bytes()
+        else:
+            self.redeemscript = redeemscript
         self.public_hash = public_hash
         self.hash_type = hash_type
 
@@ -312,6 +317,7 @@ class Script(object):
         keys = []
         blueprint = []
         redeemscript = b''
+        redeemscript_obj = None
         sigs_required = None
         # hash_type = SIGHASH_ALL  # todo: check
         hash_type = None
@@ -373,7 +379,8 @@ class Script(object):
                             blueprint += [s2.blueprint]
                             keys += s2.keys
                             signatures += s2.signatures
-                            redeemscript = s2.redeemscript
+                            redeemscript_obj = s2
+                            redeemscript = s2.as_bytes()
                             sigs_required = s2.sigs_required
                     except (ScriptError, IndexError):
                         blueprint.append('data-%d' % len(data))
@@ -419,6 +426,7 @@ class Script(object):
         # Extract extra information from script data
         for st in s.script_types[:1]:
             if st == 'multisig':
+                redeemscript_obj = s
                 s.redeemscript = s.as_bytes()
                 s.sigs_required = s.commands[0] - 80
                 if s.sigs_required > len(keys):
@@ -434,6 +442,7 @@ class Script(object):
             elif st == 'p2pkh' and len(s.commands) > 2:
                 s.public_hash = s.commands[2]
         s.redeemscript = redeemscript if redeemscript else s.redeemscript
+        s.redeemscript_obj = redeemscript_obj
         if s.redeemscript and 'redeemscript' not in s.env_data:
             s.env_data['redeemscript'] = s.redeemscript
 
