@@ -287,6 +287,7 @@ class Input(object):
             script = Script.parse_bytes(self.unlocking_script, is_locking=False, strict=strict)
             self.keys = script.keys
             self.signatures = script.signatures
+            self.script = script
             if len(self.signatures):
                 self.hash_type = self.signatures[0].hash_type
             sigs_required = script.sigs_required
