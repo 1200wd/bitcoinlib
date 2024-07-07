@@ -100,14 +100,17 @@ class MempoolClient(BaseClient):
                 confirmations = self.latest_block - block_height + 1
             tx_date = datetime.fromtimestamp(tx['status']['block_time'], timezone.utc)
             status = 'confirmed'
+        witness_type = 'legacy'
+        if tx['size'] * 4 > tx['weight']:
+            witness_type = 'segwit'
 
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, block_height=block_height,
                         fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, confirmations=confirmations,
-                        status=status, coinbase=tx['vin'][0]['is_coinbase'])
+                        status=status, coinbase=tx['vin'][0]['is_coinbase'], witness_type=witness_type)
         for ti in tx['vin']:
             if ti['is_coinbase']:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptsig'], value=0,
-                            sequence=ti['sequence'], strict=self.strict)
+                            sequence=ti['sequence'], strict=self.strict, witness_type=witness_type)
             else:
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'],
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
@@ -118,8 +121,6 @@ class MempoolClient(BaseClient):
         for to in tx['vout']:
             t.add_output(value=to['value'], address=to.get('scriptpubkey_address', ''), spent=None,
                          lock_script=to['scriptpubkey'], strict=self.strict)
-        if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
-            t.witness_type = 'segwit'
         t.update_totals()
         return t
 

@@ -97,16 +97,20 @@ class BlockstreamClient(BaseClient):
         if tx['status']['confirmed']:
             status = 'confirmed'
         fee = None if 'fee' not in tx else tx['fee']
+        witness_type = 'legacy'
+        if tx['size'] * 4 > tx['weight']:
+            witness_type = 'segwit'
+
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fee, size=tx['size'], txid=tx['txid'],
                         date=None if 'block_time' not in tx['status'] else
                         datetime.fromtimestamp(tx['status']['block_time'], timezone.utc),
                         confirmations=confirmations, block_height=block_height, status=status,
-                        coinbase=tx['vin'][0]['is_coinbase'])
+                        coinbase=tx['vin'][0]['is_coinbase'], witness_type=witness_type)
         index_n = 0
         for ti in tx['vin']:
             if tx['vin'][0]['is_coinbase']:
-                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n, witness_type=witness_type,
                             unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'], strict=self.strict)
             else:
                 witnesses = []
