@@ -75,7 +75,7 @@ class BlocksmurferClient(BaseClient):
                 'size': u['size'],
                 'value': u['value'],
                 'script': u['script'],
-                'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S")
+                'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
             })
         return utxos[:limit]
 
@@ -86,7 +86,8 @@ class BlocksmurferClient(BaseClient):
             self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
             confirmations = self.latest_block - block_height
         # FIXME: Blocksmurfer returns 'date' or 'time', should be consistent
-        tx_date = None if not tx.get('date') else datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
+        tx_date = None if not tx.get('date') else (
+            datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc))
         if not tx_date and 'time' in tx:
             tx_date = datetime.fromtimestamp(tx['time'], timezone.utc)
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,

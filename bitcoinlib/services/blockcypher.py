@@ -73,9 +73,9 @@ class BlockCypher(BaseClient):
                 tdate = None
                 if 'confirmed' in tx:
                     try:
-                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
                     except ValueError:
-                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
                 transactions.append({
                     'address': address.address_orig,
                     'txid': tx['tx_hash'],
@@ -94,7 +94,7 @@ class BlockCypher(BaseClient):
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         if tx['confirmations']:
             t.status = 'confirmed'
-            t.date = datetime.strptime(tx['confirmed'][:19], "%Y-%m-%dT%H:%M:%S")
+            t.date = datetime.strptime(tx['confirmed'][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
         else:
             t.status = 'unconfirmed'
         t.confirmations = tx['confirmations']
