@@ -996,6 +996,7 @@ class TestServiceCache(unittest.TestCase):
         srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         t = srv.gettransaction(txid)
         self.assertEqual(t.size, 249)
+        self.assertEqual(t.inputs[0].witness_type, 'p2sh-segwit')
         self.assertEqual(srv.results_cache_n, 0)
         t2 = srv.gettransaction(txid)
         self.assertEqual(t2.size, 249)
