@@ -2374,12 +2374,14 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         block_height = Service(network='testnet', cache_uri='').blockcount()
         self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
 
-        w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
+        w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True,
+                                   db_uri=self.database_uri)
         w2.utxo_add(w2.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w2.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456, locktime=1901070183)
         self.assertEqual(t.locktime, 1901070183)
 
-        w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False)
+        w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False,
+                                   db_uri=self.database_uri)
         w3.utxo_add(w3.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w3.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         self.assertEqual(t.locktime, 0)
