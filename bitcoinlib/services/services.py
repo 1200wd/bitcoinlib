@@ -731,10 +731,13 @@ class Cache(object):
             t.date = t.date.replace(tzinfo=timezone.utc)
         for n in db_tx.nodes:
             if n.is_input:
+                witness_type = None
                 if n.ref_txid == b'\00' * 32:
                     t.coinbase = True
+                    witness_type = db_tx.witness_type.value
                 t.add_input(n.ref_txid.hex(), n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=n.witnesses, strict=False)
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=n.witnesses,
+                            strict=False, witness_type=witness_type)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
                              spending_txid=None if not n.ref_txid else n.ref_txid.hex(),
