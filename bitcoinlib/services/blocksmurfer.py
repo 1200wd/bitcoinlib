@@ -54,7 +54,6 @@ class BlocksmurferClient(BaseClient):
             balance += res['balance']
         return balance
 
-    # TODO: fix blocksmurfer api
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         res = self.compose_request('utxos', address, variables={'after_txid': after_txid})
         self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
@@ -85,11 +84,8 @@ class BlocksmurferClient(BaseClient):
         if block_height and not confirmations and tx['status'] == 'confirmed':
             self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
             confirmations = self.latest_block - block_height
-        # FIXME: Blocksmurfer returns 'date' or 'time', should be consistent
         tx_date = None if not tx.get('date') else (
             datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc))
-        if not tx_date and 'time' in tx:
-            tx_date = datetime.fromtimestamp(tx['time'], timezone.utc)
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], txid=tx['txid'], date=tx_date, input_total=tx['input_total'],
                         output_total=tx['output_total'], confirmations=confirmations, block_height=block_height,
@@ -101,7 +97,7 @@ class BlocksmurferClient(BaseClient):
                         public_hash=bytes.fromhex(ti['public_hash']), address=ti['address'],
                         witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
-                        encoding=ti['encoding'], locking_script=ti['script_code'],
+                        encoding=ti['encoding'], locking_script=ti['locking_script'],
                         sigs_required=ti['sigs_required'], sequence=ti['sequence'],
                         witnesses=[bytes.fromhex(w) for w in ti['witnesses']], script_type=ti['script_type'],
                         strict=self.strict)
