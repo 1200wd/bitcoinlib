@@ -663,7 +663,7 @@ class Service(object):
         prev_txs = []
         for i in t.inputs:
             if not i.value:
-                if i.prev_txid not in prev_txs:
+                if i.prev_txid not in prev_txs and i.prev_txid != 32 * b'\0':
                     prev_t = self.gettransaction(i.prev_txid.hex())
                 else:
                     prev_t = [t for t in prev_txs if t.txid == i.prev_txid][0]
