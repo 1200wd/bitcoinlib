@@ -663,7 +663,7 @@ class Service(object):
         prev_txs = []
         for i in t.inputs:
             if not i.value:
-                if i.prev_txid not in prev_txs:
+                if i.prev_txid not in prev_txs and i.prev_txid != 32 * b'\0':
                     prev_t = self.gettransaction(i.prev_txid.hex())
                 else:
                     prev_t = [t for t in prev_txs if t.txid == i.prev_txid][0]
@@ -727,12 +727,17 @@ class Cache(object):
                         fee=db_tx.fee, txid=db_tx.txid.hex(), date=db_tx.date, confirmations=db_tx.confirmations,
                         block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value,
                         index=db_tx.index)
+        if t.date and not t.date.tzinfo:
+            t.date = t.date.replace(tzinfo=timezone.utc)
         for n in db_tx.nodes:
             if n.is_input:
+                witness_type = None
                 if n.ref_txid == b'\00' * 32:
                     t.coinbase = True
+                    witness_type = db_tx.witness_type.value
                 t.add_input(n.ref_txid.hex(), n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=n.witnesses, strict=False)
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=n.witnesses,
+                            strict=False, witness_type=witness_type)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
                              spending_txid=None if not n.ref_txid else n.ref_txid.hex(),
