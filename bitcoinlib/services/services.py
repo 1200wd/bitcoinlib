@@ -824,6 +824,10 @@ class Cache(object):
                     txs.append(t)
                     if len(txs) >= limit:
                         break
+                
+            for tx in txs:
+                tx.date = tx.date.replace(tzinfo=timezone.utc)
+
             return txs
         return []
 
