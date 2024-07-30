@@ -297,6 +297,7 @@ def deserialize_address(address, encoding=None, network=None):
                     'networks': networks,
                     'checksum': checksum,
                     'witver': None,
+                    'raw': address_bytes,
                 }
     if encoding == 'bech32' or encoding is None:
         try:
@@ -322,6 +323,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'networks': networks,
                 'checksum': addr_bech32_checksum(address),
                 'witver': witver,
+                'raw': pkh_incl,
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
