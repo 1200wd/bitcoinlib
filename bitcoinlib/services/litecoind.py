@@ -115,7 +115,7 @@ class LitecoindClient(BaseClient):
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return LitecoindClient(network, url, **kargs)
 
-    def __init__(self, network='litecoin', base_url='', denominator=100000000, **kargs):
+    def __init__(self, network='litecoin', base_url='', denominator=100000000, *args):
         """
         Open connection to litecoin node
 
@@ -134,7 +134,7 @@ class LitecoindClient(BaseClient):
             network = bdc.network
         _logger.info("Connect to litecoind")
         self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, **kargs)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def getbalance(self, addresslist):
         balance = 0
