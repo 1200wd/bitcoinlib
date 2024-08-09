@@ -369,7 +369,7 @@ class Service(object):
 
         # Get (extra) transactions from service providers
         txs = []
-        if not(db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount()) or not caching_enabled:
+        if not (db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount()) or not caching_enabled:
             txs = self._provider_execute('gettransactions', address, qry_after_txid.hex(),  limit)
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
@@ -381,7 +381,7 @@ class Service(object):
         # - disable cache if comparing providers or if after_txid is used and no cache is available
         last_block = None
         last_txid = None
-        if self.min_providers <= 1 and not(after_txid and not db_addr) and caching_enabled:
+        if self.min_providers <= 1 and not (after_txid and not db_addr) and caching_enabled:
             last_block = self.blockcount()
             last_txid = qry_after_txid
             self.complete = True
