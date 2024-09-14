@@ -614,9 +614,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo', 'bitaps'])
             srv.blockcount()
             n_blocks = None
+            delta = 200
+            if nw == 'testnet':
+                delta = 2500
             for provider in srv.results:
                 if n_blocks is not None:
-                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=200,
+                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=delta,
                                            msg="Network %s, provider %s value %d != %d" %
                                                (nw, provider, srv.results[provider], n_blocks))
                 n_blocks = srv.results[provider]

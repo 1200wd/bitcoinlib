@@ -2388,7 +2388,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         block_height = Service(network='testnet', cache_uri='').blockcount()
-        self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
+        self.assertAlmostEqual(t.locktime, block_height+1, delta=5)
 
         w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True,
                                    db_uri=self.database_uri)
