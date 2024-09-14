@@ -752,6 +752,22 @@ class TestWalletKeys(unittest.TestCase):
             self.assertEqual(k.address, bc_key[1])
             self.assertEqual(k.key().wif_key(), bc_key[0])
 
+    def test_wallet_key_address_index(self):
+        seed_phrase = 'screen plunge tiny enrich salmon unfair anxiety embrace offer uniform gym dose'
+        w = wallet_create_or_open("address_index_bip84", seed_phrase, db_uri=self.database_uri)
+        w.new_keys(number_of_keys=10)
+        w.new_keys(number_of_keys=5, change=1)
+        w.new_account("shopping", 101)
+        self.assertEqual(w.address_index(0).address, "bc1qx69vke5dt9lvkzpjjfrs09xvse9hz4s99f0sz2")
+        self.assertEqual(w.address_index(10).address, "bc1q7hfayzskmmg28hzpmn3yvu3pssyzvf9c0kzpyg")
+        self.assertEqual(w.address_index(4, change=1).address, "bc1qksvsavhajvyupenkcst6tt7t5ljh39uw604rwn")
+        self.assertEqual(w.address_index(10).address, "bc1q7hfayzskmmg28hzpmn3yvu3pssyzvf9c0kzpyg")
+        self.assertEqual(w.address_index(0, account_id=101).address, "bc1qms3xvam95swv0hfnekxnct6q35rkhdvzk0wh3g")
+        self.assertRaisesRegex(WalletError, "Account 102 not found in wallet. Please create account first",
+                               w.address_index, 0, account_id=102)
+        self.assertRaisesRegex(WalletError, "Key with address_index 11 not found in wallet. Please create key first",
+                               w.address_index, 11)
+
     @classmethod
     def tearDownClass(cls):
         del cls.database_uri

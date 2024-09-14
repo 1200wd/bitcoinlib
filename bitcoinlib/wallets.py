@@ -2107,7 +2107,7 @@ class Wallet(object):
 
     def get_key(self, account_id=None, witness_type=None, network=None, cosigner_id=None, change=0):
         """
-        Get a unused key / address or create a new one with :func:`new_key` if there are no unused keys.
+        Get an unused key / address or create a new one with :func:`new_key` if there are no unused keys.
         Returns a key from this wallet which has no transactions linked to it.
 
         Use the get_keys() method to a list of unused keys. Calling the get_key() method repeatelly to receive a
@@ -2499,6 +2499,64 @@ class Wallet(object):
                 self.session.commit()
 
         return new_keys
+
+    def last_address_index(self, account_id=None, cosigner_id=0, change=0, network=None):
+        """
+        Get last used address_index for this wallet
+
+        :param account_id: Account ID
+        :type account_id: int
+        :param cosigner_id: ID of cosigner
+        :type cosigner_id: int
+        :param change: Change key = 1 or normal = 0, normally provided to 'path' argument
+        :type change: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
+        :return int:
+        """
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        last_address_index = 0
+        if not((self.multisig and cosigner_id is not None and
+                (len(self.cosigner) > cosigner_id and self.cosigner[cosigner_id].key_path == 'm' or
+                 self.cosigner[cosigner_id].key_path == ['m']))):
+            prevkey = self.session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
+                          account_id=account_id, witness_type=self.witness_type, change=change,
+                          cosigner_id=cosigner_id, depth=self.key_depth).\
+                order_by(DbKey.address_index.desc()).first()
+            if prevkey:
+                last_address_index = prevkey.address_index
+        return last_address_index
+
+    def address_index(self, address_index, account_id=None, cosigner_id=None, change=0, network=None):
+        """
+        Get key with specified address_index from wallet. Always returns a key with the specified path, even if it is
+        not created yet in wallet. Wrapper for the :func:`key_for_path` method.
+
+        To get an unused key / address use the :func:`get_key` method and to create a new key use the :func:`new_key`
+        method.
+
+        :param address_index: address_index of specific key
+        :type address_index: int
+        :param account_id: Account ID
+        :type account_id: int
+        :param cosigner_id: ID of cosigner
+        :type cosigner_id: int
+        :param change: Change key = 1 or normal = 0, normally provided to 'path' argument
+        :type change: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
+        :return WalletKey:
+        """
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        if address_index > self.last_address_index(account_id, cosigner_id, change, network):
+            raise WalletError("Key with address_index %d not found in wallet. Please create key first" % address_index)
+        if account_id not in self.accounts():
+            raise WalletError("Account %d not found in wallet. Please create account first" % account_id)
+        return self.key_for_path([], address_index=address_index, account_id=account_id, cosigner_id=cosigner_id,
+                                 change=change, network=network)
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
              has_balance=None, is_active=None, witness_type=None, network=None, include_private=False, as_dict=False):
