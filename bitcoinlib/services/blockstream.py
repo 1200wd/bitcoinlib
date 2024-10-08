@@ -161,7 +161,8 @@ class BlockstreamClient(BaseClient):
             if len(prtxs) > limit:
                 break
         txs = []
-        for tx in prtxs[::-1]:
+        prtxs.sort(key=lambda x: x['status']['block_height'])
+        for tx in prtxs:
             t = self._parse_transaction(tx)
             if t:
                 txs.append(t)
