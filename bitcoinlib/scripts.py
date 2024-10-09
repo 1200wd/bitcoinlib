@@ -1020,6 +1020,14 @@ class Stack(list):
         return True
 
     def op_add(self):
+        """
+        Add the top 2 numbers of the stack and appends the result on the top of the stack.
+
+        Fails if the top 2 items are not arithmetic or if there are not enough items on the stack.
+
+        :return bool: Operation succeeded
+        """
+
         if not self.is_arithmetic(2):
             return False
         self.append(encode_num(self.pop_as_number() + self.pop_as_number()))
