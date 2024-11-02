@@ -115,7 +115,7 @@ class DogecoindClient(BaseClient):
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return DogecoindClient(network, url, **kargs)
 
-    def __init__(self, network='dogecoin', base_url='', denominator=100000000, **kargs):
+    def __init__(self, network='dogecoin', base_url='', denominator=100000000, *args):
         """
         Open connection to dogecoin node
 
@@ -141,7 +141,7 @@ class DogecoindClient(BaseClient):
                               "Please replace default password and set url in providers.json or dogecoin.conf file")
         _logger.info("Connect to dogecoind")
         self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, **kargs)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
