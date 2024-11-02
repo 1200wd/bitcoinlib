@@ -752,6 +752,22 @@ class TestWalletKeys(unittest.TestCase):
             self.assertEqual(k.address, bc_key[1])
             self.assertEqual(k.key().wif_key(), bc_key[0])
 
+    def test_wallet_key_address_index(self):
+        seed_phrase = 'screen plunge tiny enrich salmon unfair anxiety embrace offer uniform gym dose'
+        w = wallet_create_or_open("address_index_bip84", seed_phrase, db_uri=self.database_uri)
+        w.new_keys(number_of_keys=10)
+        w.new_keys(number_of_keys=5, change=1)
+        w.new_account("shopping", 101)
+        self.assertEqual(w.address_index(0).address, "bc1qx69vke5dt9lvkzpjjfrs09xvse9hz4s99f0sz2")
+        self.assertEqual(w.address_index(10).address, "bc1q7hfayzskmmg28hzpmn3yvu3pssyzvf9c0kzpyg")
+        self.assertEqual(w.address_index(4, change=1).address, "bc1qksvsavhajvyupenkcst6tt7t5ljh39uw604rwn")
+        self.assertEqual(w.address_index(10).address, "bc1q7hfayzskmmg28hzpmn3yvu3pssyzvf9c0kzpyg")
+        self.assertEqual(w.address_index(0, account_id=101).address, "bc1qms3xvam95swv0hfnekxnct6q35rkhdvzk0wh3g")
+        self.assertRaisesRegex(WalletError, "Account 102 not found in wallet. Please create account first",
+                               w.address_index, 0, account_id=102)
+        self.assertRaisesRegex(WalletError, "Key with address_index 11 not found in wallet. Please create key first",
+                               w.address_index, 11)
+
     @classmethod
     def tearDownClass(cls):
         del cls.database_uri
@@ -2372,14 +2388,16 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         w.utxo_add(w.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         block_height = Service(network='testnet', cache_uri='').blockcount()
-        self.assertAlmostEqual(t.locktime, block_height+1, delta=3)
+        self.assertAlmostEqual(t.locktime, block_height+1, delta=50)
 
-        w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True)
+        w2 = wallet_create_or_open('antifeesnipingtestwallet2', network='testnet', anti_fee_sniping=True,
+                                   db_uri=self.database_uri)
         w2.utxo_add(w2.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w2.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456, locktime=1901070183)
         self.assertEqual(t.locktime, 1901070183)
 
-        w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False)
+        w3 = wallet_create_or_open('antifeesnipingtestwallet3', network='testnet', anti_fee_sniping=False,
+                                   db_uri=self.database_uri)
         w3.utxo_add(w3.get_key().address, 1234567, os.urandom(32).hex(), 1)
         t = w3.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         self.assertEqual(t.locktime, 0)

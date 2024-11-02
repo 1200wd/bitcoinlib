@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -72,7 +72,7 @@ class BitGoClient(BaseClient):
                         'size': 0,
                         'value': int(round(utxo['value'] * self.units, 0)),
                         'script': utxo['script'],
-                        'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                        'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
                      }
                 )
             total = res['total']

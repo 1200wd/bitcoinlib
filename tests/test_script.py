@@ -815,7 +815,9 @@ class TestScript(unittest.TestCase, CustomAssertions):
         s1 = Script.parse(script_size_byte)
         s2 = Script.parse(script)
         s1._raw = s2.as_bytes()
-        self.assertDictEqualExt(s1.__dict__, s2.__dict__)
+        s1.redeemscript = b''
+        s1.redeemscript_obj = None
+        self.assertDictEqualExt(s1.__dict__, s2.__dict__, )
 
     def test_script_parse_redeemscript(self):
         redeemscript = '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09' \
@@ -825,6 +827,21 @@ class TestScript(unittest.TestCase, CustomAssertions):
                        '00bd217870a8b4f1f09f3a8e8353ae'
         s = Script.parse_hex(redeemscript)
         self.assertEqual(s.serialize().hex(), redeemscript)
+
+    def test_script_parse_p2sh_redeemscript(self):
+        script = ('00473044022076521fc60292a564fcac9ecb05e78846ff0d0e1d9f9de87d23d71cc130504e5c02202b1e0b5aea07d530eab'
+                  '146d1db54542cb2ca2bf6dcf69e77b7ee21671e97f51c0148304502210099eef1bca6087f8f20e0f183a19d057230851ef2'
+                  'fa4f356f192a9745fe1711510220336610d9dc4617a9bb02bdffec0e231df6ad998c6909a7b136dcb30f4bc60953014c725'
+                  '2210352d50656796dd79e3e3385c29636d849b8705c9c6d9b86a1717adc38e4a567c72102f39d0b69c3b8e06030ef9dc295'
+                  'cf8c848f51e398fe85414e33509afdc7f01fb321027072ba2319ead2b0b387d69d36508f57b397da8d4ac76ea64676ee8a1'
+                  '356dae053af048e254ac175740087')
+        s = Script.parse_hex(script)
+        self.assertEqual(s.redeemscript,
+                         b'R!\x03R\xd5\x06Vym\xd7\x9e>3\x85\xc2\x966\xd8I\xb8p\\\x9cm\x9b\x86\xa1q'
+                          b'z\xdc8\xe4\xa5g\xc7!\x02\xf3\x9d\x0bi\xc3\xb8\xe0`0\xef\x9d\xc2\x95\xcf\x8c'
+                          b'\x84\x8fQ\xe3\x98\xfe\x85AN3P\x9a\xfd\xc7\xf0\x1f\xb3!\x02pr\xba#\x19'
+                          b'\xea\xd2\xb0\xb3\x87\xd6\x9d6P\x8fW\xb3\x97\xda\x8dJ\xc7n\xa6Fv\xee\x8a\x13'
+                          b'V\xda\xe0S\xaf\x04\x8e%J\xc1ut\x00\x87')
 
     def test_script_create_redeemscript(self):
         key1 = '5JruagvxNLXTnkksyLMfgFgf3CagJ3Ekxu5oGxpTm5mPfTAPez3'

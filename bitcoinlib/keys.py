@@ -242,7 +242,7 @@ def deserialize_address(address, encoding=None, network=None):
     If more networks and or script types are found you can find these in the 'networks' field.
 
     >>> deserialize_address('1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
-    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest'], 'checksum': b'\xcf\xa4I0', 'witver': None}
+    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin', 'regtest'], 'checksum': b'\\xcf\\xa4I0', 'witver': None, 'raw': b"\\x00\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7\\xcf\\xa4I0"}
 
     :param address: A base58 or bech32 encoded address
     :type address: str
@@ -297,6 +297,7 @@ def deserialize_address(address, encoding=None, network=None):
                     'networks': networks,
                     'checksum': checksum,
                     'witver': None,
+                    'raw': address_bytes,
                 }
     if encoding == 'bech32' or encoding is None:
         try:
@@ -322,6 +323,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'networks': networks,
                 'checksum': addr_bech32_checksum(address),
                 'witver': witver,
+                'raw': pkh_incl,
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))

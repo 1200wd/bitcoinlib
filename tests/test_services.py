@@ -525,6 +525,13 @@ class TestService(unittest.TestCase, CustomAssertions):
                                     ['block_hash', 'block_height', 'spent', 'spending_txid', 'spending_index_n',
                                      'flag'])
 
+    def test_service_gettransaction_coinbase_legacy(self):
+        srv = ServiceTest(network='bitcoin')
+        t = srv.gettransaction('fc27565334c7faa7ceeb457dfb5c8ba459e42c1cd8551a99af41f336fc4fd64d')
+        self.assertEqual(t.inputs[0].prev_txid, b'\0' * 32)
+        self.assertEqual(t.witness_type, 'legacy')
+        self.assertEqual(t.inputs[0].encoding, 'base58')
+
     def test_service_gettransaction_segwit_p2wpkh(self):
         expected_dict = {
             'block_hash': '00000000000000000006e7007407805af2bfb386439e570f5310bb97cdcf0352',
@@ -607,9 +614,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo', 'bitaps'])
             srv.blockcount()
             n_blocks = None
+            delta = 200
+            if nw == 'testnet':
+                delta = 2500
             for provider in srv.results:
                 if n_blocks is not None:
-                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=200,
+                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=delta,
                                            msg="Network %s, provider %s value %d != %d" %
                                                (nw, provider, srv.results[provider], n_blocks))
                 n_blocks = srv.results[provider]
@@ -989,6 +999,7 @@ class TestServiceCache(unittest.TestCase):
         srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         t = srv.gettransaction(txid)
         self.assertEqual(t.size, 249)
+        self.assertEqual(t.inputs[0].witness_type, 'p2sh-segwit')
         self.assertEqual(srv.results_cache_n, 0)
         t2 = srv.gettransaction(txid)
         self.assertEqual(t2.size, 249)

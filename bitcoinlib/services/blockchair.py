@@ -93,7 +93,7 @@ class BlockChairClient(BaseClient):
                     'size': 0,
                     'value': utxo['value'],
                     'script': utxo['script_hex'],
-                    'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S")
+                    'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
                 })
             if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
                 break
@@ -114,7 +114,7 @@ class BlockChairClient(BaseClient):
         input_total = tx['input_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], txid=tx['hash'],
-                        date=None if not confirmations else datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
+                        date=None if not confirmations else datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc),
                         confirmations=confirmations, block_height=tx['block_id'] if tx['block_id'] > 0 else None,
                         status=status, input_total=input_total, coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)

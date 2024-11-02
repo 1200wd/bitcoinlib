@@ -307,17 +307,6 @@
     "denominator": 1,
     "network_overrides": null
   },
-  "blockcypher.testnet": {
-    "provider": "blockcypher",
-    "network": "testnet",
-    "client_class": "BlockCypher",
-    "provider_coin_id": "",
-    "url": "https://api.blockcypher.com/v1/btc/test3/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 1,
-    "network_overrides": null
-  },
   "mempool": {
     "provider": "mempool",
     "network": "bitcoin",
@@ -337,6 +326,28 @@
     "url": "https://mempool.space/testnet/api/",
     "api_key": "",
     "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+    "mempool.litecoin": {
+    "provider": "mempool",
+    "network": "litecoin_testnet",
+    "client_class": "MempoolClient",
+    "provider_coin_id": "",
+    "url": "https://litecoinspace.org/api/",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 1,
+    "network_overrides": null
+  },
+    "mempool.litecoin_testnet": {
+    "provider": "mempool",
+    "network": "litecoin_testnet",
+    "client_class": "MempoolClient",
+    "provider_coin_id": "",
+    "url": "https://litecoinspace.org/testnet/api/",
+    "api_key": "",
+    "priority": 11,
     "denominator": 1,
     "network_overrides": null
   }

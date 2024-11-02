@@ -58,3 +58,5 @@ def _set_opcodes():
 opcodenames = _set_opcodes()
 
 OP_N_CODES = range(op.op_1, op.op_16)
+
+opcodeints = dict((v,k) for k,v in opcodenames.items())
