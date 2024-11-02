@@ -1,5 +1,5 @@
-RELEASE 0.7.0 BETA - Add bumpfee, bitcoin core connection and many more
-=======================================================================
+RELEASE 0.7.0 - Add bumpfee, bitcoin core connection and many more
+==================================================================
 * Improve connections with bitcoin core wallet
 * Support multiple bitcoin core wallets
 * Allow to bump transaction fee
@@ -18,6 +18,7 @@ RELEASE 0.7.0 BETA - Add bumpfee, bitcoin core connection and many more
 * Use timezone UTC for all dates
 * Fix SQLAlchemy session and database issues
 * Check and update examples and documentation
+* Add Litecoinspace mempool provider
 * Add support for Python 3.12
 
 RELEASE 0.6.15 - Small bugfixes, documentation updates
