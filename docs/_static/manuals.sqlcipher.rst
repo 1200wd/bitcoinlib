@@ -1,10 +1,10 @@
 Encrypt Database or Private Keys
 ================================
 
-If you database contains private keys it is a good idea to encrypt your data. This will not be done automatically. At the moment you have 2 options:
+If your database contains private keys it is a good idea to encrypt your data. This will not be done automatically. At the moment you have 2 options:
 
 - Encrypt the database with SQLCipher. The database is fully encrypted and you need to provide the password in the Database URI when opening the database.
-- Use a normal database but all private key data will be stored AES encrypted in the database. A key to encrypt and decrypt need to be provided in the Environment.
+- Use a normal database but all private key data will be stored AES encrypted in the database. A key to encrypt and decrypt needs to be provided in the Environment.
 
 Encrypt database with SQLCipher
 -------------------------------
@@ -35,7 +35,7 @@ Now you can simply create and use an encrypted database by supplying a password 
 
 **Encrypt using Database URI**
 
-You can also use a SQLCipher database URI to create and query a encrypted database:
+You can also use a SQLCipher database URI to create and query an encrypted database:
 
 .. code-block:: python
 
@@ -75,7 +75,7 @@ You can provide an encryption key directly or use a password to create a key:
     >>> Key().private_hex()
     '2414966ea9f2de189a61953c333f61013505dfbf8e383b5ed6cb1981d5ec2620'
 
-This key needs to be stored in the environment when creating or accessing a wallet. No extra arguments have to be provided to the Wallet class, the data is encrypted an decrypted at database level.
+This key needs to be stored in the environment when creating or accessing a wallet. No extra arguments have to be provided to the Wallet class, the data is encrypted and decrypted at database level.
 
 2. You can also just provide a password, and let Bitcoinlib create a key for you. You will need to pass the DB_FIELD_ENCRYPTION_PASSWORD environment variable.
 
@@ -99,4 +99,4 @@ Or in Windows:
 
 Environment variables can also be stored in an .env key, in a virtual environment or in Python code itself. However anyone with access to the key can decrypt your private keys.
 
-Please make sure to remember and backup your encryption key or password, if you loose your key the private keys can not be recovered!
+Please make sure to remember and backup your encryption key or password, if you lose your key the private keys can not be recovered!
