@@ -7,7 +7,7 @@ The Command Line wallet Script can be found in the tools directory. If you call 
 arguments it will show all available wallets.
 
 Specify a wallet name or wallet ID to show more information about a wallet. If you specify a wallet
-which doesn't exists the script will ask you if you want to create a new wallet.
+which doesn't exist the script will ask you if you want to create a new wallet.
 
 
 Create wallet
@@ -99,7 +99,7 @@ Encrypt private key fields
 --------------------------
 
 Bitcoinlib has build in functionality to encrypt private key fields in the database. If you provide a password in
-the runtime environment the data is encrypted at low level in de database module. You can provide a 32 byte key
+the runtime environment the data is encrypted at low level in the database module. You can provide a 32 byte key
 in the DB_FIELD_ENCRYPTION_KEY variable or a password in the DB_FIELD_ENCRYPTION_PASSWORD variable.
 
 .. code-block:: bash
@@ -285,7 +285,7 @@ We now have some utxo's in our wallet so we can create a transaction
 Copy the contents of the dictionary and save it as 3b96f493d189667565271041abbc0efbd8631bb54d76decb90e144bb145fa613.tx
 
 The transaction has been created, but cannot be verified because the wallet contains only 1 private key. So we need to
-create another wallet with the other private key, in real life situations this would be on another (offiline) machine.
+create another wallet with the other private key, in real life situations this would be on another (offline) machine.
 
 Below we create a new wallet, generate a receive address and update the utxo's. Finally we can import the transaction
 dictionary which we be signed once imported. And as you can see the transaction has been verified now!
@@ -355,7 +355,7 @@ options:
   --witness-type WITNESS_TYPE, -j WITNESS_TYPE
                         Witness type of wallet: legacy, p2sh-segwit or segwit (default)
   --yes, -y             Non-interactive mode, does not prompt for confirmation
-  --quiet, -q           Quiet mode, no output writen to console
+  --quiet, -q           Quiet mode, no output written to console
 
 Wallet Actions:
   --wallet-remove       Name or ID of wallet to remove, all keys and transactions will be deleted
@@ -367,7 +367,7 @@ Wallet Actions:
                         empty wallet again to restore your wallet.
   --receive, -r         Show unused address to receive funds.
   --cosigner-id COSIGNER_ID, -o COSIGNER_ID
-                        Set this if wallet contains only public keys, more then one private key or if you would like to create keys for other cosigners.
+                        Set this if wallet contains only public keys, more than one private key or if you would like to create keys for other cosigners.
   --export-private, -e  Export private key for this wallet and exit
   --import-private IMPORT_PRIVATE, -v IMPORT_PRIVATE
                         Import private key in this wallet
@@ -422,6 +422,6 @@ options:
                         URI of the database to use
   --receive, -r         Show unused address to receive funds.
   --yes, -y             Non-interactive mode, does not prompt for confirmation
-  --quiet, -q           Quiet mode, no output writen to console
+  --quiet, -q           Quiet mode, no output written to console
 
 
