@@ -1,7 +1,7 @@
 Add a new Service Provider
 ==========================
 
-The Service class connects to providers such as Blockchain.info or Blockchair.com to retreive transaction,
+The Service class connects to providers such as Blockchain.info or Blockchair.com to retrieve transaction,
 network, block, address information, etc
 
 The Service class automatically selects a provider which has requested method available and selects another
@@ -70,7 +70,7 @@ Example:
 
 * Remove install.log file in bitcoinlib's log directory, this will copy all provider settings next time you run
   the bitcoin library. See 'initialize_lib' method in main.py
-* Specify new provider and create service class object to test your new class and it's method
+* Specify new provider and create service class object to test your new class and its method
 
 .. code-block:: python
 
