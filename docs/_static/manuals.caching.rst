@@ -1,7 +1,7 @@
 Caching
 =======
 
-Results from queries to service providers are store in a cache database. Once transactions are confirmed and stored
+Results from queries to service providers are stored in a cache database. Once transactions are confirmed and stored
 on the blockchain they are immutable, so they can be stored in a local cache for an indefinite time.
 
 What is cached?
@@ -43,12 +43,12 @@ Nothing is cached, what is the problem?
 - If the min_providers parameter is set to 2 or more caching will be disabled.
 - If a service providers returns an incomplete result no cache will be stored.
 - If the after_txid parameter is used in gettransactions() or getutxos() no cache will be stored if this
-  the 'after_txid' transaction is not found in the cache. Because the transaction cache has to start from the first
+  'after_txid' transaction is not found in the cache. Because the transaction cache has to start from the first
   transaction for a certain address and no gaps can occur.
 
 I get incomplete or incorrect results!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Please post an issues in the Github issue-tracker so we can take a look.
+- Please post an issue in the Github issue-tracker so we can take a look.
 - You can delete the database in ~/.bitcoinlib/databases/bitcoinlib_cache.sqlite for an easy fix, or disable caching
   if that really doesn't work out.
