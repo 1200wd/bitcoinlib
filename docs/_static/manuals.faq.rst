@@ -36,8 +36,10 @@ Most likely cause is a problem with a specific service provider.
 Please set log level to 'debug' and check the logs in bitcoinlib.log to see if you can pin down the specific error.
 You could then disable the provider and post the `issue <https://github.com/1200wd/bitcoinlib/issues>`_.
 
-To avoid these kinds of errors it is advised to run your local `Bcoin node <manuals.setup-bcoin.html>`_.
-With a local Bcoin node you do not depend on external Service providers which increases reliability, security, speed
+To avoid these kinds of errors it is advised to run your local `Bcoin node <manuals.setup-bcoin.html>`_ or
+`Blockbook server <manuals.setup-blockbook.html>`_.
+
+With a local Bcoin node or Blockbook server you do not depend on external Service providers which increases reliability, security, speed
 and privacy.
 
 Can I use Bitcoinlib with another database besides SQLite?
