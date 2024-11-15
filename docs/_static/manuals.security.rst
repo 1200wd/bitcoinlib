@@ -3,8 +3,8 @@ Frequently Asked Questions
 
 Ten tips for more privacy and security when using Bitcoin and Bitcoinlib:
 
-1. Run your own `Bitcoin <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bitcoind-connection.html>`_
-   or `Bcoin <manuals.setup-bcoin.html>`_ node, so you are not depending on external Blockchain API service providers anymore.
+1. Run your own `Bitcoin core <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bitcoind-connection.html>`_, 
+   `Bcoin node <manuals.setup-bcoin.html>`_ node or `Blockbook server <manuals.setup-blockbook.html>`_, so you are not depending on external Blockchain API service providers anymore.
    This not only increases your privacy, but also makes your application much faster and more reliable. And as extra bonus
    you support the Bitcoin network.
 2. Use multi-signature wallets. So you are able to store your private keys in separate (offline) locations.

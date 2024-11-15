@@ -3,8 +3,9 @@ How to connect Bitcoinlib to a Bcoin node
 
 Bcoin is a full bitcoin node implementation, which can be used to parse the blockchain, send transactions and run a
 wallet. With a Bcoin node you can retrieve transaction and utxo information for specific addresses, this is not easily
-possible with a `Bitcoind <manuals.setup-bitcoind-connection.html>`_ node. So if you want to use Bitcoinlib with a
-wallet and not be dependant on external providers the best option is to run a local Bcoin node.
+possible with a `Bitcoind <manuals.setup-bitcoind-connection.html>`_ node. So if you want to use Bitcoinlib's
+wallet functionality for instance and not be dependant on external providers the best option is to run a local
+Bcoin node or `Blockbook <manuals.setup-blockbook.html>`_ server.
 
 
 Install Bcoin node
@@ -25,7 +26,7 @@ Use Bcoin node with Bitcoinlib
 
 To use Bcoin with bitcoinlib add the credentials to the providers.json configuration file in the .bitcoinlib directory.
 
-.. code-block:: text
+.. code-block:: json
 
     "bcoin": {
         "provider": "bcoin",
