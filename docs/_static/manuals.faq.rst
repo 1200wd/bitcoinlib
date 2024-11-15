@@ -15,7 +15,7 @@ I run into an error 'x' when installing Bitcoinlib
 2. Install the required packages one-by-one using pip install, and see if you get any specific errors.
 3. Check for help in `Github Discussions <https://github.com/1200wd/bitcoinlib/discussions>`_.
 4. See if you find any known `issue <https://github.com/1200wd/bitcoinlib/issues>`_.
-5. If it doesn't work out, do not hesitate to ask you question in the github discussions or post an issue!
+5. If it doesn't work out, do not hesitate to ask your question in the github discussions or post an issue!
 
 Does Bitcoinlib support 'x'-coin
 --------------------------------
@@ -36,9 +36,10 @@ Most likely cause is a problem with a specific service provider.
 Please set log level to 'debug' and check the logs in bitcoinlib.log to see if you can pin down the specific error.
 You could then disable the provider and post the `issue <https://github.com/1200wd/bitcoinlib/issues>`_.
 
-To avoid these kind of errors it is advised to run your local `Bcoin node <manuals.setup-bcoin.html>`_ or
+To avoid these kinds of errors it is advised to run your local `Bcoin node <manuals.setup-bcoin.html>`_ or
 `Blockbook server <manuals.setup-blockbook.html>`_.
-With a local Bcoin node you do not depend on external Service providers which increases reliability, security, speed
+
+With a local Bcoin node or Blockbook server you do not depend on external Service providers which increases reliability, security, speed
 and privacy.
 
 Can I use Bitcoinlib with another database besides SQLite?
@@ -59,7 +60,7 @@ I have another question
 Maybe your question already has an answer om `Github Discussions <https://github.com/1200wd/bitcoinlib/discussions>`_.
 Or search for an answer is this `documentation <https://bitcoinlib.readthedocs.io/en/latest/>`_.
 
-If that does not answer your question, please post your question on on the
+If that does not answer your question, please post your question on the
 `Github Discussions Q&A <https://github.com/1200wd/bitcoinlib/discussions/categories/q-a>`_.
 
 

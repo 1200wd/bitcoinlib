@@ -6,7 +6,7 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
-Bitcoin cryptocurrency Library writen in Python.
+Bitcoin cryptocurrency Library written in Python.
 
 Allows you to create a fully functional wallet with a single line of code.
 Use this library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
@@ -194,7 +194,7 @@ http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.command-line-wallet.h
 Service providers
 -----------------
 
-Communicates with pools of bitcoin service providers to retreive transaction, address, blockchain information.
+Communicates with pools of bitcoin service providers to retrieve transaction, address, blockchain information.
 To push a transaction to the network. To determine optimal service fee for a transaction. Or to update your
 wallet's balance.
 

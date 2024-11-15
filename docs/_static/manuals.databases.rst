@@ -1,7 +1,7 @@
 Using MySQL or PostgreSQL databases
 ===================================
 
-Bitcoinlib uses the SQLite database by default, because it easy to use and requires no installation.
+Bitcoinlib uses the SQLite database by default, because it is easy to use and requires no installation.
 
 But you can also use other databases. At this moment Bitcoinlib is tested with MySQL and PostgreSQL.
 
@@ -16,7 +16,7 @@ We assume you have a MySQL server at localhost. Unlike with the SQLite database 
 
     mysql> create database bitcoinlib;
 
-Now create a user for your application and grant this user access. And off course replace the password 'secret' with
+Now create a user for your application and grant this user access. And of course replace the password 'secret' with
 a better password.
 
 .. code-block:: mysql
