@@ -59,5 +59,5 @@ Bitcoinlib script support
 The 'pubkey' lockscript and 'signature' unlocking script are ancient and not supported by BitcoinLib at
 the moment.
 
-Using different encodings for addresses then the one listed in the Locking Script table is possible but
-not adviced: It is not standard and not sufficiently tested.
+Using different encodings for addresses than the one listed in the Locking Script table is possible but
+not advised: It is not standard and not sufficiently tested.

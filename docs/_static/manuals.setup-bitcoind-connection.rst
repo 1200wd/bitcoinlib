@@ -1,15 +1,15 @@
 How to connect bitcoinlib to a Bitcoin node
 ===========================================
 
-This manual explains how to connect to a bitcoind server on your localhost or an a remote server.
+This manual explains how to connect to a bitcoind server on your localhost or a remote server.
 
 Running your own bitcoin node allows you to create a large number of requests, faster response times,
-and more control, privacy and independence. However you need to install and maintain it and it used
+and more control, privacy and independence. However you need to install and maintain it and it uses
 a lot of resources.
 
 .. warning::
     With a standard Bitcoin node you can only retrieve block and transaction information. You can not
-    query the node for information about specific addresses. So it not suitable to run in combination with a Bitcoinlib
+    query the node for information about specific addresses. So it is not suitable to run in combination with a Bitcoinlib
     wallet. If you would like to use Bitcoinlib wallets and not be dependent on external providers you should use a
     `Bcoin node <manuals.setup-bcoin.html>`_ instead.
 
@@ -77,7 +77,7 @@ Example:
 Connect using base_url argument
 -------------------------------
 
-You can also directly pass connection string wit the 'base_url' argument in the BitcoindClient object.
+You can also directly pass connection string with the 'base_url' argument in the BitcoindClient object.
 
 This provides more flexibility but also the responsibility to store user and password information in a secure way.
 
@@ -115,4 +115,4 @@ Using RPC over a public network is unsafe, so since bitcoind version 0.18 remote
 are disabled. The rpcallowip option cannot be used to listen on all network interfaces and rpcbind has to be used to
 define specific IP addresses to listen on. See https://bitcoin.org/en/release/v0.18.0#configuration-option-changes
 
-You could setup a openvpn or ssh tunnel to connect to a remote server to avoid this issues.
+You could setup an openvpn or ssh tunnel to connect to a remote server to avoid this issues.
