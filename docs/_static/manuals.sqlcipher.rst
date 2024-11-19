@@ -24,7 +24,7 @@ your system might require other packages. Please read https://www.zetetic.net/sq
 
 **Create an Encrypted Database for your Wallet**
 
-Now you can simply create and use an encrypted database by supplying a password as argument to the Wallet object:
+Now you can simply create and use an encrypted database by supplying a password as an argument to the Wallet object:
 
 .. code-block:: python
 

@@ -20,7 +20,7 @@ To create a wallet just specify an unused wallet name:
     $ clw new -w mywallet
     CREATE wallet 'newwallet' (bitcoin network)
     Passphrase: sibling undo gift cat garage survey taxi index admit odor surface waste
-    Please write down on paper and backup. With this key you can restore your wallet and all keys
+    Please write it down on paper and backup. With this key you can restore your wallet and all keys
 
     Type 'yes' if you understood and wrote down your key: yes
     Wallet info for newwallet
@@ -110,7 +110,7 @@ in the DB_FIELD_ENCRYPTION_KEY variable or a password in the DB_FIELD_ENCRYPTION
 
     CREATE wallet 'cryptwallet' (bitcoin network)
     Passphrase: job giant vendor side oil embrace true cushion have matrix glimpse rack
-    Please write down on paper and backup. With this key you can restore your wallet and all keys
+    Please write it down on paper and backup. With this key you can restore your wallet and all keys
 
     Type 'yes' if you understood and wrote down your key: yes
     ... wallet info ...
@@ -288,7 +288,7 @@ The transaction has been created, but cannot be verified because the wallet cont
 create another wallet with the other private key, in real life situations this would be on another (offline) machine.
 
 Below we create a new wallet, generate a receive address and update the utxo's. Finally we can import the transaction
-dictionary which we be signed once imported. And as you can see the transaction has been verified now!
+dictionary which will be signed once imported. And as you can see the transaction has been verified now!
 
 .. code-block:: bash
 

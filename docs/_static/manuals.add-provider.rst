@@ -70,7 +70,7 @@ Example:
 
 * Remove install.log file in bitcoinlib's log directory, this will copy all provider settings next time you run
   the bitcoin library. See 'initialize_lib' method in main.py
-* Specify new provider and create service class object to test your new class and its method
+* Specify a new provider and create a service class object to test your new class and its method
 
 .. code-block:: python
 
