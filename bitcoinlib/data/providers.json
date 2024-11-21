@@ -331,7 +331,7 @@
   },
     "mempool.litecoin": {
     "provider": "mempool",
-    "network": "litecoin_testnet",
+    "network": "litecoin",
     "client_class": "MempoolClient",
     "provider_coin_id": "",
     "url": "https://litecoinspace.org/api/",
