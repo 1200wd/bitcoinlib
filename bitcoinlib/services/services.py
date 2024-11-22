@@ -55,7 +55,7 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
-                 max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None):
+                 max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None, provider_name=None):
         """
         Create a service object for the specified network. By default, the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -80,6 +80,8 @@ class Service(object):
         :type strict: bool
         :param wallet_name: Name of wallet if connecting to bitcoin node
         :type wallet_name: str
+        :param provider_name: Name of specific provider to connect to. Note this is different from the providers list argument: the lists mention a type of provider such as 'blockbook' or 'bcoin', the provider name is a key in providers.json list such as 'bcoin.testnet.localhost'.
+        :type provider_name: str
 
         """
 
@@ -111,11 +113,17 @@ class Service(object):
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
 
         self.providers = {}
-        for p in self.providers_defined:
-            if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
-                    (not providers or self.providers_defined[p]['provider'] in providers):
-                self.providers.update({p: self.providers_defined[p]})
-        exclude_providers_keys = {pi: self.providers[pi]['provider'] for pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
+        if provider_name:
+            if provider_name not in self.providers_defined:
+                raise ServiceError("Provider with name '%s' not found in provider definitions" % provider_name)
+            self.providers.update({provider_name: self.providers_defined[provider_name]})
+        else:
+            for p in self.providers_defined:
+                if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
+                        (not providers or self.providers_defined[p]['provider'] in providers):
+                    self.providers.update({p: self.providers_defined[p]})
+        exclude_providers_keys = {pi: self.providers[pi]['provider'] for
+                                  pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
         for provider_key in exclude_providers_keys:
             del(self.providers[provider_key])
 
