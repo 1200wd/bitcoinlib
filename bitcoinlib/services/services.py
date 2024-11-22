@@ -150,6 +150,7 @@ class Service(object):
         self.results_cache_n = 0
         self.ignore_priority = ignore_priority
         self.strict = strict
+        self.execution_time = None
         if self.min_providers > 1:
             self._blockcount = Service(network=network, cache_uri=cache_uri, providers=providers,
                                        exclude_providers=exclude_providers, timeout=timeout).blockcount()
@@ -161,6 +162,7 @@ class Service(object):
         self.errors = {}
         self.complete = None
         self.resultcount = 0
+        self.execution_time = None
 
     def _provider_execute(self, method, *arguments):
         self._reset_results()
@@ -191,7 +193,9 @@ class Service(object):
                     _logger.debug("API key needed for provider %s" % sp)
                     continue
                 providermethod = getattr(pc_instance, method)
+                start_time = datetime.now()
                 res = providermethod(*arguments)
+                self.execution_time = (datetime.now() - start_time).total_seconds() * 1000
                 if res is False:  # pragma: no cover
                     self.errors.update(
                         {sp: 'Received empty response'}
