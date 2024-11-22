@@ -171,6 +171,7 @@ class Service(object):
         if self.ignore_priority:
             random.shuffle(provider_lst)
 
+        start_time = datetime.now()
         for sp in provider_lst:
             if self.resultcount >= self.max_providers:
                 break
@@ -193,9 +194,7 @@ class Service(object):
                     _logger.debug("API key needed for provider %s" % sp)
                     continue
                 providermethod = getattr(pc_instance, method)
-                start_time = datetime.now()
                 res = providermethod(*arguments)
-                self.execution_time = (datetime.now() - start_time).total_seconds() * 1000
                 if res is False:  # pragma: no cover
                     self.errors.update(
                         {sp: 'Received empty response'}
@@ -232,6 +231,7 @@ class Service(object):
             if self.resultcount >= self.max_providers:
                 break
 
+        self.execution_time = (datetime.now() - start_time).total_seconds() * 1000
         if not self.resultcount:
             raise ServiceError("No successful response from any serviceprovider: %s" % list(self.providers.keys()))
         return list(self.results.values())[0]
