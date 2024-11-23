@@ -508,11 +508,18 @@ class Service(object):
         current_timestamp = time.time()
         if self._blockcount_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
             new_count = self._provider_execute('blockcount')
-            if not self._blockcount or (new_count and new_count > self._blockcount):
+            if last_cache_blockcount > new_count:
+                _logger.warning(f"New block count ({new_count}) is lower than block count in cache "
+                                f"({last_cache_blockcount}). Will try to find provider consensus")
+                blockcounts = [last_cache_blockcount]
+                for _ in range(5):
+                    blockcounts.append(self._provider_execute('blockcount'))
+                # return third last blockcount in list, assume last 2 and first 3 could be wrong
+                self._blockcount = sorted(blockcounts)[-2]
+                self._blockcount_update = current_timestamp
+            elif not self._blockcount or (new_count and new_count > self._blockcount):
                 self._blockcount = new_count
                 self._blockcount_update = current_timestamp
-            if last_cache_blockcount > self._blockcount:
-                return last_cache_blockcount
             # Store result in cache
             if len(self.results) and list(self.results.keys())[0] != 'caching':
                 self.cache.store_blockcount(self._blockcount)
