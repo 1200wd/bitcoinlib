@@ -116,6 +116,8 @@ class Service(object):
         if provider_name:
             if provider_name not in self.providers_defined:
                 raise ServiceError("Provider with name '%s' not found in provider definitions" % provider_name)
+            if self.providers_defined[provider_name]['network'] != self.network:
+                raise ServiceError("Network from provider '%s' is different than Service network" % provider_name)
             self.providers.update({provider_name: self.providers_defined[provider_name]})
         else:
             for p in self.providers_defined:
