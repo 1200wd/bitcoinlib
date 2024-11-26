@@ -614,7 +614,7 @@ class Service(object):
         """
         Get list of all transaction IDs in the current mempool
 
-        A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise
+        A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise,
         specify the txid option to verify if a transaction is added to the mempool.
 
         :param txid: Check if transaction with this hash exists in memory pool
@@ -626,7 +626,7 @@ class Service(object):
 
     def getcacheaddressinfo(self, address):
         """
-        Get address information from cache. I.e. balance, number of transactions, number of utox's, etc
+        Get address information from cache. I.e. balance, number of transactions, number of utxo's, etc
 
         Cache will only be filled after all transactions for a specific address are retrieved (with gettransactions ie)
 
