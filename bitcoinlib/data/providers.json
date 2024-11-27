@@ -329,7 +329,18 @@
     "denominator": 1,
     "network_overrides": null
   },
-    "mempool.litecoin": {
+  "mempool.testnet4": {
+    "provider": "mempool",
+    "network": "testnet4",
+    "client_class": "MempoolClient",
+    "provider_coin_id": "",
+    "url": "https://mempool.space/testnet4/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "mempool.litecoin": {
     "provider": "mempool",
     "network": "litecoin",
     "client_class": "MempoolClient",

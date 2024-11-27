@@ -98,6 +98,39 @@
     "fee_max": 2000000,
     "priority": 8
   },
+  "testnet4":
+  {
+    "description": "Bitcoin Test Network 4",
+    "currency_name": "test-bitcoin",
+    "currency_name_plural": "test-bitcoins",
+    "currency_symbol": "TBTC",
+    "currency_code": "tBTC",
+    "prefix_address": "6F",
+    "prefix_address_p2sh": "C4",
+    "prefix_bech32": "tb",
+    "prefix_wif": "EF",
+    "prefixes_wif": [
+      ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
+      ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
+      ["04358394", "tprv", "private", false, "legacy",      "p2pkh"],
+      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"],
+      ["044A5262", "upub", "public",  false, "p2sh-segwit", "p2sh_p2wpkh"],
+      ["024289EF", "Upub", "public",  true,  "p2sh-segwit", "p2sh_p2wsh"],
+      ["044A4E28", "uprv", "private", false, "p2sh-segwit", "p2sh_p2wpkh"],
+      ["024285B5", "Uprv", "private", true,  "p2sh-segwit", "p2sh_p2wsh"],
+      ["045F1CF6", "vpub", "public",  false, "segwit",      "p2wpkh"],
+      ["02575483", "Vpub", "public",  true,  "segwit",      "p2wsh"],
+      ["045F18BC", "vprv", "private", false, "segwit",      "p2wpkh"],
+      ["02575048", "Vprv", "private", true,  "segwit",      "p2wsh"]
+    ],
+    "bip44_cointype": 1,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 2000000,
+    "priority": 8
+  },
   "regtest":
   {
     "description": "Bitcoin regtest",
