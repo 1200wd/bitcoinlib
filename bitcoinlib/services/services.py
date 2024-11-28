@@ -112,8 +112,9 @@ class Service(object):
 
         self.providers = {}
         for p in self.providers_defined:
-            if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
-                    (not providers or self.providers_defined[p]['provider'] in providers):
+            if ((self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
+                    (not providers or self.providers_defined[p]['provider'] in providers)
+                    and self.providers_defined[p]['priority']):
                 self.providers.update({p: self.providers_defined[p]})
         exclude_providers_keys = {pi: self.providers[pi]['provider'] for pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
         for provider_key in exclude_providers_keys:
