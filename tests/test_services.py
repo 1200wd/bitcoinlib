@@ -80,6 +80,14 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '76a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
         self.assertEqual(raw_tx, ServiceTest(network='testnet').getrawtransaction(tx_id))
 
+    def test_service_transaction_get_raw_testnet4(self):
+        tx_id = '619c9db8597dc8aaaa37569e25930efa04c9aef7b604b1b8a26bd4f086b2785c'
+        raw_tx = ('010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff095100062f4'
+                  '077697a2fffffffff0200f2052a010000001976a9140a59837ccd4df25adc31cdad39be6a8d97557ed688ac0000000000'
+                  '000000266a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf90120000000000'
+                  '000000000000000000000000000000000000000000000000000000000000000')
+        self.assertEqual(raw_tx, ServiceTest(network='testnet4').getrawtransaction(tx_id))
+
     def test_service_transaction_get_raw_bitcoin(self):
         tx_id = 'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
         raw_tx = '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff5d0342fe06244d69' \
@@ -468,6 +476,14 @@ class TestService(unittest.TestCase, CustomAssertions):
                 r_inputs[2]['prev_txid'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
 
+    def test_service_gettransactions_testnet4(self):
+        address = 'tb1qmtrlx4srl87dtcj73ue5gv39907e8n3qu8rs79'
+        srv = ServiceTest(network='testnet4')
+        txs = srv.gettransactions(address)
+        self.assertEqual(txs[0].txid, '481063e15d472e5abb6b407400d8a9fbe20db0b47e27b4fdeef302586bd29eda')
+        self.assertEqual(txs[1].txid, '53d402b5d4083d685b7ad1f64f614984c0a906436d6e8ab01cc99d250030f84a')
+        self.assertEqual(txs[1].inputs[0].address, address)
+
     def test_service_gettransaction_coinbase(self):
         expected_dict = {
             'block_hash': '0000000000000000002d966c99d68245b20468dc9c2a7a776a836add03362199',
@@ -802,7 +818,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIsNone(t.date)
         self.assertIsNone(t.block_height)
 
-    def test_service_exlude_providers(self):
+    def test_service_exclude_providers(self):
         srv = ServiceTest(network='testnet', cache_uri='')
         providers = [srv.providers[pi]['provider'] for pi in srv.providers]
         try:
