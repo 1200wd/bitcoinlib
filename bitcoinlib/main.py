@@ -43,7 +43,6 @@ if ENABLE_BITCOINLIB_LOGGING:
     logger.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
     logger.info('Version: %s' % BITCOINLIB_VERSION)
     logger.info('Logger name: %s' % logging.__name__)
-    logger.info('Read config from: %s' % BCL_CONFIG_FILE)
     logger.info('Directory databases: %s' % BCL_DATABASE_DIR)
     logger.info('Default database: %s' % DEFAULT_DATABASE)
     logger.info('Logging to: %s' % BCL_LOG_FILE)
