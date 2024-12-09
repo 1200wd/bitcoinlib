@@ -5,7 +5,7 @@ Trezor's Blockbook is a back-end service for Trezor Suite and can also be used a
 Bitcoinlib. Blockbook indexes addresses, transactions, unspent outputs and balances and can be used for fast
 blockchain queries. Blockbook also support Litecoin, Dash, Dogecoin and various testnets.
 
-If you want to use Bitcoinlib as a wallet, run many blockchain queries or write an application which is dependant on
+If you want to use Bitcoinlib as a wallet, run many blockchain queries or write an application which is dependent on
 frequent requests to blockchain service providers you should use a Blockbook service or install a
 `Bcoin <manuals.setup-bcoin.html>`_ node.
 
