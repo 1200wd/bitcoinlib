@@ -113,19 +113,13 @@ class Service(object):
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
 
         self.providers = {}
-        if provider_name:
-            if provider_name not in self.providers_defined:
-                raise ServiceError("Provider with name '%s' not found in provider definitions" % provider_name)
-            if self.providers_defined[provider_name]['network'] != self.network:
-                raise ServiceError("Network from provider '%s' is different than Service network" % provider_name)
-            self.providers.update({provider_name: self.providers_defined[provider_name]})
-        else:
-            for p in self.providers_defined:
-                if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
-                        (not providers or self.providers_defined[p]['provider'] in providers):
-                    self.providers.update({p: self.providers_defined[p]})
-        exclude_providers_keys = {pi: self.providers[pi]['provider'] for
-                                  pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
+        for p in self.providers_defined:
+            if ((self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
+                    (not providers or self.providers_defined[p]['provider'] in providers)
+                    and self.providers_defined[p]['priority']):
+                self.providers.update({p: self.providers_defined[p]})
+        exclude_providers_keys = {pi: self.providers[pi]['provider'] for pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
+
         for provider_key in exclude_providers_keys:
             del(self.providers[provider_key])
 

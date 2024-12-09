@@ -187,6 +187,11 @@ class TestWalletCreate(unittest.TestCase):
         key0 = wlt.get_key()
         self.assertEqual(key0.address, "mqDeXXaFnWKNWhLmAae7zHhZDW4PMsLHPp")
 
+        wlt4 = Wallet.create("wallet-passphrase-testnet4", keys=passphrase, network='testnet4', witness_type='legacy',
+                            db_uri=self.database_uri)
+        key0 = wlt4.get_key()
+        self.assertEqual(key0.address, "mqDeXXaFnWKNWhLmAae7zHhZDW4PMsLHPp")
+
     def test_wallet_create_with_passphrase_litecoin(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
         wlt = Wallet.create("wallet-passphrase-litecoin", keys=passphrase, network='litecoin',

@@ -696,12 +696,12 @@ class Output(object):
                 raise TransactionError("Could not determine script type of address %s" % self._address)
             self.encoding = address_dict['encoding']
             network_guesses = address_dict['networks']
-            if address_dict['network'] and self.network.name != address_dict['network']:
-                raise TransactionError("Address %s is from %s network and transaction from %s network" %
-                                       (self._address, address_dict['network'], self.network.name))
-            elif self.network.name not in network_guesses:
+            if self.network.name not in network_guesses:
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
                                        "in %s" % (self._address, self.network.name, network_guesses))
+            # if address_dict['network'] and self.network.name != address_dict['network']:
+            #     raise TransactionError("Address %s is from %s network and transaction from %s network" %
+            #                            (self._address, address_dict['network'], self.network.name))
             self.public_hash = address_dict['public_key_hash_bytes']
             self.witness_type = address_dict['witness_type']
         if not self.encoding:
