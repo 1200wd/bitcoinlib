@@ -29,6 +29,7 @@ Example:
             "priority": 10,
             "denominator": 1,
             "network_overrides": null
+            "timeout": 0
         }
     }
 
