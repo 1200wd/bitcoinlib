@@ -99,7 +99,7 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
-        provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
+        provider_list = list(set([self.providers_defined[x]['provider'] for x in self.providers_defined]))
         if providers is None:
             providers = []
         if exclude_providers is None:
