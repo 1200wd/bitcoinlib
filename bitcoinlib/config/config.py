@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CONFIG - Configuration settings
-#    © 2022 - 2023 May - 1200 Web Development <http://1200wd.com/>
+#    © 2022 - 2024 Dec - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -34,7 +34,6 @@ LOGLEVEL = 'WARNING'
 
 
 # File locations
-BCL_CONFIG_FILE = ''
 BCL_INSTALL_DIR = Path(__file__).parents[1]
 BCL_DATA_DIR = ''
 BCL_DATABASE_DIR = ''
@@ -261,27 +260,18 @@ def read_config():
         except Exception:
             return fallback
 
-    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_DATA_DIR, BCL_CONFIG_FILE
+    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_DATA_DIR
     global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
     global SERVICE_CACHING_ENABLED, DATABASE_ENCRYPTION_ENABLED, DB_FIELD_ENCRYPTION_KEY, DB_FIELD_ENCRYPTION_PASSWORD
     global SERVICE_MAX_ERRORS, BLOCK_COUNT_CACHE_TIME, MAX_TRANSACTIONS
 
-    # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
-    config_file_name = os.environ.get('BCL_CONFIG_FILE')
-    if not config_file_name:
-        BCL_CONFIG_FILE = Path('~/.bitcoinlib/config.ini').expanduser()
-    else:
-        BCL_CONFIG_FILE = Path(config_file_name)
-        if not BCL_CONFIG_FILE.is_absolute():
-            BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
-        if not BCL_CONFIG_FILE.exists():
-            BCL_CONFIG_FILE = Path(BCL_INSTALL_DIR, 'data', config_file_name)
-        if not BCL_CONFIG_FILE.exists():
-            raise IOError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
-    data = config.read(str(BCL_CONFIG_FILE))
-    BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
+    # Get Bitcoinlib data directory, default is at  ~/.bitcoinlib
+    env_data_dir = os.environ.get('BCL_DATA_DIR')
+    BCL_DATA_DIR = Path('~/.bitcoinlib').expanduser() if not env_data_dir else Path(env_data_dir).expanduser()
+    config_file = Path(BCL_DATA_DIR, 'config.ini')
+    data = config.read(str(config_file))
 
     # Database settings
     BCL_DATABASE_DIR = Path(BCL_DATA_DIR, config_get('locations', 'database_dir', 'database'))

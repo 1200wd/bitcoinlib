@@ -37,7 +37,8 @@ To use Bcoin with bitcoinlib add the credentials to the providers.json configura
         "api_key": "",
         "priority": 20,
         "denominator": 100000000,
-        "network_overrides": null
+        "network_overrides": null,
+        "timeout": 0
     },
 
 You can increase the priority so the Service object always connects to the Bcoin node first.

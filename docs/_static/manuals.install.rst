@@ -1,5 +1,5 @@
-Install, Update and Tweak BitcoinLib
-====================================
+Install and setup BitcoinLib
+============================
 
 Installation
 ------------
@@ -145,15 +145,20 @@ derivation library. It works but it is slow when using BIP38 password protected 
 If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
 
-Using library in other software
--------------------------------
+Change data directory
+---------------------
 
-If you use the library in other software and want to change file locations and other settings you can specify a
-location for a config file in the BCL_CONFIG_FILE:
+The default location for Bitcoinlib settings and data is in the user's dot bitcoinlib directory.
+For Linux this would be ~/.bitcoinlib.
+You can change the location of data, settings and database by specifying the directory in the system
+environment 'BCL_DATA_DIR' variable:
 
 .. code-block:: python
 
-    os.environ['BCL_CONFIG_FILE'] = '/var/www/blocksmurfer/bitcoinlib.ini'
+    os.environ['BCL_DATA_DIR'] = '/var/www/blocksmurfer/.bitcoinlib'
+    # or a second directory in user home
+    os.environ['BCL_DATA_DIR'] = '~/.bitcoinlib2'
+
 
 
 Service providers and local nodes

@@ -69,7 +69,9 @@ Example:
       "url": "http://user:password@server_url:18332",
       "api_key": "",
       "priority": 11,
-      "denominator": 100000000
+      "denominator": 100000000,
+      "network_overrides": null
+      "timeout": 0
     }
   }
 
