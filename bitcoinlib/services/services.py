@@ -55,7 +55,7 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
-                 max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None):
+                 max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None, provider_name=None):
         """
         Create a service object for the specified network. By default, the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -80,6 +80,8 @@ class Service(object):
         :type strict: bool
         :param wallet_name: Name of wallet if connecting to bitcoin node
         :type wallet_name: str
+        :param provider_name: Name of specific provider to connect to. Note this is different from the providers list argument: the lists mention a type of provider such as 'blockbook' or 'bcoin', the provider name is a key in providers.json list such as 'bcoin.testnet.localhost'.
+        :type provider_name: str
 
         """
 
@@ -111,11 +113,19 @@ class Service(object):
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
 
         self.providers = {}
-        for p in self.providers_defined:
-            if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
-                    (not providers or self.providers_defined[p]['provider'] in providers):
-                self.providers.update({p: self.providers_defined[p]})
-        exclude_providers_keys = {pi: self.providers[pi]['provider'] for pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
+        if provider_name:
+            if provider_name not in self.providers_defined:
+                raise ServiceError("Provider with name '%s' not found in provider definitions" % provider_name)
+            if self.providers_defined[provider_name]['network'] != self.network:
+                raise ServiceError("Network from provider '%s' is different than Service network" % provider_name)
+            self.providers.update({provider_name: self.providers_defined[provider_name]})
+        else:
+            for p in self.providers_defined:
+                if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
+                        (not providers or self.providers_defined[p]['provider'] in providers):
+                    self.providers.update({p: self.providers_defined[p]})
+        exclude_providers_keys = {pi: self.providers[pi]['provider'] for
+                                  pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
         for provider_key in exclude_providers_keys:
             del(self.providers[provider_key])
 
@@ -142,6 +152,7 @@ class Service(object):
         self.results_cache_n = 0
         self.ignore_priority = ignore_priority
         self.strict = strict
+        self.execution_time = None
         if self.min_providers > 1:
             self._blockcount = Service(network=network, cache_uri=cache_uri, providers=providers,
                                        exclude_providers=exclude_providers, timeout=timeout).blockcount()
@@ -153,6 +164,7 @@ class Service(object):
         self.errors = {}
         self.complete = None
         self.resultcount = 0
+        self.execution_time = None
 
     def _provider_execute(self, method, *arguments):
         self._reset_results()
@@ -161,6 +173,7 @@ class Service(object):
         if self.ignore_priority:
             random.shuffle(provider_lst)
 
+        start_time = datetime.now()
         for sp in provider_lst:
             if self.resultcount >= self.max_providers:
                 break
@@ -220,6 +233,7 @@ class Service(object):
             if self.resultcount >= self.max_providers:
                 break
 
+        self.execution_time = (datetime.now() - start_time).total_seconds() * 1000
         if not self.resultcount:
             raise ServiceError("No successful response from any serviceprovider: %s" % list(self.providers.keys()))
         return list(self.results.values())[0]
@@ -496,11 +510,18 @@ class Service(object):
         current_timestamp = time.time()
         if self._blockcount_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
             new_count = self._provider_execute('blockcount')
-            if not self._blockcount or (new_count and new_count > self._blockcount):
+            if last_cache_blockcount > new_count:
+                _logger.warning(f"New block count ({new_count}) is lower than block count in cache "
+                                f"({last_cache_blockcount}). Will try to find provider consensus")
+                blockcounts = [last_cache_blockcount]
+                for _ in range(5):
+                    blockcounts.append(self._provider_execute('blockcount'))
+                # return third last blockcount in list, assume last 2 and first 3 could be wrong
+                self._blockcount = sorted(blockcounts)[-2]
+                self._blockcount_update = current_timestamp
+            elif not self._blockcount or (new_count and new_count > self._blockcount):
                 self._blockcount = new_count
                 self._blockcount_update = current_timestamp
-            if last_cache_blockcount > self._blockcount:
-                return last_cache_blockcount
             # Store result in cache
             if len(self.results) and list(self.results.keys())[0] != 'caching':
                 self.cache.store_blockcount(self._blockcount)
@@ -593,7 +614,7 @@ class Service(object):
         """
         Get list of all transaction IDs in the current mempool
 
-        A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise
+        A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise,
         specify the txid option to verify if a transaction is added to the mempool.
 
         :param txid: Check if transaction with this hash exists in memory pool
@@ -605,7 +626,7 @@ class Service(object):
 
     def getcacheaddressinfo(self, address):
         """
-        Get address information from cache. I.e. balance, number of transactions, number of utox's, etc
+        Get address information from cache. I.e. balance, number of transactions, number of utxo's, etc
 
         Cache will only be filled after all transactions for a specific address are retrieved (with gettransactions ie)
 
