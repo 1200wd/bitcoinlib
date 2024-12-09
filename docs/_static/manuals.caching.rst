@@ -7,7 +7,7 @@ on the blockchain they are immutable, so they can be stored in a local cache for
 What is cached?
 ---------------
 
-The cache stores transactions, but also address information and transactions-address relations. This speeds up
+The cache stores transactions, but also addresses information and transactions-address relations. This speeds up
 the gettransactions(), getutxos() and getbalance() method since all old transactions can be read from cache, and we
 only have to check if new transactions are available for a certain address.
 
@@ -20,10 +20,10 @@ The fee estimation for a specific network is stored for 10 minutes.
 Using other databases
 ---------------------
 
-By default the cache is stored in a SQLite database in the database folder: ~/.bitcoinlib/databases/bitcoinlib_cache.sqlite
+By default the cache is stored in an SQLite database in the database folder: ~/.bitcoinlib/databases/bitcoinlib_cache.sqlite
 The location and type of database can be changed in the config.ini with the default_databasefile_cache variable.
 
-Other type of databases can be used as well, check
+Other types of databases can be used as well, check
 http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for more information.
 
 

@@ -8,7 +8,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockchaininfo": {
     "provider": "blockchaininfo",
@@ -19,7 +20,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "bitgo": {
     "provider": "bitgo",
@@ -30,7 +32,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockcypher.litecoin": {
     "provider": "blockcypher",
@@ -41,7 +44,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": {"prefix_address_p2sh": "05"}
+    "network_overrides": {"prefix_address_p2sh": "05"},
+    "timeout": 0
   },
   "blockcypher.litecoin.legacy": {
     "provider": "blockcypher",
@@ -52,7 +56,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "cryptoid.litecoin": {
     "provider": "cryptoid",
@@ -63,7 +68,8 @@
     "api_key": "api-key-needed",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "cryptoid.litecoin.legacy": {
     "provider": "cryptoid",
@@ -74,7 +80,8 @@
     "api_key": "api-key-needed",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": {"prefix_address_p2sh": "32"}
+    "network_overrides": {"prefix_address_p2sh": "32"},
+    "timeout": 0
   },
   "blockchair": {
     "provider": "blockchair",
@@ -85,7 +92,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockchair.testnet": {
     "provider": "blockchair",
@@ -96,7 +104,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockchair.litecoin": {
     "provider": "blockchair",
@@ -107,7 +116,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockchair.dogecoin": {
     "provider": "blockchair",
@@ -118,7 +128,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "bitaps": {
     "provider": "bitaps",
@@ -129,7 +140,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "bitaps.litecoin": {
     "provider": "bitaps",
@@ -140,7 +152,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "bitaps.litecoin.legacy": {
     "provider": "bitaps",
@@ -151,7 +164,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "bitaps.litecoin.testnet": {
     "provider": "bitaps",
@@ -162,7 +176,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "litecoinblockexplorer.litecoin": {
     "provider": "litecoinblockexplorer",
@@ -173,7 +188,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "litecoinblockexplorer.litecoin.legacy": {
     "provider": "litecoinblockexplorer",
@@ -184,7 +200,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "litecoinblockexplorer": {
     "provider": "litecoinblockexplorer",
@@ -195,7 +212,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "litecoinblockexplorer.testnet2": {
     "provider": "litecoinblockexplorer",
@@ -206,7 +224,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "litecoinblockexplorer.dogecoin": {
     "provider": "litecoinblockexplorer",
@@ -217,7 +236,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockbook.litecoin": {
     "provider": "blockbook",
@@ -228,7 +248,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockbook.litecoin.legacy": {
     "provider": "blockbook",
@@ -239,7 +260,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockbook": {
     "provider": "blockbook",
@@ -250,7 +272,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockbook.testnet2": {
     "provider": "blockbook",
@@ -261,7 +284,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockbook.dogecoin": {
     "provider": "blockbook",
@@ -272,7 +296,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockstream": {
     "provider": "blockstream",
@@ -283,7 +308,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockstream.testnet": {
     "provider": "blockstream",
@@ -294,7 +320,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "blockcypher.dogecoin": {
     "provider": "blockcypher",
@@ -305,7 +332,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "mempool": {
     "provider": "mempool",
@@ -316,7 +344,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "mempool.testnet": {
     "provider": "mempool",
@@ -327,7 +356,8 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
   "mempool.testnet4": {
     "provider": "mempool",
@@ -349,7 +379,8 @@
     "api_key": "",
     "priority": 11,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   },
     "mempool.litecoin_testnet": {
     "provider": "mempool",
@@ -360,6 +391,7 @@
     "api_key": "",
     "priority": 11,
     "denominator": 1,
-    "network_overrides": null
+    "network_overrides": null,
+    "timeout": 0
   }
 }

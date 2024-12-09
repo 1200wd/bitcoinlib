@@ -30,9 +30,6 @@ def exception_handler(exception_type, exception, traceback):
     print("%s: %s" % (exception_type.__name__, exception))
 
 
-sys.excepthook = exception_handler
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib command line wallet')
     parser.add_argument('--list-wallets', '-l', action='store_true',
@@ -425,4 +422,5 @@ def main():
 
 
 if __name__ == '__main__':
+    sys.excepthook = exception_handler
     main()
