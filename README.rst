@@ -1,19 +1,18 @@
 Python Bitcoin Library
 ======================
 
-Bitcoin cryptocurrency Library writen in Python.
+The Python BitcoinLib is a library that provides developers with a wide range of tools to work with Bitcoin.
 
-Allows you to create a fully functional Bitcoin wallet with a single line of code.
-Use this library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases
-and blocks with simple and straightforward Python code.
-
-You can use this library at a high level and create and manage wallets from the command line or at a low level
-and create your own custom made transactions, scripts, keys or wallets.
-
-The BitcoinLib connects to various service providers automatically to update wallets, transaction and
-blockchain information. You can also connect to a local
-`Bitcoin <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bitcoind-connection.html>`_ or
-`Bcoin node <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bcoin.html>`_.
+With BitcoinLib you can:
+ - Create and manage wallets
+ - Use various key-structures for your wallet such as HD (Hierarchical Deterministic) wallets following the BIP32 standard
+ - Interact with the Blockchain, retrieve and decode blockchain data
+ - Build, sign and verify transactions and signatures. This could be a standard segwit transactions but also multisig, nulldata or custom made transactions
+ - Create, analyse and run Bitcoin scripts
+ - Generate Bitcoin addresses and represent them in different address formats like P2PKH, P2SH, Bech32, etc
+ - Create private keys and work with Mnemonic password phrases
+ - Uses external Service providers to fetch address, transaction, utxo and blockchain data. Or connect to you local `Bitcoin core <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bitcoind-connection.html>`_, `Bcoin <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bcoin.html>`_ or `Blockbook <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-blockbook.html>`_ node.
+ - Can be extended to support other cryptocurrencies by configuring custom parameters. At the moment Litecoin and Dogecoin are also supported.
 
 
 .. image:: https://github.com/1200wd/bitcoinlib/actions/workflows/unittests.yaml/badge.svg
@@ -60,7 +59,7 @@ Read the full documentation at: http://bitcoinlib.readthedocs.io/
 Example
 -------
 
-The bitcoin library contains a wallet implementation using SQLAlchemy and SQLite3 to import, create and manage
+The bitcoin library contains a wallet implementation using SQLite3 or SQLAlchemy to import, create and manage
 keys in a Hierarchical Deterministic way.
 
 Example: Create wallet and generate new address (key) to receive bitcoins
@@ -99,6 +98,10 @@ There are many working examples on how to create wallets, specific transactions,
 blockchain, connect to specific service providers in the `examples directory <https://github.com/1200wd/bitcoinlib/tree/master/examples>`_ in the source code of this library.
 
 Some more specific examples can be found on the `Coineva website <https://coineva.com/category/bitcoinlib.html>`_.
+
+BitcoinLib is used at `Blocksmurfer Explorer <https://blocksmurfer.io/>`_ and many other repositories:
+https://github.com/1200wd/bitcoinlib/network/dependents
+
 
 Contact
 -------

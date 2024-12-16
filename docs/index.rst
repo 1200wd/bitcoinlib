@@ -6,17 +6,14 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
-Bitcoin cryptocurrency Library written in Python.
+The Python BitcoinLib is a library that provides developers with a wide range of tools to work with Bitcoin.
 
-Allows you to create a fully functional wallet with a single line of code.
-Use this library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
-simple and straightforward Python code.
+This library is flexible and modular: you can use specific modules without loading the entire library.
 
-You can use this library at a high level and create and manage wallets from the command line or at a low level
-and create your own custom made transactions, scripts, keys or wallets.
+Below you can find some basic examples, link to some manuals and an overview of modules and classes.
 
-The BitcoinLib connects to various service providers automatically to update wallets, transaction and
-blockchain information.
+For questions, issues, ideas please check `Github Discussions
+<https://github.com/1200wd/bitcoinlib/discussions>`_ or the Github issues page.
 
 
 Wallet
