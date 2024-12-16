@@ -141,7 +141,7 @@ class MempoolClient(BaseClient):
             if len(prtxs) > 100:
                 break
         txs = []
-        for tx in prtxs[::-1]:
+        for tx in sorted(prtxs, key=lambda x: x['status']['block_height']):
             t = self._parse_transaction(tx)
             if t:
                 txs.append(t)

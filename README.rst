@@ -88,8 +88,8 @@ If successful a transaction ID is returned
     >>> t.info  # Shows transaction information and send results
 
 
-More examples
--------------
+More Examples and Use Cases
+---------------------------
 
 You can find many more examples in the `documentation <https://bitcoinlib.readthedocs.io/en/latest/>`_
 for instance about the `Wallet.create() <https://bitcoinlib.readthedocs.io/en/latest/source/bitcoinlib.wallets.html#bitcoinlib.wallets.Wallet.create>`_ method.
