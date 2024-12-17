@@ -1,3 +1,13 @@
+RELEASE 0.7.1 - Blockbook, Testnet4 and improve Service class
+=============================================================
+* Improve Blockbook integration
+* Update manuals and review documentation
+* Measure execution time in Service class
+* Add support for Bitcoin testnet4
+* Allow to use single provider or disable provider in Service
+* Improve configuration: specify directory instead of config file
+* Disable mempool provider due to API issues
+
 RELEASE 0.7.0 - Add bumpfee, bitcoin core connection and many more
 ==================================================================
 * Improve connections with bitcoin core wallet
