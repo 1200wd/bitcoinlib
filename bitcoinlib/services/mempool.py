@@ -141,6 +141,7 @@ class MempoolClient(BaseClient):
             if len(prtxs) > 100:
                 break
         txs = []
+        # FIXME: Mempool return transactions in incorrect order, this tries to fix it, but does not always work...
         for tx in sorted(prtxs, key=lambda x: x['status']['block_height']):
             t = self._parse_transaction(tx)
             if t:
