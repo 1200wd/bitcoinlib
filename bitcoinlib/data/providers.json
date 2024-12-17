@@ -342,7 +342,7 @@
     "provider_coin_id": "",
     "url": "https://mempool.space/api/",
     "api_key": "",
-    "priority": 10,
+    "priority": 0,
     "denominator": 1,
     "network_overrides": null,
     "timeout": 0
@@ -354,7 +354,7 @@
     "provider_coin_id": "",
     "url": "https://mempool.space/testnet/api/",
     "api_key": "",
-    "priority": 10,
+    "priority": 0,
     "denominator": 1,
     "network_overrides": null,
     "timeout": 0
@@ -377,7 +377,7 @@
     "provider_coin_id": "",
     "url": "https://litecoinspace.org/api/",
     "api_key": "",
-    "priority": 11,
+    "priority": 10,
     "denominator": 1,
     "network_overrides": null,
     "timeout": 0
@@ -389,7 +389,7 @@
     "provider_coin_id": "",
     "url": "https://litecoinspace.org/testnet/api/",
     "api_key": "",
-    "priority": 11,
+    "priority": 10,
     "denominator": 1,
     "network_overrides": null,
     "timeout": 0
