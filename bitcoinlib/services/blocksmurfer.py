@@ -32,8 +32,8 @@ _logger = logging.getLogger(__name__)
 
 class BlocksmurferClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator, *args):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
+    def __init__(self, network, base_url, denominator, api_key, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key, *args)
 
     def compose_request(self, function, parameter='', parameter2='', variables=None, post_data='', method='get'):
         url_path = function
@@ -43,9 +43,10 @@ class BlocksmurferClient(BaseClient):
             url_path += '/' + str(parameter2)
         if variables is None:
             variables = {}
+        header = {}
         if self.api_key:
-            variables.update({'token': self.api_key})
-        return self.request(url_path, variables, method, post_data=post_data)
+            header = {'auth-key': self.api_key}
+        return self.request(url_path, variables, method, post_data=post_data, header=header)
 
     def getbalance(self, addresslist):
         balance = 0

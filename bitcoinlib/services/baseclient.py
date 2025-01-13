@@ -66,7 +66,7 @@ class BaseClient(object):
         except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def request(self, url_path, variables=None, method='get', secure=True, post_data=''):
+    def request(self, url_path, variables=None, method='get', secure=True, post_data='', header=None):
         url_vars = ''
         url = self.base_url + url_path
         if not url or not self.base_url:
@@ -74,10 +74,8 @@ class BaseClient(object):
         headers = {
             'User-Agent': 'BitcoinLib/%s' % BITCOINLIB_VERSION,
             'Accept': 'application/json',
-            # 'Content-Type': 'application/json',
             "Referrer": "https://www.github.com/1200wd/bitcoinlib",
-        }
-        # ToDo: Check use 'headers = None' for some providers?
+        } | (header or {})
         if method == 'get':
             if variables is None:
                 variables = {}
