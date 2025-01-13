@@ -75,7 +75,9 @@ class BaseClient(object):
             'User-Agent': 'BitcoinLib/%s' % BITCOINLIB_VERSION,
             'Accept': 'application/json',
             "Referrer": "https://www.github.com/1200wd/bitcoinlib",
-        } | (header or {})
+        }
+        if header:
+            headers.update(header)
         if method == 'get':
             if variables is None:
                 variables = {}
