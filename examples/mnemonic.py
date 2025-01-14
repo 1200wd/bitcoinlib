@@ -30,7 +30,7 @@ print("\nGenerate a random Mnemonic HD Key")
 entsize = 128
 words = Mnemonic('english').generate(entsize)
 print("Your Mnemonic is   %s" % words)
-print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
+print("  (An average of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
 seed = Mnemonic().to_seed(words)
 hdk = HDKey.from_seed(seed)
 print("Seed for HD Key    %s" % to_hexstring(seed))

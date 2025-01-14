@@ -27,7 +27,7 @@ rt += '02'  # DER encoded Signature - Integer
 rt += '20'  # DER encoded Signature - Length of X:
 rt += '1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38'
 rt += '02'  # DER encoded Signature - Integer
-rt += '20'  # DER encoded Signature - Lenght of Y:
+rt += '20'  # DER encoded Signature - Length of Y:
 rt += '45e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4'
 rt += '01'  # SIGHASH_ALL
 # - INPUT: PUBLIC KEY -
