@@ -56,6 +56,11 @@ class TestMnemonics(unittest.TestCase):
         self.assertEqual(len(phrase.split(' ')), 12)
         self.assertEqual(Mnemonic.detect_language(phrase), 'dutch')
 
+    def test_mnemonic_generate_portuguese(self):
+        phrase = Mnemonic(language='portuguese').generate()
+        self.assertEqual(len(phrase.split(' ')), 12)
+        self.assertEqual(Mnemonic.detect_language(phrase), 'portuguese')
+
     def test_mnemonic_generate_error(self):
         self.assertRaisesRegex(ValueError, 'Strength should be divisible by 32', Mnemonic().generate, 11)
 
@@ -95,6 +100,7 @@ class TestMnemonics(unittest.TestCase):
         self.assertEqual(Mnemonic(language='japanese').word(2047), 'われる')
         self.assertEqual(Mnemonic(language='chinese_simplified').word(2047), '歇')
         self.assertEqual(Mnemonic(language='chinese_traditional').word(2047), '歇')
+        self.assertEqual(Mnemonic(language='portuguese').word(2047), 'zumbido')
         self.assertEqual(len(Mnemonic().wordlist()), 2048)
 
     def test_mnemonic_small_entropy_bug(self):
