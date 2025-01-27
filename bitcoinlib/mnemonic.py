@@ -31,7 +31,7 @@ class Mnemonic(object):
     Took some parts from Pavol Rusnak Trezors implementation, see https://github.com/trezor/python-mnemonic
     """
 
-    def __init__(self, language=DEFAULT_LANGUAGE):
+    def __init__(self, language=DEFAULT_LANGUAGE, type='default'):
         """
         Init Mnemonic class and read wordlist of specified language
         
@@ -39,8 +39,12 @@ class Mnemonic(object):
         :type language: str
         
         """
+        assert type in ['default', 'slip0039']
         self._wordlist = []
-        with Path(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language).open() as f:
+        self.language = language
+        self.type = type
+        slip0039_prefix = 'slip0039' if type == 'slip0039' else ''
+        with Path(BCL_INSTALL_DIR, 'wordlist', '%s%s.txt' % (slip0039_prefix, language)).open() as f:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
