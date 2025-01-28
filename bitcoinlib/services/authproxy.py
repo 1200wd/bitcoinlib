@@ -45,7 +45,7 @@ import urllib.parse as urlparse
 
 USER_AGENT = "AuthServiceProxy/0.1"
 
-HTTP_TIMEOUT = 30
+HTTP_TIMEOUT = 10
 
 log = logging.getLogger(__name__)
 
