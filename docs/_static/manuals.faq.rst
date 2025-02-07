@@ -21,7 +21,8 @@ Does Bitcoinlib support 'x'-coin
 --------------------------------
 
 Bitcoinlib main focus is on Bitcoin. But besides Bitcoin it supports Litecoin and Dogecoin. For testing
-it supports Bitcoin testnet3, Bitcoin regtest, Litecoin testnet and Dogecoin testnet.
+it supports the Bitcoin testing networks: testnet3, testnet4, regtest and signet. For other coins the Litecoin testnet
+and Dogecoin testnet is supported.
 
 Support for Dash, Bitcoin Cash and Bitcoin SV has been dropped.
 

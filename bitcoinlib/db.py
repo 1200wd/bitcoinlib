@@ -449,7 +449,7 @@ class DbTransactionInput(Base):
                          "An cryptocurrency address is a hash of the public key or a redeemscript")
     witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
     witness_type = Column(String(20), default='segwit',
-                          doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is segwit")
+                          doc="Type of transaction, can be legacy, segwit, p2sh-segwit or taproot. Default is segwit")
     prev_txid = Column(LargeBinary(33),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
@@ -463,7 +463,7 @@ class DbTransactionInput(Base):
     double_spend = Column(Boolean, default=False,
                           doc="Indicates if a service provider tagged this transaction as double spend")
 
-    __table_args__ = (CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
+    __table_args__ = (CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit', 'taproot']),
                                       name='transactioninput_constraint_allowed_types'),
                       UniqueConstraint('transaction_id', 'index_n', name='constraint_transaction_input_unique'))
 
