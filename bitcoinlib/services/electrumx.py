@@ -42,7 +42,11 @@ class ElectrumxClient(BaseClient):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key, *args)
 
     def compose_request(self, method, parameters=None):
-        host, port = self.base_url.split(':')
+        try:
+            host, port = self.base_url.split(':')
+        except ValueError:
+            raise ClientError('Please specify ElectrumX uri in format host:port')
+
         content = {
             "method": method,
             "params": parameters if parameters else [],
