@@ -226,6 +226,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    Bitcoind Node <source/_static/manuals.setup-bitcoind-connection>
    Bcoin Node <source/_static/manuals.setup-bcoin>
    Blockbook <source/_static/manuals.setup-blockbook>
+   ElectrumX <source/_static/manuals.setup-electrumx>
    Add Service Provider <source/_static/manuals.add-provider>
    Databases <source/_static/manuals.databases>
    Encrypted Database <source/_static/manuals.sqlcipher>
