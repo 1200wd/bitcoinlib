@@ -21,14 +21,17 @@
 import logging
 from datetime import datetime, timezone
 import socket
-import json
-from time import sleep
+import sys
+try:
+    import aiorpcx
+except ImportError:
+    pass
+import asyncio
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import Address, sha256
 from bitcoinlib.scripts import Script
-from bitcoinlib.blocks import Block
 
 PROVIDERNAME = 'electrumx'
 
@@ -39,6 +42,11 @@ _logger = logging.getLogger(__name__)
 class ElectrumxClient(BaseClient):
 
     def __init__(self, network, base_url, denominator, api_key, *args):
+        self.aiorpcx_installed = True
+        if 'aiorpcx' not in sys.modules:
+            self.aiorpcx_installed = False
+            _logger.warning('Aiorpcx library not installed, using sockets directly now. Please install aiorpcx library '
+                            'when using ElectumX client for faster and more reliable results')
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key, *args)
 
     def compose_request(self, method, parameters=None):
@@ -46,32 +54,49 @@ class ElectrumxClient(BaseClient):
             host, port = self.base_url.split(':')
         except ValueError:
             raise ClientError('Please specify ElectrumX uri in format host:port')
+        parameters = parameters or []
+        if self.aiorpcx_installed:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.5)
+            if sock.connect_ex((host, int(port))) != 0:
+                raise ClientError('ElectrumX server %s unavailable at port %s' % (host, port))
+            sock.close()
 
-        content = {
-            "method": method,
-            "params": parameters if parameters else [],
-            "id": 0
-        }
+            async def main(host, port, method, parameters):
+                async with aiorpcx.connect_rs(host, port, framer=aiorpcx.NewlineFramer(5000000)) as session:
+                    session.sent_request_timeout = self.timeout
+                    return await session.send_request(method, parameters)
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(10)
-        sock.connect((host, int(port)))
-        sock.sendall(json.dumps(content).encode('utf-8')+b'\n')
-        sleep(1)
-        sock.shutdown(socket.SHUT_WR)
-        res = ""
-        while True:
-            data = sock.recv(1024)
-            if not data:
-                break
-            res += data.decode()
-        sock.close()
-
-        parsed_resp = json.loads(res)
-        if 'result' in parsed_resp:
-            return parsed_resp['result']
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(main(host, port, method, parameters))
         else:
-            raise ClientError("Electrumx error: %s" % parsed_resp['error'])
+            content = {
+                "method": method,
+                "params": parameters if parameters else [],
+                "id": 0
+            }
+
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(10)
+            sock.connect((host, int(port)))
+            import json
+            from time import sleep
+            sock.sendall(json.dumps(content).encode('utf-8')+b'\n')
+            sleep(0.5)
+            sock.shutdown(socket.SHUT_WR)
+            res = ""
+            while True:
+                data = sock.recv(1024)
+                if not data:
+                    break
+                res += data.decode()
+            sock.close()
+
+            parsed_resp = json.loads(res)
+            if 'result' in parsed_resp:
+                return parsed_resp['result']
+            else:
+                raise ClientError("Electrumx error: %s" % parsed_resp['error'])
 
     def _get_scripthash(self, address):
         address_obj = Address.parse(address)
@@ -116,7 +141,7 @@ class ElectrumxClient(BaseClient):
         confirmations = tx['confirmations']
         status = 'unconfirmed'
         # FIXME: Number of confirmations returned by Electrumx is not always correct, use block database or query
-        #  electrum x for correct blockheight?
+        #  electrumx for correct blockheight?
         if confirmations:
             status = 'confirmed'
             self.latest_block = self.blockcount() if not self.latest_block else self.latest_block
@@ -138,7 +163,7 @@ class ElectrumxClient(BaseClient):
                 # This does not work with very large transactions, increase MAX_SEND in electrumx config
                 try:
                     ptx = self.compose_request('blockchain.transaction.get', [i.prev_txid.hex(), True])
-                    i.value = int([x['value'] for x in ptx['vout'] if x['n'] == i.output_n_int][0]
+                    i.value = round([x['value'] for x in ptx['vout'] if x['n'] == i.output_n_int][0]
                                 / self.network.denominator)
                 except:
                     pass
@@ -176,7 +201,7 @@ class ElectrumxClient(BaseClient):
         }
 
     def estimatefee(self, blocks):
-        return int(self.compose_request('blockchain.estimatefee', [blocks]) / self.network.denominator)
+        return round(self.compose_request('blockchain.estimatefee', [blocks]) / self.network.denominator)
 
     def blockcount(self):
         return self.compose_request('blockchain.headers.subscribe')['height']
