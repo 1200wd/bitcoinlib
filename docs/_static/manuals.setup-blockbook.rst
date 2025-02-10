@@ -6,7 +6,8 @@ Bitcoinlib. Blockbook indexes addresses, transactions, unspent outputs and balan
 blockchain queries. Blockbook also support Litecoin, Dash, Dogecoin and various testnets.
 
 If you want to use Bitcoinlib as a wallet, run many blockchain queries or write an application which is dependent on
-frequent requests to blockchain service providers you should use a Blockbook service or install a
+frequent requests to blockchain service providers you should use a Blockbook or
+`ElectrumX <manuals.setup-electrumx.html>`_ service or install a
 `Bcoin <manuals.setup-bcoin.html>`_ node.
 
 
