@@ -1,3 +1,11 @@
+RELEASE 0.7.2 - ElectrumX, Signet, Blocksmurfer API
+===================================================
+* ElectrumX server support
+* Bitcoin Signet support
+* Use API keys for Blocksmurfer
+* Portuguese mnemonic wordlist
+* Fix issue with taproot transactions
+
 RELEASE 0.7.1 - Blockbook, Testnet4 and improve Service class
 =============================================================
 * Improve Blockbook integration
