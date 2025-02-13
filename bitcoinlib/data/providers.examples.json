@@ -438,5 +438,26 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "localhost.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "localhost:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blockbook.localhost": {
+    "provider": "blockbook",
+    "network": "bitcoin",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "http://localhost:9130/api/v2/",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }
