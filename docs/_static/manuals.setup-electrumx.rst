@@ -38,3 +38,7 @@ To use ElectrumX with bitcoinlib add the credentials to the providers.json confi
     },
 
 You can increase the priority so the Service object always connects to the ElectrumX service first.
+
+ElectrumX also support Bitcoin testnet, testnet4, regtest and signet. Other coins such as Dogecoin, Litecoin
+and Dash are also supported. To setup simply update the ports and add add the coin as argument when calling ElectrumX,
+for instance for testnet4 use: electrumx_server --testnet4
