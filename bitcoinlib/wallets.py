@@ -1235,9 +1235,9 @@ class Wallet(object):
     def _commit(self):
         try:
             self.session.commit()
-        except Exception:
+        except Exception as e:
             self.session.rollback()
-            raise WalletError("Could not commit to database, rollback performed!")
+            raise WalletError("Could not commit to database, rollback performed! Database error: %s" % str(e))
 
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
