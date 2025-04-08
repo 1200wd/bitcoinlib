@@ -345,5 +345,55 @@
     "fee_min": 1000000,
     "fee_max": 10000000000,
     "priority": 6
+  },
+  "dash":
+  {
+    "description": "Dash Network",
+    "currency_name": "dash",
+    "currency_name_plural": "dash coins",
+    "currency_symbol": "DASH",
+    "currency_code": "DASH",
+    "prefix_address": "4C",
+    "prefix_address_p2sh": "10",
+    "prefix_bech32": "dash",
+    "prefix_wif": "CC",
+    "prefixes_wif": [
+      ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
+      ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
+      ["0488ADE4", "xprv", "private", false, "legacy",      "p2pkh"],
+      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 5,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 2000,
+    "fee_min": 1024,
+    "fee_max": 50000,
+    "priority": 10
+  },
+  "dash_testnet":
+  {
+    "description": "Dash Testnet Network",
+    "currency_name": "test-dash coins",
+    "currency_name_plural": "test-dash",
+    "currency_symbol": "TDASH",
+    "currency_code": "tDASH",
+    "prefix_address": "8C",
+    "prefix_address_p2sh": "13",
+    "prefix_bech32": "tdash",
+    "prefix_wif": "EF",
+    "prefixes_wif": [
+      ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
+      ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
+      ["04358394", "tprv", "private", false, "legacy",      "p2pkh"],
+      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 1,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1024,
+    "fee_max": 50000,
+    "priority": 6
   }
 }

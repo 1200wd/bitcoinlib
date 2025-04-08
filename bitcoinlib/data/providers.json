@@ -404,5 +404,77 @@
     "priority": 10,
     "denominator": 1,
     "network_overrides": null
+  },
+    "blockcypher.dash": {
+    "provider": "blockcypher",
+    "network": "dash",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/dash/main/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
+  },
+  "blockcypher.dash_testnet": {
+    "provider": "blockcypher",
+    "network": "dash_testnet",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/dash/testnet/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
+  },
+  "insight.dash": {
+    "provider": "insight",
+    "network": "dash",
+    "client_class": "InsightClient",
+    "provider_coin_id": "",
+    "url": "https://insight.dash.org/insight-api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
+  },
+  "insight.dash_testnet": {
+    "provider": "insight",
+    "network": "dash_testnet",
+    "client_class": "InsightClient",
+    "provider_coin_id": "",
+    "url": "https://testnet-insight.dash.org/insight-api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
+  },
+  "electrum.dash.mainnet": {
+    "provider": "electrumx",
+    "network": "dash",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "electrum.dash.org:50002",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
+  },
+  "electrum.dash.testnet": {
+    "provider": "electrumx",
+    "network": "dash_testnet",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "testnet1.dash.org:51001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
   }
 }
