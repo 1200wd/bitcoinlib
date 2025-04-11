@@ -168,7 +168,7 @@ class AuthServiceProxy(object):
         results = []
         responses = self._get_response()
         for response in responses:
-            if 'error' in response:
+            if response.get('error') is not None:
                 raise JSONRPCException(response['error'])
             elif 'result' not in response:
                 raise JSONRPCException({
