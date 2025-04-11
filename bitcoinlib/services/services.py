@@ -101,7 +101,7 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
-        provider_list = list(set([self.providers_defined[x]['provider'] for x in self.providers_defined]))
+        provider_set = {self.providers_defined[x]['provider'] for x in self.providers_defined}
         if providers is None:
             providers = []
         if exclude_providers is None:
@@ -109,7 +109,7 @@ class Service(object):
         if not isinstance(providers, list):
             providers = [providers]
         for p in providers:
-            if p not in provider_list:
+            if p not in provider_set:
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
 
         self.providers = {}
