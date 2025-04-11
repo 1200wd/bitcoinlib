@@ -1006,8 +1006,11 @@ class Transaction(object):
             rawtx.seek(pos_start)
             raw_bytes = rawtx.read(raw_len)
 
+        txid = '' if witness_type == 'segwit' else double_sha256(raw_bytes)[::-1].hex()
+
         return Transaction(inputs, outputs, locktime, version, network, size=raw_len, output_total=output_total,
-                           coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes, index=index)
+                           coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=raw_bytes, index=index,
+                           txid=txid)
 
     @classmethod
     def parse_hex(cls, rawtx, strict=True, network=DEFAULT_NETWORK):
