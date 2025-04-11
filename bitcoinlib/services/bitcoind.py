@@ -195,6 +195,14 @@ class BitcoindClient(BaseClient):
             if get_input_values:
                 txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+        # This doesn't seem to save any time:
+        # if get_input_values:
+        #     batchreq = []
+        #     for i in t.inputs:
+        #         batchreq.append(['getrawtransaction', i.prev_txid.hex(), 1])
+        #     res = self.proxy.batch_(batchreq)
+        #     for n, txi in enumerate(res):
+        #         t.inputs[n].value = int(round(float(txi['vout'][t.inputs[n].output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
 

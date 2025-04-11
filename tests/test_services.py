@@ -627,12 +627,12 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_blockcount(self):
         for nw in ['bitcoin', 'litecoin', 'testnet']:  # ToDo: add testnet4 when more providers are available
-            srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo', 'bitaps'])
+            srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo'])
             srv.blockcount()
             n_blocks = None
             delta = 200
-            if nw == 'testnet':
-                delta = 2500
+            if nw == 'testnet':  # Testnet 3 has frequent blockstorms causing delay in processing for various providers
+                delta = 25000
             for provider in srv.results:
                 if n_blocks is not None:
                     self.assertAlmostEqual(srv.results[provider], n_blocks, delta=delta,
@@ -936,7 +936,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
     def test_service_cache_transaction_coinbase(self):
-        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['bitaps', 'bitgo'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
         if t:
             self.assertGreaterEqual(srv.results_cache_n, 0)
