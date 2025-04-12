@@ -1,3 +1,14 @@
+RELEASE 0.7.3 - Fix provider issues, increase performance
+=========================================================
+* ElectrumX and Blockbook examples and documentation
+* Add mempool Signet provider
+* Fix documentation build
+* Enable unittest for Bitaps
+* Fix Mempool provider transaction order
+* Fix incorrect txid's when parsing blocks
+* Fix other provider issues
+* Improve provider performance
+
 RELEASE 0.7.2 - ElectrumX, Signet, Blocksmurfer API
 ===================================================
 * ElectrumX server support
