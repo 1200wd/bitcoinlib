@@ -75,7 +75,8 @@ class BlocksmurferClient(BaseClient):
                 'size': u['size'],
                 'value': u['value'],
                 'script': u['script'],
-                'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+                'date': None if not u['date'] else datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S").replace(
+                    tzinfo=timezone.utc)
             })
         return utxos[:limit]
 
