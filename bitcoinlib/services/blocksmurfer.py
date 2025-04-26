@@ -21,6 +21,7 @@
 import logging
 from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
+from bitcoinlib.keys import Address
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
@@ -94,16 +95,20 @@ class BlocksmurferClient(BaseClient):
                         status=tx['status'], coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
                         witness_type=tx['witness_type'])
         for ti in tx['inputs']:
+            address = ti['address'] if not self.network_overrides else (
+                Address.parse(ti['address'], network_overrides=self.network_overrides).address)
             t.add_input(prev_txid=ti['prev_txid'], output_n=ti['output_n'], keys=ti.get('keys', []),
                         index_n=ti['index_n'], unlocking_script=ti['script'], value=ti['value'],
-                        public_hash=bytes.fromhex(ti['public_hash']), address=ti['address'],
+                        public_hash=bytes.fromhex(ti['public_hash']), address=address,
                         witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         locking_script=ti['locking_script'], sigs_required=ti['sigs_required'], sequence=ti['sequence'],
                         witnesses=[bytes.fromhex(w) for w in ti['witnesses']], script_type=ti['script_type'],
                         strict=self.strict)
         for to in tx['outputs']:
-            t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
+            address = to['address'] if not self.network_overrides else (
+                Address.parse(to['address'], network_overrides=self.network_overrides).address)
+            t.add_output(value=to['value'], address=address, public_hash=to['public_hash'],
                          lock_script=to['script'], spent=to['spent'], strict=self.strict)
         t.update_totals()
         return t
