@@ -3752,12 +3752,12 @@ class Wallet(object):
         if not key:
             raise WalletError("Key '%s' not found in this wallet" % key_id)
         if key.key_type == 'multisig':
-            inp_keys = [HDKey.from_wif(ck.child_key.wif, network=ck.child_key.network_name) for ck in
-                        key.multisig_children]
+            inp_keys = [HDKey.from_wif(ck.child_key.wif, network=ck.child_key.network_name, compressed=key.compressed)
+                        for ck in key.multisig_children]
         elif key.key_type in ['bip32', 'single']:
             if not key.wif:
                 raise WalletError("WIF of key is empty cannot create HDKey")
-            inp_keys = [HDKey.from_wif(key.wif, network=key.network_name)]
+            inp_keys = [HDKey.from_wif(key.wif, network=key.network_name, compressed=key.compressed)]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
