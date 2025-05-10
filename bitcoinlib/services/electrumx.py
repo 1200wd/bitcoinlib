@@ -168,6 +168,8 @@ class ElectrumxClient(BaseClient):
                 except:
                     pass
             t.input_total += i.value
+        for o in t.outputs:
+            o.spent = None
         t.update_totals()
         return t
 
