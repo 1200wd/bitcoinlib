@@ -344,7 +344,7 @@ class Service(object):
         """
         Get all transactions for specified address.
 
-        Sorted from old to new, so transactions with highest number of confirmations first.
+        Sorted from old to new, so transactions with the highest number of confirmations first.
 
         :param address: Address string
         :type address: str
