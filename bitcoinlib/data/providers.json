@@ -370,6 +370,17 @@
     "denominator": 1,
     "network_overrides": null
   },
+  "blockbook.testnet4": {
+    "provider": "blockbook",
+    "network": "testnet4",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://blockbook.tbtc-1.zelcore.io/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
   "mempool.litecoin": {
     "provider": "mempool",
     "network": "litecoin",
