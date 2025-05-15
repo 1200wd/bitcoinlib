@@ -787,7 +787,11 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_getinfo_litecoin(self):
         srv = ServiceTest(network='litecoin')
-        res = srv.getinfo()
+        try:
+            res = srv.getinfo()
+        except Exception as e:
+            print(e)
+            print(srv.errors)
         fields = [k for k, _ in res.items()]
         self.assertListEqual(sorted(fields), ['blockcount', 'chain', 'difficulty', 'hashrate', 'mempool_size'])
 
