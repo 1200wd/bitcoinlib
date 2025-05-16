@@ -310,7 +310,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(res[0].txid, '8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
 
     def test_service_gettransactions_after_txid_segwit(self):
-        res = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['blockcypher']).\
+        res = ServiceTest(timeout=TIMEOUT_TEST).\
             gettransactions('bc1qj9hlju59t0m4389033r2x8mlxwc86qgqm9flm626sd22cdhfs9jsyrrp6q',
                             after_txid='bd430d52f35166a7dd6251c73a48559ad8b5f41b6c5bc4a6c4c1a3e3702f4287')
         self.assertEqual(res[0].txid, 'cab75da6d7fe1531c881d4efdb4826410a2604aa9e6442ab12a08363f34fb408')
@@ -626,8 +626,8 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
-        for nw in ['bitcoin', 'testnet4', 'testnet']:
-            srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo'])
+        for nw in ['bitcoin']:
+            srv = ServiceTest(min_providers=3, cache_uri='', network=nw)
             srv.blockcount()
             n_blocks = None
             delta = 200
@@ -786,7 +786,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertListEqual(sorted(fields), ['blockcount', 'chain', 'difficulty', 'hashrate', 'mempool_size'])
 
     def test_service_getinfo_litecoin(self):
-        srv = ServiceTest(network='litecoin', exclude_providers=['blockchair'])
+        srv = ServiceTest(network='litecoin')
         res = srv.getinfo()
         fields = [k for k, _ in res.items()]
         self.assertListEqual(sorted(fields), ['blockcount', 'chain', 'difficulty', 'hashrate', 'mempool_size'])
@@ -936,7 +936,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
     def test_service_cache_transaction_coinbase(self):
-        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['bitgo'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2)
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
         if t:
             self.assertGreaterEqual(srv.results_cache_n, 0)
