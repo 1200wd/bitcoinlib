@@ -427,5 +427,16 @@
     "priority": 10,
     "denominator": 1,
     "network_overrides": null
+  },
+   "blockbook.signet": {
+    "provider": "blockbook",
+    "network": "signet",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://signet-explorer.wakiyamap.dev/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
   }
 }
