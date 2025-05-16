@@ -626,7 +626,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
-        for nw in ['bitcoin', 'litecoin', 'testnet']:  # ToDo: add testnet4 when more providers are available
+        for nw in ['bitcoin', 'testnet4', 'testnet']:
             srv = ServiceTest(min_providers=3, cache_uri='', network=nw, exclude_providers=['bitgo'])
             srv.blockcount()
             n_blocks = None
