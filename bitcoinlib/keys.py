@@ -42,6 +42,23 @@ else:
 
 _logger = logging.getLogger(__name__)
 
+"""
+A comprehensive cryptographic toolkit for Bitcoin key management, providing advanced functionality for key 
+generation, derivation, and manipulation. The module defines core classes and utilities for handling Bitcoin cryptographic operations, including:
+
+- `BKeyError`: Custom exception for key-related errors
+- `Address`: Represents and manages Bitcoin addresses
+- `Key`: Base class for cryptographic key operations
+-`HDKey`: Implements Hierarchical Deterministic key derivation
+- `Signature`: Handles Bitcoin signature operations
+
+Key functions include `check_network_and_key()` for network validation, `get_key_format()` for key type detection, and `deserialize_address()` for 
+address parsing. The implementation supports multiple network types (mainnet, testnet), witness types, and provides robust error checking.
+
+The module integrates closely with dependencies like `encoding.py` for advanced encoding, `secp256k1.py` for elliptic curve 
+cryptography, `mnemonic.py` for seed generation, and `networks.py` for network configuration management. It offers a flexible, comprehensive 
+solution for Bitcoin key management, supporting various cryptographic operations across different network and witness types.
+"""
 
 class BKeyError(Exception):
     """
