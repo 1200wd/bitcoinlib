@@ -49,6 +49,13 @@ HTTP_TIMEOUT = 10
 
 log = logging.getLogger(__name__)
 
+"""
+Advanced JSON-RPC API proxy implementation providing a robust and flexible remote procedure call mechanism. The file defines an 
+AuthServiceProxy class that enables dynamic method generation, secure HTTP/HTTPS communication, and comprehensive authentication 
+support. It includes custom exception handling (JSONRPCException) for detailed error management, supports batch 
+requests, and provides flexible serialization with special handling for decimal types. The implementation allows for seamless 
+API interactions with configurable timeout, authentication, and URL parsing, making it suitable for complex remote service communication scenarios.
+"""
 
 class JSONRPCException(Exception):
     def __init__(self, rpc_error):
