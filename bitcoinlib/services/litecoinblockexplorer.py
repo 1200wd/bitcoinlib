@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# FIXME: Uncomment the line below if the provider starts synchronizing with the blockchain again.
+# FIXME: Uncomment the lines below if the provider starts synchronizing with the blockchain again.
 # from datetime import datetime, timezone
 # from bitcoinlib.main import MAX_TRANSACTIONS
 # from bitcoinlib.services.baseclient import BaseClient
