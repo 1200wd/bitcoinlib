@@ -38,6 +38,26 @@ To avoid these kinds of errors it is advised to run your local `Bcoin node <manu
 
 With a local Bcoin node or Blockbook server you do not depend on external Service providers which increases reliability, security, speed and privacy.
 
+Provider 'x' does not work
+--------------------------
+
+If you encounter errors when updating transactions, utxo's, blocks, etc there is probably a problem with a specific provider. You can check the logs in bitcoinlib.log and see which provider has problems. To solve this you can:
+
+* Set priority = 0 for this provider to temporary disable it
+* Remove the provider from the providers.json file in you local .bitcoinlib directory
+* Use the exclude_provider option when you calling the Service class:
+
+.. code-block:: python
+
+    srv = Service(exclude_providers=['blocksmurfer'])
+
+* Or use a specific provider, for instance your local Blockbook server:
+
+.. code-block:: python
+
+    srv = Service(providers=['blockbook'])
+
+
 Can I use Bitcoinlib with another database besides SQLite?
 ----------------------------------------------------------
 
