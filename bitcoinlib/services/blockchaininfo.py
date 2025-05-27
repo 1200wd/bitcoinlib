@@ -2,7 +2,8 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    blockchain_info client
-#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
+#    1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2025 May
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as

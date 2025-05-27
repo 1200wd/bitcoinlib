@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 - 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2025 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
