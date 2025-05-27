@@ -93,7 +93,7 @@ def network_by_value(field, value):
     >>> network_by_value('prefix_wif', 'B0')
     ['litecoin', 'litecoin_legacy']
     >>> network_by_value('prefix_address', '6f')
-    ['testnet', 'litecoin_testnet']
+    ['testnet', 'testnet4', 'signet', 'litecoin_testnet']
 
     This method does not work for HD prefixes, use 'wif_prefix_search' instead
 
