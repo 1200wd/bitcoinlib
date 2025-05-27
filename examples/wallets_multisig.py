@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Creating and using Multisignature Wallets
 #
-#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2025 May - 1200 Web Development <http://1200wd.com/>
 #
 
 import os
@@ -101,10 +101,10 @@ else:
 #
 
 NETWORK = 'bitcoinlib_test'
-pk1 = HDKey('YXscyqNJ5YK411nwB33KeVkhSVjwwUkSG9xG3hkaoQFEbTwNJSrNTfni3aSSYiKtPeUPrFLwDsqHwZjNXhYm2DLEkQoaoikHoK2emrHv'
-            'mqSEZrKP', network=NETWORK)
-pk2 = HDKey('YXscyqNJ5YK411nwB3kXiApMaJySYss8sMM9FYgXMtmQKmDTF9yiu7yBNKnVjE8WdVVvuhxLqS6kHvW2MPHKmYzbzEHQsDXXAZuu1rCs'
-            'Hcp7rrJx', network=NETWORK, key_type='single')
+priv1 = 'BC19UtECk2r9PVQYhYNpTmDcQWfMoieL4VJFz8DDQEMcVVpJvaFXvqAM21Z2tSX1s7wpbFRiKATdywhhttMZU1hnWgd2Kidacpb2KBYBUBkkqrDS'
+priv2 = 'BC19UtECk2r9PVQYhZJZ2KeQhbejZn2bGdTpxwm4c5yGSfFaphZCeKvQztKxV1YeaArPdFuzCGTvm52LuptuAptEMetENTucHaXgs3qga4h5gBXU'
+pk1 = HDKey(priv1, network=NETWORK)
+pk2 = HDKey(priv2, network=NETWORK, key_type='single')
 wl1 = Wallet.create('multisig_single_keys1', [pk1, pk2.public()],
                     sigs_required=2, network=NETWORK, db_uri=test_database)
 wl2 = Wallet.create('multisig_single_keys2', [pk1.public_master_multisig(), pk2],

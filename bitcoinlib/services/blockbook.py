@@ -2,7 +2,8 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Blockbook Client api/v2 - available on various servers or run on your own see https://github.com/trezor/blockbook
-#    © 2023 - 1200 Web Development <http://1200wd.com/>
+#    1200 Web Development <http://1200wd.com/>
+#    © 2023 - 2025 May
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as

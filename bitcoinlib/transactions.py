@@ -745,7 +745,10 @@ class Output(object):
     @property
     def address(self):
         if not self._address:
-            address_obj = self.address_obj
+            try:
+                address_obj = self.address_obj
+            except Exception:
+                return ''
             if not address_obj:
                 return ''
             self._address = address_obj.address

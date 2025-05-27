@@ -11,8 +11,10 @@ With BitcoinLib you can:
  - Create, analyse and run Bitcoin scripts
  - Generate Bitcoin addresses and represent them in different address formats like P2PKH, P2SH, Bech32, etc
  - Create private keys and work with Mnemonic password phrases
- - Uses external Service providers to fetch address, transaction, utxo and blockchain data. Or connect to you local `Bitcoin core <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bitcoind-connection.html>`_, `Bcoin <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bcoin.html>`_ or `Blockbook <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-blockbook.html>`_ node.
- - Can be extended to support other cryptocurrencies by configuring custom parameters. At the moment Litecoin and Dogecoin are also supported.
+ - Use external Service providers to fetch address, transaction, utxo and blockchain data.
+ - Connect to you local `Bitcoin core <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bitcoind-connection.html>`_, `Bcoin <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-bcoin.html>`_, `Blockbook <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-blockbook.html>`_ or  `ElectrumX <https://bitcoinlib.readthedocs.io/en/latest/source/_static/manuals.setup-electrumx.html>`_ node.
+ - Can be extended to support other cryptocurrencies by configuring custom parameters.
+ - At the moment Litecoin, Dogecoin and various test networks are supported out-of-the-box.
 
 
 .. image:: https://github.com/1200wd/bitcoinlib/actions/workflows/unittests.yaml/badge.svg

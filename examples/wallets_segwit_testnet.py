@@ -4,8 +4,8 @@
 #
 #    EXAMPLES - Segregated Witness Wallets
 #
-#    © 2018-2023 May - 1200 Web Development <http://1200wd.com/>
-#
+#    1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2023 May
 #
 # Create 4 different Segregated Witness wallets of which 2 Native segwit wallets and 2 wallets with P2SH embedded
 # segwit scripts so every wallet can send payments to them.

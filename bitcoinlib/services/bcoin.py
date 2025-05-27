@@ -91,10 +91,10 @@ class BcoinClient(BaseClient):
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         # First get all transactions for this address from the blockchain
-        txs = self.gettransactions(address, limit=50)
+        txs = self.gettransactions(address, limit=200)
 
         # Fail if large number of transactions are found
-        if len(txs) > 50:
+        if len(txs) >= 200:
             raise ClientError("If not all transactions are known, we cannot determine utxo's")
 
         utxos = []
@@ -130,14 +130,14 @@ class BcoinClient(BaseClient):
         assert(limit > 0)
         txs = []
         while True:
-            variables = {'limit': limit, 'after': after_txid}
+            variables = {'limit': 100, 'after': after_txid}
             res = self.compose_request('tx', 'address', address, variables)
             for tx in res:
                 txs.append(self._parse_transaction(tx))
             if not txs or len(txs) >= limit:
                 break
-            if len(res) == limit:
-                after_txid = res[limit-1]['hash']
+            if len(res) == 100:
+                after_txid = res[99]['hash']
             else:
                 break
 

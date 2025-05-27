@@ -609,7 +609,7 @@ class TestHDKeys(unittest.TestCase):
             k = HDKey(network=network)
             for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
                 for multisig in [False, True]:
-                    if (network[:4] == 'doge') and witness_type != 'legacy':
+                    if (network[:4] == 'doge' or network[:4] == 'dash') and witness_type != 'legacy':
                         break
                     kwif = k.wif_private(witness_type=witness_type, multisig=multisig)
                     hdkey = wif_prefix_search(kwif, witness_type=witness_type, multisig=multisig, network=network)

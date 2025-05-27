@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Use bitcoind as service provider
 #
-#    © 2018 - 2024 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2025 May - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -40,7 +40,7 @@ if MAX_TRANSACTIONS_VIEW:
         print("\n[%d/%d] Deserialize txid %s" % (ci, ct, txid))
         rt = bdc.getrawtransaction(txid)
         print("Raw: %s" % rt)
-        t = Transaction.parse_hex(rt)
+        t = Transaction.parse_hex(rt, strict=False)
         pprint(t.as_dict())
         try:
             print("Verified: %s" % t.verify())

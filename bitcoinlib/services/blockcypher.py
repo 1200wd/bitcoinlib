@@ -216,4 +216,12 @@ class BlockCypher(BaseClient):
         t = self.gettransaction(txid)
         return 1 if t.outputs[output_n].spent else 0
 
-    # def getinfo(self):
+    def getinfo(self):
+        info = self.compose_request('', '')
+        return {
+            'blockcount': info['height'],
+            'chain': info['name'],
+            'difficulty': 0,
+            'hashrate': 0,
+            'mempool_size': info['unconfirmed_count'],
+        }

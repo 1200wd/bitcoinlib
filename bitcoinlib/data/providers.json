@@ -59,6 +59,18 @@
     "network_overrides": null,
     "timeout": 0
   },
+    "blockcypher": {
+    "provider": "blockcypher",
+    "network": "bitcoin",
+    "client_class": "BlockCypher",
+    "provider_coin_id": "",
+    "url": "https://api.blockcypher.com/v1/btc/main/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null,
+    "timeout": 0
+  },
   "cryptoid.litecoin": {
     "provider": "cryptoid",
     "network": "litecoin",
@@ -342,7 +354,7 @@
     "provider_coin_id": "",
     "url": "https://mempool.space/api/",
     "api_key": "",
-    "priority": 0,
+    "priority": 10,
     "denominator": 1,
     "network_overrides": null,
     "timeout": 0
@@ -354,7 +366,7 @@
     "provider_coin_id": "",
     "url": "https://mempool.space/testnet/api/",
     "api_key": "",
-    "priority": 0,
+    "priority": 10,
     "denominator": 1,
     "network_overrides": null,
     "timeout": 0
@@ -365,6 +377,17 @@
     "client_class": "MempoolClient",
     "provider_coin_id": "",
     "url": "https://mempool.space/testnet4/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blockbook.testnet4": {
+    "provider": "blockbook",
+    "network": "testnet4",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://blockbook.tbtc-1.zelcore.io/api/v2/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,
@@ -400,6 +423,17 @@
     "client_class": "MempoolClient",
     "provider_coin_id": "",
     "url": "https://mempool.space/signet/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+   "blockbook.signet": {
+    "provider": "blockbook",
+    "network": "signet",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://signet-explorer.wakiyamap.dev/api/v2/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,
