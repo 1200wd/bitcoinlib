@@ -39,14 +39,14 @@ class NownodesClient(BaseClient):
     def compose_request(self, function='', params=None, method='post'):
         url_path = self.api_key
         data = {
-            "jsonrpc": "1.0",
+            "jsonrpc": "2.0",
             "method": function,
             "params": [] if not params else params,
             "id": "curltest"
         }
         return self.request(url_path, variables=data, method=method)
 
-    def _parse_transaction(self, tx):
+    def _parse_transaction(self, tx, block_height=None):
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.confirmations = tx.get('confirmations')
         t.block_hash = tx.get('blockhash')
@@ -61,10 +61,8 @@ class NownodesClient(BaseClient):
         for o in t.outputs:
             o.spent = None
 
-        # todo
-        # if t.block_hash:
-        # block_height = self.proxy.getblock(t.block_hash, 1)['height']
-        # t.block_height = block_height
+        t.block_height = block_height if block_height else (
+            self.compose_request('getblockheader', [t.block_hash])['result']['height'])
         if t.confirmations:
             t.status = 'confirmed'
             t.verified = True
@@ -121,7 +119,7 @@ class NownodesClient(BaseClient):
             for tx in bd['tx'][(page - 1) * limit:page * limit]:
                 tx['time'] = bd['time']
                 tx['blockhash'] = bd['hash']
-                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=True))
+                txs.append(self._parse_transaction(tx, block_height=bd['height']))
         else:
             bd =  self.compose_request('getblock', [blockid, 1])['result']
             txs = bd['tx']
