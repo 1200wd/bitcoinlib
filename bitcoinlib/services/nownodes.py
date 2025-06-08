@@ -46,17 +46,49 @@ class NownodesClient(BaseClient):
         }
         return self.request(url_path, variables=data, method=method)
 
-    # def _convert_to_transaction(self, tx):
+    def _parse_transaction(self, tx):
+        t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
+        t.confirmations = tx.get('confirmations')
+        t.block_hash = tx.get('blockhash')
+        t.status = 'unconfirmed'
+        for i in t.inputs:
+            if i.prev_txid == b'\x00' * 32:
+                i.script_type = 'coinbase'
+                continue
+            txi =  self.compose_request('getrawtransaction', [i.prev_txid.hex(), True])['result']
+            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+
+        for o in t.outputs:
+            o.spent = None
+
+        # todo
+        # if t.block_hash:
+        # block_height = self.proxy.getblock(t.block_hash, 1)['height']
+        # t.block_height = block_height
+        if t.confirmations:
+            t.status = 'confirmed'
+            t.verified = True
+        t.version = tx['version'].to_bytes(4, 'big')
+        t.version_int = tx['version']
+        t.date = None if 'time' not in tx else datetime.fromtimestamp(tx['time'], timezone.utc)
+        t.update_totals()
+        return t
 
     # def getbalance(self, addresslist):
 
     # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
 
-    # def gettransaction(self, txid):
+    def gettransaction(self, txid):
+        tx = self.compose_request('getrawtransaction', [txid, True])['result']
+        t = self._parse_transaction(tx)
+        return t
 
     # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
 
-    # def getrawtransaction(self, txid):
+    def getrawtransaction(self, txid):
+        method = 'getrawtransaction'
+        res = self.compose_request(method, [txid, False])
+        return res['result']
 
     # def sendrawtransaction(self, rawtx):
 
@@ -77,7 +109,40 @@ class NownodesClient(BaseClient):
             return [txid]
         return []
 
-    # def getblock(self, blockid, parse_transactions, page, limit):
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if isinstance(blockid, int) or len(blockid) < 10:
+            blockid = self.compose_request('getblockhash', [int(blockid)])['result']
+        if not limit:
+            limit = 99999
+
+        txs = []
+        if parse_transactions:
+            bd = self.compose_request('getblock', [blockid, 2])['result']
+            for tx in bd['tx'][(page - 1) * limit:page * limit]:
+                tx['time'] = bd['time']
+                tx['blockhash'] = bd['hash']
+                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=True))
+        else:
+            bd =  self.compose_request('getblock', [blockid, 1])['result']
+            txs = bd['tx']
+
+        block = {
+            'bits': int(bd['bits'], 16),
+            'depth': bd['confirmations'],
+            'block_hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': None if 'previousblockhash' not in bd else bd['previousblockhash'],
+            'time': bd['time'],
+            'tx_count': bd['nTx'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': None,
+            'limit': limit
+        }
+        return block
 
     # def getrawblock(self, blockid):
 
