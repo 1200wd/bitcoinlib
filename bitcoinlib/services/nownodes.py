@@ -35,6 +35,7 @@ class NownodesClient(BaseClient):
 
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
+        self.proxy = None
 
     def compose_request(self, function='', params=None, method='post'):
         url_path = self.api_key
@@ -142,9 +143,18 @@ class NownodesClient(BaseClient):
         }
         return block
 
-    # def getrawblock(self, blockid):
+    def getrawblock(self, blockid):
+        if isinstance(blockid, int):
+            blockid = self.compose_request('getblockhash', [int(blockid)])['result']
+        return self.compose_request('getblock', [blockid, 0])['result']
 
-    # def isspent(self, txid, output_n):
+    def isspent(self, txid, output_n):
+        params = [
+            txid,
+            output_n
+        ]
+        res = self.compose_request('gettxout', params)['result']
+        return 0 if res else 1
 
     def getinfo(self):
         method = 'getmininginfo'
