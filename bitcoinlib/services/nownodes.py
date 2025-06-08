@@ -39,11 +39,12 @@ class NownodesClient(BaseClient):
     def compose_request(self, function='', params=None, method='post'):
         url_path = self.api_key
         data = {
-            "jsonrpc": "2.0",
+            "jsonrpc": "1.0",
             "method": function,
-            "data": [] if not params else params
+            "params": [] if not params else params,
+            "id": "curltest"
         }
-        return self.request(url_path, variables={}, post_data=data, method=method)
+        return self.request(url_path, variables=data, method=method)
 
     # def _convert_to_transaction(self, tx):
 
@@ -63,9 +64,18 @@ class NownodesClient(BaseClient):
 
     def blockcount(self):
         method = 'getblockchaininfo'
-        return self.compose_request(method)
+        res = self.compose_request(method)
+        return res['result']['blocks']
 
-    # def mempool(self, txid):
+    def mempool(self, txid=''):
+        method = 'getrawmempool'
+        res = self.compose_request(method)
+        txids = res['result']
+        if not txid:
+            return txids
+        elif txid in txids:
+            return [txid]
+        return []
 
     # def getblock(self, blockid, parse_transactions, page, limit):
 
@@ -73,4 +83,13 @@ class NownodesClient(BaseClient):
 
     # def isspent(self, txid, output_n):
 
-    # def getinfo(self):
+    def getinfo(self):
+        method = 'getmininginfo'
+        res = self.compose_request(method)
+        return {
+            'blockcount': res['result']['blocks'],
+            'chain': res['result']['chain'],
+            'difficulty': int(res['result']['difficulty']),
+            'hashrate': int(res['result']['networkhashps']),
+            'mempool_size': int(res['result']['pooledtx']),
+        }
