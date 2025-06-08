@@ -89,8 +89,12 @@ class NownodesClient(BaseClient):
         res = self.compose_request(method, [txid, False])
         return res['result']
 
-    # def sendrawtransaction(self, rawtx):
-
+    def sendrawtransaction(self, rawtx):
+        res = self.compose_request('sendrawtransaction', [rawtx])['result']
+        return {
+            'txid': res,
+            'response_dict': res
+        }
     # def estimatefee(self, blocks):
 
     def blockcount(self):
