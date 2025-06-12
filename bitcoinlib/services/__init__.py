@@ -39,3 +39,4 @@ import bitcoinlib.services.bitflyer
 import bitcoinlib.services.blockbook
 import bitcoinlib.services.electrumx
 import bitcoinlib.services.nownodes
+import bitcoinlib.services.blockbook1
