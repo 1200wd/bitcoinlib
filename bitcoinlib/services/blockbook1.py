@@ -51,16 +51,16 @@ class BlockbookClient(BaseClient):
             status = 'unconfirmed'
         txdate = datetime.fromtimestamp(tx['blocktime'], timezone.utc)
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
-        t.input_total = int(float(tx['valueIn']) / self.network.denominator)
-        t.output_total = int(float(tx['valueOut']) / self.network.denominator)
-        t.fee = int(tx['fees'])
+        t.input_total = round(float(tx['valueIn']) / self.network.denominator)
+        t.output_total = round(float(tx['valueOut']) / self.network.denominator)
+        t.fee = round(float(tx['fees']) / self.network.denominator)
         t.date = txdate if tx['confirmations'] else None
         t.confirmations = tx['confirmations']
         t.block_height = None if tx['blockheight'] == -1 else tx['blockheight']
-        t.block_hash = tx.get('blockHash', '')
+        t.block_hash = tx.get('blockhash', None)
         t.status = status
         for n, ti in enumerate(tx['vin']):
-            t.inputs[n].value = int(float(ti.get('value', 0)) / self.network.denominator)
+            t.inputs[n].value = round(float(ti.get('value', 0) or 0) / self.network.denominator)
         for i, to in enumerate(tx['vout']):
             t.outputs[i].spent = to.get('spent', False)
         return t
@@ -70,7 +70,7 @@ class BlockbookClient(BaseClient):
         addresslist = self._addresslist_convert(addresslist)
         for a in addresslist:
             res = self.compose_request('address', a.address)
-            balance += int(float(res['balance']) / self.network.denominator)
+            balance += round(float(res['balance']) / self.network.denominator)
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -89,7 +89,7 @@ class BlockbookClient(BaseClient):
                 'block_height': tx.get('height', 0),
                 'fee': None,
                 'size': 0,
-                'value': int(float(tx['value']) / self.network.denominator),
+                'value': int(tx['satoshis']),
                 'script': tx.get('scriptPubKey', ''),
                 'date': None
             })
@@ -128,7 +128,7 @@ class BlockbookClient(BaseClient):
 
     def estimatefee(self, blocks):
         res = self.compose_request('estimatefee', str(int(blocks)+1))
-        return int(float(res['result']) / self.network.denominator)
+        return round(float(res['result']) / self.network.denominator)
 
     def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
@@ -178,7 +178,7 @@ class BlockbookClient(BaseClient):
         return {
             'blockcount': info['backend']['blocks'],
             'chain': info['backend']['chain'],
-            'difficulty': int(float(info['backend']['difficulty'])),
+            'difficulty': round(float(info['backend']['difficulty'])),
             'hashrate': 0,
             'mempool_size': info['blockbook']['mempoolSize'],
         }
