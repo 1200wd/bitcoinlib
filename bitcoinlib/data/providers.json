@@ -131,6 +131,18 @@
     "network_overrides": null,
     "timeout": 0
   },
+    "blockchair.litecoin_legacy": {
+    "provider": "blockchair",
+    "network": "litecoin_legacy",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/litecoin/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null,
+    "timeout": 0
+  },
   "blockchair.dogecoin": {
     "provider": "blockchair",
     "network": "dogecoin",
@@ -405,7 +417,19 @@
     "network_overrides": null,
     "timeout": 0
   },
-    "mempool.litecoin_testnet": {
+  "mempool.litecoin_legacy": {
+    "provider": "mempool",
+    "network": "litecoin_legacy",
+    "client_class": "MempoolClient",
+    "provider_coin_id": "",
+    "url": "https://litecoinspace.org/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null,
+    "timeout": 0
+  },
+  "mempool.litecoin_testnet": {
     "provider": "mempool",
     "network": "litecoin_testnet",
     "client_class": "MempoolClient",
