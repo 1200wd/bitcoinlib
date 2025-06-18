@@ -18,6 +18,8 @@ omit =
     *litecoinblockexplorer.py
     *bitflyer.py
     *blocksmurfer.py
+    *electrumx.py
+    *blockchair.py
 [report]
 exclude_lines =
     pragma: no cover

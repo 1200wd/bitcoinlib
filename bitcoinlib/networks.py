@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 - 2022 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2025 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -93,7 +93,7 @@ def network_by_value(field, value):
     >>> network_by_value('prefix_wif', 'B0')
     ['litecoin', 'litecoin_legacy']
     >>> network_by_value('prefix_address', '6f')
-    ['testnet', 'litecoin_testnet']
+    ['testnet', 'testnet4', 'signet', 'litecoin_testnet']
 
     This method does not work for HD prefixes, use 'wif_prefix_search' instead
 
