@@ -223,16 +223,24 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
 
    Installation and Settings <source/_static/manuals.install>
    source/_static/manuals.command-line-wallet
-   Bitcoind Node <source/_static/manuals.setup-bitcoind-connection>
-   Bcoin Node <source/_static/manuals.setup-bcoin>
-   Blockbook <source/_static/manuals.setup-blockbook>
-   ElectrumX <source/_static/manuals.setup-electrumx>
-   Add Service Provider <source/_static/manuals.add-provider>
    Databases <source/_static/manuals.databases>
    Encrypted Database <source/_static/manuals.sqlcipher>
    Security & Privacy <source/_static/manuals.security>
    source/_static/manuals.caching
    FAQ <source/_static/manuals.faq>
+
+
+.. toctree::
+   :caption: Providers
+   :maxdepth: 4
+
+   How to use Service Providers? <source/_static/service-providers>
+   Bitcoind Node <source/_static/manuals.setup-bitcoind-connection>
+   Blockbook <source/_static/manuals.setup-blockbook>
+   ElectrumX <source/_static/manuals.setup-electrumx>
+   Bcoin Node <source/_static/manuals.setup-bcoin>
+   Payed Providers <source/_static/manuals.payed-providers>
+   Add Service Provider <source/_static/manuals.add-provider>
 
 
 .. toctree::
