@@ -24,6 +24,8 @@ There a many providers which offer a payed subscription, many unfortunately are 
 
 At the time of writing Nownodes offers a $20 a month subscription. You can create an account and use the example providers configuration file at https://github.com/1200wd/bitcoinlib/blob/master/bitcoinlib/data/providers.examples-nownodes.json
 
+We have not tested other payed service providers at the moment, but please let us know if you found any good options.
+
 
 Add another service Provider
 ----------------------------

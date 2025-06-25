@@ -239,7 +239,6 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    Blockbook <source/_static/manuals.setup-blockbook>
    ElectrumX <source/_static/manuals.setup-electrumx>
    Bcoin Node <source/_static/manuals.setup-bcoin>
-   Payed Providers <source/_static/manuals.payed-providers>
    Add Service Provider <source/_static/manuals.add-provider>
 
 
