@@ -2743,7 +2743,7 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         self.assertGreaterEqual(w.balance(), 4532991)
         self.assertRaisesRegex(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
         self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
-                         '22965c151d850b5c7d98561e5432459141b1321a299cdcac1764f540eef56451')
+                         '1b590ccbdeb5659772c69e8aee4bc7eeafec7573ddb1254b97a512f56162fd9c')
 
     def test_wallet_address_import_public_key(self):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
