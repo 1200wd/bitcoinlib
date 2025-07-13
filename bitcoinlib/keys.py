@@ -1055,7 +1055,7 @@ class Key(object):
             self.is_private = True  # Ignore provided attribute
         else:
             try:
-                kf = get_key_format(import_key)
+                kf = get_key_format(import_key, is_private=is_private)
             except BKeyError:
                 if strict:
                     raise BKeyError("Unrecognised key format")
@@ -1720,7 +1720,7 @@ class HDKey(Key):
                      multisig=multisig, compressed=compressed)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, is_private=True, network=None, key_type='bip32', password='', compressed=True,
+                 child_index=0, is_private=None, network=None, key_type='bip32', password='', compressed=True,
                  encoding=None, witness_type=None, multisig=False):
         """
         Hierarchical Deterministic Key class init function.
@@ -1790,7 +1790,7 @@ class HDKey(Key):
                 key = import_key.private_byte
                 key_type = 'private'
             else:
-                kf = get_key_format(import_key)
+                kf = get_key_format(import_key, is_private=is_private)
                 if kf['format'] == 'address':
                     raise BKeyError("Can not create HDKey object from address")
                 if len(kf['script_types']) == 1:
@@ -1830,6 +1830,8 @@ class HDKey(Key):
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)
 
+        if is_private is None:
+            is_private = True
         Key.__init__(self, key, network, compressed, password, is_private)
 
         self.encoding = encoding
