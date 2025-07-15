@@ -70,7 +70,7 @@ class BlockchainInfoClient(BaseClient):
                 'block_height': None,
                 'fee': None,
                 'size': 0,
-                'value': int(round(utxo['value'] * self.units, 0)),
+                'value': round(utxo['value'] * self.units),
                 'script': utxo['script'],
                 'date': None
             })
@@ -195,6 +195,6 @@ class BlockchainInfoClient(BaseClient):
             'blockcount': info['n_blocks_total'],
             'chain': '',
             'difficulty': info['difficulty'],
-            'hashrate': int(float(info['hash_rate'] * 10**9)),
+            'hashrate': round(float(info['hash_rate'] * 10**9)),
             'mempool_size': unconfirmed,
         }

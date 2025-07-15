@@ -49,7 +49,7 @@ class LitecoreIOClient(BaseClient):
             status = 'confirmed'
         else:
             status = 'unconfirmed'
-        fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
+        fees = None if 'fees' not in tx else round(float(tx['fees']) * self.units)
         value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
@@ -61,19 +61,19 @@ class LitecoreIOClient(BaseClient):
                         fee=fees, size=tx['size'], txid=tx['txid'],
                         date=txdate, confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], status=status,
-                        input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
-                        output_total=int(round(float(tx['valueOut']) * self.units, 0)))
+                        input_total=round(float(value_in) * self.units), coinbase=isCoinbase,
+                        output_total=round(float(tx['valueOut']) * self.units))
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_txid=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
                             script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
-                value = int(round(float(ti['value']) * self.units, 0))
+                value = round(float(ti['value']) * self.units)
                 t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
-            value = int(round(float(to['value']) * self.units, 0))
+            value = round(float(to['value']) * self.units)
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'],
                          spending_txid=None if not to['spentTxId'] else to['spentTxId'],
@@ -191,7 +191,7 @@ class LitecoreIOClient(BaseClient):
         return {
             'blockcount': info['blocks'],
             'chain': info['network'],
-            'difficulty': int(float(info['difficulty'])),
+            'difficulty': round(float(info['difficulty'])),
             'hashrate': 0,
             'mempool_size': 0,
         }

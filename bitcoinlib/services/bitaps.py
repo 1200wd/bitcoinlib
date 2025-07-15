@@ -64,7 +64,7 @@ class BitapsClient(BaseClient):
 
         t = Transaction(
             locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
-            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'],
+            fee_per_kb=None if 'feeRate' not in tx else round(tx['feeRate']), size=tx['size'],
             txid=tx['txId'], date=date, confirmations=tx['confirmations'], block_height=block_height,
             input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
             verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)

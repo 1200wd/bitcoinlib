@@ -49,16 +49,16 @@ class LitecoinBlockexplorerClient(BaseClient):
             status = 'confirmed'
         else:
             status = 'unconfirmed'
-        fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
-        value_in = 0 if 'valueIn' not in tx else int(round(float(tx['valueIn']) * self.units, 0))
+        fees = None if 'fees' not in tx else round(float(tx['fees']) * self.units)
+        value_in = 0 if 'valueIn' not in tx else round(float(tx['valueIn']) * self.units)
         txdate = None
         if 'blocktime' in tx:
             txdate = datetime.fromtimestamp(tx['blocktime'], timezone.utc)
         t = Transaction.parse_hex(tx['hex'], strict=self.strict, network=self.network)
         t.fee = fees
         t.input_total = value_in
-        t.output_total = int(round(float(tx['valueOut']) * self.units, 0))
-        t.fees = int(round(float(tx['fees']) * self.units, 0))
+        t.output_total = round(float(tx['valueOut']) * self.units)
+        t.fees = round(float(tx['fees']) * self.units)
         t.date = txdate
         t.confirmations = tx['confirmations']
         t.block_height = tx['blockheight']
@@ -68,7 +68,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         t.block_hash = tx.get('blockhash', '')
         t.status = status
         for n, ti in enumerate(tx['vin']):
-            t.inputs[n].value = int(round(float(ti['value'] or 0) * self.units, 0))
+            t.inputs[n].value = round(float(ti['value'] or 0) * self.units)
         for i, to in enumerate(tx['vout']):
             t.outputs[i].spent = to['spent']
         return t
@@ -78,7 +78,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         addresslist = self._addresslist_convert(addresslist)
         for a in addresslist:
             res = self.compose_request('address', a.address)
-            balance += int(float(res['balance']) / self.network.denominator)
+            balance += round(float(res['balance']) / self.network.denominator)
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -134,7 +134,7 @@ class LitecoinBlockexplorerClient(BaseClient):
 
     def estimatefee(self, blocks):
         res = self.compose_request('estimatefee', str(int(blocks)+1))
-        return int(float(res['result']) / self.network.denominator)
+        return round(float(res['result']) / self.network.denominator)
 
     def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
@@ -184,7 +184,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         return {
             'blockcount': info['backend']['blocks'],
             'chain': info['backend']['chain'],
-            'difficulty': int(float(info['backend']['difficulty'])),
+            'difficulty': round(float(info['backend']['difficulty'])),
             'hashrate': 0,
             'mempool_size': info['blockbook']['mempoolSize'],
         }

@@ -192,9 +192,9 @@ class BlockstreamClient(BaseClient):
         if self.network.name == 'testnet':
             return 2000
         if closest:
-            return int(est[str(closest[0] + blocks)] * 1000)
+            return round(est[str(closest[0] + blocks)] * 1000)
         else:
-            return int(est[str(sorted([int(i) for i in est.keys()])[-1:][0])] * 1000)
+            return round(est[str(sorted([int(i) for i in est.keys()])[-1:][0])] * 1000)
 
     def blockcount(self):
         return self.compose_request('blocks', 'tip', 'height')

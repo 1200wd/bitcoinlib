@@ -156,7 +156,7 @@ class DogecoindClient(BaseClient):
                 'block_height': None,
                 'fee': None,
                 'size': 0,
-                'value': int(t['amount'] * self.units),
+                'value': round(t['amount'] * self.units),
                 'script': t['scriptPubKey'],
                 'date': None,
             })
@@ -177,7 +177,7 @@ class DogecoindClient(BaseClient):
                 continue
             if get_input_values:
                 txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
-                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+                i.value = round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
         for o in t.outputs:
             o.spent = None
         t.version = tx['version'].to_bytes(4, 'big')
@@ -204,7 +204,7 @@ class DogecoindClient(BaseClient):
         except KeyError as e:
             _logger.info("dogecoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
-        return int(res * self.units)
+        return round(res * self.units)
 
     def blockcount(self):
         return self.proxy.getblockcount()

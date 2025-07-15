@@ -1932,9 +1932,9 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
                             db_uri=self.database_uri)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        self.assertRaisesRegex(WalletError, 'Fee per kB of 660 is lower then minimal network fee of 1000',
+        self.assertRaisesRegex(WalletError, 'Fee per kB of 661 is lower then minimal network fee of 1000',
                                 wlt.send_to, to_key.address, 50000000, fee=150)
-        self.assertRaisesRegex(WalletError, 'Fee per kB of 1321585 is higher then maximum network fee of 1000000',
+        self.assertRaisesRegex(WalletError, 'Fee per kB of 1321586 is higher then maximum network fee of 1000000',
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
@@ -2968,10 +2968,10 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         w.utxos_update(utxos=utxos)
         w.send_to('blt1qvtaw9m9ut96ykt2n2kdra8jpv3m5z2s8krqwsv', 50000, broadcast=True)
         self.assertEqual(len(w.utxos()), 5)
-        self.assertEqual(w.balance(), 104441651)
+        self.assertEqual(w.balance(), 104441650)
         w.transactions_remove_unconfirmed(1)
         self.assertEqual(len(w.utxos()), 5)
-        self.assertEqual(w.balance(), 104441651)
+        self.assertEqual(w.balance(), 104441650)
         time.sleep(3)
         w.transactions_remove_unconfirmed(0)
         self.assertEqual(len(w.utxos()), 3)

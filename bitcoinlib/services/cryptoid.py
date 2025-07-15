@@ -58,7 +58,7 @@ class CryptoID(BaseClient):
         for a in addresslist:
             res = self.compose_request('getbalance', variables={'a': a.address})
             balance += float(res)
-        return int(balance * self.units)
+        return round(balance * self.units)
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         if not self.api_key:
@@ -82,7 +82,7 @@ class CryptoID(BaseClient):
                 'block_height': None,
                 'fee': None,
                 'size': 0,
-                'value': int(utxo['value']),
+                'value': round(utxo['value']),
                 'script': utxo['script'],
                 'date': None
             })
@@ -96,7 +96,7 @@ class CryptoID(BaseClient):
         tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):
             if i.script_type != 'coinbase':
-                i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
+                i.value = round(tx_api['inputs'][n]['amount'] * self.units)
             else:
                 i.value = 0
                 t.coinbase = True
@@ -115,8 +115,8 @@ class CryptoID(BaseClient):
         t.network = self.network
         t.locktime = tx['locktime']
         t.version = tx['version'].to_bytes(4, 'big')
-        t.output_total = int(round(tx_api['total_output'] * self.units, 0))
-        t.input_total = int(round(tx_api['total_input'] * self.units, 0))
+        t.output_total = round(tx_api['total_output'] * self.units)
+        t.input_total = round(tx_api['total_input'] * self.units)
         t.fee = 0
         if t.input_total:
             t.fee = t.input_total - t.output_total
