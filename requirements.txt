@@ -5,7 +5,6 @@ pycryptodome>=3.19.0
 SQLAlchemy>=2.0.20
 numpy>=1.26.0
 sphinx>=7.2.0
-coveralls>=4.0.1
 psycopg>=3.1.16
 mysql-connector-python>=8.4.0
 mysqlclient>=2.2.0
