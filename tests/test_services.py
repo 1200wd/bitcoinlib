@@ -612,18 +612,19 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         self.assertTrue(t.inputs[0].valid)
 
-    def test_service_network_litecoin_legacy(self):
-        txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
-        address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
-        srv = ServiceTest(network='litecoin_legacy')
-        tx = srv.gettransaction(txid)
-        self.assertEqual(tx.inputs[0].address, '3HbvJBjPxJ1wGYHiUJBkfmZziZohzhQhmy')
-
-        balance = srv.getbalance(address)
-        self.assertEqual(balance, 1080900000)
-
-        utxos = srv.getutxos(address)
-        self.assertIn(txid, [utxo['txid'] for utxo in utxos])
+    # FIXME: Disable for now, lack of working service providers
+    # def test_service_network_litecoin_legacy(self):
+    #     txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
+    #     address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
+    #     srv = ServiceTest(network='litecoin_legacy')
+    #     tx = srv.gettransaction(txid)
+    #     self.assertEqual(tx.inputs[0].address, '3HbvJBjPxJ1wGYHiUJBkfmZziZohzhQhmy')
+    #
+    #     balance = srv.getbalance(address)
+    #     self.assertEqual(balance, 1080900000)
+    #
+    #     utxos = srv.getutxos(address)
+    #     self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
         for nw in ['bitcoin']:
