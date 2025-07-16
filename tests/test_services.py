@@ -1033,4 +1033,6 @@ class TestServiceCache(unittest.TestCase):
         t = srv.gettransaction('d7795eb181ef87a35298e8689cabf852e831824ded4c23b1a7f711df119a6599')
         if not srv.results_cache_n:
             self.skipTest('Transaction not indexed for selected provider')
+        print(srv.results)
+        print(srv.errors)
         self.assertEqual(t.index, 5)
