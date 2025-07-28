@@ -3322,8 +3322,8 @@ class Wallet(object):
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
-            if '_sa_instance_state' in u:
-                del u['_sa_instance_state']
+            # if '_sa_instance_state' in u:
+            #     del u['_sa_instance_state']
             u['address'] = utxo[1]
             u['confirmations'] = int(utxo[2])
             u['txid'] = utxo[3].hex()

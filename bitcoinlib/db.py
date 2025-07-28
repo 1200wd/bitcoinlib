@@ -398,9 +398,9 @@ class DbTransaction(Base):
     block_height = Column(Integer, index=True, doc="Number of block this transaction is included in")
     size = Column(Integer, doc="Size of the raw transaction in bytes")
     fee = Column(BigInteger, doc="Transaction fee")
-    inputs = relationship("DbTransactionInput", cascade="all,delete",
+    inputs = relationship("DbTransactionInput", cascade="all,delete", back_populates="transaction",
                           doc="List of all inputs as DbTransactionInput objects")
-    outputs = relationship("DbTransactionOutput", cascade="all,delete",
+    outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="transaction",
                            doc="List of all outputs as DbTransactionOutput objects")
     status = Column(String(20), default='new',
                     doc="Current status of transaction, can be one of the following: new', "
