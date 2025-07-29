@@ -76,6 +76,8 @@ class BaseClient(object):
             'Accept': 'application/json',
             "Referrer": "https://www.github.com/1200wd/bitcoinlib",
         }
+        if self.api_key:
+            headers["Api-Key"] = self.api_key
         if header:
             headers.update(header)
         if method == 'get':

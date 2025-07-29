@@ -324,9 +324,7 @@ class BitcoindClient(BaseClient):
 
     def isspent(self, txid, index):
         res = self.proxy.gettxout(txid, index)
-        if not res:
-            return 1
-        return 0
+        return 0 if res else 1
 
     def getinfo(self):
         info = self.proxy.getmininginfo()

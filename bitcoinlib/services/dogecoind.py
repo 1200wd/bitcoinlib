@@ -227,6 +227,10 @@ class DogecoindClient(BaseClient):
             'mempool_size': int(info['pooledtx']),
         }
 
+    def isspent(self, txid, index):
+        res = self.proxy.gettxout(txid, index)
+        return 0 if res else 1
+
 
 if __name__ == '__main__':
     #
