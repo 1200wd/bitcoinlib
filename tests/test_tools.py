@@ -109,7 +109,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.database_uri)
         cmd_wlt_delete = "%s %s -w testms1 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.database_uri)
-        output_wlt_create = "if you understood and wrote down your key"
+        output_wlt_create = "Please backup this key properly, if you lose it all associated funds will be lost"
         output_wlt_delete = "Wallet testms1 has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)

@@ -146,7 +146,7 @@ class LitecoindClient(BaseClient):
                     "address to wallet." % address)
             txs_list = self.proxy.listunspent(0, 99999999, [address])
             for tx in txs_list:
-                balance += int(tx['amount'] * self.units)
+                balance += round(tx['amount'] * self.units)
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -188,7 +188,7 @@ class LitecoindClient(BaseClient):
                 continue
             if get_input_values:
                 txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
-                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+                i.value = round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
         for o in t.outputs:
             o.spent = None
 

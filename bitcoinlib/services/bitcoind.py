@@ -152,7 +152,7 @@ class BitcoindClient(BaseClient):
                     "address to wallet." % address)
             txs_list = self.proxy.listunspent(0, 99999999, [address])
             for tx in txs_list:
-                balance += int(tx['amount'] * self.units)
+                balance += round(tx['amount'] * self.units)
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -174,7 +174,7 @@ class BitcoindClient(BaseClient):
                 'block_height': blockcount - tx['confirmations'] + 1,
                 'fee': None,
                 'size': 0,
-                'value': int(tx['amount'] * self.units),
+                'value': round(tx['amount'] * self.units),
                 'script': tx['scriptPubKey'],
                 'date': None,
             })
@@ -194,7 +194,7 @@ class BitcoindClient(BaseClient):
                 continue
             if get_input_values:
                 txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
-                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+                i.value = round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
         # This doesn't seem to save any time:
         # if get_input_values:
         #     batchreq = []
@@ -202,7 +202,7 @@ class BitcoindClient(BaseClient):
         #         batchreq.append(['getrawtransaction', i.prev_txid.hex(), 1])
         #     res = self.proxy.batch_(batchreq)
         #     for n, txi in enumerate(res):
-        #         t.inputs[n].value = int(round(float(txi['vout'][t.inputs[n].output_n_int]['value']) / self.network.denominator))
+        #         t.inputs[n].value = round(float(txi['vout'][t.inputs[n].output_n_int]['value']) / self.network.denominator)
         for o in t.outputs:
             o.spent = None
 
@@ -265,7 +265,7 @@ class BitcoindClient(BaseClient):
         except KeyError as e:
             _logger.info("bitcoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
-        return int(res * self.units)
+        return round(res * self.units)
 
     def blockcount(self):
         bcinfo = self.proxy.getblockchaininfo()

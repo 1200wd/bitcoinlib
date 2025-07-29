@@ -128,7 +128,7 @@ class BlockbookClient(BaseClient):
 
     def estimatefee(self, blocks):
         res = self.compose_request('estimatefee', str(int(blocks)+1))
-        return int(float(res['result']) / self.network.denominator)
+        return round(float(res['result']) / self.network.denominator)
 
     def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
@@ -162,7 +162,7 @@ class BlockbookClient(BaseClient):
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': None if not limit else int(len(bd['txs']) // limit) + (len(bd['txs']) % limit > 0),
+            'pages': None if not limit else round(len(bd['txs']) // limit) + (len(bd['txs']) % limit > 0),
             'limit': limit
         }
         return block
@@ -178,7 +178,7 @@ class BlockbookClient(BaseClient):
         return {
             'blockcount': info['backend']['blocks'],
             'chain': info['backend']['chain'],
-            'difficulty': int(float(info['backend']['difficulty'])),
+            'difficulty': round(float(info['backend']['difficulty'])),
             'hashrate': 0,
             'mempool_size': info['blockbook']['mempoolSize'],
         }

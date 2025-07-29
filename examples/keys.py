@@ -80,8 +80,8 @@ print("Key type is : %s" % k.key_type)
 
 print("\n=== Derive path with Child Key derivation ===")
 print("Derive path path 'm/0H/1':")
-print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').wif())
-print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').wif_public())
+print("  Private Extended WIF: %s" % k.key_for_path('m/0H/1').wif())
+print("  Public Extended WIF : %s\n" % k.key_for_path('m/0H/1').wif_public())
 
 print("\n=== Test Child Key Derivation ===")
 print("Use the 2 different methods to derive child keys. One through derivation from public parent, "

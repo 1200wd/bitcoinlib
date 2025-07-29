@@ -653,10 +653,10 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
 
         pre_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt[:4], 32, 16384, 8, 8)
         owner_entropy = owner_salt[:4] + int.to_bytes((lot * 4096 + sequence), 4, 'big')
-        if isinstance(pre_factor, list):
-            for pf in pre_factor:
-                print(pf.hex())
-            print(len(pre_factor))
+        # if isinstance(pre_factor, list):
+        #     for pf in pre_factor:
+        #         print(pf.hex())
+        #     print(len(pre_factor))
         pass_factor = double_sha256(pre_factor + owner_entropy)
         magic = BIP38_MAGIC_LOT_AND_SEQUENCE
     else:
@@ -1055,7 +1055,7 @@ class Key(object):
             self.is_private = True  # Ignore provided attribute
         else:
             try:
-                kf = get_key_format(import_key)
+                kf = get_key_format(import_key, is_private=is_private)
             except BKeyError:
                 if strict:
                     raise BKeyError("Unrecognised key format")
@@ -1573,31 +1573,28 @@ class Key(object):
     def info(self):
         """
         Prints key information to standard output
-
         """
-
         print("KEY INFO")
-        print(" Network                     %s" % self.network.name)
-        print(" Compressed                  %s" % self.compressed)
+        print(f" Network                     {self.network.name}")
+        print(f" Compressed                  {self.compressed}")
         if self.secret:
             print("SECRET EXPONENT")
-            print(" Private Key (hex)              %s" % self.private_hex)
-            print(" Private Key (long)             %s" % self.secret)
+            print(f" Private Key (hex)              {self.private_hex}")
+            print(f" Private Key (long)             {self.secret}")
             if isinstance(self, HDKey):
-                print(" Private Key (wif)              %s" % self.wif_key())
+                print(f" Private Key (wif)              {self.wif_key()}")
             else:
-                print(" Private Key (wif)              %s" % self.wif())
+                print(f" Private Key (wif)              {self.wif()}")
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
         print("PUBLIC KEY")
-        print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % self.hash160.hex())
-        print(" Address (b58)               %s" % self.address())
+        print(f" Public Key (hex)            {self.public_hex}")
+        print(f" Public Key uncompr. (hex)   {self.public_uncompressed_hex}")
+        print(f" Public Key Hash160          {self.hash160.hex()}")
+        print(f" Address (b58)               {self.address()}")
         point_x, point_y = self.public_point()
-        print(" Point x                     %s" % point_x)
-        print(" Point y                     %s" % point_y)
-
+        print(f" Point x                     {point_x}")
+        print(f" Point y                     {point_y}")
 
 class HDKey(Key):
     """
@@ -1720,7 +1717,7 @@ class HDKey(Key):
                      multisig=multisig, compressed=compressed)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, is_private=True, network=None, key_type='bip32', password='', compressed=True,
+                 child_index=0, is_private=None, network=None, key_type='bip32', password='', compressed=True,
                  encoding=None, witness_type=None, multisig=False):
         """
         Hierarchical Deterministic Key class init function.
@@ -1790,7 +1787,7 @@ class HDKey(Key):
                 key = import_key.private_byte
                 key_type = 'private'
             else:
-                kf = get_key_format(import_key)
+                kf = get_key_format(import_key, is_private=is_private)
                 if kf['format'] == 'address':
                     raise BKeyError("Can not create HDKey object from address")
                 if len(kf['script_types']) == 1:
@@ -1830,6 +1827,8 @@ class HDKey(Key):
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)
 
+        if is_private is None:
+            is_private = True
         Key.__init__(self, key, network, compressed, password, is_private)
 
         self.encoding = encoding
@@ -1874,17 +1873,17 @@ class HDKey(Key):
         super(HDKey, self).info()
 
         print("EXTENDED KEY")
-        print(" Key Type                    %s" % self.key_type)
-        print(" Chain code (hex)            %s" % self.chain.hex())
-        print(" Child Index                 %s" % self.child_index)
-        print(" Parent Fingerprint (hex)    %s" % self.parent_fingerprint.hex())
-        print(" Depth                       %s" % self.depth)
-        print(" Extended Public Key (wif)   %s" % self.wif_public())
-        print(" Witness type                %s" % self.witness_type)
-        print(" Script type                 %s" % self.script_type)
-        print(" Multisig                    %s" % self.multisig)
+        print(f" Key Type                    {self.key_type}")
+        print(f" Chain code (hex)            {self.chain.hex()}")
+        print(f" Child Index                 {self.child_index}")
+        print(f" Parent Fingerprint (hex)    {self.parent_fingerprint.hex()}")
+        print(f" Depth                       {self.depth}")
+        print(f" Extended Public Key (wif)   {self.wif_public()}")
+        print(f" Witness type                {self.witness_type}")
+        print(f" Script type                 {self.script_type}")
+        print(f" Multisig                    {self.multisig}")
         if self.is_private:
-            print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
+            print(f" Extended Private Key (wif)  {self.wif(is_private=True)}")
         print("\n")
 
     def as_dict(self, include_private=False):
@@ -2092,7 +2091,31 @@ class HDKey(Key):
             encoding = self.encoding
         return super(HDKey, self).address(compressed, prefix, script_type, encoding)
 
+    @deprecated
     def subkey_for_path(self, path, network=None):
+        """
+        Determine subkey for HD Key for given path.
+        Path format: m / purpose' / coin_type' / account' / change / address_index
+
+        See BIP0044 bitcoin proposal for more explanation.
+
+        Deprecated: function renamed to :func:`key_for_path`
+
+        >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
+        >>> k = HDKey.from_wif(wif)
+        >>> k.subkey_for_path("m/44'/0'/0'/0/2")
+        <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
+
+        :param path: BIP0044 key path
+        :type path: str, list
+        :param network: Network name.
+        :type network: str
+
+        :return HDKey: HD Key class object of subkey
+        """
+        return self.key_for_path(path, network)
+
+    def key_for_path(self, path, network=None):
         """
         Determine subkey for HD Key for given path.
         Path format: m / purpose' / coin_type' / account' / change / address_index
@@ -2101,7 +2124,7 @@ class HDKey(Key):
 
         >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
         >>> k = HDKey.from_wif(wif)
-        >>> k.subkey_for_path("m/44'/0'/0'/0/2")
+        >>> k.key_for_path("m/44'/0'/0'/0/2")
         <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
 
         :param path: BIP0044 key path
@@ -2177,9 +2200,9 @@ class HDKey(Key):
         path = path_expand(path_template[:pm_depth], path_template, account_id=account_id, purpose=purpose,
                            witness_type=self.witness_type, network=self.network.name)
         if as_private:
-            return self.subkey_for_path(path)
+            return self.key_for_path(path)
         else:
-            return self.subkey_for_path(path).public()
+            return self.key_for_path(path).public()
 
     def public_master_multisig(self, account_id=0, purpose=None, witness_type=None, as_private=False):
         """
@@ -2215,7 +2238,7 @@ class HDKey(Key):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
-        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+        Used by :func:`key_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
 
         This method create private child keys, use :func:`child_public` to create public child keys.
 
@@ -2266,7 +2289,7 @@ class HDKey(Key):
         """
         Use Child Key Derivation to derive child public key of current HD Key object.
 
-        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+        Used by :func:`key_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
 
         This method create public child keys, use :func:`child_private` to create private child keys.
 

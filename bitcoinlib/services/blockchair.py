@@ -65,7 +65,7 @@ class BlockChairClient(BaseClient):
         balance = 0
         for address in addresslist:
             res = self.compose_request('dashboards/address/', data=address)
-            balance += int(res['data'][address]['address']['balance'])
+            balance += round(res['data'][address]['address']['balance'])
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -247,7 +247,7 @@ class BlockChairClient(BaseClient):
         return {
             'blockcount': info['best_block_height'],
             'chain': '',
-            'difficulty': int(float(info['difficulty'])),
+            'difficulty': round(float(info['difficulty'])),
             'hashrate': int(info['hashrate_24h']),
             'mempool_size': int(info['mempool_transactions']),
         }

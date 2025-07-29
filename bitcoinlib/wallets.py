@@ -719,7 +719,7 @@ class WalletTransaction(Transaction):
 
         fee_per_kb = None
         if db_tx.fee and db_tx.size:
-            fee_per_kb = int((db_tx.fee / db_tx.size) * 1000)
+            fee_per_kb = round((db_tx.fee / db_tx.size) * 1000)
         network = Network(db_tx.network_name)
 
         inputs = []
@@ -806,7 +806,7 @@ class WalletTransaction(Transaction):
                 priv_key_list_arg.append((None, priv_key))
                 if key_paths and priv_key.depth == 0 and priv_key.key_type != "single":
                     for key_path in key_paths:
-                        priv_key_list_arg.append((key_path, priv_key.subkey_for_path(key_path)))
+                        priv_key_list_arg.append((key_path, priv_key.key_for_path(key_path)))
         for ti in self.inputs:
             priv_key_list = []
             for (key_path, priv_key) in priv_key_list_arg:
@@ -965,10 +965,10 @@ class WalletTransaction(Transaction):
         """
 
         Transaction.info(self)
-        print("Pushed to network: %s" % self.pushed)
-        print("Wallet: %s" % self.hdwallet.name)
+        print(f"Pushed to network: %s" % self.pushed)
+        print(f"Wallet: {self.hdwallet.name}")
         if self.error:
-            print("Errors: %s" % self.error)
+            print(f"Errors: {self.error}")
         print("\n")
 
     def export(self, skip_change=True):
@@ -2450,7 +2450,7 @@ class Wallet(object):
             newpath = topkey.path
             n_items = len(str(dbkey.path).split('/'))
             for lvl in fullpath[n_items:]:
-                ck = ck.subkey_for_path(lvl, network=network)
+                ck = ck.key_for_path(lvl, network=network)
                 newpath += '/' + lvl
                 if not account_id:
                     account_id = 0 if ("account'" not in self.key_path or
@@ -2489,7 +2489,7 @@ class Wallet(object):
                     new_key_id += 1
                     if hardened_child:
                         key_idx = "%s'" % key_idx
-                    ck = parent_key.subkey_for_path(key_idx, network=network)
+                    ck = parent_key.key_for_path(key_idx, network=network)
                     key_name = 'address index %s' % key_idx.strip("'")
                     newpath = '/'.join(newpath.split('/')[:-1] + [key_idx])
                     new_keys.append(WalletKey.from_key(
@@ -3008,7 +3008,7 @@ class Wallet(object):
         if as_string:
             return Value.from_satoshi(balance, network=network).str_unit()
         else:
-            return float(balance)
+            return round(balance)
 
     def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
@@ -3322,8 +3322,8 @@ class Wallet(object):
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
-            if '_sa_instance_state' in u:
-                del u['_sa_instance_state']
+            # if '_sa_instance_state' in u:
+            #     del u['_sa_instance_state']
             u['address'] = utxo[1]
             u['confirmations'] = int(utxo[2])
             u['txid'] = utxo[3].hex()
@@ -3747,7 +3747,7 @@ class Wallet(object):
         :return:
         """
         txs = self.transactions(account_id=account_id, network=network)
-        td = datetime.utcnow() - timedelta(hours=hours_old)
+        td = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours_old)
         for tx in txs:
             if not tx.confirmations and tx.date < td:
                 self.transaction_delete(tx.txid)
@@ -3971,7 +3971,7 @@ class Wallet(object):
                 priority = fee
             transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
             if not input_arr:
-                fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
+                fee_estimate = round(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
                                    1000.0 * transaction.fee_per_kb)
             else:
                 fee_estimate = 0
@@ -4077,8 +4077,8 @@ class Wallet(object):
                     transaction.fee_per_kb = srv.estimatefee()
                 if transaction.fee_per_kb < transaction.network.fee_min:
                     transaction.fee_per_kb = transaction.network.fee_min
-                transaction.fee = int((transaction.size / 1000.0) * transaction.fee_per_kb)
-                fee_per_output = int((50 / 1000.0) * transaction.fee_per_kb)
+                transaction.fee = round((transaction.size / 1000.0) * transaction.fee_per_kb)
+                fee_per_output = round((50 / 1000.0) * transaction.fee_per_kb)
             else:
                 if amount_total_output and amount_total_input:
                     fee = False
@@ -4087,9 +4087,9 @@ class Wallet(object):
 
         if fee is False:
             transaction.change = 0
-            transaction.fee = int(amount_total_input - amount_total_output)
+            transaction.fee = round(amount_total_input - amount_total_output)
         else:
-            transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
+            transaction.change = round(amount_total_input - (amount_total_output + transaction.fee))
 
         # Skip change if amount is smaller than the dust limit or estimated fee
         if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= transaction.network.dust_amount:
@@ -4101,7 +4101,7 @@ class Wallet(object):
             min_output_value = transaction.network.dust_amount * 2 + transaction.network.fee_min * 4
             if transaction.fee and transaction.size:
                 if not transaction.fee_per_kb:
-                    transaction.fee_per_kb = int((transaction.fee * 1000.0) / transaction.vsize)
+                    transaction.fee_per_kb = round((transaction.fee * 1000.0) / transaction.vsize)
                 min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
                                    transaction.network.dust_amount
 
@@ -4157,7 +4157,7 @@ class Wallet(object):
 
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
-            transaction.fee_per_kb = int((transaction.fee * 1000.0) / transaction.vsize)
+            transaction.fee_per_kb = round((transaction.fee * 1000.0) / transaction.vsize)
         if transaction.fee_per_kb < transaction.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
                               (transaction.fee_per_kb, transaction.network.fee_min))
@@ -4341,7 +4341,7 @@ class Wallet(object):
         transaction.rawtx = transaction.raw()
         transaction.size = len(transaction.rawtx)
         transaction.calc_weight_units()
-        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.vsize) * 1000)
+        transaction.fee_per_kb = round(float(transaction.fee) / float(transaction.vsize) * 1000)
         transaction.txid = transaction.signature_hash()[::-1].hex()
         transaction.send(broadcast)
         return transaction
@@ -4595,40 +4595,38 @@ class Wallet(object):
         """
 
         print("=== WALLET ===")
-        print(" ID                             %s" % self.wallet_id)
-        print(" Name                           %s" % self.name)
-        print(" Owner                          %s" % self.owner)
-        print(" Scheme                         %s" % self.scheme)
-        print(" Multisig                       %s" % self.multisig)
+        print(f" ID                             {self.wallet_id}")
+        print(f" Name                           {self.name}")
+        print(f" Owner                          {self.owner}")
+        print(f" Scheme                         {self.scheme}")
+        print(f" Multisig                       {self.multisig}")
         if self.multisig:
-            print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
-            print(" Cosigner ID                    %s" % self.cosigner_id)
-        print(" Witness type                   %s" % self.witness_type)
-        print(" Main network                   %s" % self.network.name)
-        print(" Latest update                  %s" % self.last_updated)
+            print(f" Multisig Wallet IDs            {str([w.wallet_id for w in self.cosigner]).strip('[]')}")
+            print(f" Cosigner ID                    {self.cosigner_id}")
+        print(f" Witness type                   {self.witness_type}")
+        print(f" Main network                   {self.network.name}")
+        print(f" Latest update                  {self.last_updated}")
 
         if self.multisig:
             print("\n= Multisig Public Master Keys =")
             for cs in self.cosigner:
-                print("%5s %3s %-70s %-6s %-8s %s" %
-                      (cs.cosigner_id, cs.main_key.key_id, cs.wif(is_private=False), cs.scheme,
-                       "main" if cs.main_key.is_private else "cosigner",
-                       '*' if cs.cosigner_id == self.cosigner_id else ''))
-
+                print(f'{cs.cosigner_id:>5} {cs.main_key.key_id:>3} {cs.wif(is_private=False):<70} {cs.scheme:<6} '
+                      f'{"main" if cs.main_key.is_private else "cosigner":>8}'
+                      f'{"*" if cs.cosigner_id == self.cosigner_id else ""}')
             print("For main keys a private master key is available in this wallet to sign transactions. "
                   "* cosigner key for this wallet")
 
         if detail and self.main_key:
             print("\n= Wallet Master Key =")
-            print(" ID                             %s" % self.main_key_id)
-            print(" Private                        %s" % self.main_key.is_private)
-            print(" Depth                          %s" % self.main_key.depth)
+            print(f" ID                             {self.main_key_id}")
+            print(f" Private                        {self.main_key.is_private}")
+            print(f" Depth                          {self.main_key.depth}")
 
         balances = self._balance_update()
         if detail > 1:
             for nw in self.networks():
-                print("\n- NETWORK: %s -" % nw.name)
-                print("- - Keys")
+                print(f"\n- NETWORK: {nw.name} -")
+                print(f"- - Keys")
                 if detail < 4:
                     ds = [self.key_depth]
                 elif detail < 5:
@@ -4643,9 +4641,8 @@ class Wallet(object):
                     if detail > 3:
                         is_active = False
                     for key in self.keys(depth=d, network=nw.name, is_active=is_active):
-                        print("%5s %-28s %-45s %-25s %25s" %
-                              (key.id, key.path, key.address, key.name,
-                               Value.from_satoshi(key.balance, network=nw).str_unit(currency_repr='symbol')))
+                        print(f"{str(key.id):>5} {key.path:<28} {key.address:<45} {key.name:<25} "
+                              f"{Value.from_satoshi(key.balance, network=nw).str_unit(currency_repr='symbol'):>25}")
 
                 if detail > 2:
                     include_new = False
@@ -4668,16 +4665,16 @@ class Wallet(object):
                             status = ""
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
-                            print("%64s %43s %8d %21s %s %s" % (tx['txid'], address, tx['confirmations'],
-                                                                Value.from_satoshi(tx['value'], network=nw).str_unit(
-                                                                    currency_repr='symbol'),
-                                                                spent, status))
+                            print(f"{tx['txid']:>64} {address:>43} {tx['confirmations']:>8}"
+                                  f"{Value.from_satoshi(tx['value'], network=nw).str_unit(currency_repr='symbol'):>21}"
+                                  f" {spent} {status}")
 
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
-            print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
-                                        Value.from_satoshi(na_balance['balance'], network=na_balance['network']).
-                                        str_unit(currency_repr='symbol')))
+            account_str = f"(Account {na_balance['account_id']})"
+            value_str = Value.from_satoshi(na_balance['balance'],
+                                           network=na_balance['network']).str_unit(currency_repr='symbol')
+            print(f"{na_balance['network']:<20} {account_str:<20} {value_str:>20}")
         print("\n")
 
     def as_dict(self, include_private=False):

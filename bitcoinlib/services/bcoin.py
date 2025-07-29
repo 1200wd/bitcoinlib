@@ -87,7 +87,7 @@ class BcoinClient(BaseClient):
             for a in [i for inputs in [t.inputs for t in txs] for i in inputs]:
                 if a.address == address:
                     balance -= a.value
-        return int(balance)
+        return round(balance)
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         # First get all transactions for this address from the blockchain

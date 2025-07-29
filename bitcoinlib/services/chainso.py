@@ -60,7 +60,7 @@ class ChainSo(BaseClient):
         for address in addresslist:
             res = self.compose_request('get_address_balance', address)
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
-        return int(balance * self.units)
+        return round(balance * self.units)
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
@@ -78,7 +78,7 @@ class ChainSo(BaseClient):
                 'block_height': None,
                 'fee': None,
                 'size': 0,
-                'value': int(round(float(tx['value']) * self.units, 0)),
+                'value': round(float(tx['value']) * self.units),
                 'script': tx['script_hex'],
                 'date': datetime.fromtimestamp(tx['time'], timezone.utc),
             })
@@ -99,7 +99,7 @@ class ChainSo(BaseClient):
         output_total = 0
         if not t.coinbase:
             for n, i in enumerate(t.inputs):
-                i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
+                i.value = round(float(tx['inputs'][n]['value']) * self.units)
                 input_total += i.value
         for o in t.outputs:
             o.spent = None
@@ -196,7 +196,7 @@ class ChainSo(BaseClient):
         return {
             'blockcount': info['blocks'],
             'chain': info['name'],
-            'difficulty': int(float(info['mining_difficulty'])),
-            'hashrate': int(float(info['hashrate'])),
+            'difficulty': round(float(info['mining_difficulty'])),
+            'hashrate': round(float(info['hashrate'])),
             'mempool_size': int(info['unconfirmed_txs']),
         }

@@ -151,8 +151,8 @@ def get_passphrase(strength, interactive=False, quiet=False):
     passphrase = Mnemonic().generate(strength)
     if not quiet:
         print("Passphrase: %s" % passphrase)
-        print("Please write down on paper and backup. With this key you can restore your wallet and all keys")
-        if not interactive and input("\nType 'yes' if you understood and wrote down your key: ") not in ['yes', 'Yes', 'YES']:
+        print("Please backup this key properly, if you lose it all associated funds will be lost!")
+        if not interactive and input("\nType 'yes' if you understood and backup up your key: ") not in ['yes', 'Yes', 'YES']:
             print("Exiting...")
             sys.exit()
     return passphrase

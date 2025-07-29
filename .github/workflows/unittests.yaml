@@ -7,7 +7,7 @@ jobs:
 
     strategy:
       matrix:
-        python: ["3.8", "3.11", "3.12"]
+        python: ["3.8", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -40,4 +40,4 @@ jobs:
       with:
         parallel-finished: true
         debug: true
-        carryforward: "run-3.8,run-3.11,run-3.12"
+        carryforward: "run-3.8,run-3.12"

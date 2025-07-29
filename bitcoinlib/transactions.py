@@ -1307,54 +1307,54 @@ class Transaction(object):
         Prints transaction information to standard output
         """
 
-        print("Transaction %s" % self.txid)
-        print("Date: %s" % self.date)
-        print("Network: %s" % self.network.name)
+        print(f"Transaction {self.txid}")
+        print(f"Date: {self.date}")
+        print(f"Network: {self.network.name}")
         if self.locktime and self.locktime != 0xffffffff:
             if self.locktime < 500000000:
-                print("Locktime: Until block %d" % self.locktime)
+                print(f"Locktime: Until block {self.locktime}")
             else:
-                print("Locktime: Until %s UTC" % datetime.fromtimestamp(self.locktime, timezone.utc))
-        print("Version: %d" % self.version_int)
-        print("Witness type: %s" % self.witness_type)
-        print("Status: %s" % self.status)
-        print("Verified: %s" % self.verified)
+                print(f"Locktime: Until {datetime.fromtimestamp(self.locktime, timezone.utc)} UTC")
+        print(f"Version: {self.version_int}")
+        print(f"Witness type: {self.witness_type}")
+        print(f"Status: {self.status}")
+        print(f"Verified: {self.verified}")
         print("Inputs")
         replace_by_fee = False
         for ti in self.inputs:
-            print("-", ti.address, Value.from_satoshi(ti.value, network=self.network).str(1), ti.prev_txid.hex(),
-                  ti.output_n_int)
+            print(f"- {ti.address} {Value.from_satoshi(ti.value, network=self.network).str(1)} {ti.prev_txid.hex()} "
+                  f"{ti.output_n_int}")
             validstr = "not validated"
             if ti.valid:
                 validstr = "valid"
             elif ti.valid is False:
                 validstr = "invalid"
-            print("  %s %s; sigs: %d (%d-of-%d) %s" %
-                  (ti.witness_type, ti.script_type, len(ti.signatures), ti.sigs_required or 0, len(ti.keys), validstr))
+            print(f"  {ti.witness_type} {ti.script_type}; sigs: {len(ti.signatures)} ({ti.sigs_required or 0}-of-"
+                  f"{len(ti.keys)}) {validstr}")
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
                 if ti.sequence & SEQUENCE_LOCKTIME_TYPE_FLAG:
-                    print("  Relative timelock for %d seconds" % (512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG)))
+                    print(f"  Relative timelock for {(512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG))} seconds")
                 else:
-                    print("  Relative timelock for %d blocks" % ti.sequence)
+                    print(f"  Relative timelock for {ti.sequence} blocks")
             # if ti.locktime_cltv:
             #     if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
-            #         print("  Check Locktime Verify (CLTV) for %d seconds" %
+            #         print(f"  Check Locktime Verify (CLTV) for %d seconds" %
             #               (512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
             #     else:
-            #         print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
+            #         print(f"  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
             if ti.locktime_csv:
                 if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
-                    print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
-                          (512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
+                    print(f"  Check Sequence Verify Timelock (CSV) for "
+                          f"{(512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG))} seconds")
                 else:
-                    print("  Check Sequence Verify Timelock (CSV) for %d blocks" % ti.locktime_csv)
+                    print(f"  Check Sequence Verify Timelock (CSV) for {ti.locktime_csv} blocks")
 
         print("Outputs")
         for to in self.outputs:
             if to.script_type == 'nulldata':
-                print("- NULLDATA ", to.lock_script[2:])
+                print(f"- NULLDATA {to.lock_script[2:]}")
             else:
                 spent_str = ''
                 if to.spent:
@@ -1363,15 +1363,15 @@ class Transaction(object):
                     spent_str = 'U'
                 if to.change:
                     spent_str += 'C'
-                print("-", to.address, Value.from_satoshi(to.value, network=self.network).str(1), to.script_type,
-                      spent_str)
+                print(f"- {to.address} {Value.from_satoshi(to.value, network=self.network).str(1)}"
+                      f" {to.script_type} {spent_str}")
         if replace_by_fee:
             print("Replace by fee: Enabled")
-        print("Size: %s" % self.size)
-        print("Vsize: %s" % self.vsize)
-        print("Fee: %s" % self.fee)
-        print("Confirmations: %s" % self.confirmations)
-        print("Block: %s" % self.block_height)
+        print(f"Size: {self.size}")
+        print(f"Vsize: {self.vsize}")
+        print(f"Fee: {self.fee}")
+        print(f"Confirmations: {self.confirmations}")
+        print(f"Block: {self.block_height}")
 
     def set_locktime_relative_blocks(self, blocks, input_index_n=0, locktime=0):
         """

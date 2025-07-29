@@ -1932,9 +1932,9 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
                             db_uri=self.database_uri)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        self.assertRaisesRegex(WalletError, 'Fee per kB of 660 is lower then minimal network fee of 1000',
+        self.assertRaisesRegex(WalletError, 'Fee per kB of 661 is lower then minimal network fee of 1000',
                                 wlt.send_to, to_key.address, 50000000, fee=150)
-        self.assertRaisesRegex(WalletError, 'Fee per kB of 1321585 is higher then maximum network fee of 1000000',
+        self.assertRaisesRegex(WalletError, 'Fee per kB of 1321586 is higher then maximum network fee of 1000000',
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
@@ -2743,7 +2743,7 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         self.assertGreaterEqual(w.balance(), 4532991)
         self.assertRaisesRegex(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
         self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
-                         '22965c151d850b5c7d98561e5432459141b1321a299cdcac1764f540eef56451')
+                         '1b590ccbdeb5659772c69e8aee4bc7eeafec7573ddb1254b97a512f56162fd9c')
 
     def test_wallet_address_import_public_key(self):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
@@ -2968,10 +2968,10 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         w.utxos_update(utxos=utxos)
         w.send_to('blt1qvtaw9m9ut96ykt2n2kdra8jpv3m5z2s8krqwsv', 50000, broadcast=True)
         self.assertEqual(len(w.utxos()), 5)
-        self.assertEqual(w.balance(), 104441651)
+        self.assertEqual(w.balance(), 104441650)
         w.transactions_remove_unconfirmed(1)
         self.assertEqual(len(w.utxos()), 5)
-        self.assertEqual(w.balance(), 104441651)
+        self.assertEqual(w.balance(), 104441650)
         time.sleep(3)
         w.transactions_remove_unconfirmed(0)
         self.assertEqual(len(w.utxos()), 3)

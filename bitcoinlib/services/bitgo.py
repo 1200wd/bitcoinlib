@@ -67,10 +67,10 @@ class BitGoClient(BaseClient):
                         'confirmations': utxo['confirmations'],
                         'output_n': utxo['tx_output_n'],
                         'input_n': 0,
-                        'block_height': int(utxo['blockHeight']) if utxo['blockHeight'] else None,
+                        'block_height': round(utxo['blockHeight']) if utxo['blockHeight'] else None,
                         'fee': None,
                         'size': 0,
-                        'value': int(round(utxo['value'] * self.units, 0)),
+                        'value': round(utxo['value'] * self.units),
                         'script': utxo['script'],
                         'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
                      }

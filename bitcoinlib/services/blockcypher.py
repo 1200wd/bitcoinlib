@@ -54,7 +54,7 @@ class BlockCypher(BaseClient):
             res = [res]
         for rec in res:
             balance += float(rec['final_balance'])
-        return int(balance * self.units)
+        return round(balance * self.units)
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
@@ -82,7 +82,7 @@ class BlockCypher(BaseClient):
                     'confirmations': tx['confirmations'],
                     'output_n': tx['tx_output_n'],
                     'index': 0,
-                    'value': int(round(tx['value'] * self.units, 0)),
+                    'value': round(tx['value'] * self.units),
                     'script': '',
                     'block_height': None,
                     'date': tdate
@@ -101,7 +101,7 @@ class BlockCypher(BaseClient):
         t.block_height = tx['block_height'] if tx['block_height'] > 0 else None
         t.fee = tx['fees']
         t.rawtx = bytes.fromhex(tx['hex'])
-        t.size = int(len(tx['hex']) / 2)
+        t.size = round(len(tx['hex']) / 2)
         t.network = self.network
         t.input_total = 0
         if len(t.inputs) != len(tx['inputs']):
