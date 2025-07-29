@@ -806,7 +806,7 @@ class WalletTransaction(Transaction):
                 priv_key_list_arg.append((None, priv_key))
                 if key_paths and priv_key.depth == 0 and priv_key.key_type != "single":
                     for key_path in key_paths:
-                        priv_key_list_arg.append((key_path, priv_key.subkey_for_path(key_path)))
+                        priv_key_list_arg.append((key_path, priv_key.key_for_path(key_path)))
         for ti in self.inputs:
             priv_key_list = []
             for (key_path, priv_key) in priv_key_list_arg:
@@ -2450,7 +2450,7 @@ class Wallet(object):
             newpath = topkey.path
             n_items = len(str(dbkey.path).split('/'))
             for lvl in fullpath[n_items:]:
-                ck = ck.subkey_for_path(lvl, network=network)
+                ck = ck.key_for_path(lvl, network=network)
                 newpath += '/' + lvl
                 if not account_id:
                     account_id = 0 if ("account'" not in self.key_path or
@@ -2489,7 +2489,7 @@ class Wallet(object):
                     new_key_id += 1
                     if hardened_child:
                         key_idx = "%s'" % key_idx
-                    ck = parent_key.subkey_for_path(key_idx, network=network)
+                    ck = parent_key.key_for_path(key_idx, network=network)
                     key_name = 'address index %s' % key_idx.strip("'")
                     newpath = '/'.join(newpath.split('/')[:-1] + [key_idx])
                     new_keys.append(WalletKey.from_key(

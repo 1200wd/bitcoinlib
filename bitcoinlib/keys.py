@@ -2091,7 +2091,31 @@ class HDKey(Key):
             encoding = self.encoding
         return super(HDKey, self).address(compressed, prefix, script_type, encoding)
 
+    @deprecated
     def subkey_for_path(self, path, network=None):
+        """
+        Determine subkey for HD Key for given path.
+        Path format: m / purpose' / coin_type' / account' / change / address_index
+
+        See BIP0044 bitcoin proposal for more explanation.
+
+        Deprecated: function renamed to :func:`key_for_path`
+
+        >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
+        >>> k = HDKey.from_wif(wif)
+        >>> k.subkey_for_path("m/44'/0'/0'/0/2")
+        <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
+
+        :param path: BIP0044 key path
+        :type path: str, list
+        :param network: Network name.
+        :type network: str
+
+        :return HDKey: HD Key class object of subkey
+        """
+        return self.key_for_path(path, network)
+
+    def key_for_path(self, path, network=None):
         """
         Determine subkey for HD Key for given path.
         Path format: m / purpose' / coin_type' / account' / change / address_index
@@ -2100,7 +2124,7 @@ class HDKey(Key):
 
         >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
         >>> k = HDKey.from_wif(wif)
-        >>> k.subkey_for_path("m/44'/0'/0'/0/2")
+        >>> k.key_for_path("m/44'/0'/0'/0/2")
         <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
 
         :param path: BIP0044 key path
@@ -2176,9 +2200,9 @@ class HDKey(Key):
         path = path_expand(path_template[:pm_depth], path_template, account_id=account_id, purpose=purpose,
                            witness_type=self.witness_type, network=self.network.name)
         if as_private:
-            return self.subkey_for_path(path)
+            return self.key_for_path(path)
         else:
-            return self.subkey_for_path(path).public()
+            return self.key_for_path(path).public()
 
     def public_master_multisig(self, account_id=0, purpose=None, witness_type=None, as_private=False):
         """
@@ -2214,7 +2238,7 @@ class HDKey(Key):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
-        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+        Used by :func:`key_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
 
         This method create private child keys, use :func:`child_public` to create public child keys.
 
@@ -2265,7 +2289,7 @@ class HDKey(Key):
         """
         Use Child Key Derivation to derive child public key of current HD Key object.
 
-        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+        Used by :func:`key_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
 
         This method create public child keys, use :func:`child_private` to create private child keys.
 
