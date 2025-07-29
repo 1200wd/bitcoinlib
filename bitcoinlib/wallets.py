@@ -965,10 +965,10 @@ class WalletTransaction(Transaction):
         """
 
         Transaction.info(self)
-        print("Pushed to network: %s" % self.pushed)
-        print("Wallet: %s" % self.hdwallet.name)
+        print(f"Pushed to network: %s" % self.pushed)
+        print(f"Wallet: {self.hdwallet.name}")
         if self.error:
-            print("Errors: %s" % self.error)
+            print(f"Errors: {self.error}")
         print("\n")
 
     def export(self, skip_change=True):
@@ -4595,40 +4595,38 @@ class Wallet(object):
         """
 
         print("=== WALLET ===")
-        print(" ID                             %s" % self.wallet_id)
-        print(" Name                           %s" % self.name)
-        print(" Owner                          %s" % self.owner)
-        print(" Scheme                         %s" % self.scheme)
-        print(" Multisig                       %s" % self.multisig)
+        print(f" ID                             {self.wallet_id}")
+        print(f" Name                           {self.name}")
+        print(f" Owner                          {self.owner}")
+        print(f" Scheme                         {self.scheme}")
+        print(f" Multisig                       {self.multisig}")
         if self.multisig:
-            print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
-            print(" Cosigner ID                    %s" % self.cosigner_id)
-        print(" Witness type                   %s" % self.witness_type)
-        print(" Main network                   %s" % self.network.name)
-        print(" Latest update                  %s" % self.last_updated)
+            print(f" Multisig Wallet IDs            {str([w.wallet_id for w in self.cosigner]).strip('[]')}")
+            print(f" Cosigner ID                    {self.cosigner_id}")
+        print(f" Witness type                   {self.witness_type}")
+        print(f" Main network                   {self.network.name}")
+        print(f" Latest update                  {self.last_updated}")
 
         if self.multisig:
             print("\n= Multisig Public Master Keys =")
             for cs in self.cosigner:
-                print("%5s %3s %-70s %-6s %-8s %s" %
-                      (cs.cosigner_id, cs.main_key.key_id, cs.wif(is_private=False), cs.scheme,
-                       "main" if cs.main_key.is_private else "cosigner",
-                       '*' if cs.cosigner_id == self.cosigner_id else ''))
-
+                print(f'{cs.cosigner_id:>5} {cs.main_key.key_id:>3} {cs.wif(is_private=False):<70} {cs.scheme:<6} '
+                      f'{"main" if cs.main_key.is_private else "cosigner":>8}'
+                      f'{"*" if cs.cosigner_id == self.cosigner_id else ""}')
             print("For main keys a private master key is available in this wallet to sign transactions. "
                   "* cosigner key for this wallet")
 
         if detail and self.main_key:
             print("\n= Wallet Master Key =")
-            print(" ID                             %s" % self.main_key_id)
-            print(" Private                        %s" % self.main_key.is_private)
-            print(" Depth                          %s" % self.main_key.depth)
+            print(f" ID                             {self.main_key_id}")
+            print(f" Private                        {self.main_key.is_private}")
+            print(f" Depth                          {self.main_key.depth}")
 
         balances = self._balance_update()
         if detail > 1:
             for nw in self.networks():
-                print("\n- NETWORK: %s -" % nw.name)
-                print("- - Keys")
+                print(f"\n- NETWORK: {nw.name} -")
+                print(f"- - Keys")
                 if detail < 4:
                     ds = [self.key_depth]
                 elif detail < 5:
@@ -4643,9 +4641,8 @@ class Wallet(object):
                     if detail > 3:
                         is_active = False
                     for key in self.keys(depth=d, network=nw.name, is_active=is_active):
-                        print("%5s %-28s %-45s %-25s %25s" %
-                              (key.id, key.path, key.address, key.name,
-                               Value.from_satoshi(key.balance, network=nw).str_unit(currency_repr='symbol')))
+                        print(f"{str(key.id):>5} {key.path:<28} {key.address:<45} {key.name:<25} "
+                              f"{Value.from_satoshi(key.balance, network=nw).str_unit(currency_repr='symbol'):>25}")
 
                 if detail > 2:
                     include_new = False
@@ -4668,16 +4665,16 @@ class Wallet(object):
                             status = ""
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
-                            print("%64s %43s %8d %21s %s %s" % (tx['txid'], address, tx['confirmations'],
-                                                                Value.from_satoshi(tx['value'], network=nw).str_unit(
-                                                                    currency_repr='symbol'),
-                                                                spent, status))
+                            print(f"{tx['txid']:>64} {address:>43} {tx['confirmations']:>8}"
+                                  f"{Value.from_satoshi(tx['value'], network=nw).str_unit(currency_repr='symbol'):>21}"
+                                  f" {spent} {status}")
 
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
-            print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
-                                        Value.from_satoshi(na_balance['balance'], network=na_balance['network']).
-                                        str_unit(currency_repr='symbol')))
+            account_str = f"(Account {na_balance['account_id']})"
+            value_str = Value.from_satoshi(na_balance['balance'],
+                                           network=na_balance['network']).str_unit(currency_repr='symbol')
+            print(f"{na_balance['network']:<20} {account_str:<20} {value_str:>20}")
         print("\n")
 
     def as_dict(self, include_private=False):

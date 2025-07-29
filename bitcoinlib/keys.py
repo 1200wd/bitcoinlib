@@ -653,10 +653,10 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
 
         pre_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt[:4], 32, 16384, 8, 8)
         owner_entropy = owner_salt[:4] + int.to_bytes((lot * 4096 + sequence), 4, 'big')
-        if isinstance(pre_factor, list):
-            for pf in pre_factor:
-                print(pf.hex())
-            print(len(pre_factor))
+        # if isinstance(pre_factor, list):
+        #     for pf in pre_factor:
+        #         print(pf.hex())
+        #     print(len(pre_factor))
         pass_factor = double_sha256(pre_factor + owner_entropy)
         magic = BIP38_MAGIC_LOT_AND_SEQUENCE
     else:
@@ -1573,31 +1573,28 @@ class Key(object):
     def info(self):
         """
         Prints key information to standard output
-
         """
-
         print("KEY INFO")
-        print(" Network                     %s" % self.network.name)
-        print(" Compressed                  %s" % self.compressed)
+        print(f" Network                     {self.network.name}")
+        print(f" Compressed                  {self.compressed}")
         if self.secret:
             print("SECRET EXPONENT")
-            print(" Private Key (hex)              %s" % self.private_hex)
-            print(" Private Key (long)             %s" % self.secret)
+            print(f" Private Key (hex)              {self.private_hex}")
+            print(f" Private Key (long)             {self.secret}")
             if isinstance(self, HDKey):
-                print(" Private Key (wif)              %s" % self.wif_key())
+                print(f" Private Key (wif)              {self.wif_key()}")
             else:
-                print(" Private Key (wif)              %s" % self.wif())
+                print(f" Private Key (wif)              {self.wif()}")
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
         print("PUBLIC KEY")
-        print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % self.hash160.hex())
-        print(" Address (b58)               %s" % self.address())
+        print(f" Public Key (hex)            {self.public_hex}")
+        print(f" Public Key uncompr. (hex)   {self.public_uncompressed_hex}")
+        print(f" Public Key Hash160          {self.hash160.hex()}")
+        print(f" Address (b58)               {self.address()}")
         point_x, point_y = self.public_point()
-        print(" Point x                     %s" % point_x)
-        print(" Point y                     %s" % point_y)
-
+        print(f" Point x                     {point_x}")
+        print(f" Point y                     {point_y}")
 
 class HDKey(Key):
     """
@@ -1876,17 +1873,17 @@ class HDKey(Key):
         super(HDKey, self).info()
 
         print("EXTENDED KEY")
-        print(" Key Type                    %s" % self.key_type)
-        print(" Chain code (hex)            %s" % self.chain.hex())
-        print(" Child Index                 %s" % self.child_index)
-        print(" Parent Fingerprint (hex)    %s" % self.parent_fingerprint.hex())
-        print(" Depth                       %s" % self.depth)
-        print(" Extended Public Key (wif)   %s" % self.wif_public())
-        print(" Witness type                %s" % self.witness_type)
-        print(" Script type                 %s" % self.script_type)
-        print(" Multisig                    %s" % self.multisig)
+        print(f" Key Type                    {self.key_type}")
+        print(f" Chain code (hex)            {self.chain.hex()}")
+        print(f" Child Index                 {self.child_index}")
+        print(f" Parent Fingerprint (hex)    {self.parent_fingerprint.hex()}")
+        print(f" Depth                       {self.depth}")
+        print(f" Extended Public Key (wif)   {self.wif_public()}")
+        print(f" Witness type                {self.witness_type}")
+        print(f" Script type                 {self.script_type}")
+        print(f" Multisig                    {self.multisig}")
         if self.is_private:
-            print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
+            print(f" Extended Private Key (wif)  {self.wif(is_private=True)}")
         print("\n")
 
     def as_dict(self, include_private=False):
