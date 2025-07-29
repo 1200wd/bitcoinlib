@@ -622,7 +622,10 @@ class TestService(unittest.TestCase, CustomAssertions):
         balance = srv.getbalance(address)
         self.assertEqual(balance, 1080900000)
 
-        utxos = srv.getutxos(address)
+        try:
+            utxos = srv.getutxos(address)
+        except Exception:
+            print(srv.errors)
         self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
