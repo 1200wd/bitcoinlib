@@ -1,3 +1,12 @@
+RELEASE 0.7.5 - Add Nownodes provider, code cleanup, various bugfixes
+=====================================================================
+* Add Nownodes provider
+* Fix mixup private and public key in get_key_format
+* Use string interpolation
+* Cleanup code, remove deprecated methods
+* Provider updates for litecoin legacy network
+* Various other bugfixes
+
 RELEASE 0.7.4 - Add and updates providers, improve blockchain parsing
 =====================================================================
 * Add testnet4, signet Blockbook provider
