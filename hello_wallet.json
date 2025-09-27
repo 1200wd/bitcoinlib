@@ -1,0 +1,146 @@
+{
+  "createdAt": "2025-09-26T15:03:17.886Z",
+  "names": [
+    "Vince dillon",
+    "vince dillon"
+  ],
+  "nicknames": [
+    "vince"
+  ],
+  "given_names": [
+    "vince"
+  ],
+  "family_names": [
+    "dillon"
+  ],
+  "pictures": [
+    {
+      "picture": "https://pictures.hello.coop/r/b2d48714-2a01-4689-80c7-20e35b7efea1.png",
+      "original": "https://avatars.githubusercontent.com/u/234337379?v=4",
+      "createdAt": "2025-09-27T06:32:15.244Z",
+      "subject_id": "https://github.com::234337379",
+      "digest": "d4632363c9b5ecee69e98621a4eebf69e651a6cd77f2bb80e4d9c1e95d95f00c",
+      "slug": "github",
+      "label": "hustlersambitionz777-bot"
+    },
+    {
+      "picture": "https://pictures.hello.coop/r/1d4eb8d1-56dc-47f2-80e0-639ef429ab04.png",
+      "original": "https://lh3.googleusercontent.com/a/ACg8ocIsIHXSTAjYKCtH36vBstAsB-koLsMHh9o_6gJ99trupPb8Zw=s96-c",
+      "createdAt": "2025-09-26T15:03:17.886Z",
+      "subject_id": "https://accounts.google.com::105601761682201271265",
+      "digest": "c4d06990f085bf4ec532199e6cae8581b0434ed5769f4fed6fbb4479a2b97892",
+      "slug": "google",
+      "label": "hustlersambitionz777@gmail.com"
+    },
+    {
+      "picture": "https://pictures.hello.coop/images/default-picture.png",
+      "source": "default",
+      "default": true,
+      "slug": "hello",
+      "synced": false
+    }
+  ],
+  "unverified_phones": [],
+  "unverified_emails": [],
+  "language": "en-GB",
+  "accounts": [
+    {
+      "id": "email::hustlersambitionz777@gmail.com",
+      "slug": "email",
+      "verifiedAt": "2025-09-26T15:03:17.639Z",
+      "user_name": "hustlersambitionz777@gmail.com",
+      "login_hint": "hustlersambitionz777@gmail.com",
+      "preferred": false,
+      "recovery": false,
+      "communal": false,
+      "linkedAccount": "google",
+      "managed": false
+    },
+    {
+      "id": "ethereum::0x678159a86caba23bb038dc55ff894fed87810b2f",
+      "slug": "ethereum",
+      "verifiedAt": "2025-09-27T06:30:33.789Z",
+      "user_name": "0x6781...0b2f",
+      "login_hint": "0x678159a86caba23bb038dc55ff894fed87810b2f",
+      "preferred": false,
+      "recovery": true,
+      "communal": false,
+      "wallet": {
+        "name": "MetaMask",
+        "display": "0x6781...0b2f",
+        "icon": "https://cdn.hello.coop/images/metamask.svg"
+      },
+      "managed": false
+    },
+    {
+      "id": "https://accounts.google.com::105601761682201271265",
+      "slug": "google",
+      "verifiedAt": "2025-09-26T15:03:17.636Z",
+      "user_name": "hustlersambitionz777@gmail.com",
+      "login_hint": "105601761682201271265",
+      "preferred": true,
+      "recovery": true,
+      "communal": false,
+      "managed": false
+    },
+    {
+      "id": "https://discord.com::1420967262281535528",
+      "slug": "discord",
+      "verifiedAt": "2025-09-27T06:33:09.446Z",
+      "user_name": "vincelucasdillon_76022",
+      "preferred": false,
+      "recovery": true,
+      "communal": false,
+      "managed": false
+    },
+    {
+      "id": "https://github.com::234337379",
+      "slug": "github",
+      "verifiedAt": "2025-09-27T06:32:15.103Z",
+      "user_name": "hustlersambitionz777-bot",
+      "profile_url": "https://github.com/hustlersambitionz777-bot",
+      "login_hint": "hustlersambitionz777-bot",
+      "preferred": false,
+      "recovery": true,
+      "communal": false,
+      "managed": false
+    }
+  ],
+  "applications": [
+    {
+      "id": "app_bCVDmIitVZ7poaEFI2Edukwb_QlN",
+      "firstRelease": {
+        "at": "2025-09-26T15:03:23.831Z",
+        "location": {
+          "City": "Pierceland",
+          "Country": "CA",
+          "CountryRegion": "SK",
+          "Latitude": "54.34360",
+          "Longitude": "-109.76690",
+          "TimeZone": "America/Regina",
+          "Language": "en-GB,en-US;q=0.9,en;q=0.8",
+          "Pop": "NA"
+        },
+        "device_id": "dvc_JF8Zvx3zorQRp8iqvt1d06gt_Ldt"
+      },
+      "lastRelease": {
+        "at": "2025-09-26T15:04:40.715Z",
+        "location": {
+          "City": "Pierceland",
+          "Country": "CA",
+          "CountryRegion": "SK",
+          "Latitude": "54.34360",
+          "Longitude": "-109.76690",
+          "TimeZone": "America/Regina",
+          "Language": "en-GB,en-US;q=0.9,en;q=0.8",
+          "Pop": "NA"
+        },
+        "device_id": "dvc_JF8Zvx3zorQRp8iqvt1d06gt_Ldt"
+      },
+      "name": "OIDF Members",
+      "image_uri": "https://logos.hello.coop/u/app_bCVDmIitVZ7poaEFI2Edukwb_QlN_2025-04-24T18:54:44.328Z.png",
+      "dark_image_uri": "https://logos.hello.coop/u/app_bCVDmIitVZ7poaEFI2Edukwb_QlN_2025-04-24T18:54:44.534Z.png"
+    }
+  ],
+  "managedApplications": []
+}
