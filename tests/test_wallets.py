@@ -2922,6 +2922,7 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
 
         w = wallet_create_or_open('bumpfeetest04', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
         w.utxos_update()
+        w.info()
         t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 199900000, fee=100000,
                       broadcast=True)
         self.assertRaisesRegex(TransactionError, "Not enough unspent inputs found for transaction", t.bumpfee)

@@ -19,7 +19,7 @@
 
 import json
 import random
-from itertools import groupby
+from itertools import groupby, combinations
 from operator import itemgetter
 import numpy as np
 import pickle
@@ -3828,8 +3828,6 @@ class Wallet(object):
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
 
-        # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
-
         # Try to find one utxo with exact amount
         one_utxo = utxo_query.filter(DbTransactionOutput.spent.is_(False),
                                      DbTransactionOutput.value >= amount,
@@ -3844,24 +3842,28 @@ class Wallet(object):
                 order_by(DbTransactionOutput.value).first()
             if one_utxo:
                 selected_utxos = [one_utxo]
-            elif max_utxos and max_utxos <= 1:
-                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
-                             "multiple UTXO's")
-                return []
 
         # Otherwise compose of 2 or more lesser outputs
         if not selected_utxos:
+            if max_utxos and max_utxos <= 1:
+                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
+                             "multiple UTXO's")
+                return []
             lessers = utxo_query. \
                 filter(DbTransactionOutput.spent.is_(False), DbTransactionOutput.value < amount).\
                 order_by(DbTransactionOutput.value.desc()).all()
-            total_amount = 0
-            selected_utxos = []
-            for utxo in lessers[:max_utxos]:
-                if total_amount < amount:
+            utxo_values = [l.value for l in lessers]
+            result = []
+            for r in range(2, (max_utxos or len(utxo_values)) + 1):
+                for combo in combinations(utxo_values, r):
+                    if sum(combo) >= amount:
+                        result.append(combo)
+            if result:
+                for value in result[0]:
+                    utxo = [u for u in lessers if u.value == value][0]
                     selected_utxos.append(utxo)
-                    total_amount += utxo.value
-            if total_amount < amount:
-                return []
+                    lessers.remove(utxo)
+
         if not return_input_obj:
             return selected_utxos
         else:
