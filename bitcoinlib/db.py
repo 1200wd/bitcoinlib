@@ -71,7 +71,7 @@ class Db:
             db_uri = self.o._replace(scheme="postgresql+psycopg").geturl()
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
-        Session = sessionmaker(bind=self.engine, expire_on_commit=False)
+        Session = sessionmaker(bind=self.engine, expire_on_commit=True)
         Base.metadata.create_all(self.engine)
         self._import_config_data(Session)
         self.session = Session()
