@@ -1740,8 +1740,8 @@ class Wallet(object):
         self.session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
             update({DbWallet.main_key_id: self.main_key_id})
 
-        for key in self.keys(is_private=False):
-            kp = key.path.split("/")
+        for key in self.keys(is_private=False, as_dict=True):
+            kp = key['path'].split("/")
             if kp and kp[0] == 'M':
                 kp = self.key_path[:self.depth_public_master+1] + kp[1:]
             self.key_for_path(kp, recreate=True)
@@ -2645,8 +2645,6 @@ class Wallet(object):
                 keys2.append({k: v for (k, v) in key.items()
                               if k[:1] != '_' and k != 'wallet' and k not in private_fields})
             return keys2
-        # qr.session.close()
-        qr.session.commit()
         return keys
 
     def keys_networks(self, used=None, as_dict=False):

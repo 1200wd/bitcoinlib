@@ -773,6 +773,12 @@ class TestWalletKeys(unittest.TestCase):
         self.assertRaisesRegex(WalletError, "Key with address_index 11 not found in wallet. Please create key first",
                                w.address_index, 11)
 
+    def test_wallet_key_balance_update(self):
+        w = wallet_create_or_open('test_wallet_key_balance_update', network='bitcoinlib_test', db_uri=self.database_uri)
+        w.new_key()
+        w.utxos_update()
+        self.assertEqual(sum([k.balance for k in w.keys_addresses()]), 400000000)
+
     @classmethod
     def tearDownClass(cls):
         del cls.database_uri
