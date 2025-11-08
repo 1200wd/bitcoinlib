@@ -22,6 +22,7 @@ import hmac
 import random
 import collections
 import json
+from binascii import b2a_base64
 
 from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
@@ -2654,6 +2655,15 @@ class Signature(object):
             return self._der_encoded.hex() if as_hex else self._der_encoded
         else:
             return der_encode_sig(self.r, self.s).hex() if as_hex else der_encode_sig(self.r, self.s)
+
+    def as_base64(self):
+        p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
+        recid = p1[1] & 1
+        if p1[0] > secp256k1_n:
+            recid += 2
+        first = 27 + recid + (4 if self.public_key.compressed else 0)
+        sigbcl = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
+        return sigbcl.decode("utf8")
 
     def verify(self, txid=None, public_key=None):
         """
