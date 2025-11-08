@@ -2360,11 +2360,10 @@ class HDKey(Key):
     def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
         if not self.is_private:
             raise BKeyError("Missing private key information, can not sign message")
-        return sign(message, self, use_rfc6979, k, hash_type)
+        return sign(message, self, use_rfc6979, k, hash_type, prehashed=False)
 
     def verify_message(self, message, signature):
         return verify(message, signature, self)
-
 
 
 class Signature(object):
@@ -2420,12 +2419,12 @@ class Signature(object):
                          hash_type=hash_type)
 
     @staticmethod
-    def create(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+    def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
         """
-        Sign a transaction hash and create a signature with provided private key.
+        Sign a message or transaction hash and create a signature with provided private key.
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
-        >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> message = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
         >>> sig = Signature.create(txid, k)
         >>> sig.hex()
         '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
@@ -2434,8 +2433,8 @@ class Signature(object):
         >>> sig.s
         12990793585889366641563976043319195006380846016310271470330687369836458989268
 
-        :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
-        :type txid: bytes, str
+        :param message: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+        :type message: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
         :type private: HDKey, Key, str, hexstring, bytes
         :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
@@ -2447,11 +2446,14 @@ class Signature(object):
 
         :return Signature: 
         """
-        if isinstance(txid, bytes):
-            txid_bytes = txid
-            txid = txid.hex()
+        if isinstance(message, bytes):
+            message_bytes = message
+            message = message.hex()
         else:
-            txid_bytes = bytes.fromhex(txid)
+            message_bytes = bytes.fromhex(message)
+        if not prehashed or len(message_bytes) != 32:
+            message_bytes = double_sha256(message_bytes)
+            message = message_bytes.hex()
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
@@ -2459,7 +2461,7 @@ class Signature(object):
 
         if not k:
             if use_rfc6979 and USE_FASTECDSA:
-                rfc6979 = RFC6979(txid_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
+                rfc6979 = RFC6979(message_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
                 k = rfc6979.gen_nonce()
             else:
                 global rfc6979_warning_given
@@ -2470,7 +2472,7 @@ class Signature(object):
 
         if USE_FASTECDSA:
             r, s = _ecdsa.sign(
-                txid,
+                message,
                 str(secret),
                 str(k),
                 str(secp256k1_p),
@@ -2482,16 +2484,16 @@ class Signature(object):
             )
             if int(s) > secp256k1_n / 2:
                 s = secp256k1_n - int(s)
-            return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
+            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
-            sig_der = sk.sign_digest(txid_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
+            sig_der = sk.sign_digest(message_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
             signature = convert_der_sig(sig_der)
             r = int(signature[:64], 16)
             s = int(signature[64:], 16)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
-            return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
+            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
 
     def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL):
@@ -2716,7 +2718,7 @@ class Signature(object):
             return True
 
 
-def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
@@ -2741,7 +2743,7 @@ def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
 
     :return Signature: 
     """
-    return Signature.create(txid, private, use_rfc6979, k, hash_type=hash_type)
+    return Signature.create(txid, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed)
 
 
 def verify(txid, signature, public_key=None):
