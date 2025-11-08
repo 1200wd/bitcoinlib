@@ -2357,6 +2357,15 @@ class HDKey(Key):
         # hdkey.key = self.key.public()
         return hdkey
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+        if not self.is_private:
+            raise BKeyError("Missing private key information, can not sign message")
+        return sign(message, self, use_rfc6979, k, hash_type)
+
+    def verify_message(self, message, signature):
+        return verify(message, signature, self)
+
+
 
 class Signature(object):
     """
