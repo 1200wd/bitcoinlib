@@ -2439,9 +2439,10 @@ class Signature(object):
         :return Signature: 
         """
         if isinstance(txid, bytes):
+            txid_bytes = txid
             txid = txid.hex()
-        if len(txid) > 64:
-            txid = double_sha256(bytes.fromhex(txid), as_hex=True)
+        else:
+            txid_bytes = bytes.fromhex(txid)
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
@@ -2449,7 +2450,7 @@ class Signature(object):
 
         if not k:
             if use_rfc6979 and USE_FASTECDSA:
-                rfc6979 = RFC6979(txid, secret, secp256k1_n, hashlib.sha256)
+                rfc6979 = RFC6979(txid_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
                 k = rfc6979.gen_nonce()
             else:
                 global rfc6979_warning_given
@@ -2475,7 +2476,6 @@ class Signature(object):
             return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
-            txid_bytes = to_bytes(txid)
             sig_der = sk.sign_digest(txid_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
             signature = convert_der_sig(sig_der)
             r = int(signature[:64], 16)
