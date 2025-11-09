@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2025 May - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2026 Nov - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -2434,7 +2434,7 @@ class Signature(object):
         >>> sig.s
         12990793585889366641563976043319195006380846016310271470330687369836458989268
 
-        :param message: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+        :param message: Transaction signature or transaction hash (txid). If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
         :type message: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
         :type private: HDKey, Key, str, hexstring, bytes
@@ -2444,6 +2444,9 @@ class Signature(object):
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True if message size is 32 else False, if set to False the message will be hashed with
+        double_sha256 by this create method.
+        :type prehashed: bool
 
         :return Signature: 
         """
@@ -2657,6 +2660,15 @@ class Signature(object):
             return der_encode_sig(self.r, self.s).hex() if as_hex else der_encode_sig(self.r, self.s)
 
     def as_base64(self):
+        """
+        Return current Signature in base64 format following the bip-0137 standard, used for message signing.
+
+        Uses this format:
+        [1 byte of header data][32 bytes for r value][32 bytes for s value]
+
+        The header byte contains information about the type of address.
+
+        """
         p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
         recid = p1[1] & 1
         if p1[0] > secp256k1_n:
@@ -2750,6 +2762,8 @@ def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehash
     :type k: int
     :param hash_type: Specific hash type, default is SIGHASH_ALL
     :type hash_type: int
+    :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True, if set to False the message will be hashed with double_sha256 by this create method.
+    :type prehashed: bool
 
     :return Signature: 
     """
