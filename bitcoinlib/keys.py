@@ -1592,7 +1592,7 @@ class Key(object):
         # Convert message to network specific version, including prefix string
         network_msg = (varstr(f'{self.network.name.capitalize()} Signed Message:\n') + varstr(message))
 
-        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False)
+        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=False)
 
     def verify_message(self, message, signature):
         """
@@ -2465,7 +2465,7 @@ class Signature(object):
 
 
     @staticmethod
-    def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
+    def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True):
         """
         Sign a message or transaction hash and create a signature with provided private key.
 
@@ -2489,9 +2489,10 @@ class Signature(object):
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True if message size is 32 else False, if set to False the message will be hashed with
-        double_sha256 by this create method.
+        :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance. Default is True if message size is 32 else False, if set to False the message will be hashed with double_sha256 by this create method.
         :type prehashed: bool
+        :param force_canonical: Calculate signature with canonical s value. Default is True, needed for valid transacton signatures. Only set to False for signing messages.
+        :type force_canonical: bool
 
         :return Signature: 
         """
@@ -2531,7 +2532,7 @@ class Signature(object):
                 str(secp256k1_Gx),
                 str(secp256k1_Gy)
             )
-            if int(s) > secp256k1_n / 2:
+            if int(s) > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - int(s)
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
         else:
@@ -2540,7 +2541,7 @@ class Signature(object):
             signature = convert_der_sig(sig_der)
             r = int(signature[:64], 16)
             s = int(signature[64:], 16)
-            if s > secp256k1_n / 2:
+            if s > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - s
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
 
@@ -2797,7 +2798,7 @@ class Signature(object):
             return True
 
 
-def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
+def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
@@ -2821,10 +2822,13 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
     :type hash_type: int
     :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True, if set to False the message will be hashed with double_sha256 by this create method.
     :type prehashed: bool
+    :param force_canonical: Force canonicalization of signature s value. Default is True
+    :type force_canonical: bool
 
     :return Signature: 
     """
-    return Signature.create(message, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed)
+    return Signature.create(message, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed,
+                            force_canonical=force_canonical)
 
 
 def verify(message, signature, public_key=None):
