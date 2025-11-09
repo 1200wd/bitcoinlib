@@ -2597,6 +2597,7 @@ class Signature(object):
         self.hash_type = hash_type
         self.hash_type_byte = self.hash_type.to_bytes(1, 'big')
         self.der_signature = der_signature
+        self.message_raw = b''
         if not der_signature:
             self.der_signature = der_encode_sig(self.r, self.s)
 
@@ -2632,11 +2633,6 @@ class Signature(object):
             self._message = value
             if isinstance(value, bytes):
                 self._message = value.hex()
-
-    @deprecated
-    @property
-    def txid(self):
-        return self._message
 
     @property
     def public_key(self):
@@ -2726,6 +2722,17 @@ class Signature(object):
         first = 27 + recid + (4 if self.public_key.compressed else 0)
         sigbcl = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
         return sigbcl.decode("utf8")
+
+    def as_signed_message(self, message):
+        if not self.public_key:
+            raise KeyError('Public key is missing')
+        message_str = f"-----BEGIN {self.public_key.network.name.upper()} SIGNED MESSAGE-----\n"
+        message_str += message + "\n"
+        message_str += "-----BEGIN SIGNATURE-----\n"
+        message_str += self.public_key.address() + "\n"
+        message_str += self.as_base64() + "\n"
+        message_str += f"-----END {self.public_key.network.name.upper()} SIGNED MESSAGE-----\n"
+        return message_str
 
     def verify(self, message=None, public_key=None):
         """
