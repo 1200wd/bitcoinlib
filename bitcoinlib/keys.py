@@ -1571,6 +1571,44 @@ class Key(object):
         """
         return self.address(compressed=False, prefix=prefix, script_type=script_type, encoding=encoding)
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+        """
+        Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return Signature:
+        """
+        if not self.is_private:
+            raise BKeyError("Missing private key information, can not sign message")
+
+        # Convert message to network specific version, including prefix string
+        network_msg = (varstr(f'{self.network.name.capitalize()} Signed Message:\n') + varstr(message))
+
+        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False)
+
+    def verify_message(self, message, signature):
+        """
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param signature: signature as Signature class, hexstring or bytes
+        :type signature: Signature, str, bytes
+
+        :return bool:
+        """
+
+        # Convert message to network specific version, including prefix string
+        network_msg = (varstr(f'{self.network.name.capitalize()} Signed Message:\n') + varstr(message))
+
+        return verify(double_sha256(network_msg), signature, self)
+
     def info(self):
         """
         Prints key information to standard output
@@ -1596,6 +1634,7 @@ class Key(object):
         point_x, point_y = self.public_point()
         print(f" Point x                     {point_x}")
         print(f" Point y                     {point_y}")
+
 
 class HDKey(Key):
     """
@@ -2358,36 +2397,6 @@ class HDKey(Key):
         # hdkey.key = self.key.public()
         return hdkey
 
-    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
-        """
-        Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
-
-        :param message: Message to be signed. Must be unhashed and in bytes format.
-        :type message: bytes, hexstring
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
-        :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
-        :type k: int
-        :param hash_type: Specific hash type, default is SIGHASH_ALL
-        :type hash_type: int
-
-        :return Signature:
-        """
-        if not self.is_private:
-            raise BKeyError("Missing private key information, can not sign message")
-        return sign(message, self, use_rfc6979, k, hash_type, prehashed=False)
-
-    def verify_message(self, message, signature):
-        """
-        :param message: Message to verify. Must be unhashed and in bytes format.
-        :type message: bytes, hexstring
-        :param signature: signature as Signature class, hexstring or bytes
-        :type signature: Signature, str, bytes
-
-        :return bool:
-        """
-        return verify(message, signature, self)
-
 
 class Signature(object):
     """
@@ -2699,9 +2708,9 @@ class Signature(object):
         sigbcl = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
         return sigbcl.decode("utf8")
 
-    def verify(self, txid=None, public_key=None):
+    def verify(self, message=None, public_key=None):
         """
-        Verify this signature. Provide txid or public_key if not already known
+        Verify this signature. Provide message/txid or public_key if not already known
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
         >>> pub_key = HDKey(k).public()
@@ -2711,20 +2720,20 @@ class Signature(object):
         >>> sig.verify(txid, pub_key)
         True
 
-        :param txid: Transaction hash
-        :type txid: bytes, hexstring
+        :param message: Message to verify, for instance a Transaction hash
+        :type message: bytes, hexstring
         :param public_key: Public key P
         :type public_key: HDKey, Key, str, hexstring, bytes
                 
         :return bool: 
         """
-        if txid is not None:
-            self.txid = to_hexstring(txid)
+        if message is not None:
+            self.message = to_hexstring(message)
         if public_key is not None:
             self.public_key = public_key
 
-        if not self.txid or not self.public_key:
-            raise BKeyError("Please provide txid and public_key to verify signature")
+        if not self.message or not self.public_key:
+            raise BKeyError("Please provide message and public_key to verify signature")
 
         if USE_FASTECDSA:
             return _ecdsa.verify(
@@ -2804,7 +2813,7 @@ def verify(message, signature, public_key=None):
     >>> verify(txid, sig, pub_key)
     True
 
-    :param message: Transaction hash
+    :param message: Message / Transaction hash
     :type message: bytes, hexstring
     :param signature: signature as Signature, hexstring or bytes
     :type signature: Signature, str, bytes
