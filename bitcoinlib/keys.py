@@ -22,7 +22,7 @@ import hmac
 import random
 import collections
 import json
-from binascii import b2a_base64
+from binascii import b2a_base64, a2b_base64
 
 from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
@@ -2451,6 +2451,20 @@ class Signature(object):
                          hash_type=hash_type)
 
     @staticmethod
+    def parse_base64(signature, public_key=None):
+        sig = a2b_base64(signature)
+        if len(sig) != 65:
+            raise KeyError("Invalid length, signature must be base64 encoded and 65 bytes long")
+
+        first = sig[0]
+        r = int.from_bytes(sig[1:33], 'big')
+        s = int.from_bytes(sig[33:65], 'big')
+        compressed = bool(first &0x4)
+
+        return Signature(r, s, )
+
+
+    @staticmethod
     def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
         """
         Sign a message or transaction hash and create a signature with provided private key.
@@ -2530,7 +2544,7 @@ class Signature(object):
                 s = secp256k1_n - s
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
 
-    def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
+    def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL):
         """
         Initialize Signature object with provided r and r value
@@ -2545,8 +2559,8 @@ class Signature(object):
         :type r: int
         :param s: s value of signature
         :type s: int
-        :param txid: Transaction hash z to sign if known
-        :type txid: bytes, hexstring
+        :param message: Transaction hash or message z to sign if known
+        :type message: bytes, hexstring
         :param secret: Private key secret number
         :type secret: int
         :param signature: r and s value of signature as string
@@ -2567,8 +2581,8 @@ class Signature(object):
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
         elif self.s < 1 or self.s >= secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
-        self._txid = None
-        self.txid = txid
+        self._message = None
+        self.txid = self.message = message
         self.secret = None if not secret else int(secret)
         if isinstance(signature, bytes):
             self._signature = signature
@@ -2609,15 +2623,20 @@ class Signature(object):
         return len(self.as_der_encoded())
 
     @property
-    def txid(self):
-        return self._txid
+    def message(self):
+        return self._message
 
-    @txid.setter
-    def txid(self, value):
+    @message.setter
+    def message(self, value):
         if value is not None:
-            self._txid = value
+            self._message = value
             if isinstance(value, bytes):
-                self._txid = value.hex()
+                self._message = value.hex()
+
+    @deprecated
+    @property
+    def txid(self):
+        return self._message
 
     @property
     def public_key(self):
@@ -2739,7 +2758,7 @@ class Signature(object):
             return _ecdsa.verify(
                 str(self.r),
                 str(self.s),
-                self.txid,
+                self.message,
                 str(self.x),
                 str(self.y),
                 str(secp256k1_p),
