@@ -2359,11 +2359,33 @@ class HDKey(Key):
         return hdkey
 
     def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+        """
+        Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return Signature:
+        """
         if not self.is_private:
             raise BKeyError("Missing private key information, can not sign message")
         return sign(message, self, use_rfc6979, k, hash_type, prehashed=False)
 
     def verify_message(self, message, signature):
+        """
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param signature: signature as Signature class, hexstring or bytes
+        :type signature: Signature, str, bytes
+
+        :return bool:
+        """
         return verify(message, signature, self)
 
 
@@ -2740,7 +2762,7 @@ class Signature(object):
             return True
 
 
-def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
+def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
@@ -2752,8 +2774,8 @@ def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehash
     >>> signature.as_der_encoded().hex()
     '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a101'
 
-    :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
-    :type txid: bytes, str
+    :param message: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+    :type message: bytes, str
     :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
     :type private: HDKey, Key, str, hexstring, bytes
     :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
@@ -2767,12 +2789,12 @@ def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehash
 
     :return Signature: 
     """
-    return Signature.create(txid, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed)
+    return Signature.create(message, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed)
 
 
-def verify(txid, signature, public_key=None):
+def verify(message, signature, public_key=None):
     """
-    Verify provided signature with txid message. If provided signature is no Signature object a new object will
+    Verify provided signature with message / txid. If provided signature is no Signature object a new object will
     be created for verification.
 
     >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
@@ -2782,10 +2804,10 @@ def verify(txid, signature, public_key=None):
     >>> verify(txid, sig, pub_key)
     True
 
-    :param txid: Transaction hash
-    :type txid: bytes, hexstring
-    :param signature: signature as hexstring or bytes
-    :type signature: str, bytes
+    :param message: Transaction hash
+    :type message: bytes, hexstring
+    :param signature: signature as Signature, hexstring or bytes
+    :type signature: Signature, str, bytes
     :param public_key: Public key P. If not provided it will be derived from provided Signature object or raise an error if not available
     :type public_key: HDKey, Key, str, hexstring, bytes
 
@@ -2795,7 +2817,7 @@ def verify(txid, signature, public_key=None):
         if not public_key:
             raise BKeyError("No public key provided, cannot verify")
         signature = Signature.parse(signature, public_key=public_key)
-    return signature.verify(txid, public_key)
+    return signature.verify(message, public_key)
 
 
 def ec_point(m):
