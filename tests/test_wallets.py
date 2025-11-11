@@ -2314,7 +2314,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         pkm = 'elephant dust deer company win final'
         expected_utxos = ['520208458b4f93ef7f1a4df447b6fedb50888aaa098ab501b32b1df3f88daa86',
                           'ea7bd8fe970ca6430cebbbf914ce2feeb369c3ae95edc117725dbe21519ccdab']
-        expected_txid = '00c6f17bab32ac30979c284a36537f288ed85648810d5d479fcf2a526cdcd3f6'
+        expected_txid = '363b9c5379276381ed6d5d43d8a095883bd5800dc408eca4f8ad712b47bbd4ca'
 
         w = Wallet.create("remove_utxos_test", keys=pkm, network="bitcoinlib_test", db_uri=self.database_uri)
         w.utxos_update()

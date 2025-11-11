@@ -1497,7 +1497,7 @@ class Transaction(object):
         :type hash_type: int
         :param witness_type: Legacy or Segwit witness type? Leave empty to use Transaction witness type
         :type witness_type: str
-        :param as_hex: Return value as hexadecimal string. Default is False
+        :param as_hex: Return value as a hexadecimal string. Default is False
         :type as_hex: bool
 
         :return bytes: Transaction signature hash
