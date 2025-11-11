@@ -1606,8 +1606,8 @@ class Key(object):
 
         # Convert message to network specific version, including prefix string
         network_msg = (varstr(f'{self.network.name.capitalize()} Signed Message:\n') + varstr(message))
-
-        return verify(double_sha256(network_msg), signature, self)
+        signature.message = double_sha256(network_msg, as_hex=True)
+        return signature.verify(signature.message, self.public())
 
     def info(self):
         """
@@ -2509,18 +2509,14 @@ class Signature(object):
         pub_key = private.public()
         secret = private.secret
 
-        if not k:
-            if use_rfc6979 and USE_FASTECDSA:
-                rfc6979 = RFC6979(message_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
-                k = rfc6979.gen_nonce()
-            else:
-                global rfc6979_warning_given
-                if not USE_FASTECDSA and not rfc6979_warning_given:
-                    _logger.warning("RFC6979 only supported when fastecdsa library is used")
-                    rfc6979_warning_given = True
-                k = random.SystemRandom().randint(1, secp256k1_n - 1)
+        if not k and not use_rfc6979:
+            k = random.SystemRandom().randint(1, secp256k1_n - 1)
 
         if USE_FASTECDSA:
+            if not k:
+                rfc6979 = RFC6979(message_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
+                k = rfc6979.gen_nonce()
+
             r, s = _ecdsa.sign(
                 message,
                 str(secret),
@@ -2537,7 +2533,13 @@ class Signature(object):
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
-            sig_der = sk.sign_digest(message_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
+
+            # Call generate_k method directly because sign_digest_deterministic() does not return k
+            if not k:
+                k = ecdsa.rfc6979.generate_k(ecdsa.SECP256k1.generator.order(), private.secret, hashlib.sha256,
+                                             message_bytes)
+            sig_der = sk.sign_digest(message_bytes, hashlib.sha256, ecdsa.util.sigencode_der, k=k)
+
             signature = convert_der_sig(sig_der)
             r = int(signature[:64], 16)
             s = int(signature[64:], 16)
@@ -2777,7 +2779,7 @@ class Signature(object):
                 str(secp256k1_Gy)
             )
         else:
-            transaction_to_sign = bytes.fromhex(self.txid)
+            transaction_to_sign = bytes.fromhex(self.message)
             signature = self.bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)

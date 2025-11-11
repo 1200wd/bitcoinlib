@@ -971,10 +971,6 @@ class TestKeysSignatures(unittest.TestCase):
             count += 1
 
     def test_signatures_rfc6979(self):
-        if not USE_FASTECDSA:
-            # This test are only useful when fastecdsa library is used
-            return True
-
         # source: https://bitcointalk.org/index.php?topic=285142.40
         # Test Vectors for RFC 6979 ECDSA, secp256k1, SHA-256
         # (private key, message, expected k, expected signature)
@@ -1034,16 +1030,21 @@ class TestKeysSignatures(unittest.TestCase):
         ]
 
         for vector in test_vectors:
-            msg = to_bytes(vector[1])
-            x = int(vector[0])
-            rfc6979 = RFC6979(msg, x, secp256k1_n, hashlib.sha256)
-            k = rfc6979.gen_nonce()
-            expected = vector[2]
-            if expected is not None:
-                self.assertEqual(k, expected)
             msg_hash = hashlib.sha256(to_bytes(vector[1])).digest()
-            sig = sign(msg_hash, x, k=k)
-            self.assertEqual(sig.hex(), vector[3])
+            secret = int(vector[0])
+            if USE_FASTECDSA:
+                rfc6979 = RFC6979(msg_hash, secret, secp256k1_n, hashlib.sha256, prehashed=True)
+                k = rfc6979.gen_nonce()
+                expected = vector[2]
+                if expected is not None:
+                    self.assertEqual(k, expected)
+
+            else:
+                k = ecdsa.rfc6979.generate_k(ecdsa.SECP256k1.generator.order(), secret, hashlib.sha256,
+                                             msg_hash)
+                self.assertTrue((vector[2] is None) or vector[2] == k)
+            sig = sign(msg_hash, secret, k=k).hex()
+            self.assertEqual(sig, vector[3])
 
     def test_signatures_from_r_and_s(self):
         r = 0x657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c
