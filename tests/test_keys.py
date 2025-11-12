@@ -1124,5 +1124,45 @@ class TestKeysTaproot(unittest.TestCase):
         self.assertEqual(addr_dict['script_type'], 'p2tr')
 
 
+class TestKeysMessages(unittest.TestCase):
+
+    def test_keys_message_signing_pycoin(self):
+        # Compared with pycoin library output - step-by-step compared results
+        wif = 'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp'
+        addr = '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv'
+        msg = 'test message A'
+        expected_sig_base64 = ("H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN"
+                               "+0phX6ysIGdNe99EJPobpcNwl4ht790=")
+        expected_sig_der = ("30460221008dde7014a7a75f90d2227bc1bb4173f7042c620b9f436f29be54ad3789a80d3b02210087263e140"
+                            "ed205558dfb4a615facac20674d7bdf4424fa1ba5c37097886defdd01")
+        expected_signed_message = \
+            "-----BEGIN BITCOIN SIGNED MESSAGE-----\n" \
+            "test message A\n" \
+            "-----BEGIN SIGNATURE-----\n" \
+            "1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv\n" \
+            "H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN+0phX6ysIGdNe99EJPobpcNwl4ht790=\n" \
+            "-----END BITCOIN SIGNED MESSAGE-----\n" \
+
+        pk = HDKey(wif, witness_type='legacy')
+        self.assertEqual(pk.address(), addr)
+
+        sig = pk.sign_message(msg)
+        self.assertEqual(64169125251067142060049740121784818273156574831540951431018131832714377563451, sig.r)
+        self.assertEqual(61129803196235745037234955305700148791464496745709279972088993803821678194653, sig.s)
+
+        pub_key = pk.public()
+        self.assertTrue(pub_key.verify_message(msg, sig))
+        self.assertTrue(sig.verify())
+
+        sigb64 = sig.as_base64()
+        self.assertEqual(sigb64, expected_sig_base64)
+
+        sig3 = Signature.parse_base64(sigb64)
+        self.assertEqual(sig3.as_der_encoded().hex(), expected_sig_der)
+        self.assertTrue(pub_key.verify_message(msg, sig3))
+
+        self.assertEqual(sig.as_signed_message(msg), expected_signed_message)
+
+
 if __name__ == '__main__':
     unittest.main()
