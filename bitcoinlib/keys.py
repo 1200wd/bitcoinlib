@@ -2614,14 +2614,13 @@ class Signature(object):
     def __bytes__(self):
         return self.as_der_encoded()
 
-    def __add__(self, other):
-        return self.as_der_encoded() + other
-
-    def __radd__(self, other):
-        return other + self.as_der_encoded()
-
     def __len__(self):
         return len(self.as_der_encoded())
+
+    def __eq__(self, other):
+        if not other or not isinstance(other, Signature):
+            return False
+        return self.r == other.r and self.s == other.s
 
     @property
     def message(self):
