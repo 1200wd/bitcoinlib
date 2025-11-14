@@ -11,7 +11,7 @@ Bcoin node, `Blockbook <manuals.setup-blockbook.html>`_ or `ElectrumX <manuals.s
 Install Bcoin node
 ------------------
 
-You can find some instructions on how to install a bcoin node on https://coineva.com/install-bcoin-node-ubuntu.html.
+You can find some instructions on how to install a bcoin node on https://media.blocksmurfer.io/install-bcoin-node-ubuntu.html.
 
 There are also some Docker images available. We have created a Docker image with the most optimal settings for
 bitcoinlib. You can install them with the following command.

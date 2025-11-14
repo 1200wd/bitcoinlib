@@ -35,7 +35,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Bitcoinlib'
-copyright = '2017-2025, Coineva (mccwdev)'
+copyright = '2017-2025, mccwdev'
 author = 'Cryp Toon (mccwdev)'
 
 # The version info for the project you're documenting, acts as replacement for
