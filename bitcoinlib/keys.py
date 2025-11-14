@@ -1589,7 +1589,7 @@ class Key(object):
         if not self.is_private:
             raise BKeyError("Missing private key information, can not sign message")
 
-        network_msg = message_convert_network(message, self.network.name)
+        network_msg = message_convert_network(message, self.network)
         return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=False)
 
     def verify_message(self, message, signature):
@@ -1602,7 +1602,7 @@ class Key(object):
         :return bool:
         """
 
-        network_msg = message_convert_network(message, self.network.name)
+        network_msg = message_convert_network(message, self.network)
         signature.message = double_sha256(network_msg, as_hex=True)
         return signature.verify(signature.message, self.public())
 
@@ -2726,12 +2726,12 @@ class Signature(object):
     def as_signed_message(self, message):
         if not self.public_key:
             raise KeyError('Public key is missing')
-        message_str = f"-----BEGIN {self.public_key.network.name.upper()} SIGNED MESSAGE-----\n"
+        message_str = f"-----BEGIN {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
         message_str += message + "\n"
         message_str += "-----BEGIN SIGNATURE-----\n"
         message_str += self.public_key.address() + "\n"
         message_str += self.as_base64() + "\n"
-        message_str += f"-----END {self.public_key.network.name.upper()} SIGNED MESSAGE-----\n"
+        message_str += f"-----END {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
         return message_str
 
     def verify_message(self, message, address=None):
@@ -2746,7 +2746,7 @@ class Signature(object):
 
         if not isinstance(address, Address):
             address = Address(address)
-        network_msg = message_convert_network(message, address.network.name)
+        network_msg = message_convert_network(message, address.network)
         msg_hash = double_sha256(network_msg)
         message_int = int.from_bytes(msg_hash, 'big')
         point = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int)
@@ -2934,5 +2934,10 @@ def mod_sqrt(a):
     return pow(a, k + 1, secp256k1_p)
 
 
-def message_convert_network(message, network_name=DEFAULT_NETWORK):
+def message_convert_network(message, network=None):
+    try:
+        network_name = network.description.split(' ')[0].upper()
+    except Exception:
+        network_name = 'BITCOIN'
+
     return varstr(f'{network_name.capitalize()} Signed Message:\n') + varstr(message)

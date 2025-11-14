@@ -1163,6 +1163,38 @@ class TestKeysMessages(unittest.TestCase):
 
         self.assertEqual(sig.as_signed_message(msg), expected_signed_message)
 
+    def test_keys_message_signing_and_verification(self):
+        private_hex = '06cffb14a8b9a901c60486e139f435cc7042d9ce78c65ebf94e7a62697e1dbfa'
+        message = 'bitcoinlib rocks'
+        test_messages = [
+            # network, witness_type, expected_sig
+            ('litecoin', 'legacy',        # tested with litecoinpool.org
+             'IJZPEvxNKTqXNe2NBvKhFIrDrnl14S629hH9y5jR+EO3SwYi6/Rpc+F40X3cCmXVZcrXfqPxpavLMzoQSdFaK/0='),
+            ('bitcoin', 'legacy',
+             # tested with verifybitcoinmessage, checkmsg.org, bitcoinmessage.tools, bitcoin core, etc
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('bitcoin', 'p2sh-segwit',    # tested with verifybitcoinmessage
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('bitcoin', 'segwit',         # tested with verifybitcoinmessage
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('testnet', 'legacy',         # tested with bluewallet.github.io, verifybitcoinmessage
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('testnet4', 'segwit',        # tested with bluewallet.github.io, verifybitcoinmessage
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('signet', 'segwit',          # tested with bluewallet.github.io, verifybitcoinmessage
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+        ]
+        for tmsg in test_messages:
+            pk = HDKey(private_hex, network=tmsg[0], witness_type=tmsg[1])
+
+            # Sign message and check base64 signature
+            sig = pk.sign_message(message)
+            self.assertEqual(sig.as_base64(), tmsg[2])
+
+            # Verify message with public key
+            pub_key = pk.public()
+            self.assertTrue(pub_key.verify_message(message, sig))
+
 
 if __name__ == '__main__':
     unittest.main()
