@@ -1589,9 +1589,7 @@ class Key(object):
         if not self.is_private:
             raise BKeyError("Missing private key information, can not sign message")
 
-        # Convert message to network specific version, including prefix string
-        network_msg = (varstr(f'{self.network.name.capitalize()} Signed Message:\n') + varstr(message))
-
+        network_msg = message_convert_network(message, self.network.name)
         return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=False)
 
     def verify_message(self, message, signature):
@@ -1604,8 +1602,7 @@ class Key(object):
         :return bool:
         """
 
-        # Convert message to network specific version, including prefix string
-        network_msg = (varstr(f'{self.network.name.capitalize()} Signed Message:\n') + varstr(message))
+        network_msg = message_convert_network(message, self.network.name)
         signature.message = double_sha256(network_msg, as_hex=True)
         return signature.verify(signature.message, self.public())
 
@@ -2461,7 +2458,7 @@ class Signature(object):
         s = int.from_bytes(sig[33:65], 'big')
         compressed = bool(first &0x4)
 
-        return Signature(r, s, )
+        return Signature(r, s)
 
 
     @staticmethod
@@ -2723,8 +2720,8 @@ class Signature(object):
         if p1[0] > secp256k1_n:
             recid += 2
         first = 27 + recid + (4 if self.public_key.compressed else 0)
-        sigbcl = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
-        return sigbcl.decode("utf8")
+        sig = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
+        return sig.decode("utf8")
 
     def as_signed_message(self, message):
         if not self.public_key:
@@ -2736,6 +2733,25 @@ class Signature(object):
         message_str += self.as_base64() + "\n"
         message_str += f"-----END {self.public_key.network.name.upper()} SIGNED MESSAGE-----\n"
         return message_str
+
+    def verify_message(self, message, address=None):
+        """
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param address: Address used to sign message
+        :type address: Address, str
+
+        :return bool:
+        """
+
+        if not isinstance(address, Address):
+            address = Address(address)
+        network_msg = message_convert_network(message, address.network.name)
+        msg_hash = double_sha256(network_msg)
+        message_int = int.from_bytes(msg_hash, 'big')
+        point = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int)
+        pub_key = HDKey(point)
+        return self.verify(msg_hash, pub_key)
 
     def verify(self, message=None, public_key=None):
         """
@@ -2916,3 +2932,7 @@ def mod_sqrt(a):
     # Square root formula: k = (secp256k1_p - 3) // 4
     k = 28948022309329048855892746252171976963317496166410141009864396001977208667915
     return pow(a, k + 1, secp256k1_p)
+
+
+def message_convert_network(message, network_name=DEFAULT_NETWORK):
+    return varstr(f'{network_name.capitalize()} Signed Message:\n') + varstr(message)
