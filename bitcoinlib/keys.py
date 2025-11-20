@@ -2414,7 +2414,10 @@ class Signature(object):
         if isinstance(signature, bytes):
             return cls.parse_bytes(signature, public_key)
         elif isinstance(signature, str):
-            return cls.parse_hex(signature, public_key)
+            try:
+                return cls.parse_hex(signature, public_key)
+            except ValueError:
+                return cls.parse_base64(signature, public_key)
 
     @classmethod
     def parse_hex(cls, signature, public_key=None):
@@ -2457,6 +2460,8 @@ class Signature(object):
         r = int.from_bytes(sig[1:33], 'big')
         s = int.from_bytes(sig[33:65], 'big')
         compressed = bool(first &0x4)
+
+        # TODO store compressed info
 
         return Signature(r, s)
 
@@ -2733,19 +2738,25 @@ class Signature(object):
         message_str += f"-----END {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
         return message_str
 
-    def verify_message(self, message, address=None):
+    def verify_message(self, message, address=None, network=DEFAULT_NETWORK):
         """
         :param message: Message to verify. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
         :param address: Address used to sign message
         :type address: Address, str
+        :param network: Network used to sign message
+        :type network: Network, str
 
         :return bool:
         """
 
-        if not isinstance(address, Address):
+        if address and not isinstance(address, Address):
             address = Address(address)
-        network_msg = message_convert_network(message, address.network)
+            network = address.network
+        if not isinstance(network, Network):
+            network = Network(network)
+
+        network_msg = message_convert_network(message, network)
         msg_hash = double_sha256(network_msg)
         message_int = int.from_bytes(msg_hash, 'big')
         point = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int)
@@ -2934,9 +2945,29 @@ def mod_sqrt(a):
 
 
 def message_convert_network(message, network=None):
+    """
+    Add network magic to message string, so "Hello world!" results in "BITCOIN Signed Message: Hello world!
+
+    :param message: Message text
+    :type message: str
+    :param network: Network to use, default is Bitcoin
+    :type network: Network, str
+
+    :return str:
+    """
     try:
         network_name = network.description.split(' ')[0].upper()
     except Exception:
         network_name = 'BITCOIN'
 
     return varstr(f'{network_name.capitalize()} Signed Message:\n') + varstr(message)
+
+
+def verify_message(message, sig, network=DEFAULT_NETWORK):
+    if not isinstance(sig, Signature):
+        sig = Signature.parse(sig)
+    if not isinstance(network, Network):
+        network = Network(network)
+    msg = message_convert_network(message, network)
+    return sig.verify_message(msg)
+

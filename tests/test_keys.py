@@ -1133,6 +1133,17 @@ class TestKeysTaproot(unittest.TestCase):
 
 class TestKeysMessages(unittest.TestCase):
 
+    def test_keys_message_sign_and_verify_bitcoin_core(self):
+        # Test with local bitcoin core node
+        # $ bitcoin - cli signmessage "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu" "Eat more cheese!"
+        # H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo=
+        # $ bitcoin - cli verifymessage "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu" "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo=" "Eat more cheese!"
+        address = "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu"
+        message = "Eat more cheese!"
+        sig = "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo="
+        # TODO
+        self.assertTrue(verify(message, sig, address))
+
     def test_keys_message_signing_pycoin(self):
         # Compared with pycoin library output - step-by-step compared results
         wif = 'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp'
