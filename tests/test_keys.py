@@ -1142,7 +1142,7 @@ class TestKeysMessages(unittest.TestCase):
         message = "Eat more cheese!"
         sig = "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo="
         # TODO
-        self.assertTrue(verify(message, sig, address))
+        self.assertTrue(verify_message(message, sig, address))
 
     def test_keys_message_signing_pycoin(self):
         # Compared with pycoin library output - step-by-step compared results
@@ -1212,6 +1212,117 @@ class TestKeysMessages(unittest.TestCase):
             # Verify message with public key
             pub_key = pk.public()
             self.assertTrue(pub_key.verify_message(message, sig))
+
+    def test_keys_message_verify_found_signed_messages(self):
+        # RFC2440
+        messages = [
+# From pycoin library
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+test message AAAAAAAAAA
+-----BEGIN SIGNATURE-----
+1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv
+ID1VEsaxxrBFXNmWVTL5RKZQ5jZNSO845UFr1I5COO05bzt2wy187igIFBqhNEMtL+mV5Xhww9+eFUish1n+Xgg=
+-----END BITCOIN SIGNED MESSAGE-----""",
+
+# go-bitcoin-message-tool
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+ECDSA is the most fun I have ever experienced
+-----BEGIN BITCOIN SIGNATURE-----
+16wrm6zJek6REbxbJSLsBHehn3Lj1vo57t
+H3x5bM2MpXK9MyLLbIGWQjZQNTP6lfuIjmPqMrU7YZ5CCm5bS9L+zCtrfIOJaloDb0mf9QBSEDIs4UCd/jou1VI=
+-----END BITCOIN SIGNATURE-----""",
+
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+ECDSA is the most fun I have ever experienced
+-----BEGIN BITCOIN SIGNATURE-----
+bc1qdn4nnn59570wlkdn4tq23whw6y5e6c28p7chr5
+
+J8xT/nFS2YpzmW6kDCoH4hjjLKjR2k7o9fHq2je/natNdMmYzQ7Gik5EHV1gVbkVOl7M74d7g2fEBl+csGqyqJ8=
+-----END BITCOIN SIGNATURE-----""",
+
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+f1591bfb04a89f723e1f14eb01a6b2f6f507eb0967d0a5d7822b329b98018ae4  coldcard-export.json
+-----BEGIN BITCOIN SIGNATURE-----
+mtHSVByP9EYZmB26jASDdPVm19gvpecb5R
+IFOvGVJrm31S0j+F4dVfQ5kbRKWKcmhmXIn/Lw8iIgaCG5QNZswjrN4X673R7jTZo1kvLmiD4hlIrbuLh/HqDuk=
+-----END BITCOIN SIGNATURE-----""",
+
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+Anything one man can imagine, other men can make real
+-----BEGIN BITCOIN SIGNATURE-----
+1Fo65aKq8s8iquMt6weF1rku1moWVEd5Ua
+IIONt3uYHbMh+vUnqDBGHP2gGu1Q2Fw0WnsKj05eT9P8KI2kGgPniiPirCd5IeLRnRdxeiehDxxsyn/VujUaX8o=
+-----END BITCOIN SIGNATURE-----""",
+
+"""Username: Bit2c
+Public key: 0396267072e597ad5d043db7c73e13af84a77a7212871f1aade607fb0f2f96e1a8
+Public key address: 15etuU8kwLFCBbCNRsgQTvWgrGWY9829ej
+URL: https://www.bitrated.com/u/Bit2c
+
+-----BEGIN BITCOIN SIGNED MESSAGE-----
+We will try to contact both parties to gather information and evidence, and do my best to make rightful judgement. Evidence may be submitted to us on https://www.bit2c.co.il/home/contact or in a private message to info@bit2c.co.il or in any agreed way.
+
+https://www.bit2c.co.il
+-----BEGIN SIGNATURE-----
+15etuU8kwLFCBbCNRsgQTvWgrGWY9829ej
+H2utKkquLbyEJamGwUfS9J0kKT4uuMTEr2WX2dPU9YImg4LeRpyjBelrqEqfM4QC8pJ+hVlQgZI5IPpLyRNxvK8=
+-----END BITCOIN SIGNED MESSAGE-----""",
+
+# https://bitcoin.stackexchange.com/questions/77324/how-are-bitcoin-signed-messages-generated
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+Test
+-----BEGIN BITCOIN SIGNATURE-----
+1BqtNgMrDXnCek3cdDVSer4BK7knNTDTSR
+ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6DPDpEik=
+-----END BITCOIN SIGNATURE-----""",
+        ]
+
+        for msg_sig in messages:
+            message, sig_b64, addr = message_parse(msg_sig)
+            self.assertTrue(verify_message(message, sig_b64, addr))
+
+    def test_keys_message_verify_found_signed_messages_invalid(self):
+        messages = [
+# https://bitcoin.stackexchange.com/questions/77324/how-are-bitcoin-signed-messages-generated
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+Test
+-----BEGIN BITCOIN SIGNATURE-----
+1FZHv7fubXkMcgbDBUeehgPf28cHP86f7V
+ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6DPDpEik=
+-----END BITCOIN SIGNATURE-----""",
+        ]
+
+        for msg_sig in messages:
+            message, sig_b64, addr = message_parse(msg_sig)
+            self.assertFalse(verify_message(message, sig_b64, addr))
+
+        # Test result when changing message, address or sig
+        SIGNED_MESSAGE = """-----BEGIN BITCOIN SIGNED MESSAGE-----
+Bitcoinlib is cool!
+-----BEGIN SIGNATURE-----
+bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
+ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=
+-----END BITCOIN SIGNED MESSAGE-----"""
+        message, sig_b64, addr = message_parse(SIGNED_MESSAGE)
+        self.assertTrue(verify_message(message, sig_b64, addr))
+
+        wrong_message = "Bitcoinlib sucks!"
+        self.assertFalse(verify_message(wrong_message, sig_b64, addr))
+        wrong_sig = 'IGlGc5mQo2jl4AYp6GwFPhHm9M6XJ4ZQqqmHxaR0ugiPprkVpFhLsqWref7/7xbZD1KsIdQqZW9s1LCUiX7IzQQ='
+        self.assertFalse(verify_message(message, wrong_sig, addr))
+        wrong_addr = 'bc1qx75nvpnpxhxhlru98pjw37yux2zknvqrkgp4c4'
+        self.assertFalse(verify_message(message, sig_b64, wrong_addr))
+        self.assertFalse(verify_message('', sig_b64, addr))
+
+    def test_keys_messages_sign_and_verify_bulk(self):
+        import string
+        for _ in range(100):
+            message = ''.join(random.choices(string.ascii_letters + string.digits, k=200))
+            pk = HDKey()
+            sig = pk.sign_message(message)
+            bsm = sig.as_signed_message(message)
+            m, s, a = message_parse(bsm)
+            self.assertTrue(verify_message(m, s, a))
 
 
 if __name__ == '__main__':

@@ -2456,14 +2456,15 @@ class Signature(object):
         if len(sig) != 65:
             raise KeyError("Invalid length, signature must be base64 encoded and 65 bytes long")
 
-        first = sig[0]
+        first = sig[0] - 27
+        if not (0 <= first < 15):
+            raise BKeyError("First byte must be between 27 and 35")
         r = int.from_bytes(sig[1:33], 'big')
         s = int.from_bytes(sig[33:65], 'big')
-        compressed = bool(first &0x4)
+        compressed = bool(first & 0x4)
+        recid = first & 0x3
 
-        # TODO store compressed info
-
-        return Signature(r, s)
+        return Signature(r, s, compressed=compressed, recid=recid,  public_key=public_key)
 
 
     @staticmethod
@@ -2473,7 +2474,7 @@ class Signature(object):
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
         >>> message = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
-        >>> sig = Signature.create(txid, k)
+        >>> sig = Signature.create(message, k)
         >>> sig.hex()
         '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
         >>> sig.r
@@ -2550,7 +2551,7 @@ class Signature(object):
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
 
     def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
-                 hash_type=SIGHASH_ALL):
+                 hash_type=SIGHASH_ALL, compressed=True, recid=0):
         """
         Initialize Signature object with provided r and r value
 
@@ -2576,6 +2577,12 @@ class Signature(object):
         :type public_key: HDKey, Key, str, hexstring, bytes
         :param k: k value used for signature
         :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param compressed: Compressed or uncompressed key. Used for message signatures
+        :type compressed: bool
+        :param recid: Recovery ID to indicate which of the 4 possible public points x,y combinations will be used. Used for message signatures
+        :type recid: int
         """
 
         self.r = int(r)
@@ -2603,6 +2610,9 @@ class Signature(object):
         self.hash_type_byte = self.hash_type.to_bytes(1, 'big')
         self.der_signature = der_signature
         self.message_raw = b''
+        self.compressed = compressed
+        self.recid = recid
+
         if not der_signature:
             self.der_signature = der_encode_sig(self.r, self.s)
 
@@ -2751,7 +2761,7 @@ class Signature(object):
         """
 
         if address and not isinstance(address, Address):
-            address = Address(address)
+            address = Address.parse(address)
             network = address.network
         if not isinstance(network, Network):
             network = Network(network)
@@ -2759,8 +2769,39 @@ class Signature(object):
         network_msg = message_convert_network(message, network)
         msg_hash = double_sha256(network_msg)
         message_int = int.from_bytes(msg_hash, 'big')
-        point = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int)
-        pub_key = HDKey(point)
+
+        # Compute the x‑coordinate of R
+        j = self.recid // 2
+        x = (self.r + j * secp256k1_n) % secp256k1_p
+
+        # Recover the full point R
+        # Solve y² = x³ + ax + b (mod p) and pick the root with the correct parity
+        alpha = (pow(x, 3, secp256k1_p) + secp256k1_b) % secp256k1_p
+        beta = pow(alpha, (secp256k1_p + 1) // 4, secp256k1_p)  # sqrt modulo p (since p ≡ 3 (mod 4))
+
+        # Determine which of the two square roots is the right one.
+        # Parity is defined by the least‑significant bit of y.
+        if (beta & 1) == (self.recid & 1):
+            y = beta
+        else:
+            y = secp256k1_p - beta
+
+        # Calculate the original public key: Q = r⁻¹·(s·R – e·G)
+        R = fastecdsa_point.Point(x, y, curve=fastecdsa_secp256k1) if USE_FASTECDSA else (
+            ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n))
+        r_inv = pow(self.r, -1, secp256k1_n)
+        sR = self.s * R
+        eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
+        Q = r_inv * (sR - eG)
+        q_tup = (Q.x, Q.y)
+
+        # TODO: uncompressed, other witness_types, ecdsa library
+        pub_key = HDKey(q_tup, witness_type='legacy', compressed=self.compressed)
+        self.public_key = self.public_key if self.public_key else pub_key
+        if self.public_key.hash160 != address.hash_bytes:
+            _logger.info(f"Address mismatch when verifying signed message. Expected {address.address}")
+            return False
+
         return self.verify(msg_hash, pub_key)
 
     def verify(self, message=None, public_key=None):
@@ -2904,7 +2945,7 @@ def ec_point(m):
         return point * m
 
 
-def ec_point_multiplication(p, m):
+def ec_point_multiplication(p, m, return_point=False):
     """
     Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
 
@@ -2919,11 +2960,15 @@ def ec_point_multiplication(p, m):
     if USE_FASTECDSA:
         point = fastecdsa_point.Point(p[0], p[1], fastecdsa_secp256k1)
         point_m = point * m
-        return (point_m.x, point_m.y)
+        tup = (point_m.x, point_m.y)
     else:
         point = ecdsa.ellipticcurve.Point(ecdsa.SECP256k1.curve, p[0], p[1])
         point_m = point * m
-        return (point_m.x(), point_m.y())
+        tup = (point_m.x(), point_m.y())
+    if return_point:
+        return point_m
+    else:
+        return tup
 
 
 def mod_sqrt(a):
@@ -2963,11 +3008,23 @@ def message_convert_network(message, network=None):
     return varstr(f'{network_name.capitalize()} Signed Message:\n') + varstr(message)
 
 
-def verify_message(message, sig, network=DEFAULT_NETWORK):
+def verify_message(message, sig, address, network=DEFAULT_NETWORK):
     if not isinstance(sig, Signature):
         sig = Signature.parse(sig)
-    if not isinstance(network, Network):
-        network = Network(network)
-    msg = message_convert_network(message, network)
-    return sig.verify_message(msg)
+    return sig.verify_message(message, address, network)
+
+
+def message_parse(message_signature):
+    try:
+        _, body = message_signature.split('SIGNED MESSAGE-----\n', 1)
+    except ValueError:
+        raise BKeyError("SIGNED MESSAGE text expected in string")
+
+    message_list = body.split('-----BEGIN ', 2)
+    message = message_list[0].strip()
+
+    addr_sig_list = [r for r in message_list[1].split('\n') if r]
+    addr = addr_sig_list[1].strip()
+    sig_b64 = addr_sig_list[2].strip()
+    return message, sig_b64, addr
 
