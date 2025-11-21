@@ -1594,6 +1594,8 @@ class Key(object):
 
     def verify_message(self, message, signature):
         """
+        Verify if provided message is signed by signature
+
         :param message: Message to verify. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
         :param signature: signature as Signature class, hexstring or bytes
@@ -2405,8 +2407,13 @@ class Signature(object):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba01'
-    
+    '3045022100ae1aa67bbb68dcf960d088681fcaebed55abbe63a2e7154899ffd2cbc3c45d0302206f4267d4e67510bb3405940e904446335977a8163d340c8a28bd134866a94e4f01'
+
+    >>> signature2 = b'IKF5khz0uiaTwl2LMnFC4ZyLHsqbYTVLMz7o1F5CN4j5Y0RLjLx8fPIYBcs1fulUl2NKnaE92QbP/w/1NGymqFo='
+    >>> sig = Signature.parse_base64(signature2, sk)
+    >>> sig.r
+    73037165552361988254704500960942039375799082706135232334719139810058545105145
+
     """
 
     @classmethod
@@ -2452,6 +2459,18 @@ class Signature(object):
 
     @staticmethod
     def parse_base64(signature, public_key=None):
+        """
+        Parse base64 encoded signature and return Signature object.
+
+        Extract compressed and recovery ID info from first byte.
+
+        :param signature: Base64 encoded signature
+        :type signature: bytes
+        :param public_key: Public key to pass to signature object
+        :type public_key: HDKey, Key, str, hexstring, bytes
+
+        :return Signature:
+        """
         sig = a2b_base64(signature)
         if len(sig) != 65:
             raise KeyError("Invalid length, signature must be base64 encoded and 65 bytes long")
@@ -2476,11 +2495,11 @@ class Signature(object):
         >>> message = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
         >>> sig = Signature.create(message, k)
         >>> sig.hex()
-        '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+        '21934dde1f8b62d73359991c4ebe043cc7758118611455b97e7d8c5fd4ae99805f8cf0507436f94062635ad5ccb883f87cfd9ecb54bcff084e99ee100c21e0c1'
         >>> sig.r
-        32979225540043540145671192266052053680452913207619328973512110841045982813493
+        15186587944669097449478602251208188095231503054964345209048973685229045586304
         >>> sig.s
-        12990793585889366641563976043319195006380846016310271470330687369836458989268
+        43218737792637084485764095584496845697473864189275335601242497774821186855105
 
         :param message: Transaction signature or transaction hash (txid). If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
         :type message: bytes, str
@@ -2738,6 +2757,22 @@ class Signature(object):
         return sig.decode("utf8")
 
     def as_signed_message(self, message):
+        """
+        Return signed message string to exchange with other entities.
+
+        Output example:
+        -----BEGIN BITCOIN SIGNED MESSAGE-----
+        Bitcoin Signed Message
+        -----BEGIN SIGNATURE-----
+        bc1qfpv6fhe8vqwrq3ag853u5m6l635jy8dku9ysak
+        H/vw2bYHTyrQrRKo+RgahP8Y3L992q6YDJZipAXYV/s6LNN9XgV7ZOpYUnhAs+W6EpLRSzk4iDA6Xfx5qj6bDM0=
+        -----END BITCOIN SIGNED MESSAGE-----
+
+        :param message: Provide original signed message. Signature object does not store message string
+        :type message: str
+
+        :return str:
+        """
         if not self.public_key:
             raise KeyError('Public key is missing')
         message_str = f"-----BEGIN {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
@@ -2750,6 +2785,9 @@ class Signature(object):
 
     def verify_message(self, message, address=None, network=DEFAULT_NETWORK):
         """
+        Verify if provided message is signed with this signature. Provide address to check if address matches the
+        signature.
+
         :param message: Message to verify. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
         :param address: Address used to sign message
@@ -2795,7 +2833,7 @@ class Signature(object):
         Q = r_inv * (sR - eG)
         q_tup = (Q.x, Q.y)
 
-        # TODO: uncompressed, other witness_types, ecdsa library
+        # TODO: other witness_types, ecdsa library
         pub_key = HDKey(q_tup, witness_type='legacy', compressed=self.compressed)
         self.public_key = self.public_key if self.public_key else pub_key
         if self.public_key.hash160 != address.hash_bytes:
@@ -2877,7 +2915,7 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a101'
+    '3044022039df9d8a0b4df185605c5a46eb087d499ddf98cb5ebcae6e0fd99c56152d2d730220726a3c03ac0b04e1489a1f465cb615be87dde7c4c7806195ca6b1acc2910e06901'
 
     :param message: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
     :type message: bytes, str
@@ -3009,12 +3047,51 @@ def message_convert_network(message, network=None):
 
 
 def verify_message(message, sig, address, network=DEFAULT_NETWORK):
+    """
+    Verify signed message. Prove owner of provided address did sign exact message.
+
+    >>> message = 'this is a unittest'
+    >>> sig = 'IBqszVUdhXkJnZpcoQh+EyEZicOQP0fZ2z/Rzw4Xa+YgCXtsOYSR1RvAYAeejCkEW6iQZ9e5j8AqSH2zxvshZPM='
+    >>> addr = 'bc1q7wdttvkuypq3p2ww7cfzgzzs659jehhgvsfnnn'
+    >>> verify_message(message, sig, addr)
+    True
+
+    :param message: Message text
+    :type message: str
+    :param sig: Signature
+    :type sig: str, Signature
+    :param address: Address to verify message
+    :type address: str, Address
+    :param network: Network to use, default is Bitcoin
+    :type network: Network, str
+
+    :return bool:
+    """
     if not isinstance(sig, Signature):
         sig = Signature.parse(sig)
     return sig.verify_message(message, address, network)
 
 
 def message_parse(message_signature):
+    """
+    Parse Bitcoin Signed Message and split into message, address and signature part.
+
+    Example:
+    python> message_parse(' -----BEGIN BITCOIN SIGNED MESSAGE-----
+                          Bitcoinlib is cool!
+                          -----BEGIN SIGNATURE-----
+                          bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
+                          ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=
+                          -----END BITCOIN SIGNED MESSAGE-----")
+    Result:
+    ('Bitcoinlib is cool!', 'bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw',
+    'ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=')
+
+    :param message_signature: Signed Message text
+    :type message_signature: str
+
+    :return tuple (str, str, str): message, base64 encoded signature, address
+    """
     try:
         _, body = message_signature.split('SIGNED MESSAGE-----\n', 1)
     except ValueError:
