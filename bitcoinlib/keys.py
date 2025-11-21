@@ -2830,8 +2830,8 @@ class Signature(object):
         r_inv = pow(self.r, -1, secp256k1_n)
         sR = self.s * R
         eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
-        Q = r_inv * (sR - eG)
-        q_tup = (Q.x, Q.y)
+        Q = r_inv * (sR + -eG)
+        q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
 
         # TODO: other witness_types, ecdsa library
         pub_key = HDKey(q_tup, witness_type='legacy', compressed=self.compressed)
