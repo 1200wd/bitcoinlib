@@ -2976,3 +2976,4 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         w.transactions_remove_unconfirmed(0)
         self.assertEqual(len(w.utxos()), 3)
         self.assertEqual(w.balance(), 102057170)
+

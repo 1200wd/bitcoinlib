@@ -24,7 +24,7 @@ import json
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
-# Number of bulktests for generation of private, public keys and HDKeys. Set to 0 to disable
+# Number of bulktests for generation of private, public keys, HDKeys and signatures. Set to 0 to disable
 # WARNING: Can be slow for a larger number of tests
 BULKTESTCOUNT = 250
 
@@ -1141,7 +1141,6 @@ class TestKeysMessages(unittest.TestCase):
         address = "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu"
         message = "Eat more cheese!"
         sig = "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo="
-        # TODO
         self.assertTrue(verify_message(message, sig, address))
 
     def test_keys_message_signing_pycoin(self):
@@ -1316,13 +1315,55 @@ ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86w
 
     def test_keys_messages_sign_and_verify_bulk(self):
         import string
-        for _ in range(100):
+        for _ in range(BULKTESTCOUNT // 5):
             message = ''.join(random.choices(string.ascii_letters + string.digits, k=200))
             pk = HDKey()
             sig = pk.sign_message(message)
             bsm = sig.as_signed_message(message)
             m, s, a = message_parse(bsm)
             self.assertTrue(verify_message(m, s, a))
+
+    def test_keys_message_verify_with_external_software(self):
+        # Test with https://www.bitkassa.nl/signmessage-local
+        pkwif = 'L5QrCGq1XJY3s5kYGH512pP4dcBmEY2sUYZ2NnKi7jt9H8UXRKta'
+        message = 'Tested with https://www.bitkassa.nl/signmessage-local'
+        expected_sig = 'IB77gJYCT6HW7QTyfrTPM6j7dmTJze490EVo6C2gtJf0HkqyLX0S7mwYle9nNPrddVM+wND2ygHyWpuBE00etkw='
+        expected_addr = '15mgozmrZ7j6ZTpKQQ26MhR3q1wQ296oEb'
+        pk = HDKey(pkwif, witness_type='legacy')
+        sig = pk.sign_message(message)
+        self.assertEqual(sig.as_base64(), expected_sig)
+        self.assertTrue(verify_message(message, sig, expected_addr))
+
+        # Trezor test
+        message = """-----BEGIN BITCOIN TESTNET SIGNED MESSAGE-----
+Sign testnet with Trezor
+-----BEGIN SIGNATURE-----
+tb1qld5enve8wdd8dfw5net62k2klpz3atefzndpen
+KK6hBpVOiA2B7FayE0tk2l/EQ6DQcqsWUtvLZZdQi2WWSlD2ZSFMEG9q58zb0TfPBzMLThwFk1YhX7aI0Av6yoM=
+-----END BITCOIN TESTNET SIGNED MESSAGE-----"""
+        message, sig_b64, addr = message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr))
+
+        # Trezor Dogecoin test
+        message = """-----BEGIN DOGECOIN SIGNED MESSAGE-----
+Dogecoin rocks!
+-----BEGIN SIGNATURE-----
+DGYyzjZCrcTFc4NX1g4iLfwRLwxavt3q8r
+IHQ6zcQV+lXFHfzktU/NU1PcobHJhmOOqHism4L5fPcKPXQnZFiNPXyjLb1JG9GknzA5I0z4GWPGGh8bpcZ1vAk=
+-----END DOGECOIN SIGNED MESSAGE-----"""
+        message, sig_b64, addr = message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr))
+
+        # Trezor Litecoin test
+        message = """-----BEGIN LITECOIN SIGNED MESSAGE-----
+Hello Litecoin!
+-----BEGIN SIGNATURE-----
+ltc1q6ewt25qxf7h96g7jklv8h77zcunrn86fl9yu4s
+KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+6pIVKcM=
+-----END LITECOIN SIGNED MESSAGE-----
+"""
+        message, sig_b64, addr = message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr))
 
 
 if __name__ == '__main__':
