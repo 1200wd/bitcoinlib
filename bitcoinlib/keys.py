@@ -2483,8 +2483,9 @@ class Signature(object):
         compressed = bool(first & 0x4)
         recid = first & 0x3
 
-        return Signature(r, s, compressed=compressed, recid=recid,  public_key=public_key)
-
+        s = Signature(r, s, compressed=compressed, recid=recid,  public_key=public_key)
+        s._base64 = signature
+        return s
 
     @staticmethod
     def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True):
@@ -2631,6 +2632,7 @@ class Signature(object):
         self.message_raw = b''
         self.compressed = compressed
         self.recid = recid
+        self._base64 = None
 
         if not der_signature:
             self.der_signature = der_encode_sig(self.r, self.s)
@@ -2748,6 +2750,11 @@ class Signature(object):
         The header byte contains information about the type of address.
 
         """
+        if self._base64:
+            return self._base64
+
+        if not self.k:
+            raise BKeyError('Message hash required to create base64 signature. k is not set')
         p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
         recid = p1[1] & 1
         if p1[0] > secp256k1_n:
