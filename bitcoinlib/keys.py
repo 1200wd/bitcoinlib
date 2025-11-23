@@ -1592,7 +1592,8 @@ class Key(object):
             raise BKeyError("Missing private key information, can not sign message")
 
         network_msg = message_magic(message, self.network)
-        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=force_canonical)
+        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=force_canonical,
+                    network=self.network)
 
     def verify_message(self, message, signature):
         """
@@ -2494,7 +2495,7 @@ class Signature(object):
 
     @staticmethod
     def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True,
-               force_canonical=False):
+               force_canonical=False, network=DEFAULT_NETWORK):
         """
         Sign a message or transaction hash and create a signature with provided private key.
 
@@ -2559,7 +2560,7 @@ class Signature(object):
             )
             if int(s) > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - int(s)
-            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
+            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
 
@@ -2574,10 +2575,10 @@ class Signature(object):
             s = int(signature[64:], 16)
             if s > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - s
-            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type)
+            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
 
     def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
-                 hash_type=SIGHASH_ALL, compressed=True, recid=0):
+                 hash_type=SIGHASH_ALL, compressed=True, recid=0, network=DEFAULT_NETWORK):
         """
         Initialize Signature object with provided r and r value
 
@@ -2609,6 +2610,8 @@ class Signature(object):
         :type compressed: bool
         :param recid: Recovery ID to indicate which of the 4 possible public points x,y combinations will be used. Used for message signatures
         :type recid: int
+        :param network: Network to use
+        :type network: str, Network
         """
 
         self.r = int(r)
@@ -2639,6 +2642,7 @@ class Signature(object):
         self.compressed = compressed
         self.recid = recid
         self._base64 = None
+        self.network = network
 
         if not der_signature:
             self.der_signature = der_encode_sig(self.r, self.s)
@@ -2756,20 +2760,17 @@ class Signature(object):
         The header byte contains information about the type of address.
 
         """
-        if self._base64:
-            return self._base64
-
-        if not self.k:
-            raise BKeyError('Message hash required to create base64 signature. k is not set')
-        p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
-        # if p1[1] > secp256k1_n / 2:
-        #     p1[1] = secp256k1_n - p1[1]
-        recid = p1[1] & 1
-        if p1[0] > secp256k1_n:
-            recid += 2
-        first = 27 + recid + (4 if self.public_key.compressed else 0)
-        sig = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
-        return sig.decode("utf8")
+        if not self._base64:
+            if not self.k:
+                raise BKeyError('Message hash required to create base64 signature. k is not set')
+            p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
+            recid = p1[1] & 1
+            if p1[0] > secp256k1_n:
+                recid += 2
+            first = 27 + recid + (4 if self.public_key.compressed else 0)
+            sig = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
+            self._base64 = sig.decode("utf8")
+        return self._base64
 
     def as_signed_message(self, message):
         """
@@ -2798,7 +2799,7 @@ class Signature(object):
         message_str += f"-----END {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
         return message_str
 
-    def verify_message(self, message, address=None, network=DEFAULT_NETWORK):
+    def verify_message(self, message, address=None, network=None):
         """
         Verify if provided message is signed with this signature. Provide address to check if address matches the
         signature.
@@ -2816,10 +2817,13 @@ class Signature(object):
         if address and not isinstance(address, Address):
             address = Address.parse(address)
             network = address.network
-        if not isinstance(network, Network):
-            network = Network(network)
+        if not self.network:
+            self.network = network if network else DEFAULT_NETWORK
+        if not isinstance(self.network, Network):
+            self.network = Network(self.network)
 
-        network_msg = message_magic(message, network)
+
+        network_msg = message_magic(message, self.network)
         msg_hash = double_sha256(network_msg)
         message_int = int.from_bytes(msg_hash, 'big')
 
@@ -2852,7 +2856,7 @@ class Signature(object):
             Q = r_inv * (sR + -eG)
             q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
             self.public_key = HDKey(q_tup, witness_type=address.witness_type, compressed=self.compressed,
-                                    network=network)
+                                    network=self.network)
 
             if self.public_key.hash160 != address.hash_bytes and self.public_key.address() != address.address:
                 _logger.info(f"Address mismatch when verifying signed message. Expected {address.address}")
@@ -2928,7 +2932,8 @@ class Signature(object):
             return True
 
 
-def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True):
+def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True,
+         network=DEFAULT_NETWORK):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
@@ -2958,7 +2963,7 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
     :return Signature: 
     """
     return Signature.create(message, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed,
-                            force_canonical=force_canonical)
+                            force_canonical=force_canonical, network=network)
 
 
 def verify(message, signature, public_key=None):

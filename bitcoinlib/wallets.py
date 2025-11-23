@@ -1177,6 +1177,7 @@ class WalletTransaction(Transaction):
                               compressed=key.compressed, value=utxo['value'], address=utxo['address'],
                               witness_type=key.witness_type)
 
+
 class Wallet(object):
     """
     Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can

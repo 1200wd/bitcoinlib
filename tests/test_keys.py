@@ -1559,6 +1559,15 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
             self.assertEqual(a2b_base64(s.as_base64()).hex(), v[6])
             self.assertTrue(s.verify_message(msg, addr))
 
+    def test_keys_message_sign_network_witness_check(self):
+        for network in NETWORK_DEFINITIONS:
+            for witness_type in ['legacy', 'segwit', 'p2sh-segwit']:
+                message = f"Signed message for the {network} network and witness_type {witness_type}"
+                # print(message)
+                pk = HDKey(network=network, witness_type=witness_type)
+                sig = pk.sign_message(message)
+                self.assertTrue(sig.verify_message(message))
+
 
 if __name__ == '__main__':
     unittest.main()

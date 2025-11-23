@@ -916,9 +916,8 @@ class Transaction(object):
         coinbase = False
         flag = None
         witness_type = 'legacy'
-        network = network
         if not isinstance(network, Network):
-            cls.network = Network(network)
+            network = Network(network)
 
         try:
             pos_start = rawtx.tell()
