@@ -2978,19 +2978,26 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         self.assertEqual(w.balance(), 102057170)
 
 
-    class TestWalletSignMessages(unittest.TestCase):
+class TestWalletSignMessages(unittest.TestCase):
 
-        def test_wallet_sign_message_electrum(self):
-            # Electrum Bitcoin test
-            phrase = 'appear jacket street version hover aware nature exchange color laundry awkward urban'
-            message = 'Hi this is a signed message from Electrum'
-            expected_addr = 'bc1qn47dp83edwa04sgpxjk2nceg235jalkmnktyge'
-            expected_sig = 'ICaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+    @classmethod
+    def setUpClass(cls):
+        cls.database_uri = database_init()
 
+    def test_wallet_sign_message_electrum(self):
+        # Electrum Bitcoin test
+        phrase = 'appear jacket street version hover aware nature exchange color laundry awkward urban'
+        message = 'Hi this is a signed message from Electrum'
+        expected_addr = 'bc1qn47dp83edwa04sgpxjk2nceg235jalkmnktyge'
+        # Electrum wallet does not follow BIP-0137 standard, so Bitcoinlib can not create expected signature,
+        # as first byte is different:
+        # Elect. sig = 'ICaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+        expected_sig = 'HyaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
 
-            s = sig.parse(expected_sig)
-            self.assertTrue(s.verify_message(message, expected_addr))
-            pk = HDKey.from_passphrase(phrase).subkey_for_path('m/0/0')
-            print(pk.address())
-            # sig = pk.sign_message(message)
-            # self.assertEqual(sig.as_base64(), expected_sig)
+        w = wallet_create_or_open('wallet_electrum_message_signing_test', phrase, db_uri=self.database_uri)
+        wallet_key = w.address_index(0)
+
+        self.assertEqual(wallet_key.key().address(), expected_addr)
+        sig = wallet_key.sign_message(message, force_canonical=True)
+        self.assertEqual(sig.as_base64(), expected_sig)
+        self.assertTrue(wallet_key.verify_message(message, sig))

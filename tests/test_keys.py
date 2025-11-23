@@ -21,6 +21,7 @@
 import os
 import unittest
 import json
+from unicodedata import normalize
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
@@ -1323,7 +1324,7 @@ ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86w
             m, s, a = message_parse(bsm)
             self.assertTrue(verify_message(m, s, a))
 
-    def test_keys_message_verify_with_external_software(self):
+    def test_keys_message_verify_trezor(self):
         # Test with https://www.bitkassa.nl/signmessage-local
         pkwif = 'L5QrCGq1XJY3s5kYGH512pP4dcBmEY2sUYZ2NnKi7jt9H8UXRKta'
         message = 'Tested with https://www.bitkassa.nl/signmessage-local'
@@ -1364,6 +1365,209 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
 """
         message, sig_b64, addr = message_parse(message)
         self.assertTrue(verify_message(message, sig_b64, addr))
+
+    def test_keys_sign_message_errors(self):
+        address = "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu"
+        message = "Eat more cheese!"
+        sig = "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo="
+        s = Signature.parse_base64(sig)
+        self.assertRaisesRegex(BKeyError, "Public key is unknown, please provide address to derive public "
+                                          "key", s.verify_message, message)
+        self.assertTrue(s.verify_message(message, address))
+        # Now it works without Address, because public key has been derived before
+        self.assertTrue(s.verify_message(message))
+
+    def test_keys_message_sign_verify_electrum(self):
+        #
+        # Electrum uses a different method to determine recovery id and also grinds r values. So the tests below
+        # are a copy of the Electrum unittests, but with grinding disabled and a different recovery ID.
+        #
+        msg1 = b'Chancellor on brink of second bailout for banks'
+        addr1 = '15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz'
+        expected_sig1 = 'IP9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y='
+        pk = HDKey('L1TnU2zbNaAqMoVh65Cyvmcjzbrj41Gs9iTLcWbpJCMynXuap6UN', witness_type='legacy')
+        self.assertEqual(pk.address(), addr1)
+        sig1 = pk.sign_message(msg1, force_canonical=True)
+        self.assertEqual(sig1.as_base64(), expected_sig1)
+
+        msg2 = 'Electrum'
+        addr2 = '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6'
+        expected_sig2 = 'G84dmJ8TKIDKMT9qBRhpX2sNmR0y5t+POcYnFFJCs66lJmAs3T8A6Sbpx7KA6yTQ9djQMabwQXRrDomOkIKGn18='
+        pk = HDKey('5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD', witness_type='legacy')
+        self.assertEqual(pk.address(), addr2)
+        sig2 = pk.sign_message(msg2, force_canonical=True)
+        self.assertEqual(sig2.as_base64(), expected_sig2)
+        self.assertTrue(verify_message(msg2, sig2, addr2))
+
+        addr = "15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz"
+        sig_low_s = 'Hzsu0U/THAsPz/MSuXGBKSULz2dTfmrg1NsAhFp+wH5aKfmX4Db7ExLGa7FGn0m6Mf43KsbEOWpvUUUBTM3Uusw='
+        sig_high_s = 'IDsu0U/THAsPz/MSuXGBKSULz2dTfmrg1NsAhFp+wH5a1gZoH8kE7O05lE65YLZFzLx3sh/rDzXMbo1dQAJhhnU='
+        msg = 'Chancellor on brink of second bailout for banks'
+        self.assertTrue(verify_message(msg, sig_low_s, addr))
+        self.assertTrue(verify_message(msg, sig_high_s, addr))
+
+        # p2wpkh-p2sh
+        msg = 'Electrum'
+        addr = "3DYoBqQ5N6dADzyQjy9FT1Ls4amiYVaqTG"
+        pk = HDKey('L1cgMEnShp73r9iCukoPE3MogLeueNYRD9JVsfT1zVHyPBR3KqBY', witness_type='p2sh-segwit')
+        self.assertEqual(pk.address(), addr)
+        sig = pk.sign_message(msg, force_canonical=True)
+        self.assertEqual(sig.as_base64(), 'HyFaND+87TtVbRhkTfT3mPNBCQcJ32XXtNZGW8sFldJsNpOPCegEmdcCf5Thy18hdMH88GLxZLkOby/EwVUuSeA=')
+        self.assertTrue(pk.verify_message(msg, sig))
+        self.assertTrue(verify_message(msg, sig, pk.address_obj))
+        self.assertRaisesRegex(BKeyError, "Public key from signature and provided address do not match" ,
+                               verify_message, msg, sig, HDKey().address())
+        self.assertFalse(verify_message('heyheyhey', sig, pk.address_obj))
+        self.assertTrue(sig.verify_message(msg, addr))
+
+        # p2wpkh
+        pk2 = HDKey("L1cgMEnShp73r9iCukoPE3MogLeueNYRD9JVsfT1zVHyPBR3KqBY", witness_type='segwit')
+        addr2 = "bc1qq2tmmcngng78nllq2pvrkchcdukemtj56uyue0"
+        self.assertEqual(pk2.address(), addr2)
+        sig2 = pk2.sign_message(msg, force_canonical=True)
+        self.assertTrue(verify_message(msg, sig2, addr2))
+        self.assertFalse(verify_message('heyheyhey', sig2, addr2))
+        self.assertRaisesRegex(BKeyError, "Public key from signature and provided address do not match" ,
+                               verify_message, msg, sig1, addr2)
+
+    def test_keys_message_sign_verify_trezor(self):
+        # Test vectors from Trezor
+        # See: Trezor github tests/device_tests/bitcoin/test_signmessage.py
+        # removed non-standard uncompressed segwit keys
+        #
+
+        MESSAGE_NFKD = u"Pr\u030ci\u0301s\u030cerne\u030c z\u030clut\u030couc\u030cky\u0301 ku\u030an\u030c u\u0301pe\u030cl d\u030ca\u0301belske\u0301 o\u0301dy za\u0301ker\u030cny\u0301 uc\u030cen\u030c be\u030cz\u030ci\u0301 pode\u0301l zo\u0301ny u\u0301lu\u030a"
+        MESSAGE_NFC = u"P\u0159\xed\u0161ern\u011b \u017elu\u0165ou\u010dk\xfd k\u016f\u0148 \xfap\u011bl \u010f\xe1belsk\xe9 \xf3dy z\xe1ke\u0159n\xfd u\u010de\u0148 b\u011b\u017e\xed pod\xe9l z\xf3ny \xfal\u016f"
+        NFKD_NFC_SIGNATURE = "2046a0b46e81492f82e0412c73701b9740e6462c603575ee2d36c7d7b4c20f0f33763ca8cb3027ea8e1ce5e83fda8b6746fea8f5c82655d78fd419e7c766a5e17a"
+
+        VECTORS = (  # case name, coin_name, path, script_type, address, message, signature
+            # ==== Bitcoin script types ====
+            (
+                "p2pkh uncompressed",
+                "Bitcoin",
+                "m/44h/0h/0h/0/0",
+                False,
+                "1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL",
+                "This is an example of a signed message.",
+                "20fd8f2f7db5238fcdd077d5204c3e6949c261d700269cefc1d9d2dcef6b95023630ee617f6c8acf9eb40c8edd704c9ca74ea4afc393f43f35b4e8958324cbdd1c",
+                "legacy",
+            ),
+            (
+                "p2pkh compressed",
+                "Bitcoin",
+                "m/44h/0h/0h/0/0",
+                True,
+                "1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL",
+                "This is an example of a signed message.",
+                "20fd8f2f7db5238fcdd077d5204c3e6949c261d700269cefc1d9d2dcef6b95023630ee617f6c8acf9eb40c8edd704c9ca74ea4afc393f43f35b4e8958324cbdd1c",
+                "legacy",
+            ),
+            (
+                "segwit-p2sh compressed",
+                "Bitcoin",
+                "m/49h/0h/0h/0/0",
+                True,
+                "3L6TyTisPBmrDAj6RoKmDzNnj4eQi54gD2",
+                "This is an example of a signed message.",
+                "1f744de4516fac5c140808015664516a32fead94de89775cec7e24dbc24fe133075ac09301c4cc8e197bea4b6481661d5b8e9bf19d8b7b8a382ecdb53c2ee0750d",
+                "p2sh-segwit",
+            ),
+            (
+                "segwit-native",
+                "Bitcoin",
+                "m/84h/0h/0h/0/0",
+                True,
+                "bc1qannfxke2tfd4l7vhepehpvt05y83v3qsf6nfkk",
+                "This is an example of a signed message.",
+                "20b55d7600d9e9a7e2a49155ddf3cfdb8e796c207faab833010fa41fb7828889bc47cf62348a7aaa0923c0832a589fab541e8f12eb54fb711c90e2307f0f66b194",
+                "segwit"
+            ),
+            # ==== Bitcoin with long message ====
+            (
+                "p2pkh long message",
+                "Bitcoin",
+                "m/44h/0h/0h/0/0",
+                False,
+                "1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL",
+                "VeryLongMessage!" * 64,
+                "200a46476ceb84d06ef5784828026f922c8815f57aac837b8c013007ca8a8460db63ef917dbebaebd108b1c814bbeea6db1f2b2241a958e53fe715cc86b199d9c3",
+                "legacy",
+            ),
+            (
+                "segwit-native long message",
+                "Bitcoin",
+                "m/84h/0h/0h/0/0",
+                False,
+                "bc1qannfxke2tfd4l7vhepehpvt05y83v3qsf6nfkk",
+                "VeryLongMessage!" * 64,
+                "28c6f86e255eaa768c447d635d91da01631ac54af223c2c182d4fa3676cfecae4a199ad33a74fe04fb46c39432acb8d83de74da90f5f01123b3b7d8bc252bc7f71",
+                "segwit",
+            ),
+            (
+                "NFKD message",
+                "Bitcoin",
+                "m/44h/0h/0h/0/1",
+                False,
+                "1GWFxtwWmNVqotUPXLcKVL2mUKpshuJYo",
+                MESSAGE_NFKD,
+                NFKD_NFC_SIGNATURE,
+                "legacy",
+            ),
+            (
+                "NFC message",
+                "Bitcoin",
+                "m/44h/0h/0h/0/1",
+                False,
+                "1GWFxtwWmNVqotUPXLcKVL2mUKpshuJYo",
+                MESSAGE_NFC,
+                NFKD_NFC_SIGNATURE,
+                "legacy",
+            ),
+            (
+                "p2pkh testnet",
+                "Testnet",
+                "m/44h/1h/0h/0/0",
+                False,
+                "mvbu1Gdy8SUjTenqerxUaZyYjmveZvt33q",
+                "This is an example of a signed message.",
+                "2030cd7f116c0481d1936cfef48137fd23ee56aaf00787bfa08a94837466ec9909390c3efacfc56bae5782f1db4cf49ae05f242b5f62a47f871ec46bf1a3253e7f",
+                "legacy",
+            ),
+            (
+                "segwit-p2sh testnet",
+                "Testnet",
+                "m/49h/1h/0h/0/0",
+                False,
+                "2N4Q5FhU2497BryFfUgbqkAJE87aKHUhXMp",
+                "This is an example of a signed message.",
+                "23ef39fd388c3425d6aaa04274dcd5c7dd4c283a411b616443474fbcde5dd966050d91bc7c57e9578f28efdd84c9a9bcba415f93c5727b5d3f2bf3de46d7084896",
+                "p2sh-segwit",
+            ),
+            (
+                "segwit-native",
+                "Testnet",
+                "m/84h/1h/0h/0/0",
+                False,
+                "tb1qkvwu9g3k2pdxewfqr7syz89r3gj557l3uuf9r9",
+                "This is an example of a signed message.",
+                "27758b3393396ad9fe48f6ce81f63410145e7b2b69a5dfc1d48b5e6e623e91e08e3afb60bda1546f9c6f9fb5bd0a41887b784c266036dd4b4015a0abc1137daa1d",
+                "segwit",
+            ),
+        )
+
+        for v in VECTORS:
+            print(f"Testing vector {v[0]}")
+            sigb64 = b2a_base64(bytes.fromhex(v[6]))
+            s = Signature.parse_base64(sigb64)
+            addr = Address.parse(v[4])
+            addr.witness_type = v[7]
+            msg = v[5]
+
+            if v[0] == "NFKD message":
+                msg = normalize('NFKC', msg)
+
+            self.assertEqual(a2b_base64(s.as_base64()).hex(), v[6])
+            self.assertTrue(s.verify_message(msg, addr))
 
 
 if __name__ == '__main__':

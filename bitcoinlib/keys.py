@@ -1571,7 +1571,7 @@ class Key(object):
         """
         return self.address(compressed=False, prefix=prefix, script_type=script_type, encoding=encoding)
 
-    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
         """
         Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
 
@@ -1589,8 +1589,8 @@ class Key(object):
         if not self.is_private:
             raise BKeyError("Missing private key information, can not sign message")
 
-        network_msg = message_convert_network(message, self.network)
-        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=False)
+        network_msg = message_magic(message, self.network)
+        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=force_canonical)
 
     def verify_message(self, message, signature):
         """
@@ -1598,13 +1598,13 @@ class Key(object):
 
         :param message: Message to verify. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
-        :param signature: signature as Signature class, hexstring or bytes
-        :type signature: Signature, str, bytes
+        :param signature: signature as Signature object
+        :type signature: Signature
 
         :return bool:
         """
 
-        network_msg = message_convert_network(message, self.network)
+        network_msg = message_magic(message, self.network)
         signature.message = double_sha256(network_msg, as_hex=True)
         return signature.verify(signature.message, self.public())
 
@@ -2419,7 +2419,10 @@ class Signature(object):
     @classmethod
     def parse(cls, signature, public_key=None):
         if isinstance(signature, bytes):
-            return cls.parse_bytes(signature, public_key)
+            try:
+                return cls.parse_bytes(signature, public_key)
+            except (ValueError, BKeyError):
+                return cls.parse_base64(signature, public_key)
         elif isinstance(signature, str):
             try:
                 return cls.parse_hex(signature, public_key)
@@ -2465,7 +2468,7 @@ class Signature(object):
         Extract compressed and recovery ID info from first byte.
 
         :param signature: Base64 encoded signature
-        :type signature: bytes
+        :type signature: str, bytes
         :param public_key: Public key to pass to signature object
         :type public_key: HDKey, Key, str, hexstring, bytes
 
@@ -2756,6 +2759,8 @@ class Signature(object):
         if not self.k:
             raise BKeyError('Message hash required to create base64 signature. k is not set')
         p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
+        # if p1[1] > secp256k1_n / 2:
+        #     p1[1] = secp256k1_n - p1[1]
         recid = p1[1] & 1
         if p1[0] > secp256k1_n:
             recid += 2
@@ -2811,43 +2816,50 @@ class Signature(object):
         if not isinstance(network, Network):
             network = Network(network)
 
-        network_msg = message_convert_network(message, network)
+        network_msg = message_magic(message, network)
         msg_hash = double_sha256(network_msg)
         message_int = int.from_bytes(msg_hash, 'big')
 
-        # Compute the x‑coordinate of R
-        j = self.recid // 2
-        x = (self.r + j * secp256k1_n) % secp256k1_p
+        # If public key is unknown, derive from message hash and signature
+        if not self.public_key:
+            if not address:
+                raise BKeyError('Public key is unknown, please provide address to derive public key')
+            # Compute the x‑coordinate of R
+            j = self.recid // 2
+            x = (self.r + j * secp256k1_n) % secp256k1_p
 
-        # Recover the full point R
-        # Solve y² = x³ + ax + b (mod p) and pick the root with the correct parity
-        alpha = (pow(x, 3, secp256k1_p) + secp256k1_b) % secp256k1_p
-        beta = pow(alpha, (secp256k1_p + 1) // 4, secp256k1_p)  # sqrt modulo p (since p ≡ 3 (mod 4))
+            # Recover the full point R
+            # Solve y² = x³ + ax + b (mod p) and pick the root with the correct parity
+            alpha = (pow(x, 3, secp256k1_p) + secp256k1_b) % secp256k1_p
+            beta = pow(alpha, (secp256k1_p + 1) // 4, secp256k1_p)  # sqrt modulo p (since p ≡ 3 (mod 4))
 
-        # Determine which of the two square roots is the right one.
-        # Parity is defined by the least‑significant bit of y.
-        if (beta & 1) == (self.recid & 1):
-            y = beta
-        else:
-            y = secp256k1_p - beta
+            # Determine which of the two square roots is the right one.
+            # Parity is defined by the least‑significant bit of y.
+            if (beta & 1) == (self.recid & 1):
+                y = beta
+            else:
+                y = secp256k1_p - beta
 
-        # Calculate the original public key: Q = r⁻¹·(s·R – e·G)
-        R = fastecdsa_point.Point(x, y, curve=fastecdsa_secp256k1) if USE_FASTECDSA else (
-            ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n))
-        r_inv = pow(self.r, -1, secp256k1_n)
-        sR = self.s * R
-        eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
-        Q = r_inv * (sR + -eG)
-        q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
+            # Calculate the original public key: Q = r⁻¹·(s·R – e·G)
+            R = fastecdsa_point.Point(x, y, curve=fastecdsa_secp256k1) if USE_FASTECDSA else (
+                ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n))
+            r_inv = pow(self.r, -1, secp256k1_n)
+            sR = self.s * R
+            eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
+            Q = r_inv * (sR + -eG)
+            q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
+            self.public_key = HDKey(q_tup, witness_type=address.witness_type, compressed=self.compressed)
 
-        # TODO: other witness_types, ecdsa library
-        pub_key = HDKey(q_tup, witness_type='legacy', compressed=self.compressed)
-        self.public_key = self.public_key if self.public_key else pub_key
-        if self.public_key.hash160 != address.hash_bytes:
-            _logger.info(f"Address mismatch when verifying signed message. Expected {address.address}")
-            return False
+            if self.public_key.hash160 != address.hash_bytes and self.public_key.address() != address.address:
+                _logger.info(f"Address mismatch when verifying signed message. Expected {address.address}")
+                return False
 
-        return self.verify(msg_hash, pub_key)
+        # If public key is known and also an address is provided, check it both match
+        if (self.public_key and address and self.public_key.hash160 != address.hash_bytes and
+                self.public_key.address() != address.address):
+            raise BKeyError('Public key from signature and provided address do not match')
+
+        return self.verify(msg_hash, self.public_key)
 
     def verify(self, message=None, public_key=None):
         """
@@ -2881,7 +2893,7 @@ class Signature(object):
                 str(self.r),
                 str(self.s),
                 self.message,
-                str(self.x),
+                str(self.x),  # get x and y from public key
                 str(self.y),
                 str(secp256k1_p),
                 str(secp256k1_a),
@@ -3034,7 +3046,7 @@ def mod_sqrt(a):
     return pow(a, k + 1, secp256k1_p)
 
 
-def message_convert_network(message, network=None):
+def message_magic(message, network=None):
     """
     Add network magic to message string, so "Hello world!" results in "BITCOIN Signed Message: Hello world!
 

@@ -590,6 +590,12 @@ class WalletKey(object):
         self._dbkey = None
         return pub_key
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
+        return self.key().sign_message(message, use_rfc6979, k, hash_type, force_canonical)
+
+    def verify_message(self, message, signature):
+        return self.key().verify_message(message, signature)
+
     def as_dict(self, include_private=False):
         """
         Return current key information as dictionary
