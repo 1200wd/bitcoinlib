@@ -1583,6 +1583,8 @@ class Key(object):
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param force_canonical: Some wallets do not require a canonical s value, so you could set this to False
+        :type force_canonical: bool
 
         :return Signature:
         """
@@ -1594,7 +1596,7 @@ class Key(object):
 
     def verify_message(self, message, signature):
         """
-        Verify if provided message is signed by signature
+        Verify if provided message is signed by signature.
 
         :param message: Message to verify. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
@@ -2491,7 +2493,8 @@ class Signature(object):
         return s
 
     @staticmethod
-    def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True):
+    def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True,
+               force_canonical=False):
         """
         Sign a message or transaction hash and create a signature with provided private key.
 
@@ -2848,7 +2851,8 @@ class Signature(object):
             eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
             Q = r_inv * (sR + -eG)
             q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
-            self.public_key = HDKey(q_tup, witness_type=address.witness_type, compressed=self.compressed)
+            self.public_key = HDKey(q_tup, witness_type=address.witness_type, compressed=self.compressed,
+                                    network=network)
 
             if self.public_key.hash160 != address.hash_bytes and self.public_key.address() != address.address:
                 _logger.info(f"Address mismatch when verifying signed message. Expected {address.address}")

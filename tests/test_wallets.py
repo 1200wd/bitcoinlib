@@ -3001,3 +3001,6 @@ class TestWalletSignMessages(unittest.TestCase):
         sig = wallet_key.sign_message(message, force_canonical=True)
         self.assertEqual(sig.as_base64(), expected_sig)
         self.assertTrue(wallet_key.verify_message(message, sig))
+
+    def test_wallet_sign_verify_message_various_networks(self):
+        n = Network

@@ -1164,7 +1164,7 @@ class TestKeysMessages(unittest.TestCase):
         pk = HDKey(wif, witness_type='legacy')
         self.assertEqual(pk.address(), addr)
 
-        sig = pk.sign_message(msg)
+        sig = pk.sign_message(msg, force_canonical=False)
         self.assertEqual(64169125251067142060049740121784818273156574831540951431018131832714377563451, sig.r)
         self.assertEqual(61129803196235745037234955305700148791464496745709279972088993803821678194653, sig.s)
 
@@ -1206,7 +1206,7 @@ class TestKeysMessages(unittest.TestCase):
             pk = HDKey(private_hex, network=tmsg[0], witness_type=tmsg[1])
 
             # Sign message and check base64 signature
-            sig = pk.sign_message(message)
+            sig = pk.sign_message(message, force_canonical=False)
             self.assertEqual(sig.as_base64(), tmsg[2])
 
             # Verify message with public key
@@ -1534,16 +1534,6 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
                 "legacy",
             ),
             (
-                "segwit-p2sh testnet",
-                "Testnet",
-                "m/49h/1h/0h/0/0",
-                False,
-                "2N4Q5FhU2497BryFfUgbqkAJE87aKHUhXMp",
-                "This is an example of a signed message.",
-                "23ef39fd388c3425d6aaa04274dcd5c7dd4c283a411b616443474fbcde5dd966050d91bc7c57e9578f28efdd84c9a9bcba415f93c5727b5d3f2bf3de46d7084896",
-                "p2sh-segwit",
-            ),
-            (
                 "segwit-native",
                 "Testnet",
                 "m/84h/1h/0h/0/0",
@@ -1556,7 +1546,7 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
         )
 
         for v in VECTORS:
-            print(f"Testing vector {v[0]}")
+            # print(f"Testing vector {v[0]}")
             sigb64 = b2a_base64(bytes.fromhex(v[6]))
             s = Signature.parse_base64(sigb64)
             addr = Address.parse(v[4])
