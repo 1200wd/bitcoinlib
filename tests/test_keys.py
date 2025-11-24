@@ -1278,7 +1278,7 @@ ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6
         ]
 
         for msg_sig in messages:
-            message, sig_b64, addr = message_parse(msg_sig)
+            message, sig_b64, addr = signed_message_parse(msg_sig)
             self.assertTrue(verify_message(message, sig_b64, addr))
 
     def test_keys_message_verify_found_signed_messages_invalid(self):
@@ -1293,7 +1293,7 @@ ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6
         ]
 
         for msg_sig in messages:
-            message, sig_b64, addr = message_parse(msg_sig)
+            message, sig_b64, addr = signed_message_parse(msg_sig)
             self.assertFalse(verify_message(message, sig_b64, addr))
 
         # Test result when changing message, address or sig
@@ -1303,7 +1303,7 @@ Bitcoinlib is cool!
 bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
 ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=
 -----END BITCOIN SIGNED MESSAGE-----"""
-        message, sig_b64, addr = message_parse(SIGNED_MESSAGE)
+        message, sig_b64, addr = signed_message_parse(SIGNED_MESSAGE)
         self.assertTrue(verify_message(message, sig_b64, addr))
 
         wrong_message = "Bitcoinlib sucks!"
@@ -1321,7 +1321,7 @@ ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86w
             pk = HDKey()
             sig = pk.sign_message(message)
             bsm = sig.as_signed_message(message)
-            m, s, a = message_parse(bsm)
+            m, s, a = signed_message_parse(bsm)
             self.assertTrue(verify_message(m, s, a))
 
     def test_keys_message_verify_trezor(self):
@@ -1342,7 +1342,7 @@ Sign testnet with Trezor
 tb1qld5enve8wdd8dfw5net62k2klpz3atefzndpen
 KK6hBpVOiA2B7FayE0tk2l/EQ6DQcqsWUtvLZZdQi2WWSlD2ZSFMEG9q58zb0TfPBzMLThwFk1YhX7aI0Av6yoM=
 -----END BITCOIN TESTNET SIGNED MESSAGE-----"""
-        message, sig_b64, addr = message_parse(message)
+        message, sig_b64, addr = signed_message_parse(message)
         self.assertTrue(verify_message(message, sig_b64, addr))
 
         # Trezor Dogecoin test
@@ -1352,7 +1352,7 @@ Dogecoin rocks!
 DGYyzjZCrcTFc4NX1g4iLfwRLwxavt3q8r
 IHQ6zcQV+lXFHfzktU/NU1PcobHJhmOOqHism4L5fPcKPXQnZFiNPXyjLb1JG9GknzA5I0z4GWPGGh8bpcZ1vAk=
 -----END DOGECOIN SIGNED MESSAGE-----"""
-        message, sig_b64, addr = message_parse(message)
+        message, sig_b64, addr = signed_message_parse(message)
         self.assertTrue(verify_message(message, sig_b64, addr))
 
         # Trezor Litecoin test
@@ -1363,7 +1363,7 @@ ltc1q6ewt25qxf7h96g7jklv8h77zcunrn86fl9yu4s
 KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+6pIVKcM=
 -----END LITECOIN SIGNED MESSAGE-----
 """
-        message, sig_b64, addr = message_parse(message)
+        message, sig_b64, addr = signed_message_parse(message)
         self.assertTrue(verify_message(message, sig_b64, addr))
 
     def test_keys_sign_message_errors(self):
@@ -1567,6 +1567,9 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
                 pk = HDKey(network=network, witness_type=witness_type)
                 sig = pk.sign_message(message)
                 self.assertTrue(sig.verify_message(message))
+                signed_message = sig.as_signed_message(message)
+                m, s, a = signed_message_parse(signed_message)
+                verify_message(m, s, a)
 
 
 if __name__ == '__main__':

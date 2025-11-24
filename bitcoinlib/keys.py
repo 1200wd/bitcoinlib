@@ -3100,12 +3100,12 @@ def verify_message(message, sig, address, network=DEFAULT_NETWORK):
     return sig.verify_message(message, address, network)
 
 
-def message_parse(message_signature):
+def signed_message_parse(message_signature):
     """
     Parse Bitcoin Signed Message and split into message, address and signature part.
 
     Example:
-    python> message_parse(' -----BEGIN BITCOIN SIGNED MESSAGE-----
+    python> signed_message_parse(' -----BEGIN BITCOIN SIGNED MESSAGE-----
                           Bitcoinlib is cool!
                           -----BEGIN SIGNATURE-----
                           bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
