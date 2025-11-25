@@ -1192,17 +1192,18 @@ class TestKeysMessages(unittest.TestCase):
              # tested with verifybitcoinmessage, checkmsg.org, bitcoinmessage.tools, bitcoin core, etc
              'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('bitcoin', 'p2sh-segwit',    # tested with verifybitcoinmessage
-             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('bitcoin', 'segwit',         # tested with verifybitcoinmessage
-             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'LC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('testnet', 'legacy',         # tested with bluewallet.github.io, verifybitcoinmessage
              'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('testnet4', 'segwit',        # tested with bluewallet.github.io, verifybitcoinmessage
-             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'LC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('signet', 'segwit',          # tested with bluewallet.github.io, verifybitcoinmessage
-             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'LC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
         ]
         for tmsg in test_messages:
+            print(f"network={tmsg[0]}, witness_type={tmsg[1]}")
             pk = HDKey(private_hex, network=tmsg[0], witness_type=tmsg[1])
 
             # Sign message and check base64 signature
@@ -1211,6 +1212,7 @@ class TestKeysMessages(unittest.TestCase):
 
             # Verify message with public key
             pub_key = pk.public()
+            self.assertEqual(pub_key.witness_type, tmsg[1])
             self.assertTrue(pub_key.verify_message(message, sig))
 
     def test_keys_message_verify_found_signed_messages(self):
@@ -1412,7 +1414,8 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
         pk = HDKey('L1cgMEnShp73r9iCukoPE3MogLeueNYRD9JVsfT1zVHyPBR3KqBY', witness_type='p2sh-segwit')
         self.assertEqual(pk.address(), addr)
         sig = pk.sign_message(msg, force_canonical=True)
-        self.assertEqual(sig.as_base64(), 'HyFaND+87TtVbRhkTfT3mPNBCQcJ32XXtNZGW8sFldJsNpOPCegEmdcCf5Thy18hdMH88GLxZLkOby/EwVUuSeA=')
+        self.assertEqual(sig.as_base64(),
+                         'IyFaND+87TtVbRhkTfT3mPNBCQcJ32XXtNZGW8sFldJsNpOPCegEmdcCf5Thy18hdMH88GLxZLkOby/EwVUuSeA=')
         self.assertTrue(pk.verify_message(msg, sig))
         self.assertTrue(verify_message(msg, sig, pk.address_obj))
         self.assertRaisesRegex(BKeyError, "Public key from signature and provided address do not match" ,
@@ -1563,13 +1566,13 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
         for network in NETWORK_DEFINITIONS:
             for witness_type in ['legacy', 'segwit', 'p2sh-segwit']:
                 message = f"Signed message for the {network} network and witness_type {witness_type}"
-                # print(message)
+                print(message)
                 pk = HDKey(network=network, witness_type=witness_type)
                 sig = pk.sign_message(message)
                 self.assertTrue(sig.verify_message(message))
                 signed_message = sig.as_signed_message(message)
                 m, s, a = signed_message_parse(signed_message)
-                verify_message(m, s, a)
+                self.assertTrue(verify_message(m, s, a, network))
 
 
 if __name__ == '__main__':

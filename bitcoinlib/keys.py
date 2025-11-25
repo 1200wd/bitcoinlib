@@ -38,6 +38,7 @@ if USE_FASTECDSA:
     from fastecdsa import point as fastecdsa_point
 else:
     import ecdsa
+
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
@@ -476,14 +477,14 @@ def bip38_decrypt(encrypted_privkey, password):
     identifier = d[0:2]
     flagbyte = d[2:3]
     address_hash: bytes = d[3:7]
-    if identifier  == BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
+    if identifier == BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
         owner_entropy: bytes = d[7:15]
         encrypted_half_1_half_1: bytes = d[15:23]
         encrypted_half_2: bytes = d[23:-4]
 
         lot_and_sequence = None
         if flagbyte in [BIP38_MAGIC_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
-                     b'\x0c', b'\x14', b'\x1c', b'\x2c', b'\x34', b'\x3c']:
+                        b'\x0c', b'\x14', b'\x1c', b'\x2c', b'\x34', b'\x3c']:
             owner_salt: bytes = owner_entropy[:4]
             lot_and_sequence = owner_entropy[4:]
         else:
@@ -502,16 +503,16 @@ def bip38_decrypt(encrypted_privkey, password):
 
         aes = AES.new(key, AES.MODE_ECB)
         encrypted_half_1_half_2_seed_b_last_3 = (
-            int.from_bytes(aes.decrypt(encrypted_half_2), 'big') ^
-            int.from_bytes(encrypted_seed_b[16:32], 'big')).to_bytes(16, 'big')
+                int.from_bytes(aes.decrypt(encrypted_half_2), 'big') ^
+                int.from_bytes(encrypted_seed_b[16:32], 'big')).to_bytes(16, 'big')
         encrypted_half_1_half_2: bytes = encrypted_half_1_half_2_seed_b_last_3[:8]
         encrypted_half_1: bytes = (
                 encrypted_half_1_half_1 + encrypted_half_1_half_2
         )
 
         seed_b: bytes = ((
-            int.from_bytes(aes.decrypt(encrypted_half_1), 'big') ^
-            int.from_bytes(encrypted_seed_b[:16], 'big')).to_bytes(16, 'big') +
+                                 int.from_bytes(aes.decrypt(encrypted_half_1), 'big') ^
+                                 int.from_bytes(encrypted_seed_b[:16], 'big')).to_bytes(16, 'big') +
                          encrypted_half_1_half_2_seed_b_last_3[8:])
 
         factor_b: bytes = double_sha256(seed_b)
@@ -688,7 +689,7 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
     """
 
     seed_b = to_bytes(seed)
-    intermediate_password_bytes = change_base(intermediate_passphrase,58, 256)
+    intermediate_password_bytes = change_base(intermediate_passphrase, 58, 256)
     check = intermediate_password_bytes[-4:]
     intermediate_decode = intermediate_password_bytes[:-4]
     checksum = double_sha256(intermediate_decode)[0:4]
@@ -732,9 +733,9 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
         aes.encrypt((int.from_bytes(seed_b[:16], 'big') ^ int.from_bytes(derived_half_1, 'big')).to_bytes(16, 'big'))
     encrypted_half_2 = \
         aes.encrypt((int.from_bytes((encrypted_half_1[8:] + seed_b[16:]), 'big') ^
-                     int.from_bytes(derived_half_2,'big')).to_bytes(16, 'big'))
+                     int.from_bytes(derived_half_2, 'big')).to_bytes(16, 'big'))
     encrypted_wif = pubkeyhash_to_addr_base58(flag + address_hash + owner_entropy + encrypted_half_1[:8] +
-        encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
+                                              encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
 
     point_b = HDKey(factor_b).public_byte
     point_b_prefix = (int.from_bytes(scrypt_hash_bytes[63:], 'big') & 1 ^
@@ -755,7 +756,6 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
         compressed=compressed,
         address=address
     )
-
 
 
 class Address(object):
@@ -1885,7 +1885,7 @@ class HDKey(Key):
 
     def __repr__(self):
         return "<HDKey(public_hex=%s, wif_public=%s, network=%s)>" % \
-               (self.public_hex, self.wif_public(), self.network.name)
+            (self.public_hex, self.wif_public(), self.network.name)
 
     def __neg__(self):
         return self.inverse()
@@ -2399,6 +2399,27 @@ class HDKey(Key):
         # hdkey.key = self.key.public()
         return hdkey
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
+        """
+        Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param force_canonical: Some wallets do not require a canonical s value, so you could set this to False
+        :type force_canonical: bool
+
+        :return Signature:
+        """
+        sig = super(HDKey, self).sign_message(message, use_rfc6979, k, hash_type, force_canonical=force_canonical)
+        sig.witness_type = self.witness_type
+        return sig
+
 
 class Signature(object):
     """
@@ -2481,15 +2502,25 @@ class Signature(object):
         if len(sig) != 65:
             raise KeyError("Invalid length, signature must be base64 encoded and 65 bytes long")
 
-        first = sig[0] - 27
-        if not (0 <= first < 15):
-            raise BKeyError("First byte must be between 27 and 35")
+        first = sig[0]
+        if not (27 <= first <= 47):
+            raise BKeyError("First byte must be between 27 and 47")
         r = int.from_bytes(sig[1:33], 'big')
         s = int.from_bytes(sig[33:65], 'big')
-        compressed = bool(first & 0x4)
-        recid = first & 0x3
 
-        s = Signature(r, s, compressed=compressed, recid=recid,  public_key=public_key)
+        compressed = True
+        witness_type = 'legacy'
+        if first >= 38:
+            witness_type = 'segwit'
+            first -= 12
+        elif first >= 35:
+            witness_type = 'p2sh-segwit'
+            first -= 8
+        else:
+            compressed = bool((first - 27) & 0x4)
+        recid = (first - 27) & 0x3
+
+        s = Signature(r, s, compressed=compressed, recid=recid, public_key=public_key, witness_type=witness_type)
         s._base64 = signature
         return s
 
@@ -2578,7 +2609,7 @@ class Signature(object):
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
 
     def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
-                 hash_type=SIGHASH_ALL, compressed=True, recid=0, network=DEFAULT_NETWORK):
+                 hash_type=SIGHASH_ALL, compressed=True, recid=0, witness_type=None, network=None):
         """
         Initialize Signature object with provided r and r value
 
@@ -2643,6 +2674,7 @@ class Signature(object):
         self.recid = recid
         self._base64 = None
         self.network = network
+        self.witness_type = witness_type
 
         if not der_signature:
             self.der_signature = der_encode_sig(self.r, self.s)
@@ -2652,7 +2684,7 @@ class Signature(object):
     def __repr__(self):
         der_sig = '' if not self._der_encoded else self._der_encoded.hex()
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, self.hex(), der_sig)
+            (self.r, self.s, self.hex(), der_sig)
 
     def __str__(self):
         return self.as_der_encoded(as_hex=True)
@@ -2763,11 +2795,19 @@ class Signature(object):
         if not self._base64:
             if not self.k:
                 raise BKeyError('Message hash required to create base64 signature. k is not set')
+            # for recid in range(4):
             p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
             recid = p1[1] & 1
             if p1[0] > secp256k1_n:
                 recid += 2
-            first = 27 + recid + (4 if self.public_key.compressed else 0)
+            # for i in range(3):
+            #     print(i)
+            first = 27 + recid
+            if not self.witness_type or self.witness_type == 'legacy':
+                first += (4 if self.public_key.compressed else 0)
+            else:
+                first += ((12 if (self.public_key.witness_type == 'segwit') else 0) +
+                          (8 if self.public_key.witness_type == 'p2sh-segwit' else 0))
             sig = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
             self._base64 = sig.decode("utf8")
         return self._base64
@@ -2814,14 +2854,13 @@ class Signature(object):
         :return bool:
         """
 
-        if address and not isinstance(address, Address):
-            address = Address.parse(address)
-            network = address.network
-        if not self.network:
-            self.network = network if network else DEFAULT_NETWORK
+        if network:
+            self.network = network
         if not isinstance(self.network, Network):
-            self.network = Network(self.network)
-
+            self.network = Network(self.network) if self.network else Network(DEFAULT_NETWORK)
+        if address and not isinstance(address, Address):
+            address = Address.parse(address, network=network)
+            address.witness_type = self.witness_type if self.witness_type else address.witness_type
 
         network_msg = message_magic(message, self.network)
         msg_hash = double_sha256(network_msg)
@@ -2959,6 +2998,8 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
     :type prehashed: bool
     :param force_canonical: Force canonicalization of signature s value. Default is True
     :type force_canonical: bool
+    :param network: Specific network, default is DEFAULT_NETWORK
+    :type network: str, Network
 
     :return Signature: 
     """
@@ -3074,7 +3115,7 @@ def message_magic(message, network=None):
     return varstr(f'{network_name.capitalize()} Signed Message:\n') + varstr(message)
 
 
-def verify_message(message, sig, address, network=DEFAULT_NETWORK):
+def verify_message(message, sig, address, network=None):
     """
     Verify signed message. Prove owner of provided address did sign exact message.
 
@@ -3097,6 +3138,7 @@ def verify_message(message, sig, address, network=DEFAULT_NETWORK):
     """
     if not isinstance(sig, Signature):
         sig = Signature.parse(sig)
+        sig.network = network
     return sig.verify_message(message, address, network)
 
 
@@ -3121,10 +3163,11 @@ def signed_message_parse(message_signature):
     :return tuple (str, str, str): message, base64 encoded signature, address
     """
     try:
-        _, body = message_signature.split('SIGNED MESSAGE-----\n', 1)
+        head, body = message_signature.split('SIGNED MESSAGE-----\n', 1)
     except ValueError:
         raise BKeyError("SIGNED MESSAGE text expected in string")
 
+    network = head.split(' ')[-2]
     message_list = body.split('-----BEGIN ', 2)
     message = message_list[0].strip()
 
@@ -3132,4 +3175,3 @@ def signed_message_parse(message_signature):
     addr = addr_sig_list[1].strip()
     sig_b64 = addr_sig_list[2].strip()
     return message, sig_b64, addr
-
