@@ -2992,7 +2992,7 @@ class TestWalletSignMessages(unittest.TestCase):
         # Electrum wallet does not follow BIP-0137 standard, so Bitcoinlib can not create expected signature,
         # as first byte is different:
         # Elect. sig = 'ICaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
-        expected_sig = 'HyaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+        expected_sig = 'JyaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
 
         w = wallet_create_or_open('wallet_electrum_message_signing_test', phrase, db_uri=self.database_uri)
         wallet_key = w.address_index(0)
