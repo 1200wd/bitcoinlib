@@ -1280,7 +1280,7 @@ ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6
         ]
 
         for msg_sig in messages:
-            print(msg_sig)
+            # print(msg_sig)
             message, sig_b64, addr, nw = signed_message_parse(msg_sig)
             self.assertTrue(verify_message(message, sig_b64, addr, nw))
 
@@ -1324,7 +1324,7 @@ ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86w
             pk = HDKey()
             sig = pk.sign_message(message)
             bsm = sig.as_signed_message(message)
-            print(bsm)
+            # print(bsm)
             m, s, a, nw = signed_message_parse(bsm)
             self.assertTrue(verify_message(m, s, a, nw))
 
