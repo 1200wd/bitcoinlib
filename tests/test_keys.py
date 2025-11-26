@@ -1192,18 +1192,18 @@ class TestKeysMessages(unittest.TestCase):
              # tested with verifybitcoinmessage, checkmsg.org, bitcoinmessage.tools, bitcoin core, etc
              'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('bitcoin', 'p2sh-segwit',    # tested with verifybitcoinmessage
-             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'JC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('bitcoin', 'segwit',         # tested with verifybitcoinmessage
-             'LC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('testnet', 'legacy',         # tested with bluewallet.github.io, verifybitcoinmessage
              'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('testnet4', 'segwit',        # tested with bluewallet.github.io, verifybitcoinmessage
-             'LC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
             ('signet', 'segwit',          # tested with bluewallet.github.io, verifybitcoinmessage
-             'LC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
         ]
         for tmsg in test_messages:
-            print(f"network={tmsg[0]}, witness_type={tmsg[1]}")
+            # print(f"network={tmsg[0]}, witness_type={tmsg[1]}")
             pk = HDKey(private_hex, network=tmsg[0], witness_type=tmsg[1])
 
             # Sign message and check base64 signature
@@ -1280,8 +1280,9 @@ ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6
         ]
 
         for msg_sig in messages:
-            message, sig_b64, addr = signed_message_parse(msg_sig)
-            self.assertTrue(verify_message(message, sig_b64, addr))
+            print(msg_sig)
+            message, sig_b64, addr, nw = signed_message_parse(msg_sig)
+            self.assertTrue(verify_message(message, sig_b64, addr, nw))
 
     def test_keys_message_verify_found_signed_messages_invalid(self):
         messages = [
@@ -1295,8 +1296,8 @@ ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6
         ]
 
         for msg_sig in messages:
-            message, sig_b64, addr = signed_message_parse(msg_sig)
-            self.assertFalse(verify_message(message, sig_b64, addr))
+            message, sig_b64, addr, nw = signed_message_parse(msg_sig)
+            self.assertFalse(verify_message(message, sig_b64, addr, nw))
 
         # Test result when changing message, address or sig
         SIGNED_MESSAGE = """-----BEGIN BITCOIN SIGNED MESSAGE-----
@@ -1305,8 +1306,8 @@ Bitcoinlib is cool!
 bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
 ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=
 -----END BITCOIN SIGNED MESSAGE-----"""
-        message, sig_b64, addr = signed_message_parse(SIGNED_MESSAGE)
-        self.assertTrue(verify_message(message, sig_b64, addr))
+        message, sig_b64, addr, nw = signed_message_parse(SIGNED_MESSAGE)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
 
         wrong_message = "Bitcoinlib sucks!"
         self.assertFalse(verify_message(wrong_message, sig_b64, addr))
@@ -1323,8 +1324,9 @@ ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86w
             pk = HDKey()
             sig = pk.sign_message(message)
             bsm = sig.as_signed_message(message)
-            m, s, a = signed_message_parse(bsm)
-            self.assertTrue(verify_message(m, s, a))
+            print(bsm)
+            m, s, a, nw = signed_message_parse(bsm)
+            self.assertTrue(verify_message(m, s, a, nw))
 
     def test_keys_message_verify_trezor(self):
         # Test with https://www.bitkassa.nl/signmessage-local
@@ -1344,8 +1346,8 @@ Sign testnet with Trezor
 tb1qld5enve8wdd8dfw5net62k2klpz3atefzndpen
 KK6hBpVOiA2B7FayE0tk2l/EQ6DQcqsWUtvLZZdQi2WWSlD2ZSFMEG9q58zb0TfPBzMLThwFk1YhX7aI0Av6yoM=
 -----END BITCOIN TESTNET SIGNED MESSAGE-----"""
-        message, sig_b64, addr = signed_message_parse(message)
-        self.assertTrue(verify_message(message, sig_b64, addr))
+        message, sig_b64, addr, nw = signed_message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
 
         # Trezor Dogecoin test
         message = """-----BEGIN DOGECOIN SIGNED MESSAGE-----
@@ -1354,8 +1356,8 @@ Dogecoin rocks!
 DGYyzjZCrcTFc4NX1g4iLfwRLwxavt3q8r
 IHQ6zcQV+lXFHfzktU/NU1PcobHJhmOOqHism4L5fPcKPXQnZFiNPXyjLb1JG9GknzA5I0z4GWPGGh8bpcZ1vAk=
 -----END DOGECOIN SIGNED MESSAGE-----"""
-        message, sig_b64, addr = signed_message_parse(message)
-        self.assertTrue(verify_message(message, sig_b64, addr))
+        message, sig_b64, addr, nw = signed_message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
 
         # Trezor Litecoin test
         message = """-----BEGIN LITECOIN SIGNED MESSAGE-----
@@ -1365,8 +1367,8 @@ ltc1q6ewt25qxf7h96g7jklv8h77zcunrn86fl9yu4s
 KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+6pIVKcM=
 -----END LITECOIN SIGNED MESSAGE-----
 """
-        message, sig_b64, addr = signed_message_parse(message)
-        self.assertTrue(verify_message(message, sig_b64, addr))
+        message, sig_b64, addr, nw = signed_message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
 
     def test_keys_sign_message_errors(self):
         address = "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu"
@@ -1566,13 +1568,13 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
         for network in NETWORK_DEFINITIONS:
             for witness_type in ['legacy', 'segwit', 'p2sh-segwit']:
                 message = f"Signed message for the {network} network and witness_type {witness_type}"
-                print(message)
+                # print(message)
                 pk = HDKey(network=network, witness_type=witness_type)
                 sig = pk.sign_message(message)
                 self.assertTrue(sig.verify_message(message))
                 signed_message = sig.as_signed_message(message)
-                m, s, a = signed_message_parse(signed_message)
-                self.assertTrue(verify_message(m, s, a, network))
+                m, s, a, nw = signed_message_parse(signed_message)
+                self.assertTrue(verify_message(m, s, a, nw))
 
 
 if __name__ == '__main__':

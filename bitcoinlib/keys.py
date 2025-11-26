@@ -2503,8 +2503,8 @@ class Signature(object):
             raise KeyError("Invalid length, signature must be base64 encoded and 65 bytes long")
 
         first = sig[0]
-        if not (27 <= first <= 47):
-            raise BKeyError("First byte must be between 27 and 47")
+        if not (27 <= first <= 42):
+            raise BKeyError("First byte must be between 27 and 42")
         r = int.from_bytes(sig[1:33], 'big')
         s = int.from_bytes(sig[33:65], 'big')
 
@@ -2831,12 +2831,13 @@ class Signature(object):
         """
         if not self.public_key:
             raise KeyError('Public key is missing')
-        message_str = f"-----BEGIN {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
+        network_name = self.public_key.network.name.upper()
+        message_str = f"-----BEGIN {network_name} SIGNED MESSAGE-----\n"
         message_str += message + "\n"
         message_str += "-----BEGIN SIGNATURE-----\n"
         message_str += self.public_key.address() + "\n"
         message_str += self.as_base64() + "\n"
-        message_str += f"-----END {self.public_key.network.description.split(' ')[0].upper()} SIGNED MESSAGE-----\n"
+        message_str += f"-----END {network_name} SIGNED MESSAGE-----\n"
         return message_str
 
     def verify_message(self, message, address=None, network=None):
@@ -2859,7 +2860,8 @@ class Signature(object):
         if not isinstance(self.network, Network):
             self.network = Network(self.network) if self.network else Network(DEFAULT_NETWORK)
         if address and not isinstance(address, Address):
-            address = Address.parse(address, network=network)
+            # address = Address.parse(address, network=network)
+            address = Address.parse(address)
             address.witness_type = self.witness_type if self.witness_type else address.witness_type
 
         network_msg = message_magic(message, self.network)
@@ -3155,23 +3157,23 @@ def signed_message_parse(message_signature):
                           -----END BITCOIN SIGNED MESSAGE-----")
     Result:
     ('Bitcoinlib is cool!', 'bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw',
-    'ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=')
+    'ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=', 'bitcoin')
 
     :param message_signature: Signed Message text
     :type message_signature: str
 
-    :return tuple (str, str, str): message, base64 encoded signature, address
+    :return tuple (str, str, str, str): message, base64 encoded signature, address
     """
     try:
         head, body = message_signature.split('SIGNED MESSAGE-----\n', 1)
     except ValueError:
         raise BKeyError("SIGNED MESSAGE text expected in string")
 
-    network = head.split(' ')[-2]
+    network = head.split(' ')[-2].lower()
     message_list = body.split('-----BEGIN ', 2)
     message = message_list[0].strip()
 
     addr_sig_list = [r for r in message_list[1].split('\n') if r]
     addr = addr_sig_list[1].strip()
     sig_b64 = addr_sig_list[2].strip()
-    return message, sig_b64, addr
+    return message, sig_b64, addr, network
