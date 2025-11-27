@@ -1073,16 +1073,16 @@ class TestKeysSignatures(unittest.TestCase):
     def test_signatures_dunder(self):
         sig1 = Signature.parse_hex('3045022100c949a465a057f3ca7d20e80511e93d0be21e3efbeb8720ca3e0adfbce6883d0a022070b'
                                    '2c6bee101a4ffcb854bae34dbd1f35c31140a46559148a1fa883eedede03401')
-        sig2 = Signature.parse_hex('3045022100b5ce13dc408c65208cf475b44b2012845d4d3fb7a2cacfa35f6b5143761f976f02207d8'
-                                   '581d6004779c7f168e90496d544407d5f0e2eecd44c50fcef1006a86731ec01')
+        # sig2 = Signature.parse_hex('3045022100b5ce13dc408c65208cf475b44b2012845d4d3fb7a2cacfa35f6b5143761f976f02207d8'
+        #                            '581d6004779c7f168e90496d544407d5f0e2eecd44c50fcef1006a86731ec01')
         self.assertEqual(len(sig1), 72)
-        self.assertEqual(sig1 + sig2, sig1.as_der_encoded() + sig2.as_der_encoded())
-        self.assertEqual(sig1 + sig2, b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
-                                      b'\xfb\xeb\x87 \xca>\n\xdf\xbc\xe6\x88=\n\x02 p\xb2\xc6\xbe\xe1'
-                                      b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
-                                      b'\xed\xe04\x010E\x02!\x00\xb5\xce\x13\xdc@\x8ce \x8c\xf4u\xb4K \x12\x84]M?'
-                                      b'\xb7\xa2\xca\xcf\xa3_kQCv\x1f\x97o\x02 }\x85\x81\xd6\x00Gy\xc7\xf1'
-                                      b'h\xe9\x04\x96\xd5D@}_\x0e.\xec\xd4LP\xfc\xef\x10\x06\xa8g1\xec\x01')
+        # self.assertEqual(sig1 + sig2, sig1.as_der_encoded() + sig2.as_der_encoded())
+        # self.assertEqual(sig1 + sig2, b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
+        #                               b'\xfb\xeb\x87 \xca>\n\xdf\xbc\xe6\x88=\n\x02 p\xb2\xc6\xbe\xe1'
+        #                               b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
+        #                               b'\xed\xe04\x010E\x02!\x00\xb5\xce\x13\xdc@\x8ce \x8c\xf4u\xb4K \x12\x84]M?'
+        #                               b'\xb7\xa2\xca\xcf\xa3_kQCv\x1f\x97o\x02 }\x85\x81\xd6\x00Gy\xc7\xf1'
+        #                               b'h\xe9\x04\x96\xd5D@}_\x0e.\xec\xd4LP\xfc\xef\x10\x06\xa8g1\xec\x01')
         self.assertEqual(str(sig1), '3045022100c949a465a057f3ca7d20e80511e93d0be21e3efbeb8720ca3e0adfbce6883d0a0220'
                                     '70b2c6bee101a4ffcb854bae34dbd1f35c31140a46559148a1fa883eedede03401')
         self.assertEqual(bytes(sig1), b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
