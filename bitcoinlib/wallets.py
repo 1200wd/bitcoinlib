@@ -590,6 +590,37 @@ class WalletKey(object):
         self._dbkey = None
         return pub_key
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
+        """ Sign message with this wallet key
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param force_canonical: Some wallets require a canonical s value, so you could set this to True
+        :type force_canonical: bool
+
+        :return Signature:
+        """
+        return self.key().sign_message(message, use_rfc6979, k, hash_type, force_canonical)
+
+    def verify_message(self, message, signature):
+        """
+        Verify if provided message is signed by signature for this wallet key.
+
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param signature: signature as Signature object
+        :type signature: Signature
+
+        :return bool:
+        """
+        return self.key().verify_message(message, signature)
+
     def as_dict(self, include_private=False):
         """
         Return current key information as dictionary
@@ -1145,6 +1176,7 @@ class WalletTransaction(Transaction):
                               sigs_required=self.hdwallet.multisig_n_required, sort=self.hdwallet.sort_keys,
                               compressed=key.compressed, value=utxo['value'], address=utxo['address'],
                               witness_type=key.witness_type)
+
 
 class Wallet(object):
     """

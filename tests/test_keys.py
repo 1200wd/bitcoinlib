@@ -21,10 +21,11 @@
 import os
 import unittest
 import json
+from unicodedata import normalize
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
-# Number of bulktests for generation of private, public keys and HDKeys. Set to 0 to disable
+# Number of bulktests for generation of private, public keys, HDKeys and signatures. Set to 0 to disable
 # WARNING: Can be slow for a larger number of tests
 BULKTESTCOUNT = 250
 
@@ -971,10 +972,6 @@ class TestKeysSignatures(unittest.TestCase):
             count += 1
 
     def test_signatures_rfc6979(self):
-        if not USE_FASTECDSA:
-            # This test are only useful when fastecdsa library is used
-            return True
-
         # source: https://bitcointalk.org/index.php?topic=285142.40
         # Test Vectors for RFC 6979 ECDSA, secp256k1, SHA-256
         # (private key, message, expected k, expected signature)
@@ -1034,16 +1031,21 @@ class TestKeysSignatures(unittest.TestCase):
         ]
 
         for vector in test_vectors:
-            msg = to_bytes(vector[1])
-            x = int(vector[0])
-            rfc6979 = RFC6979(msg, x, secp256k1_n, hashlib.sha256)
-            k = rfc6979.gen_nonce()
-            expected = vector[2]
-            if expected is not None:
-                self.assertEqual(k, expected)
             msg_hash = hashlib.sha256(to_bytes(vector[1])).digest()
-            sig = sign(msg_hash, x, k=k)
-            self.assertEqual(sig.hex(), vector[3])
+            secret = int(vector[0])
+            if USE_FASTECDSA:
+                rfc6979 = RFC6979(msg_hash, secret, secp256k1_n, hashlib.sha256, prehashed=True)
+                k = rfc6979.gen_nonce()
+                expected = vector[2]
+                if expected is not None:
+                    self.assertEqual(k, expected)
+
+            else:
+                k = ecdsa.rfc6979.generate_k(ecdsa.SECP256k1.generator.order(), secret, hashlib.sha256,
+                                             msg_hash)
+                self.assertTrue((vector[2] is None) or vector[2] == k)
+            sig = sign(msg_hash, secret, k=k).hex()
+            self.assertEqual(sig, vector[3])
 
     def test_signatures_from_r_and_s(self):
         r = 0x657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c
@@ -1076,19 +1078,26 @@ class TestKeysSignatures(unittest.TestCase):
         sig2 = Signature.parse_hex('3045022100b5ce13dc408c65208cf475b44b2012845d4d3fb7a2cacfa35f6b5143761f976f02207d8'
                                    '581d6004779c7f168e90496d544407d5f0e2eecd44c50fcef1006a86731ec01')
         self.assertEqual(len(sig1), 72)
-        self.assertEqual(sig1 + sig2, sig1.as_der_encoded() + sig2.as_der_encoded())
-        self.assertEqual(sig1 + sig2, b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
-                                      b'\xfb\xeb\x87 \xca>\n\xdf\xbc\xe6\x88=\n\x02 p\xb2\xc6\xbe\xe1'
-                                      b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
-                                      b'\xed\xe04\x010E\x02!\x00\xb5\xce\x13\xdc@\x8ce \x8c\xf4u\xb4K \x12\x84]M?'
-                                      b'\xb7\xa2\xca\xcf\xa3_kQCv\x1f\x97o\x02 }\x85\x81\xd6\x00Gy\xc7\xf1'
-                                      b'h\xe9\x04\x96\xd5D@}_\x0e.\xec\xd4LP\xfc\xef\x10\x06\xa8g1\xec\x01')
         self.assertEqual(str(sig1), '3045022100c949a465a057f3ca7d20e80511e93d0be21e3efbeb8720ca3e0adfbce6883d0a0220'
                                     '70b2c6bee101a4ffcb854bae34dbd1f35c31140a46559148a1fa883eedede03401')
         self.assertEqual(bytes(sig1), b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
                                       b'\xfb\xeb\x87 \xca>\n\xdf\xbc\xe6\x88=\n\x02 p\xb2\xc6\xbe\xe1'
                                       b'\x01\xa4\xff\xcb\x85K\xae4\xdb\xd1\xf3\\1\x14\nFU\x91H\xa1\xfa\x88>\xed'
                                       b'\xed\xe04\x01')
+        self.assertFalse(sig1 == sig2)
+
+    def test_signatures_compare(self):
+        network = 'signet'
+        witness_type = 'segwit'
+        private_hex = HDKey(network=network, witness_type=witness_type).private_hex
+        pk = HDKey(private_hex)
+        pk2 = HDKey(private_hex)
+        message = 'signature testing 123'
+
+        sig1 = pk.sign_message(message)
+        sig2 = pk2.sign_message(message)
+
+        self.assertEqual(sig1, sig2)
 
 
 class TestKeysTaproot(unittest.TestCase):
@@ -1121,6 +1130,451 @@ class TestKeysTaproot(unittest.TestCase):
         addr_dict = deserialize_address(p2tr_address2)
         self.assertEqual(addr_dict['public_key_hash'], pubkeyhash)
         self.assertEqual(addr_dict['script_type'], 'p2tr')
+
+
+class TestKeysMessages(unittest.TestCase):
+
+    def test_keys_message_sign_and_verify_bitcoin_core(self):
+        # Test with local bitcoin core node
+        # $ bitcoin - cli signmessage "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu" "Eat more cheese!"
+        # H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo=
+        # $ bitcoin - cli verifymessage "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu" "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo=" "Eat more cheese!"
+        address = "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu"
+        message = "Eat more cheese!"
+        sig = "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo="
+        self.assertTrue(verify_message(message, sig, address))
+
+    def test_keys_message_signing_pycoin(self):
+        # Compared with pycoin library output - step-by-step compared results
+        wif = 'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp'
+        addr = '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv'
+        msg = 'test message A'
+        expected_sig_base64 = ("H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN"
+                               "+0phX6ysIGdNe99EJPobpcNwl4ht790=")
+        expected_sig_der = ("30460221008dde7014a7a75f90d2227bc1bb4173f7042c620b9f436f29be54ad3789a80d3b02210087263e140"
+                            "ed205558dfb4a615facac20674d7bdf4424fa1ba5c37097886defdd01")
+        expected_signed_message = \
+            "-----BEGIN BITCOIN SIGNED MESSAGE-----\n" \
+            "test message A\n" \
+            "-----BEGIN SIGNATURE-----\n" \
+            "1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv\n" \
+            "H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN+0phX6ysIGdNe99EJPobpcNwl4ht790=\n" \
+            "-----END BITCOIN SIGNED MESSAGE-----\n" \
+
+        pk = HDKey(wif, witness_type='legacy')
+        self.assertEqual(pk.address(), addr)
+
+        sig = pk.sign_message(msg, force_canonical=False)
+        self.assertEqual(64169125251067142060049740121784818273156574831540951431018131832714377563451, sig.r)
+        self.assertEqual(61129803196235745037234955305700148791464496745709279972088993803821678194653, sig.s)
+
+        pub_key = pk.public()
+        self.assertTrue(pub_key.verify_message(msg, sig))
+        self.assertTrue(sig.verify())
+
+        sigb64 = sig.as_base64()
+        self.assertEqual(sigb64, expected_sig_base64)
+
+        sig3 = Signature.parse_base64(sigb64)
+        self.assertEqual(sig3.as_der_encoded().hex(), expected_sig_der)
+        self.assertTrue(pub_key.verify_message(msg, sig3))
+
+        self.assertEqual(sig.as_signed_message(msg), expected_signed_message)
+
+    def test_keys_message_signing_and_verification(self):
+        private_hex = '06cffb14a8b9a901c60486e139f435cc7042d9ce78c65ebf94e7a62697e1dbfa'
+        message = 'bitcoinlib rocks'
+        test_messages = [
+            # network, witness_type, expected_sig
+            ('litecoin', 'legacy',        # tested with litecoinpool.org
+             'IJZPEvxNKTqXNe2NBvKhFIrDrnl14S629hH9y5jR+EO3SwYi6/Rpc+F40X3cCmXVZcrXfqPxpavLMzoQSdFaK/0='),
+            ('bitcoin', 'legacy',
+             # tested with verifybitcoinmessage, checkmsg.org, bitcoinmessage.tools, bitcoin core, etc
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('bitcoin', 'p2sh-segwit',    # tested with verifybitcoinmessage
+             'JC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('bitcoin', 'segwit',         # tested with verifybitcoinmessage
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('testnet', 'legacy',         # tested with bluewallet.github.io, verifybitcoinmessage
+             'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('testnet4', 'segwit',        # tested with bluewallet.github.io, verifybitcoinmessage
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+            ('signet', 'segwit',          # tested with bluewallet.github.io, verifybitcoinmessage
+             'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
+        ]
+        for tmsg in test_messages:
+            # print(f"network={tmsg[0]}, witness_type={tmsg[1]}")
+            pk = HDKey(private_hex, network=tmsg[0], witness_type=tmsg[1])
+
+            # Sign message and check base64 signature
+            sig = pk.sign_message(message, force_canonical=False)
+            self.assertEqual(sig.as_base64(), tmsg[2])
+
+            # Verify message with public key
+            pub_key = pk.public()
+            self.assertEqual(pub_key.witness_type, tmsg[1])
+            self.assertTrue(pub_key.verify_message(message, sig))
+
+    def test_keys_message_verify_found_signed_messages(self):
+        # RFC2440
+        messages = [
+# From pycoin library
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+test message AAAAAAAAAA
+-----BEGIN SIGNATURE-----
+1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv
+ID1VEsaxxrBFXNmWVTL5RKZQ5jZNSO845UFr1I5COO05bzt2wy187igIFBqhNEMtL+mV5Xhww9+eFUish1n+Xgg=
+-----END BITCOIN SIGNED MESSAGE-----""",
+
+# go-bitcoin-message-tool
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+ECDSA is the most fun I have ever experienced
+-----BEGIN BITCOIN SIGNATURE-----
+16wrm6zJek6REbxbJSLsBHehn3Lj1vo57t
+H3x5bM2MpXK9MyLLbIGWQjZQNTP6lfuIjmPqMrU7YZ5CCm5bS9L+zCtrfIOJaloDb0mf9QBSEDIs4UCd/jou1VI=
+-----END BITCOIN SIGNATURE-----""",
+
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+ECDSA is the most fun I have ever experienced
+-----BEGIN BITCOIN SIGNATURE-----
+bc1qdn4nnn59570wlkdn4tq23whw6y5e6c28p7chr5
+
+J8xT/nFS2YpzmW6kDCoH4hjjLKjR2k7o9fHq2je/natNdMmYzQ7Gik5EHV1gVbkVOl7M74d7g2fEBl+csGqyqJ8=
+-----END BITCOIN SIGNATURE-----""",
+
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+f1591bfb04a89f723e1f14eb01a6b2f6f507eb0967d0a5d7822b329b98018ae4  coldcard-export.json
+-----BEGIN BITCOIN SIGNATURE-----
+mtHSVByP9EYZmB26jASDdPVm19gvpecb5R
+IFOvGVJrm31S0j+F4dVfQ5kbRKWKcmhmXIn/Lw8iIgaCG5QNZswjrN4X673R7jTZo1kvLmiD4hlIrbuLh/HqDuk=
+-----END BITCOIN SIGNATURE-----""",
+
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+Anything one man can imagine, other men can make real
+-----BEGIN BITCOIN SIGNATURE-----
+1Fo65aKq8s8iquMt6weF1rku1moWVEd5Ua
+IIONt3uYHbMh+vUnqDBGHP2gGu1Q2Fw0WnsKj05eT9P8KI2kGgPniiPirCd5IeLRnRdxeiehDxxsyn/VujUaX8o=
+-----END BITCOIN SIGNATURE-----""",
+
+"""Username: Bit2c
+Public key: 0396267072e597ad5d043db7c73e13af84a77a7212871f1aade607fb0f2f96e1a8
+Public key address: 15etuU8kwLFCBbCNRsgQTvWgrGWY9829ej
+URL: https://www.bitrated.com/u/Bit2c
+
+-----BEGIN BITCOIN SIGNED MESSAGE-----
+We will try to contact both parties to gather information and evidence, and do my best to make rightful judgement. Evidence may be submitted to us on https://www.bit2c.co.il/home/contact or in a private message to info@bit2c.co.il or in any agreed way.
+
+https://www.bit2c.co.il
+-----BEGIN SIGNATURE-----
+15etuU8kwLFCBbCNRsgQTvWgrGWY9829ej
+H2utKkquLbyEJamGwUfS9J0kKT4uuMTEr2WX2dPU9YImg4LeRpyjBelrqEqfM4QC8pJ+hVlQgZI5IPpLyRNxvK8=
+-----END BITCOIN SIGNED MESSAGE-----""",
+
+# https://bitcoin.stackexchange.com/questions/77324/how-are-bitcoin-signed-messages-generated
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+Test
+-----BEGIN BITCOIN SIGNATURE-----
+1BqtNgMrDXnCek3cdDVSer4BK7knNTDTSR
+ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6DPDpEik=
+-----END BITCOIN SIGNATURE-----""",
+        ]
+
+        for msg_sig in messages:
+            # print(msg_sig)
+            message, sig_b64, addr, nw = signed_message_parse(msg_sig)
+            self.assertTrue(verify_message(message, sig_b64, addr, nw))
+
+    def test_keys_message_verify_found_signed_messages_invalid(self):
+        messages = [
+# https://bitcoin.stackexchange.com/questions/77324/how-are-bitcoin-signed-messages-generated
+"""-----BEGIN BITCOIN SIGNED MESSAGE-----
+Test
+-----BEGIN BITCOIN SIGNATURE-----
+1FZHv7fubXkMcgbDBUeehgPf28cHP86f7V
+ILoOBJK9kVKsdUOnJPPoDtrDtRSQw2pyMo+2r5bdUlNkSLDZLqMs8h9mfDm/alZo3DK6rKvTO0xRPrl6DPDpEik=
+-----END BITCOIN SIGNATURE-----""",
+        ]
+
+        for msg_sig in messages:
+            message, sig_b64, addr, nw = signed_message_parse(msg_sig)
+            self.assertFalse(verify_message(message, sig_b64, addr, nw))
+
+        # Test result when changing message, address or sig
+        SIGNED_MESSAGE = """-----BEGIN BITCOIN SIGNED MESSAGE-----
+Bitcoinlib is cool!
+-----BEGIN SIGNATURE-----
+bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
+ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=
+-----END BITCOIN SIGNED MESSAGE-----"""
+        message, sig_b64, addr, nw = signed_message_parse(SIGNED_MESSAGE)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
+
+        wrong_message = "Bitcoinlib sucks!"
+        self.assertFalse(verify_message(wrong_message, sig_b64, addr))
+        wrong_sig = 'IGlGc5mQo2jl4AYp6GwFPhHm9M6XJ4ZQqqmHxaR0ugiPprkVpFhLsqWref7/7xbZD1KsIdQqZW9s1LCUiX7IzQQ='
+        self.assertFalse(verify_message(message, wrong_sig, addr))
+        wrong_addr = 'bc1qx75nvpnpxhxhlru98pjw37yux2zknvqrkgp4c4'
+        self.assertFalse(verify_message(message, sig_b64, wrong_addr))
+        self.assertFalse(verify_message('', sig_b64, addr))
+
+    def test_keys_messages_sign_and_verify_bulk(self):
+        import string
+        for _ in range(BULKTESTCOUNT // 5):
+            message = ''.join(random.choices(string.ascii_letters + string.digits, k=200))
+            pk = HDKey()
+            sig = pk.sign_message(message)
+            bsm = sig.as_signed_message(message)
+            # print(bsm)
+            m, s, a, nw = signed_message_parse(bsm)
+            self.assertTrue(verify_message(m, s, a, nw))
+
+    def test_keys_message_verify_trezor(self):
+        # Test with https://www.bitkassa.nl/signmessage-local
+        pkwif = 'L5QrCGq1XJY3s5kYGH512pP4dcBmEY2sUYZ2NnKi7jt9H8UXRKta'
+        message = 'Tested with https://www.bitkassa.nl/signmessage-local'
+        expected_sig = 'IB77gJYCT6HW7QTyfrTPM6j7dmTJze490EVo6C2gtJf0HkqyLX0S7mwYle9nNPrddVM+wND2ygHyWpuBE00etkw='
+        expected_addr = '15mgozmrZ7j6ZTpKQQ26MhR3q1wQ296oEb'
+        pk = HDKey(pkwif, witness_type='legacy')
+        sig = pk.sign_message(message)
+        self.assertEqual(sig.as_base64(), expected_sig)
+        self.assertTrue(verify_message(message, sig, expected_addr))
+
+        # Trezor test
+        message = """-----BEGIN BITCOIN TESTNET SIGNED MESSAGE-----
+Sign testnet with Trezor
+-----BEGIN SIGNATURE-----
+tb1qld5enve8wdd8dfw5net62k2klpz3atefzndpen
+KK6hBpVOiA2B7FayE0tk2l/EQ6DQcqsWUtvLZZdQi2WWSlD2ZSFMEG9q58zb0TfPBzMLThwFk1YhX7aI0Av6yoM=
+-----END BITCOIN TESTNET SIGNED MESSAGE-----"""
+        message, sig_b64, addr, nw = signed_message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
+
+        # Trezor Dogecoin test
+        message = """-----BEGIN DOGECOIN SIGNED MESSAGE-----
+Dogecoin rocks!
+-----BEGIN SIGNATURE-----
+DGYyzjZCrcTFc4NX1g4iLfwRLwxavt3q8r
+IHQ6zcQV+lXFHfzktU/NU1PcobHJhmOOqHism4L5fPcKPXQnZFiNPXyjLb1JG9GknzA5I0z4GWPGGh8bpcZ1vAk=
+-----END DOGECOIN SIGNED MESSAGE-----"""
+        message, sig_b64, addr, nw = signed_message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
+
+        # Trezor Litecoin test
+        message = """-----BEGIN LITECOIN SIGNED MESSAGE-----
+Hello Litecoin!
+-----BEGIN SIGNATURE-----
+ltc1q6ewt25qxf7h96g7jklv8h77zcunrn86fl9yu4s
+KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+6pIVKcM=
+-----END LITECOIN SIGNED MESSAGE-----
+"""
+        message, sig_b64, addr, nw = signed_message_parse(message)
+        self.assertTrue(verify_message(message, sig_b64, addr, nw))
+
+    def test_keys_sign_message_errors(self):
+        address = "17J4q9GZg68s88ve9tzBJD9RURogmQMnnu"
+        message = "Eat more cheese!"
+        sig = "H16wBg2U8oD9FR1Ht/y8C2NYxUl+qkzQfB4wBD3wplMOdsYlMoPgAoqJ0LY33KHDeZkc395Pi0e6mLDbYKr6alo="
+        s = Signature.parse_base64(sig)
+        self.assertRaisesRegex(BKeyError, "Public key is unknown, please provide address to derive public "
+                                          "key", s.verify_message, message)
+        self.assertTrue(s.verify_message(message, address))
+        # Now it works without Address, because public key has been derived before
+        self.assertTrue(s.verify_message(message))
+
+    def test_keys_message_sign_verify_electrum(self):
+        #
+        # Electrum uses a different method to determine recovery id and also grinds r values. So the tests below
+        # are a copy of the Electrum unittests, but with grinding disabled and a different recovery ID.
+        #
+        msg1 = b'Chancellor on brink of second bailout for banks'
+        addr1 = '15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz'
+        expected_sig1 = 'IP9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y='
+        pk = HDKey('L1TnU2zbNaAqMoVh65Cyvmcjzbrj41Gs9iTLcWbpJCMynXuap6UN', witness_type='legacy')
+        self.assertEqual(pk.address(), addr1)
+        sig1 = pk.sign_message(msg1, force_canonical=True)
+        self.assertEqual(sig1.as_base64(), expected_sig1)
+
+        msg2 = 'Electrum'
+        addr2 = '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6'
+        expected_sig2 = 'G84dmJ8TKIDKMT9qBRhpX2sNmR0y5t+POcYnFFJCs66lJmAs3T8A6Sbpx7KA6yTQ9djQMabwQXRrDomOkIKGn18='
+        pk = HDKey('5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD', witness_type='legacy')
+        self.assertEqual(pk.address(), addr2)
+        sig2 = pk.sign_message(msg2, force_canonical=True)
+        self.assertEqual(sig2.as_base64(), expected_sig2)
+        self.assertTrue(verify_message(msg2, sig2, addr2))
+
+        addr = "15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz"
+        sig_low_s = 'Hzsu0U/THAsPz/MSuXGBKSULz2dTfmrg1NsAhFp+wH5aKfmX4Db7ExLGa7FGn0m6Mf43KsbEOWpvUUUBTM3Uusw='
+        sig_high_s = 'IDsu0U/THAsPz/MSuXGBKSULz2dTfmrg1NsAhFp+wH5a1gZoH8kE7O05lE65YLZFzLx3sh/rDzXMbo1dQAJhhnU='
+        msg = 'Chancellor on brink of second bailout for banks'
+        self.assertTrue(verify_message(msg, sig_low_s, addr))
+        self.assertTrue(verify_message(msg, sig_high_s, addr))
+
+        # p2wpkh-p2sh
+        msg = 'Electrum'
+        addr = "3DYoBqQ5N6dADzyQjy9FT1Ls4amiYVaqTG"
+        pk = HDKey('L1cgMEnShp73r9iCukoPE3MogLeueNYRD9JVsfT1zVHyPBR3KqBY', witness_type='p2sh-segwit')
+        self.assertEqual(pk.address(), addr)
+        sig = pk.sign_message(msg, force_canonical=True)
+        self.assertEqual(sig.as_base64(),
+                         'IyFaND+87TtVbRhkTfT3mPNBCQcJ32XXtNZGW8sFldJsNpOPCegEmdcCf5Thy18hdMH88GLxZLkOby/EwVUuSeA=')
+        self.assertTrue(pk.verify_message(msg, sig))
+        self.assertTrue(verify_message(msg, sig, pk.address_obj))
+        self.assertRaisesRegex(BKeyError, "Public key from signature and provided address do not match" ,
+                               verify_message, msg, sig, HDKey().address())
+        self.assertFalse(verify_message('heyheyhey', sig, pk.address_obj))
+        self.assertTrue(sig.verify_message(msg, addr))
+
+        # p2wpkh
+        pk2 = HDKey("L1cgMEnShp73r9iCukoPE3MogLeueNYRD9JVsfT1zVHyPBR3KqBY", witness_type='segwit')
+        addr2 = "bc1qq2tmmcngng78nllq2pvrkchcdukemtj56uyue0"
+        self.assertEqual(pk2.address(), addr2)
+        sig2 = pk2.sign_message(msg, force_canonical=True)
+        self.assertTrue(verify_message(msg, sig2, addr2))
+        self.assertFalse(verify_message('heyheyhey', sig2, addr2))
+        self.assertRaisesRegex(BKeyError, "Public key from signature and provided address do not match" ,
+                               verify_message, msg, sig1, addr2)
+
+    def test_keys_message_sign_verify_trezor(self):
+        # Test vectors from Trezor
+        # See: Trezor github tests/device_tests/bitcoin/test_signmessage.py
+        # removed non-standard uncompressed segwit keys
+        #
+
+        MESSAGE_NFKD = u"Pr\u030ci\u0301s\u030cerne\u030c z\u030clut\u030couc\u030cky\u0301 ku\u030an\u030c u\u0301pe\u030cl d\u030ca\u0301belske\u0301 o\u0301dy za\u0301ker\u030cny\u0301 uc\u030cen\u030c be\u030cz\u030ci\u0301 pode\u0301l zo\u0301ny u\u0301lu\u030a"
+        MESSAGE_NFC = u"P\u0159\xed\u0161ern\u011b \u017elu\u0165ou\u010dk\xfd k\u016f\u0148 \xfap\u011bl \u010f\xe1belsk\xe9 \xf3dy z\xe1ke\u0159n\xfd u\u010de\u0148 b\u011b\u017e\xed pod\xe9l z\xf3ny \xfal\u016f"
+        NFKD_NFC_SIGNATURE = "2046a0b46e81492f82e0412c73701b9740e6462c603575ee2d36c7d7b4c20f0f33763ca8cb3027ea8e1ce5e83fda8b6746fea8f5c82655d78fd419e7c766a5e17a"
+
+        VECTORS = (  # case name, coin_name, path, script_type, address, message, signature
+            # ==== Bitcoin script types ====
+            (
+                "p2pkh uncompressed",
+                "Bitcoin",
+                "m/44h/0h/0h/0/0",
+                False,
+                "1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL",
+                "This is an example of a signed message.",
+                "20fd8f2f7db5238fcdd077d5204c3e6949c261d700269cefc1d9d2dcef6b95023630ee617f6c8acf9eb40c8edd704c9ca74ea4afc393f43f35b4e8958324cbdd1c",
+                "legacy",
+            ),
+            (
+                "p2pkh compressed",
+                "Bitcoin",
+                "m/44h/0h/0h/0/0",
+                True,
+                "1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL",
+                "This is an example of a signed message.",
+                "20fd8f2f7db5238fcdd077d5204c3e6949c261d700269cefc1d9d2dcef6b95023630ee617f6c8acf9eb40c8edd704c9ca74ea4afc393f43f35b4e8958324cbdd1c",
+                "legacy",
+            ),
+            (
+                "segwit-p2sh compressed",
+                "Bitcoin",
+                "m/49h/0h/0h/0/0",
+                True,
+                "3L6TyTisPBmrDAj6RoKmDzNnj4eQi54gD2",
+                "This is an example of a signed message.",
+                "1f744de4516fac5c140808015664516a32fead94de89775cec7e24dbc24fe133075ac09301c4cc8e197bea4b6481661d5b8e9bf19d8b7b8a382ecdb53c2ee0750d",
+                "p2sh-segwit",
+            ),
+            (
+                "segwit-native",
+                "Bitcoin",
+                "m/84h/0h/0h/0/0",
+                True,
+                "bc1qannfxke2tfd4l7vhepehpvt05y83v3qsf6nfkk",
+                "This is an example of a signed message.",
+                "20b55d7600d9e9a7e2a49155ddf3cfdb8e796c207faab833010fa41fb7828889bc47cf62348a7aaa0923c0832a589fab541e8f12eb54fb711c90e2307f0f66b194",
+                "segwit"
+            ),
+            # ==== Bitcoin with long message ====
+            (
+                "p2pkh long message",
+                "Bitcoin",
+                "m/44h/0h/0h/0/0",
+                False,
+                "1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL",
+                "VeryLongMessage!" * 64,
+                "200a46476ceb84d06ef5784828026f922c8815f57aac837b8c013007ca8a8460db63ef917dbebaebd108b1c814bbeea6db1f2b2241a958e53fe715cc86b199d9c3",
+                "legacy",
+            ),
+            (
+                "segwit-native long message",
+                "Bitcoin",
+                "m/84h/0h/0h/0/0",
+                False,
+                "bc1qannfxke2tfd4l7vhepehpvt05y83v3qsf6nfkk",
+                "VeryLongMessage!" * 64,
+                "28c6f86e255eaa768c447d635d91da01631ac54af223c2c182d4fa3676cfecae4a199ad33a74fe04fb46c39432acb8d83de74da90f5f01123b3b7d8bc252bc7f71",
+                "segwit",
+            ),
+            (
+                "NFKD message",
+                "Bitcoin",
+                "m/44h/0h/0h/0/1",
+                False,
+                "1GWFxtwWmNVqotUPXLcKVL2mUKpshuJYo",
+                MESSAGE_NFKD,
+                NFKD_NFC_SIGNATURE,
+                "legacy",
+            ),
+            (
+                "NFC message",
+                "Bitcoin",
+                "m/44h/0h/0h/0/1",
+                False,
+                "1GWFxtwWmNVqotUPXLcKVL2mUKpshuJYo",
+                MESSAGE_NFC,
+                NFKD_NFC_SIGNATURE,
+                "legacy",
+            ),
+            (
+                "p2pkh testnet",
+                "Testnet",
+                "m/44h/1h/0h/0/0",
+                False,
+                "mvbu1Gdy8SUjTenqerxUaZyYjmveZvt33q",
+                "This is an example of a signed message.",
+                "2030cd7f116c0481d1936cfef48137fd23ee56aaf00787bfa08a94837466ec9909390c3efacfc56bae5782f1db4cf49ae05f242b5f62a47f871ec46bf1a3253e7f",
+                "legacy",
+            ),
+            (
+                "segwit-native",
+                "Testnet",
+                "m/84h/1h/0h/0/0",
+                False,
+                "tb1qkvwu9g3k2pdxewfqr7syz89r3gj557l3uuf9r9",
+                "This is an example of a signed message.",
+                "27758b3393396ad9fe48f6ce81f63410145e7b2b69a5dfc1d48b5e6e623e91e08e3afb60bda1546f9c6f9fb5bd0a41887b784c266036dd4b4015a0abc1137daa1d",
+                "segwit",
+            ),
+        )
+
+        for v in VECTORS:
+            # print(f"Testing vector {v[0]}")
+            sigb64 = b2a_base64(bytes.fromhex(v[6]))
+            s = Signature.parse_base64(sigb64)
+            addr = Address.parse(v[4])
+            addr.witness_type = v[7]
+            msg = v[5]
+
+            if v[0] == "NFKD message":
+                msg = normalize('NFKC', msg)
+
+            self.assertEqual(a2b_base64(s.as_base64()).hex(), v[6])
+            self.assertTrue(s.verify_message(msg, addr))
+
+    def test_keys_message_sign_network_witness_check(self):
+        for network in NETWORK_DEFINITIONS:
+            for witness_type in ['legacy', 'segwit', 'p2sh-segwit']:
+                message = f"Signed message for the {network} network and witness_type {witness_type}"
+                # print(message)
+                pk = HDKey(network=network, witness_type=witness_type)
+                sig = pk.sign_message(message)
+                self.assertTrue(sig.verify_message(message))
+                signed_message = sig.as_signed_message(message)
+                m, s, a, nw = signed_message_parse(signed_message)
+                self.assertTrue(verify_message(m, s, a, nw))
 
 
 if __name__ == '__main__':
