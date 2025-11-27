@@ -2320,7 +2320,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         pkm = 'elephant dust deer company win final'
         expected_utxos = ['520208458b4f93ef7f1a4df447b6fedb50888aaa098ab501b32b1df3f88daa86',
                           'ea7bd8fe970ca6430cebbbf914ce2feeb369c3ae95edc117725dbe21519ccdab']
-        expected_txid = '00c6f17bab32ac30979c284a36537f288ed85648810d5d479fcf2a526cdcd3f6'
+        expected_txid = '363b9c5379276381ed6d5d43d8a095883bd5800dc408eca4f8ad712b47bbd4ca'
 
         w = Wallet.create("remove_utxos_test", keys=pkm, network="bitcoinlib_test", db_uri=self.database_uri)
         w.utxos_update()
@@ -3070,3 +3070,31 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
         w.transactions_remove_unconfirmed(0)
         self.assertEqual(len(w.utxos()), 3)
         self.assertEqual(w.balance(), 102057170)
+
+
+class TestWalletSignMessages(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.database_uri = database_init()
+
+    def test_wallet_sign_message_electrum(self):
+        # Electrum Bitcoin test
+        phrase = 'appear jacket street version hover aware nature exchange color laundry awkward urban'
+        message = 'Hi this is a signed message from Electrum'
+        expected_addr = 'bc1qn47dp83edwa04sgpxjk2nceg235jalkmnktyge'
+        # Electrum wallet does not follow BIP-0137 standard, so Bitcoinlib can not create expected signature,
+        # as first byte is different:
+        # Elect. sig = 'ICaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+        expected_sig = 'JyaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+
+        w = wallet_create_or_open('wallet_electrum_message_signing_test', phrase, db_uri=self.database_uri)
+        wallet_key = w.address_index(0)
+
+        self.assertEqual(wallet_key.key().address(), expected_addr)
+        sig = wallet_key.sign_message(message, force_canonical=True)
+        self.assertEqual(sig.as_base64(), expected_sig)
+        self.assertTrue(wallet_key.verify_message(message, sig))
+
+    def test_wallet_sign_verify_message_various_networks(self):
+        n = Network

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2025 May - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2026 Nov - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,7 @@ import hmac
 import random
 import collections
 import json
+from binascii import b2a_base64, a2b_base64
 
 from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
@@ -37,6 +38,7 @@ if USE_FASTECDSA:
     from fastecdsa import point as fastecdsa_point
 else:
     import ecdsa
+
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
@@ -475,14 +477,14 @@ def bip38_decrypt(encrypted_privkey, password):
     identifier = d[0:2]
     flagbyte = d[2:3]
     address_hash: bytes = d[3:7]
-    if identifier  == BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
+    if identifier == BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX:
         owner_entropy: bytes = d[7:15]
         encrypted_half_1_half_1: bytes = d[15:23]
         encrypted_half_2: bytes = d[23:-4]
 
         lot_and_sequence = None
         if flagbyte in [BIP38_MAGIC_LOT_AND_SEQUENCE_UNCOMPRESSED_FLAG, BIP38_MAGIC_LOT_AND_SEQUENCE_COMPRESSED_FLAG,
-                     b'\x0c', b'\x14', b'\x1c', b'\x2c', b'\x34', b'\x3c']:
+                        b'\x0c', b'\x14', b'\x1c', b'\x2c', b'\x34', b'\x3c']:
             owner_salt: bytes = owner_entropy[:4]
             lot_and_sequence = owner_entropy[4:]
         else:
@@ -501,16 +503,16 @@ def bip38_decrypt(encrypted_privkey, password):
 
         aes = AES.new(key, AES.MODE_ECB)
         encrypted_half_1_half_2_seed_b_last_3 = (
-            int.from_bytes(aes.decrypt(encrypted_half_2), 'big') ^
-            int.from_bytes(encrypted_seed_b[16:32], 'big')).to_bytes(16, 'big')
+                int.from_bytes(aes.decrypt(encrypted_half_2), 'big') ^
+                int.from_bytes(encrypted_seed_b[16:32], 'big')).to_bytes(16, 'big')
         encrypted_half_1_half_2: bytes = encrypted_half_1_half_2_seed_b_last_3[:8]
         encrypted_half_1: bytes = (
                 encrypted_half_1_half_1 + encrypted_half_1_half_2
         )
 
         seed_b: bytes = ((
-            int.from_bytes(aes.decrypt(encrypted_half_1), 'big') ^
-            int.from_bytes(encrypted_seed_b[:16], 'big')).to_bytes(16, 'big') +
+                                 int.from_bytes(aes.decrypt(encrypted_half_1), 'big') ^
+                                 int.from_bytes(encrypted_seed_b[:16], 'big')).to_bytes(16, 'big') +
                          encrypted_half_1_half_2_seed_b_last_3[8:])
 
         factor_b: bytes = double_sha256(seed_b)
@@ -687,7 +689,7 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
     """
 
     seed_b = to_bytes(seed)
-    intermediate_password_bytes = change_base(intermediate_passphrase,58, 256)
+    intermediate_password_bytes = change_base(intermediate_passphrase, 58, 256)
     check = intermediate_password_bytes[-4:]
     intermediate_decode = intermediate_password_bytes[:-4]
     checksum = double_sha256(intermediate_decode)[0:4]
@@ -731,9 +733,9 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
         aes.encrypt((int.from_bytes(seed_b[:16], 'big') ^ int.from_bytes(derived_half_1, 'big')).to_bytes(16, 'big'))
     encrypted_half_2 = \
         aes.encrypt((int.from_bytes((encrypted_half_1[8:] + seed_b[16:]), 'big') ^
-                     int.from_bytes(derived_half_2,'big')).to_bytes(16, 'big'))
+                     int.from_bytes(derived_half_2, 'big')).to_bytes(16, 'big'))
     encrypted_wif = pubkeyhash_to_addr_base58(flag + address_hash + owner_entropy + encrypted_half_1[:8] +
-        encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
+                                              encrypted_half_2, prefix=BIP38_EC_MULTIPLIED_PRIVATE_KEY_PREFIX)
 
     point_b = HDKey(factor_b).public_byte
     point_b_prefix = (int.from_bytes(scrypt_hash_bytes[63:], 'big') & 1 ^
@@ -754,7 +756,6 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
         compressed=compressed,
         address=address
     )
-
 
 
 class Address(object):
@@ -1570,6 +1571,46 @@ class Key(object):
         """
         return self.address(compressed=False, prefix=prefix, script_type=script_type, encoding=encoding)
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
+        """
+        Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param force_canonical: Some wallets do not require a canonical s value, so you could set this to False
+        :type force_canonical: bool
+
+        :return Signature:
+        """
+        if not self.is_private:
+            raise BKeyError("Missing private key information, can not sign message")
+
+        network_msg = message_magic(message, self.network)
+        return sign(network_msg, self, use_rfc6979, k, hash_type, prehashed=False, force_canonical=force_canonical,
+                    network=self.network)
+
+    def verify_message(self, message, signature):
+        """
+        Verify if provided message is signed by signature.
+
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param signature: signature as Signature object
+        :type signature: Signature
+
+        :return bool:
+        """
+
+        network_msg = message_magic(message, self.network)
+        signature.message = double_sha256(network_msg, as_hex=True)
+        return signature.verify(signature.message, self.public())
+
     def info(self):
         """
         Prints key information to standard output
@@ -1595,6 +1636,7 @@ class Key(object):
         point_x, point_y = self.public_point()
         print(f" Point x                     {point_x}")
         print(f" Point y                     {point_y}")
+
 
 class HDKey(Key):
     """
@@ -1843,7 +1885,7 @@ class HDKey(Key):
 
     def __repr__(self):
         return "<HDKey(public_hex=%s, wif_public=%s, network=%s)>" % \
-               (self.public_hex, self.wif_public(), self.network.name)
+            (self.public_hex, self.wif_public(), self.network.name)
 
     def __neg__(self):
         return self.inverse()
@@ -2357,6 +2399,27 @@ class HDKey(Key):
         # hdkey.key = self.key.public()
         return hdkey
 
+    def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
+        """
+        Create a Signature for the provided message. Provide the message in bytes format, this method will add network specific data and will hash the message. By default, a deterministic k value will be used according to the RFC6979 standard.
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param force_canonical: Some wallets do not require a canonical s value, so you could set this to False
+        :type force_canonical: bool
+
+        :return Signature:
+        """
+        sig = super(HDKey, self).sign_message(message, use_rfc6979, k, hash_type, force_canonical=force_canonical)
+        sig.witness_type = self.witness_type
+        return sig
+
 
 class Signature(object):
     """
@@ -2368,16 +2431,27 @@ class Signature(object):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba01'
-    
+    '3045022100ae1aa67bbb68dcf960d088681fcaebed55abbe63a2e7154899ffd2cbc3c45d0302206f4267d4e67510bb3405940e904446335977a8163d340c8a28bd134866a94e4f01'
+
+    >>> signature2 = b'IKF5khz0uiaTwl2LMnFC4ZyLHsqbYTVLMz7o1F5CN4j5Y0RLjLx8fPIYBcs1fulUl2NKnaE92QbP/w/1NGymqFo='
+    >>> sig = Signature.parse_base64(signature2, sk)
+    >>> sig.r
+    73037165552361988254704500960942039375799082706135232334719139810058545105145
+
     """
 
     @classmethod
     def parse(cls, signature, public_key=None):
         if isinstance(signature, bytes):
-            return cls.parse_bytes(signature, public_key)
+            try:
+                return cls.parse_bytes(signature, public_key)
+            except (ValueError, BKeyError):
+                return cls.parse_base64(signature, public_key)
         elif isinstance(signature, str):
-            return cls.parse_hex(signature, public_key)
+            try:
+                return cls.parse_hex(signature, public_key)
+            except ValueError:
+                return cls.parse_base64(signature, public_key)
 
     @classmethod
     def parse_hex(cls, signature, public_key=None):
@@ -2411,22 +2485,63 @@ class Signature(object):
                          hash_type=hash_type)
 
     @staticmethod
-    def create(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+    def parse_base64(signature, public_key=None):
         """
-        Sign a transaction hash and create a signature with provided private key.
+        Parse base64 encoded signature and return Signature object.
+
+        Extract compressed and recovery ID info from first byte.
+
+        :param signature: Base64 encoded signature
+        :type signature: str, bytes
+        :param public_key: Public key to pass to signature object
+        :type public_key: HDKey, Key, str, hexstring, bytes
+
+        :return Signature:
+        """
+        sig = a2b_base64(signature)
+        if len(sig) != 65:
+            raise KeyError("Invalid length, signature must be base64 encoded and 65 bytes long")
+
+        first = sig[0]
+        if not (27 <= first <= 42):
+            raise BKeyError("First byte must be between 27 and 42")
+        r = int.from_bytes(sig[1:33], 'big')
+        s = int.from_bytes(sig[33:65], 'big')
+
+        compressed = True
+        witness_type = 'legacy'
+        if first >= 38:
+            witness_type = 'segwit'
+            first -= 12
+        elif first >= 35:
+            witness_type = 'p2sh-segwit'
+            first -= 8
+        else:
+            compressed = bool((first - 27) & 0x4)
+        recid = (first - 27) & 0x3
+
+        s = Signature(r, s, compressed=compressed, recid=recid, public_key=public_key, witness_type=witness_type)
+        s._base64 = signature
+        return s
+
+    @staticmethod
+    def create(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True,
+               force_canonical=False, network=DEFAULT_NETWORK):
+        """
+        Sign a message or transaction hash and create a signature with provided private key.
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
-        >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
-        >>> sig = Signature.create(txid, k)
+        >>> message = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> sig = Signature.create(message, k)
         >>> sig.hex()
-        '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+        '21934dde1f8b62d73359991c4ebe043cc7758118611455b97e7d8c5fd4ae99805f8cf0507436f94062635ad5ccb883f87cfd9ecb54bcff084e99ee100c21e0c1'
         >>> sig.r
-        32979225540043540145671192266052053680452913207619328973512110841045982813493
+        15186587944669097449478602251208188095231503054964345209048973685229045586304
         >>> sig.s
-        12990793585889366641563976043319195006380846016310271470330687369836458989268
+        43218737792637084485764095584496845697473864189275335601242497774821186855105
 
-        :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
-        :type txid: bytes, str
+        :param message: Transaction signature or transaction hash (txid). If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+        :type message: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
         :type private: HDKey, Key, str, hexstring, bytes
         :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
@@ -2435,32 +2550,36 @@ class Signature(object):
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance. Default is True if message size is 32 else False, if set to False the message will be hashed with double_sha256 by this create method.
+        :type prehashed: bool
+        :param force_canonical: Calculate signature with canonical s value. Default is True, needed for valid transacton signatures. Only set to False for signing messages.
+        :type force_canonical: bool
 
         :return Signature: 
         """
-        if isinstance(txid, bytes):
-            txid = txid.hex()
-        if len(txid) > 64:
-            txid = double_sha256(bytes.fromhex(txid), as_hex=True)
+        if isinstance(message, bytes):
+            message_bytes = message
+            message = message.hex()
+        else:
+            message_bytes = bytes.fromhex(message)
+        if not prehashed or len(message_bytes) != 32:
+            message_bytes = double_sha256(message_bytes)
+            message = message_bytes.hex()
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
         secret = private.secret
 
-        if not k:
-            if use_rfc6979 and USE_FASTECDSA:
-                rfc6979 = RFC6979(txid, secret, secp256k1_n, hashlib.sha256)
-                k = rfc6979.gen_nonce()
-            else:
-                global rfc6979_warning_given
-                if not USE_FASTECDSA and not rfc6979_warning_given:
-                    _logger.warning("RFC6979 only supported when fastecdsa library is used")
-                    rfc6979_warning_given = True
-                k = random.SystemRandom().randint(1, secp256k1_n - 1)
+        if not k and not use_rfc6979:
+            k = random.SystemRandom().randint(1, secp256k1_n - 1)
 
         if USE_FASTECDSA:
+            if not k:
+                rfc6979 = RFC6979(message_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
+                k = rfc6979.gen_nonce()
+
             r, s = _ecdsa.sign(
-                txid,
+                message,
                 str(secret),
                 str(k),
                 str(secp256k1_p),
@@ -2470,22 +2589,27 @@ class Signature(object):
                 str(secp256k1_Gx),
                 str(secp256k1_Gy)
             )
-            if int(s) > secp256k1_n / 2:
+            if int(s) > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - int(s)
-            return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
+            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
-            txid_bytes = to_bytes(txid)
-            sig_der = sk.sign_digest(txid_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
+
+            # Call generate_k method directly because sign_digest_deterministic() does not return k
+            if not k:
+                k = ecdsa.rfc6979.generate_k(ecdsa.SECP256k1.generator.order(), private.secret, hashlib.sha256,
+                                             message_bytes)
+            sig_der = sk.sign_digest(message_bytes, hashlib.sha256, ecdsa.util.sigencode_der, k=k)
+
             signature = convert_der_sig(sig_der)
             r = int(signature[:64], 16)
             s = int(signature[64:], 16)
-            if s > secp256k1_n / 2:
+            if s > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - s
-            return Signature(r, s, txid, secret, public_key=pub_key, k=k, hash_type=hash_type)
+            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
 
-    def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
-                 hash_type=SIGHASH_ALL):
+    def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
+                 hash_type=SIGHASH_ALL, compressed=True, recid=0, witness_type=None, network=None):
         """
         Initialize Signature object with provided r and r value
 
@@ -2499,8 +2623,8 @@ class Signature(object):
         :type r: int
         :param s: s value of signature
         :type s: int
-        :param txid: Transaction hash z to sign if known
-        :type txid: bytes, hexstring
+        :param message: Transaction hash or message z to sign if known
+        :type message: bytes, hexstring
         :param secret: Private key secret number
         :type secret: int
         :param signature: r and s value of signature as string
@@ -2511,6 +2635,14 @@ class Signature(object):
         :type public_key: HDKey, Key, str, hexstring, bytes
         :param k: k value used for signature
         :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param compressed: Compressed or uncompressed key. Used for message signatures
+        :type compressed: bool
+        :param recid: Recovery ID to indicate which of the 4 possible public points x,y combinations will be used. Used for message signatures
+        :type recid: int
+        :param network: Network to use
+        :type network: str, Network
         """
 
         self.r = int(r)
@@ -2521,8 +2653,8 @@ class Signature(object):
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
         elif self.s < 1 or self.s >= secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
-        self._txid = None
-        self.txid = txid
+        self._message = None
+        self.txid = self.message = message
         self.secret = None if not secret else int(secret)
         if isinstance(signature, bytes):
             self._signature = signature
@@ -2537,6 +2669,13 @@ class Signature(object):
         self.hash_type = hash_type
         self.hash_type_byte = self.hash_type.to_bytes(1, 'big')
         self.der_signature = der_signature
+        self.message_raw = b''
+        self.compressed = compressed
+        self.recid = recid
+        self._base64 = None
+        self.network = network
+        self.witness_type = witness_type
+
         if not der_signature:
             self.der_signature = der_encode_sig(self.r, self.s)
 
@@ -2545,7 +2684,7 @@ class Signature(object):
     def __repr__(self):
         der_sig = '' if not self._der_encoded else self._der_encoded.hex()
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, self.hex(), der_sig)
+            (self.r, self.s, self.hex(), der_sig)
 
     def __str__(self):
         return self.as_der_encoded(as_hex=True)
@@ -2562,16 +2701,21 @@ class Signature(object):
     def __len__(self):
         return len(self.as_der_encoded())
 
-    @property
-    def txid(self):
-        return self._txid
+    def __eq__(self, other):
+        if not other or not isinstance(other, Signature):
+            return False
+        return self.r == other.r and self.s == other.s
 
-    @txid.setter
-    def txid(self, value):
+    @property
+    def message(self):
+        return self._message
+
+    @message.setter
+    def message(self, value):
         if value is not None:
-            self._txid = value
+            self._message = value
             if isinstance(value, bytes):
-                self._txid = value.hex()
+                self._message = value.hex()
 
     @property
     def public_key(self):
@@ -2644,9 +2788,137 @@ class Signature(object):
         else:
             return der_encode_sig(self.r, self.s).hex() if as_hex else der_encode_sig(self.r, self.s)
 
-    def verify(self, txid=None, public_key=None):
+    def as_base64(self):
         """
-        Verify this signature. Provide txid or public_key if not already known
+        Return current Signature in base64 format following the bip-0137 standard, used for message signing.
+
+        Uses this format:
+        [1 byte of header data][32 bytes for r value][32 bytes for s value]
+
+        The header byte contains information about the type of address.
+
+        """
+        if not self._base64:
+            if not self.k:
+                raise BKeyError('Message hash required to create base64 signature. k is not set')
+            # for recid in range(4):
+            p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
+            recid = p1[1] & 1
+            if p1[0] > secp256k1_n:
+                recid += 2
+            # for i in range(3):
+            #     print(i)
+            first = 27 + recid
+            if not self.witness_type or self.witness_type == 'legacy':
+                first += (4 if self.public_key.compressed else 0)
+            else:
+                first += ((12 if (self.public_key.witness_type == 'segwit') else 0) +
+                          (8 if self.public_key.witness_type == 'p2sh-segwit' else 0))
+            sig = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
+            self._base64 = sig.decode("utf8")
+        return self._base64
+
+    def as_signed_message(self, message):
+        """
+        Return signed message string to exchange with other entities.
+
+        Output example:
+        -----BEGIN BITCOIN SIGNED MESSAGE-----
+        Bitcoin Signed Message
+        -----BEGIN SIGNATURE-----
+        bc1qfpv6fhe8vqwrq3ag853u5m6l635jy8dku9ysak
+        H/vw2bYHTyrQrRKo+RgahP8Y3L992q6YDJZipAXYV/s6LNN9XgV7ZOpYUnhAs+W6EpLRSzk4iDA6Xfx5qj6bDM0=
+        -----END BITCOIN SIGNED MESSAGE-----
+
+        :param message: Provide original signed message. Signature object does not store message string
+        :type message: str
+
+        :return str:
+        """
+        if not self.public_key:
+            raise KeyError('Public key is missing')
+        network_name = self.public_key.network.name.upper()
+        message_str = f"-----BEGIN {network_name} SIGNED MESSAGE-----\n"
+        message_str += message + "\n"
+        message_str += "-----BEGIN SIGNATURE-----\n"
+        message_str += self.public_key.address() + "\n"
+        message_str += self.as_base64() + "\n"
+        message_str += f"-----END {network_name} SIGNED MESSAGE-----\n"
+        return message_str
+
+    def verify_message(self, message, address=None, network=None):
+        """
+        Verify if provided message is signed with this signature. Provide address to check if address matches the
+        signature.
+
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param address: Address used to sign message
+        :type address: Address, str
+        :param network: Network used to sign message
+        :type network: Network, str
+
+        :return bool:
+        """
+
+        if network:
+            self.network = network
+        if not isinstance(self.network, Network):
+            self.network = Network(self.network) if self.network else Network(DEFAULT_NETWORK)
+        if address and not isinstance(address, Address):
+            # address = Address.parse(address, network=network)
+            address = Address.parse(address)
+            address.witness_type = self.witness_type if self.witness_type else address.witness_type
+
+        network_msg = message_magic(message, self.network)
+        msg_hash = double_sha256(network_msg)
+        message_int = int.from_bytes(msg_hash, 'big')
+
+        # If public key is unknown, derive from message hash and signature
+        if not self.public_key:
+            if not address:
+                raise BKeyError('Public key is unknown, please provide address to derive public key')
+            # Compute the x‑coordinate of R
+            j = self.recid // 2
+            x = (self.r + j * secp256k1_n) % secp256k1_p
+
+            # Recover the full point R
+            # Solve y² = x³ + ax + b (mod p) and pick the root with the correct parity
+            alpha = (pow(x, 3, secp256k1_p) + secp256k1_b) % secp256k1_p
+            beta = pow(alpha, (secp256k1_p + 1) // 4, secp256k1_p)  # sqrt modulo p (since p ≡ 3 (mod 4))
+
+            # Determine which of the two square roots is the right one.
+            # Parity is defined by the least‑significant bit of y.
+            if (beta & 1) == (self.recid & 1):
+                y = beta
+            else:
+                y = secp256k1_p - beta
+
+            # Calculate the original public key: Q = r⁻¹·(s·R – e·G)
+            R = fastecdsa_point.Point(x, y, curve=fastecdsa_secp256k1) if USE_FASTECDSA else (
+                ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n))
+            r_inv = pow(self.r, -1, secp256k1_n)
+            sR = self.s * R
+            eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
+            Q = r_inv * (sR + -eG)
+            q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
+            self.public_key = HDKey(q_tup, witness_type=address.witness_type, compressed=self.compressed,
+                                    network=self.network)
+
+            if self.public_key.hash160 != address.hash_bytes and self.public_key.address() != address.address:
+                _logger.info(f"Address mismatch when verifying signed message. Expected {address.address}")
+                return False
+
+        # If public key is known and also an address is provided, check it both match
+        if (self.public_key and address and self.public_key.hash160 != address.hash_bytes and
+                self.public_key.address() != address.address):
+            raise BKeyError('Public key from signature and provided address do not match')
+
+        return self.verify(msg_hash, self.public_key)
+
+    def verify(self, message=None, public_key=None):
+        """
+        Verify this signature. Provide message/txid or public_key if not already known
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
         >>> pub_key = HDKey(k).public()
@@ -2656,27 +2928,27 @@ class Signature(object):
         >>> sig.verify(txid, pub_key)
         True
 
-        :param txid: Transaction hash
-        :type txid: bytes, hexstring
+        :param message: Message to verify, for instance a Transaction hash
+        :type message: bytes, hexstring
         :param public_key: Public key P
         :type public_key: HDKey, Key, str, hexstring, bytes
                 
         :return bool: 
         """
-        if txid is not None:
-            self.txid = to_hexstring(txid)
+        if message is not None:
+            self.message = to_hexstring(message)
         if public_key is not None:
             self.public_key = public_key
 
-        if not self.txid or not self.public_key:
-            raise BKeyError("Please provide txid and public_key to verify signature")
+        if not self.message or not self.public_key:
+            raise BKeyError("Please provide message and public_key to verify signature")
 
         if USE_FASTECDSA:
             return _ecdsa.verify(
                 str(self.r),
                 str(self.s),
-                self.txid,
-                str(self.x),
+                self.message,
+                str(self.x),  # get x and y from public key
                 str(self.y),
                 str(secp256k1_p),
                 str(secp256k1_a),
@@ -2686,7 +2958,7 @@ class Signature(object):
                 str(secp256k1_Gy)
             )
         else:
-            transaction_to_sign = bytes.fromhex(self.txid)
+            transaction_to_sign = bytes.fromhex(self.message)
             signature = self.bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)
@@ -2707,7 +2979,8 @@ class Signature(object):
             return True
 
 
-def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
+def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True,
+         network=DEFAULT_NETWORK):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
@@ -2717,10 +2990,10 @@ def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
     >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
-    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a101'
+    '3044022039df9d8a0b4df185605c5a46eb087d499ddf98cb5ebcae6e0fd99c56152d2d730220726a3c03ac0b04e1489a1f465cb615be87dde7c4c7806195ca6b1acc2910e06901'
 
-    :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
-    :type txid: bytes, str
+    :param message: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+    :type message: bytes, str
     :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
     :type private: HDKey, Key, str, hexstring, bytes
     :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
@@ -2729,15 +3002,22 @@ def sign(txid, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL):
     :type k: int
     :param hash_type: Specific hash type, default is SIGHASH_ALL
     :type hash_type: int
+    :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True, if set to False the message will be hashed with double_sha256 by this create method.
+    :type prehashed: bool
+    :param force_canonical: Force canonicalization of signature s value. Default is True
+    :type force_canonical: bool
+    :param network: Specific network, default is DEFAULT_NETWORK
+    :type network: str, Network
 
     :return Signature: 
     """
-    return Signature.create(txid, private, use_rfc6979, k, hash_type=hash_type)
+    return Signature.create(message, private, use_rfc6979, k, hash_type=hash_type, prehashed=prehashed,
+                            force_canonical=force_canonical, network=network)
 
 
-def verify(txid, signature, public_key=None):
+def verify(message, signature, public_key=None):
     """
-    Verify provided signature with txid message. If provided signature is no Signature object a new object will
+    Verify provided signature with message / txid. If provided signature is no Signature object a new object will
     be created for verification.
 
     >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
@@ -2747,10 +3027,10 @@ def verify(txid, signature, public_key=None):
     >>> verify(txid, sig, pub_key)
     True
 
-    :param txid: Transaction hash
-    :type txid: bytes, hexstring
-    :param signature: signature as hexstring or bytes
-    :type signature: str, bytes
+    :param message: Message / Transaction hash
+    :type message: bytes, hexstring
+    :param signature: signature as Signature, hexstring or bytes
+    :type signature: Signature, str, bytes
     :param public_key: Public key P. If not provided it will be derived from provided Signature object or raise an error if not available
     :type public_key: HDKey, Key, str, hexstring, bytes
 
@@ -2760,7 +3040,7 @@ def verify(txid, signature, public_key=None):
         if not public_key:
             raise BKeyError("No public key provided, cannot verify")
         signature = Signature.parse(signature, public_key=public_key)
-    return signature.verify(txid, public_key)
+    return signature.verify(message, public_key)
 
 
 def ec_point(m):
@@ -2780,7 +3060,7 @@ def ec_point(m):
         return point * m
 
 
-def ec_point_multiplication(p, m):
+def ec_point_multiplication(p, m, return_point=False):
     """
     Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
 
@@ -2795,11 +3075,15 @@ def ec_point_multiplication(p, m):
     if USE_FASTECDSA:
         point = fastecdsa_point.Point(p[0], p[1], fastecdsa_secp256k1)
         point_m = point * m
-        return (point_m.x, point_m.y)
+        tup = (point_m.x, point_m.y)
     else:
         point = ecdsa.ellipticcurve.Point(ecdsa.SECP256k1.curve, p[0], p[1])
         point_m = point * m
-        return (point_m.x(), point_m.y())
+        tup = (point_m.x(), point_m.y())
+    if return_point:
+        return point_m
+    else:
+        return tup
 
 
 def mod_sqrt(a):
@@ -2818,3 +3102,84 @@ def mod_sqrt(a):
     # Square root formula: k = (secp256k1_p - 3) // 4
     k = 28948022309329048855892746252171976963317496166410141009864396001977208667915
     return pow(a, k + 1, secp256k1_p)
+
+
+def message_magic(message, network=None):
+    """
+    Add network magic to message string, so "Hello world!" results in "BITCOIN Signed Message: Hello world!
+
+    :param message: Message text
+    :type message: str
+    :param network: Network to use, default is Bitcoin
+    :type network: Network, str
+
+    :return str:
+    """
+    try:
+        network_name = network.description.split(' ')[0].upper()
+    except Exception:
+        network_name = 'BITCOIN'
+
+    return varstr(f'{network_name.capitalize()} Signed Message:\n') + varstr(message)
+
+
+def verify_message(message, sig, address, network=None):
+    """
+    Verify signed message. Prove owner of provided address did sign exact message.
+
+    >>> message = 'this is a unittest'
+    >>> sig = 'IBqszVUdhXkJnZpcoQh+EyEZicOQP0fZ2z/Rzw4Xa+YgCXtsOYSR1RvAYAeejCkEW6iQZ9e5j8AqSH2zxvshZPM='
+    >>> addr = 'bc1q7wdttvkuypq3p2ww7cfzgzzs659jehhgvsfnnn'
+    >>> verify_message(message, sig, addr)
+    True
+
+    :param message: Message text
+    :type message: str
+    :param sig: Signature
+    :type sig: str, Signature
+    :param address: Address to verify message
+    :type address: str, Address
+    :param network: Network to use, default is Bitcoin
+    :type network: Network, str
+
+    :return bool:
+    """
+    if not isinstance(sig, Signature):
+        sig = Signature.parse(sig)
+        sig.network = network
+    return sig.verify_message(message, address, network)
+
+
+def signed_message_parse(message_signature):
+    """
+    Parse Bitcoin Signed Message and split into message, address and signature part.
+
+    Example:
+    python> signed_message_parse(' -----BEGIN BITCOIN SIGNED MESSAGE-----
+                          Bitcoinlib is cool!
+                          -----BEGIN SIGNATURE-----
+                          bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw
+                          ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=
+                          -----END BITCOIN SIGNED MESSAGE-----")
+    Result:
+    ('Bitcoinlib is cool!', 'bc1qed0dq6a7gshfvap4j946u44kk73gs3a0d5p3sw',
+    'ILtL9qkUb+2nfxY3bUqfoWsVSwhMSos+DVY7p3EqmzQ6qF2gHNPvILwrsZ2AKlIqPmJjln4OKpW+d86wBn27yJw=', 'bitcoin')
+
+    :param message_signature: Signed Message text
+    :type message_signature: str
+
+    :return tuple (str, str, str, str): message, base64 encoded signature, address
+    """
+    try:
+        head, body = message_signature.split('SIGNED MESSAGE-----\n', 1)
+    except ValueError:
+        raise BKeyError("SIGNED MESSAGE text expected in string")
+
+    network = head.split(' ')[-2].lower()
+    message_list = body.split('-----BEGIN ', 2)
+    message = message_list[0].strip()
+
+    addr_sig_list = [r for r in message_list[1].split('\n') if r]
+    addr = addr_sig_list[1].strip()
+    sig_b64 = addr_sig_list[2].strip()
+    return message, sig_b64, addr, network

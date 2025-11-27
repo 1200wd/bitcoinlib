@@ -1102,8 +1102,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
 
     def test_transaction_sign_uncompressed(self):
-        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX',
-                          compressed=False)
+        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', compressed=False)
         prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
         output_n = 0
         t = Transaction()
@@ -1130,8 +1129,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                          '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
         t.sign_and_update()
         if USE_FASTECDSA:
-            self.assertEqual(t.txid, "a3e18689f2b03659ae10735e332277e451b4270dbc46072b196baf63fb9a838b")
-
+            self.assertEqual(t.txid, "3216789c4333e4d00b5112e4fc6c1697f976b0aa11a52ba1004c1bade456b679")
 
     def test_transaction_sign_p2pk_value(self):
         wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \
