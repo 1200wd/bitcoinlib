@@ -462,5 +462,60 @@
     "priority": 10,
     "denominator": 1,
     "network_overrides": null
+  },
+    "blocksmurfer": {
+    "provider": "blocksmurfer",
+    "network": "bitcoin",
+    "client_class": "BlocksmurferClient",
+    "provider_coin_id": "",
+    "url": "http://blocksmurfer.io/api/v1/btc/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blocksmurfer.testnet": {
+    "provider": "blocksmurfer",
+    "network": "testnet",
+    "client_class": "BlocksmurferClient",
+    "provider_coin_id": "",
+    "url": "http://blocksmurfer.io/api/v1/tbtc/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blocksmurfer.testnet4": {
+    "provider": "blocksmurfer",
+    "network": "testnet4",
+    "client_class": "BlocksmurferClient",
+    "provider_coin_id": "",
+    "url": "http://blocksmurfer.io/api/v1/tbtc4/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blocksmurfer.signet": {
+    "provider": "blocksmurfer",
+    "network": "signet",
+    "client_class": "BlocksmurferClient",
+    "provider_coin_id": "",
+    "url": "http://blocksmurfer.io/api/v1/sbtc/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "blockbook.trezor.testnet4": {
+    "provider": "blockbook",
+    "network": "testnet4",
+    "client_class": "BlockbookClient",
+    "provider_coin_id": "",
+    "url": "https://tbtc4-1.trezor.io/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
   }
 }

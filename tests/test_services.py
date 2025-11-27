@@ -178,7 +178,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
-        srv = ServiceTest(min_providers=3)
+        srv = ServiceTest(min_providers=3, timeout=10)
         txid = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
@@ -717,7 +717,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_parse_tx_paging(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(120000, parse_transactions=True, limit=25, page=2)
-        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
         self.assertEqual(b.height, 120000)

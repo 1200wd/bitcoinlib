@@ -15,7 +15,7 @@ Install Blockbook server
 ------------------------
 
 You can find some instructions on how to install a Blockbook server on
-https://coineva.com/blockbook-setup-as-bitcoinlib-backend.html.
+https://media.blocksmurfer.io/blockbook-setup-as-bitcoinlib-backend.html.
 
 You will need a powerful server with enough memory and diskspace. Blockbook runs a full Bitcoin core node on the
 background, and maintains a large RocksDB database to store additional blockchain data. But once installed and

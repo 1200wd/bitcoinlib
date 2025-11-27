@@ -15,7 +15,7 @@ Install ElectrumX server
 ------------------------
 
 You can find instructions on how to install a ElectrumX server on
-https://coineva.com/install-electrumx-as-bitcoinlib-backend.html
+https://media.blocksmurfer.io/install-electrumx-as-bitcoinlib-backend.html
 
 
 Use ElectrumX with Bitcoinlib

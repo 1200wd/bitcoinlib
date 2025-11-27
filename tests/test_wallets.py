@@ -773,6 +773,12 @@ class TestWalletKeys(unittest.TestCase):
         self.assertRaisesRegex(WalletError, "Key with address_index 11 not found in wallet. Please create key first",
                                w.address_index, 11)
 
+    def test_wallet_key_balance_update(self):
+        w = wallet_create_or_open('test_wallet_key_balance_update', network='bitcoinlib_test', db_uri=self.database_uri)
+        w.new_key()
+        w.utxos_update()
+        self.assertEqual(sum([k.balance for k in w.keys_addresses()]), 400000000)
+
     @classmethod
     def tearDownClass(cls):
         del cls.database_uri
@@ -2408,6 +2414,93 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = w3.send_to('tb1qrjtz22q59e76mhumy0p586cqukatw5vcd0xvvz', 123456)
         self.assertEqual(t.locktime, 0)
 
+    def test_wallet_transactions_utxo_selection(self):
+        w = wallet_create_or_open('wallet_transactions_utxo_selection', db_uri=self.database_uri)
+        for utxo in [
+            (w.new_key().address, 1339, os.urandom(32).hex(), 1001),
+            (w.new_key().address, 1445, os.urandom(32).hex(), 995),
+            (w.new_key().address, 38738, os.urandom(32).hex(), 197),
+            (w.new_key().address, 23818, os.urandom(32).hex(), 165),
+        ]:
+            w.utxo_add(utxo[0], utxo[1], utxo[2], 0, utxo[3])
+
+        # One input is not enough
+        self.assertRaisesRegex(WalletError, 'Not enough unspent transaction outputs found',
+                               w.send, [(w.get_key().address, 60000)], max_utxos=1, fee=1000)
+        # Only 2 inputs needed
+        t = w.send([(w.get_key().address, 60000)], fee=1000)
+        self.assertEqual(len(t.inputs), 2)
+        self.assertEqual(sum([i.value for i in t.inputs]), 38738+23818)
+        self.assertTrue(t.verified)
+        # max_utxos has no effect, only 2 inputs needed
+        t2 = w.send([(w.get_key().address, 60000)], max_utxos=2, fee=1000)
+        self.assertEqual(len(t2.inputs), 2)
+        self.assertEqual(sum([i.value for i in t2.inputs]), 38738+23818)
+        self.assertTrue(t2.verified)
+
+    def test_wallet_transactions_utxo_selection2(self):
+        w = wallet_create_or_open('wallet_transactions_utxo_selection2', db_uri=self.database_uri)
+        utxos = [
+            (w.new_key().address, 1339, os.urandom(32).hex(), 1001),
+            (w.new_key().address, 1445, os.urandom(32).hex(), 995),
+            (w.new_key().address, 38738, os.urandom(32).hex(), 197),
+            (w.new_key().address, 23818, os.urandom(32).hex(), 165),
+            (w.new_key().address, 23818, os.urandom(32).hex(), 160),
+        ]
+        for utxo in utxos:
+            w.utxo_add(utxo[0], utxo[1], utxo[2], 0, utxo[3])
+
+        # Only 2 inputs needed + select oldest input
+        t = w.send([(w.get_key().address, 60000)], fee=1000)
+        self.assertEqual(len(t.inputs), 2)
+        self.assertEqual(sum([i.value for i in t.inputs]), 38738+23818)
+        self.assertTrue(t.verified)
+        self.assertIn(utxos[3][0], [i.address for i in t.inputs])
+        # max_utxos has no effect, only 2 inputs needed
+        t2 = w.send([(w.get_key().address, 60000)], max_utxos=2, fee=1000)
+        self.assertEqual(len(t2.inputs), 2)
+        self.assertEqual(sum([i.value for i in t2.inputs]), 38738+23818)
+        self.assertTrue(t2.verified)
+
+    def test_wallet_transactions_utxo_selection3(self):
+        w = wallet_create_or_open('wallet_transactions_utxo_selection3', db_uri=self.database_uri)
+        for utxo in [
+            (w.new_key().address, 11339, os.urandom(32).hex(), 1001),
+            (w.new_key().address, 22445, os.urandom(32).hex(), 995),
+            (w.new_key().address, 38738, os.urandom(32).hex(), 197),
+            (w.new_key().address, 23818, os.urandom(32).hex(), 165),
+        ]:
+            w.utxo_add(utxo[0], utxo[1], utxo[2], 0, utxo[3])
+
+        # Select 2 oldest inputs
+        t = w.send([(w.get_key().address, 60000)], fee=1000)
+        self.assertEqual(len(t.inputs), 2)
+        self.assertEqual(sum([i.value for i in t.inputs]), 22445+38738)
+        self.assertTrue(t.verified)
+
+    def test_wallet_transactions_utxo_selection_minimum_outputs(self):
+        w = wallet_create_or_open('wallet_transactions_utxo_selection_minimum_outputs', db_uri=self.database_uri)
+        for utxo in [
+            (w.new_key().address, 10500, os.urandom(32).hex(), 1001),
+            (w.new_key().address, 10000, os.urandom(32).hex(), 995),
+            (w.new_key().address, 20500, os.urandom(32).hex(), 197),
+            (w.new_key().address, 10000, os.urandom(32).hex(), 165),
+            (w.new_key().address, 40500, os.urandom(32).hex(), 165),
+            (w.new_key().address, 10000, os.urandom(32).hex(), 165),
+            (w.new_key().address, 30500, os.urandom(32).hex(), 165),
+        ]:
+            w.utxo_add(utxo[0], utxo[1], utxo[2], 0, utxo[3])
+
+        # Select minimal number of inputs
+        self.assertEqual(len(w.send([(w.get_key().address, 40000)], fee=500).inputs), 1)
+        self.assertEqual(len(w.send([(w.get_key().address, 60000)], fee=1000).inputs), 2)
+        self.assertEqual(len(w.send([(w.get_key().address, 70000)], fee=1000).inputs), 2)
+        self.assertEqual(len(w.send([(w.get_key().address, 90000)], fee=1000).inputs), 3)
+        self.assertEqual(len(w.send([(w.get_key().address, 100000)], fee=1000).inputs), 4)
+        self.assertEqual(len(w.send([(w.get_key().address, 120000)], fee=1000).inputs), 6)
+        self.assertEqual(len(w.send([(w.get_key().address, 130000)], fee=1000).inputs), 7)
+
+
     @classmethod
     def tearDownClass(cls):
         del cls.wallet
@@ -2922,6 +3015,7 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
 
         w = wallet_create_or_open('bumpfeetest04', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
         w.utxos_update()
+        w.info()
         t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 199900000, fee=100000,
                       broadcast=True)
         self.assertRaisesRegex(TransactionError, "Not enough unspent inputs found for transaction", t.bumpfee)
