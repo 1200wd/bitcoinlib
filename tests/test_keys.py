@@ -1075,8 +1075,8 @@ class TestKeysSignatures(unittest.TestCase):
     def test_signatures_dunder(self):
         sig1 = Signature.parse_hex('3045022100c949a465a057f3ca7d20e80511e93d0be21e3efbeb8720ca3e0adfbce6883d0a022070b'
                                    '2c6bee101a4ffcb854bae34dbd1f35c31140a46559148a1fa883eedede03401')
-        # sig2 = Signature.parse_hex('3045022100b5ce13dc408c65208cf475b44b2012845d4d3fb7a2cacfa35f6b5143761f976f02207d8'
-        #                            '581d6004779c7f168e90496d544407d5f0e2eecd44c50fcef1006a86731ec01')
+        sig2 = Signature.parse_hex('3045022100b5ce13dc408c65208cf475b44b2012845d4d3fb7a2cacfa35f6b5143761f976f02207d8'
+                                   '581d6004779c7f168e90496d544407d5f0e2eecd44c50fcef1006a86731ec01')
         self.assertEqual(len(sig1), 72)
         # self.assertEqual(sig1 + sig2, sig1.as_der_encoded() + sig2.as_der_encoded())
         # self.assertEqual(sig1 + sig2, b'0E\x02!\x00\xc9I\xa4e\xa0W\xf3\xca} \xe8\x05\x11\xe9=\x0b\xe2\x1e>'
