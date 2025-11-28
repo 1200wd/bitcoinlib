@@ -626,21 +626,17 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     utxos = srv.getutxos(address)
     #     self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
-    # FIXME: This needs work I think, delta is to high + tests all providers, takes a long time (Ramu)
-    # def test_service_blockcount(self):
-    #     for nw in ['bitcoin']:
-    #         srv = ServiceTest(min_providers=3, cache_uri='', network=nw)
-    #         srv.blockcount()
-    #         n_blocks = None
-    #         delta = 200
-    #         if nw == 'testnet':  # Testnet 3 has frequent blockstorms causing delay in processing for various providers
-    #             delta = 25000
-    #         for provider in srv.results:
-    #             if n_blocks is not None:
-    #                 self.assertAlmostEqual(srv.results[provider], n_blocks, delta=delta,
-    #                                        msg="Network %s, provider %s value %d != %d" %
-    #                                            (nw, provider, srv.results[provider], n_blocks))
-    #             n_blocks = srv.results[provider]
+    def test_service_blockcount(self):
+        for nw in ['bitcoin']:
+            srv = ServiceTest(min_providers=4, cache_uri='', network=nw)
+            srv.blockcount()
+            delta = 5
+            if nw == 'testnet':  # Testnet 3 has frequent blockstorms causing delay in processing for various providers
+                delta = 25000
+            heights = sorted(list(srv.results.values()))
+            print(srv.results)
+            self.assertAlmostEqual(heights[1], heights[-1], delta=delta,
+                                   msg=f"Inconsistent blockcount results {srv.results}")
 
     def test_service_max_providers(self):
         srv = ServiceTest(max_providers=1, cache_uri='')
