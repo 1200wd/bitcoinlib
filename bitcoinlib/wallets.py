@@ -591,7 +591,8 @@ class WalletKey(object):
         return pub_key
 
     def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
-        """ Sign message with this wallet key
+        """
+        Sign message with this wallet key
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
@@ -4620,6 +4621,25 @@ class Wallet(object):
 
     def sign_message(self, message, key_term=None, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL,
                      force_canonical=False):
+        """
+        Sign message with this wallet and provided key. If no key ID is provided the message will be signed with
+        first available key.
+
+        :param message: Message to be signed. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param key_term: Key ID or address of signing key. Search term can be key ID, key address, key WIF or key name
+        :type key_term: int, str
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :type use_rfc6979: bool
+        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :type k: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param force_canonical: Some wallets require a canonical s value, so you could set this to True
+        :type force_canonical: bool
+
+        :return Signature:
+        """
         if key_term:
             wk = self.key(key_term)
         else:
@@ -4628,13 +4648,29 @@ class Wallet(object):
         return wk.sign_message(message, use_rfc6979, k, hash_type, force_canonical)
 
     def verify_message(self, message, signature, key_term=None):
+        """
+        Verify if provided message is signed by provided signature and matches a public key from this wallet.
+
+        If no key_term is provided it will check the signature against all known keys for this wallet. This can be
+        slow for larger wallets.
+
+        :param message: Message to verify. Must be unhashed and in bytes format.
+        :type message: bytes, hexstring
+        :param signature: signature as Signature object
+        :type signature: Signature
+        :param key_term: Key ID or address of verifying key. Search term can be key ID, key address, key WIF or key name
+        :type key_term: int, str
+
+        :return bool:
+        """
         if key_term:
             wk = self.key(key_term)
             return wk.verify_message(message, signature)
         else:
-            wks = self.keys_addresses()
-            for wk in wks:
-                if wk.key().verify_message(message, signature):
+            db_wks = self.keys_addresses()
+            for db_wk in db_wks:
+                wk = WalletKey(key_id=db_wk.id, session=self.session)
+                if wk.verify_message(message, signature):
                     return True
         return False
 
