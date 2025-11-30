@@ -4618,6 +4618,28 @@ class Wallet(object):
         f.close()
         return self.transaction_import(t)
 
+    def sign_message(self, message, key_term=None, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL,
+                     force_canonical=False):
+        if key_term:
+            wk = self.key(key_term)
+        else:
+            wk = self.get_key()
+
+        return wk.sign_message(message, use_rfc6979, k, hash_type, force_canonical)
+
+    def verify_message(self, message, signature, key_term=None):
+        if key_term:
+            wk = self.key(key_term)
+            return wk.verify_message(message, signature)
+        else:
+            wks = self.keys_addresses()
+            for wk in wks:
+                if wk.key().verify_message(message, signature):
+                    return True
+        return False
+
+
+
     def info(self, detail=3):
         """
         Prints wallet information to standard output

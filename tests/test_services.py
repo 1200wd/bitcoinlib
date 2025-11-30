@@ -627,14 +627,12 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
+        # Test 4 bitcoins providers for now. Skip result for first provider with lowest blockcount.
         for nw in ['bitcoin']:
             srv = ServiceTest(min_providers=4, cache_uri='', network=nw)
             srv.blockcount()
             delta = 5
-            if nw == 'testnet':  # Testnet 3 has frequent blockstorms causing delay in processing for various providers
-                delta = 25000
             heights = sorted(list(srv.results.values()))
-            print(srv.results)
             self.assertAlmostEqual(heights[1], heights[-1], delta=delta,
                                    msg=f"Inconsistent blockcount results {srv.results}")
 
