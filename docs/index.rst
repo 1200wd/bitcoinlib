@@ -137,6 +137,25 @@ And then import the transaction in the second wallet, sign it and push it to the
     t2.info()
 
 
+Sign a message with a Bitcoin wallet
+------------------------------------
+
+Create a signed message with a Bitcoinlib wallet. After signing you can verify it with another wallet or an
+online service, to prove you are the owner of the private key
+
+.. code-block:: pycon
+
+    >>> message = "This is a signed message as proof I own this wallet and private key. Alice"
+    >>> w = wallet_create_or_open('message-signing-wallet')
+    >>> sig = w.sign_message(message)
+    >>> sig.as_signed_message(message)
+    -----BEGIN BITCOIN SIGNED MESSAGE-----
+    This is a example of a signed message by a Bitcoinlib wallet
+    -----BEGIN SIGNATURE-----
+    bc1q065ed8cnxf9rr2v0qhatr2guruulr0jpgjycfu
+    J4YKfaKqHDJCidfWXYTRC191QYZ3slu8VzgFyUb6m7QJn7Yn2sif7Od1slvnhBV6pLqj2cnISyahVCIrrHQNe0I=
+    -----END BITCOIN SIGNED MESSAGE-----
+
 Command Line Tool
 -----------------
 

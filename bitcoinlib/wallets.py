@@ -4674,8 +4674,6 @@ class Wallet(object):
                     return True
         return False
 
-
-
     def info(self, detail=3):
         """
         Prints wallet information to standard output
