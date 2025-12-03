@@ -234,7 +234,7 @@
     "provider_coin_id": "",
     "url": "https://bitcoinblockexplorers.com/api/v1/",
     "api_key": "",
-    "priority": 0,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null,
     "timeout": 0

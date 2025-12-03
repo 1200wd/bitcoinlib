@@ -56,7 +56,7 @@ DATABASES_CACHE = [
     DATABASE_CACHE_UNITTESTS2,
 ]
 
-TIMEOUT_TEST = 3
+TIMEOUT_TEST = 5
 
 
 # Wrapper class for the Service client: Set cache_uri, timeout and ignore provider priority

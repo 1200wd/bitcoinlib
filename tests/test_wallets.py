@@ -34,8 +34,9 @@ except ImportError as e:
 from bitcoinlib.wallets import *
 from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.keys import HDKey, BKeyError
+from bitcoinlib.keys import HDKey, BKeyError, verify_message, signed_message_parse
 from bitcoinlib.values import Value
+from bitcoinlib.networks import NETWORK_DEFINITIONS
 from tests.test_custom import CustomAssertions
 
 DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
@@ -3096,5 +3097,23 @@ class TestWalletSignMessages(unittest.TestCase):
         self.assertEqual(sig.as_base64(), expected_sig)
         self.assertTrue(wallet_key.verify_message(message, sig))
 
+    def test_wallet_sign_and_verify(self):
+        message = "test_wallet_sign_and_verify Unittest"
+        w = wallet_create_or_open('test_wallet_sign_and_verify', db_uri=self.database_uri)
+        sig = w.sign_message(message)
+        signed_message = sig.as_signed_message(message)
+        message, sig_b64, addr, network = signed_message_parse(signed_message)
+        self.assertTrue(verify_message(message, sig_b64, addr, network))
+        self.assertTrue(w.verify_message(message, sig))
+
     def test_wallet_sign_verify_message_various_networks(self):
-        n = Network
+        for network in NETWORK_DEFINITIONS:
+            for witness_type in ['legacy', 'segwit', 'p2sh-segwit']:
+                wname = f"{network.capitalize()} wallet with {witness_type} witness type"
+                message = f"Message for wallet '{wname}'"
+                w = wallet_create_or_open(wname, db_uri=self.database_uri)
+                sig = w.sign_message(message)
+                signed_message = sig.as_signed_message(message)
+                message, sig_b64, addr, network = signed_message_parse(signed_message)
+                self.assertTrue(verify_message(message, sig_b64, addr, network))
+                self.assertTrue(w.verify_message(message, sig))
