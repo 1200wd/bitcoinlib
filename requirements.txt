@@ -1,14 +1,14 @@
-requests>=2.25.0
-fastecdsa>=2.3.0
-scrypt>=0.8.20
-pycryptodome>=3.19.0
-SQLAlchemy>=2.0.20
-numpy>=1.26.0
-sphinx>=7.2.0
-psycopg>=3.1.16
-coveralls >= 4.0.1
-mysql-connector-python>=8.4.0
-mysqlclient>=2.2.0
-sphinx_rtd_theme>=2.0.0
-Cython>=3.0.8
+requests>=2.32.0
+fastecdsa>=3.0.0
+scrypt>=0.9.0
+pycryptodome>=3.23.0
+SQLAlchemy>=2.0.44
+numpy>=1.26.0,<2
+sphinx>=9.0.0
+psycopg>=3.3.0
+coveralls>=4.0.2
+mysql-connector-python>=9.5.0
+mysqlclient>=2.2.7
+sphinx_rtd_theme>=3.0.0
+Cython>=3.2.0
 win-unicode-console;platform_system=="Windows"
