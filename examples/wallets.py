@@ -112,18 +112,18 @@ litecoin_wallet.new_key()
 litecoin_wallet.info(detail=3)
 del litecoin_wallet
 
-print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
-words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
-# Or use generate method:
-#   words = Mnemonic('english').generate()
-print("Generated Passphrase: %s" % words)
-seed = Mnemonic().to_seed(words)
-hdkey = HDKey.from_seed(seed, network='litecoin_testnet')
-wallet = Wallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
-                         keys=hdkey.wif(), db_uri=test_database)
-wallet.new_key("Input", 0)
-wallet.utxos_update()
-wallet.info(detail=3)
+# print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
+# words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
+# # Or use generate method:
+# #   words = Mnemonic('english').generate()
+# print("Generated Passphrase: %s" % words)
+# seed = Mnemonic().to_seed(words)
+# hdkey = HDKey.from_seed(seed, network='litecoin_testnet')
+# wallet = Wallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
+#                          keys=hdkey.wif(), db_uri=test_database)
+# wallet.new_key("Input", 0)
+# wallet.utxos_update()
+# wallet.info(detail=3)
 
 print("\n=== Test import Litecoin key in Bitcoin wallet (should give error) ===")
 w = Wallet.create(
