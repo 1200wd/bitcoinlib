@@ -1,3 +1,13 @@
+RELEASE 0.7.6 - Message signing and deterministic signatures
+============================================================
+* Add signing and verifying of Bitcoin messages
+* Improve UTXO selection
+* Implement RFC6979 deterministic signature algorithm
+* Improve Signature class
+* Support deterministic signatures for Windows
+* Add message signing methods to Wallet class
+* Various provider updates
+
 RELEASE 0.7.5 - Add Nownodes provider, code cleanup, various bugfixes
 =====================================================================
 * Add Nownodes provider
