@@ -62,14 +62,14 @@ def database_init(dbname=DATABASE_NAME):
         con.close()
         return 'postgresql+psycopg://postgres:postgres@localhost:5432/' + dbname
     elif os.getenv('UNITTEST_DATABASE') == 'mysql' or os.getenv('UNITTEST_DATABASE') == 'mariadb':
-        con = mysql.connector.connect(user='root', host='localhost', password='')
+        con = mysql.connector.connect(user='root', host='localhost', password='root')
         cur = con.cursor()
         cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
         cur.execute("CREATE DATABASE {}".format(dbname))
         con.commit()
         cur.close()
         con.close()
-        return 'mariadb://root@localhost:3306/' + dbname
+        return 'mariadb://root:root@localhost:3306/' + dbname
     else:
         dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):

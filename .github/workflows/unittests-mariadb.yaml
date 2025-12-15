@@ -1,4 +1,4 @@
-name: Bitcoinlib Tests Ubuntu - MySQL
+name: Bitcoinlib Tests Ubuntu - mariadb
 on: [push]
 
 jobs:
@@ -14,16 +14,17 @@ jobs:
           architecture: 'x64'
     - uses: getong/mariadb-action@v1.11
     - name: Set up mariadb
-      env:
-        DB_DATABASE: bitcoinlib_test
-        DB_USER: root
-        DB_PASSWORD: root
+      with:
+        mysql database: bitcoinlib_test
+        mysql user: root
+        mysql password: root
       run: |
-        sudo /etc/init.d/mariadb start
-        mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
+        mariadb -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
     - name: Install dependencies
       run: |
         python -m pip install .[dev]
+    - run: |
+        python -m pip install mariadb
     - name: Test with coverage
       env:
         BCL_CONFIG_FILE: ${{ github.workspace }}/tests/config.ini.unittest
