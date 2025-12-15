@@ -3061,7 +3061,7 @@ class Wallet(object):
         """
 
         qr = self.session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbTransaction.network_name,
-                                 DbTransaction.account_id).\
+                                DbTransaction.account_id).\
             join(DbTransaction). \
             filter(DbTransactionOutput.spent.is_(False),
                    DbTransaction.wallet_id == self.wallet_id,
@@ -3087,7 +3087,7 @@ class Wallet(object):
                 'id': utxo[0].key_id,
                 'network': utxo[2],
                 'account_id': utxo[3],
-                'balance': utxo[1]
+                'balance': float(utxo[1])
             }
             for utxo in utxos
         ]
