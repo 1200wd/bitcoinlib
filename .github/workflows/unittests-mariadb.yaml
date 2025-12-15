@@ -17,9 +17,6 @@ jobs:
         mysql database: bitcoinlib_test
         mysql user: root
         mysql password: root
-    - name: Set up mariadb
-      run: |
-        mariadb -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
     - name: Install dependencies
       run: |
         python -m pip install .[dev]
