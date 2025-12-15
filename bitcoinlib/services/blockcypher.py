@@ -185,8 +185,9 @@ class BlockCypher(BaseClient):
         if parse_transactions:
             txs = []
             for txid in bd['txids']:
+                tx = self.gettransaction(txid)
                 try:
-                    txs.append(self.gettransaction(txid))
+                    txs.append(tx)
                 except Exception as e:
                     _logger.error("Could not parse tx %s with error %s" % (txid, e))
         else:
