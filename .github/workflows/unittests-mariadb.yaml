@@ -12,6 +12,7 @@ jobs:
       with:
           python-version: '3.10'
           architecture: 'x64'
+    - uses: getong/mariadb-action@v1.11
     - name: Set up mariadb
       env:
         DB_DATABASE: bitcoinlib_test
