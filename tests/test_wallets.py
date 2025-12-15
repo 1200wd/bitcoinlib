@@ -69,7 +69,7 @@ def database_init(dbname=DATABASE_NAME):
         con.commit()
         cur.close()
         con.close()
-        return 'mariadb://root:root@localhost:3306/' + dbname
+        return 'mysql://root:root@localhost:3306/' + dbname
     else:
         dburi = os.path.join(str(BCL_DATABASE_DIR), '%s.sqlite' % dbname)
         if os.path.isfile(dburi):
