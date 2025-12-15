@@ -13,11 +13,11 @@ jobs:
           python-version: '3.10'
           architecture: 'x64'
     - uses: getong/mariadb-action@v1.11
-    - name: Set up mariadb
       with:
         mysql database: bitcoinlib_test
         mysql user: root
         mysql password: root
+    - name: Set up mariadb
       run: |
         mariadb -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
     - name: Install dependencies
