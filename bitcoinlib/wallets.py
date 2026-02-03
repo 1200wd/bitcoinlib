@@ -111,7 +111,7 @@ def wallet_create_or_open(
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
         key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None, db_password=None):
     """
-    Create a wallet with specified options if it doesn't exist, otherwise just open
+    Create a wallet with specified options if it doesn't exist, otherwise open the existing wallet.
 
     Returns Wallet object
 
@@ -306,7 +306,7 @@ class WalletKey(object):
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
                  cosigner_id=None, new_key_id=None):
         """
-        Create WalletKey from a HDKey object or key.
+        Create WalletKey from an HDKey object or key.
 
         Normally you don't need to call this method directly. Key creation is handled by the Wallet class.
 
@@ -340,18 +340,18 @@ class WalletKey(object):
         :type path: str
         :param key_type: Type of key, single or BIP44 type
         :type key_type: str
-        :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58
+        :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 encoding
         :type encoding: str
         :param witness_type: Witness type used when creating transaction script: legacy, p2sh-segwit or segwit.
         :type witness_type: str
-        :param multisig: Specify if key is part of multisig wallet, used for create keys and key representations such as WIF and addreses
+        :param multisig: Specify if the key is part of a multisig wallet, used for create keys and key representations such as WIF and addreses
         :type multisig: bool
         :param cosigner_id: Set this if you would like to create keys for other cosigners.
         :type cosigner_id: int
-        :param new_key_id: Key ID in database (DbKey.id), use to directly insert key in database without checks and without commiting. Mainly for internal usage, to significantly increase speed when inserting multiple keys.
+        :param new_key_id: Key ID in the database (DbKey.id), use to directly insert key in the database without checks and without commiting. Mainly for internal usage, to significantly increase speed when inserting multiple keys.
         :type new_key_id: int
 
-        :return WalletKey: WalletKey object
+        :return WalletKey: The wallet key object
         """
 
         key_is_address = False
@@ -448,13 +448,13 @@ class WalletKey(object):
 
     def __init__(self, key_id, session, hdkey_object=None):
         """
-        Initialize WalletKey with specified ID, get information from database.
+        Initialize WalletKey with specified ID, get information from the database.
 
-        :param key_id: ID of key as mentioned in database
+        :param key_id: ID of the key as mentioned in database
         :type key_id: int
         :param session: Required Sqlalchemy Session object
         :type session: sqlalchemy.orm.session.Session
-        :param hdkey_object: Optional HDKey object. Specify HDKey object if available for performance
+        :param hdkey_object: Optional HDKey object. Specify an HDKey object if available to increase performance
         :type hdkey_object: HDKey
 
         """
@@ -465,8 +465,8 @@ class WalletKey(object):
             self._dbkey = wk
             self._hdkey_object = hdkey_object
             if hdkey_object and isinstance(hdkey_object, HDKey):
-                assert(not wk.public or wk.public == hdkey_object.public_byte)
-                assert(not wk.private or wk.private == hdkey_object.private_byte)
+                assert not wk.public or wk.public == hdkey_object.public_byte
+                assert not wk.private or wk.private == hdkey_object.private_byte
                 self._hdkey_object = hdkey_object
             self.key_id = key_id
             self._name = wk.name
@@ -507,7 +507,7 @@ class WalletKey(object):
     @property
     def name(self):
         """
-        Return name of wallet key
+        Return name of the wallet key
 
         :return str:
         """
@@ -516,7 +516,7 @@ class WalletKey(object):
     @name.setter
     def name(self, value):
         """
-        Set key name, update in database
+        Set key name, update in the database
 
         :param value: Name for this key
         :type value: str
@@ -576,7 +576,7 @@ class WalletKey(object):
 
     def public(self):
         """
-        Return current key as public WalletKey object with all private information removed
+        Return the current key as a public WalletKey object with all private information removed
 
         :return WalletKey:
         """
@@ -592,7 +592,7 @@ class WalletKey(object):
 
     def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
         """
-        Sign message with this wallet key
+        Sign a message with this wallet key
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
@@ -611,7 +611,7 @@ class WalletKey(object):
 
     def verify_message(self, message, signature):
         """
-        Verify if provided message is signed by signature for this wallet key.
+        Verify if the provided message is signed by signature for this wallet key.
 
         :param message: Message to verify. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
@@ -720,7 +720,7 @@ class WalletTransaction(Transaction):
         :param t: Specify Transaction object
         :type t: Transaction
 
-        :return WalletClass:
+        :return WalletTransaction:
         """
         return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
                    network=t.network.name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size, txid=t.txid,
@@ -738,7 +738,7 @@ class WalletTransaction(Transaction):
         :param txid: Transaction hash as hexadecimal string
         :type txid: str, bytes
 
-        :return WalletClass:
+        :return WalletTransaction:
 
         """
         sess = hdwallet.session
@@ -2083,7 +2083,7 @@ class Wallet(object):
                     keys_to_scan = []
                     for witness_type in self.witness_types(network=network):
                         keys_to_scan += self.get_keys(account_id, witness_type, network,
-                                                     number_of_keys=scan_gap_limit, change=chg)
+                                                      number_of_keys=scan_gap_limit, change=chg)
 
                 n_highest_updated = 0
                 for key in keys_to_scan:
@@ -2152,11 +2152,11 @@ class Wallet(object):
         >>> w.get_key() # doctest:+ELLIPSIS
         <WalletKey(key_id=..., name=..., wif=..., path=m/84'/0'/0'/0/...)>
 
-        :param account_id: Account ID. Default is last used or created account ID.
+        :param account_id: Account ID. Default is the last used or created account ID.
         :type account_id: int
-        :param witness_type: Use to create key with specific witness_type
+        :param witness_type: Use to create a key with a specific witness_type
         :type witness_type: str
-        :param network: Network name. Leave empty for default network
+        :param network: The network name. Leave empty for the default network.
         :type network: str
         :param cosigner_id: Cosigner ID for key path
         :type cosigner_id: int
@@ -2923,7 +2923,8 @@ class Wallet(object):
         :param network: Network name filter. Default filter is DEFAULT_NETWORK
         :type network: str
 
-        :return list of str:
+        :return: list of witness types for this Wallet class
+        :rtype: list of str
         """
 
         qr = self.session.query(DbKey.witness_type).filter_by(wallet_id=self.wallet_id)
@@ -3746,7 +3747,6 @@ class Wallet(object):
         if qr:
             return qr.transaction.txid.hex()
 
-
     # def update_transactions_from_block(block, network=None):
     #     pass
 
@@ -3829,7 +3829,7 @@ class Wallet(object):
         :type skip_dust_amounts: bool
 
         :return: List of previous outputs
-        :rtype: list of DbTransactionOutput, list of Input
+        :rtype: list[DbTransactionOutput]
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
@@ -4604,7 +4604,7 @@ class Wallet(object):
         :param filename: Name of transaction object file
         :type filename: str
 
-        :return Transaction:
+        :return WalletTransaction:
         """
         if not filename and not txid:
             raise WalletError("Please supply filename or txid")
