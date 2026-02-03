@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2024 February - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2026 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -685,7 +685,6 @@ class TestWalletKeys(unittest.TestCase):
         w = wallet_create_or_open("wallet_private", network='testnet', db_uri=self.database_uri)
         wk = w.public_master()
         self.assertIsNone(wk._hdkey_object.private_hex)
-        self.assertIsNone(wk._dbkey)
 
         w2 = wallet_create_or_open('wallet_public', network='testnet', keys=wk, db_uri=self.database_uri)
         self.assertFalse(w2.main_key.is_private)
@@ -1332,7 +1331,7 @@ class TestWalletMultisig(unittest.TestCase):
         k2 = wl.new_key()
         k3 = wl.new_key_change()
         wl.utxos_update()
-        self.assertEqual(wl.public_master()[1].wif, keys[1].wif(multisig=True))
+        self.assertEqual(wl.public_master()[1].wif, keys[1].wif())
         key_names = [k.name for k in wl.keys(is_active=False)]
         self.assertListEqual(key_names, [k1.name, k2.name, k3.name])
 

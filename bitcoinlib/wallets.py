@@ -462,12 +462,6 @@ class WalletKey(object):
         self.session = session
         wk = session.query(DbKey).filter_by(id=key_id).first()
         if wk:
-            self._dbkey = wk
-            self._hdkey_object = hdkey_object
-            if hdkey_object and isinstance(hdkey_object, HDKey):
-                assert not wk.public or wk.public == hdkey_object.public_byte
-                assert not wk.private or wk.private == hdkey_object.private_byte
-                self._hdkey_object = hdkey_object
             self.key_id = key_id
             self._name = wk.name
             self.wallet_id = wk.wallet_id
@@ -495,6 +489,29 @@ class WalletKey(object):
             self.cosigner_id = wk.cosigner_id
             self.used = wk.used
             self.witness_type = wk.witness_type
+
+            self.keys_public = []
+            self.keys_private = []
+            if self.key_type == 'multisig':
+                self._hdkey_object = []
+                for kc in wk.multisig_children:
+                    self._hdkey_object.append(HDKey.from_wif(kc.child_key.wif, network=kc.child_key.network_name,
+                                                             compressed=self.compressed))
+                    self.keys_public.append(kc.child_key.public)
+                    if kc.child_key.private:
+                        self.keys_private.append(kc.child_key.private)
+            else:
+                if hdkey_object and isinstance(hdkey_object, HDKey):
+                    assert not wk.public or wk.public == hdkey_object.public_byte
+                    assert not wk.private or wk.private == hdkey_object.private_byte
+                    self._hdkey_object = hdkey_object
+                elif self.wif:
+                    self._hdkey_object = HDKey.from_wif(self.wif, network=self.network_name,
+                                                        compressed=self.compressed)
+                else:
+                    self._hdkey_object = None
+                self.keys_public = [self.key_public] if self.key_public else []
+                self.keys_private = [self.key_private] if self.key_private else []
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -525,22 +542,7 @@ class WalletKey(object):
         """
 
         self._name = value
-        self._dbkey.name = value
         self._commit()
-
-    @property
-    def keys_public(self):
-        if self.key_type == 'multisig':
-            return [k.public_byte for k in self.key()]
-        else:
-            return [self.key_public]
-
-    @property
-    def keys_private(self):
-        if self.key_type == 'multisig':
-            return [k.private_byte for k in self.key() if k.private_byte]
-        else:
-            return [self.key_private] if self.key_private else []
 
     def key(self):
         """
@@ -549,14 +551,6 @@ class WalletKey(object):
         :return HDKey, list of HDKey:
         """
 
-        self._hdkey_object = None
-        if self.key_type == 'multisig':
-            self._hdkey_object = []
-            for kc in self._dbkey.multisig_children:
-                self._hdkey_object.append(HDKey.from_wif(kc.child_key.wif, network=kc.child_key.network_name,
-                                                         compressed=self.compressed))
-        if self._hdkey_object is None and self.wif:
-            self._hdkey_object = HDKey.from_wif(self.wif, network=self.network_name, compressed=self.compressed)
         return self._hdkey_object
 
     def balance(self, as_string=False):
@@ -587,7 +581,6 @@ class WalletKey(object):
             pub_key.wif = self.key().wif()
         if self._hdkey_object:
             self._hdkey_object = pub_key._hdkey_object.public()
-        self._dbkey = None
         return pub_key
 
     def sign_message(self, message, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, force_canonical=False):
@@ -713,7 +706,7 @@ class WalletTransaction(Transaction):
     @classmethod
     def from_transaction(cls, hdwallet, t):
         """
-        Create WalletTransaction object from Transaction object
+        Create WalletTransaction object from a Transaction object
 
         :param hdwallet: Wallet object, wallet name or ID
         :type hdwallet: HDwallet, str, int
@@ -742,7 +735,7 @@ class WalletTransaction(Transaction):
 
         """
         sess = hdwallet.session
-        # If txid is unknown add it to database, else update
+        # If txid is unknown, add it to the database, else update
         db_tx_query = sess.query(DbTransaction). \
             filter(DbTransaction.wallet_id == hdwallet.wallet_id, DbTransaction.txid == to_bytes(txid))
         db_tx = db_tx_query.scalar()

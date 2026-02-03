@@ -2018,7 +2018,7 @@ class HDKey(Key):
 
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """
-        Get Extended WIF of current key
+        Get Extended WIF of the current key
 
         >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
         >>> k = HDKey(private_hex)
