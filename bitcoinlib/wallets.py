@@ -295,7 +295,7 @@ def normalize_path(path):
 
 class WalletKey(object):
     """
-    Used as attribute of Wallet class. Contains HDKey class, and adds extra wallet related information such as
+    Used as an attribute of Wallet class. Contains HDKey class and adds extra wallet-related information such as
     key ID, name, path and balance.
 
     All WalletKeys are stored in a database
@@ -652,15 +652,15 @@ class WalletKey(object):
 
 class WalletTransaction(Transaction):
     """
-    Used as attribute of Wallet class. Child of Transaction object with extra reference to
-    wallet and database object.
+    Used as an attribute of the Wallet class. Child of Transaction object with extra reference to
+    the wallet and database object.
 
     All WalletTransaction items are stored in a database
     """
 
     def __init__(self, hdwallet, account_id=None, *args, **kwargs):
         """
-        Initialize WalletTransaction object with reference to a Wallet object
+        Initialize a WalletTransaction object with reference to a Wallet object
 
         :param hdwallet: Wallet object, wallet name or ID
         :type hdWallet: HDwallet, str, int
@@ -706,7 +706,7 @@ class WalletTransaction(Transaction):
     @classmethod
     def from_transaction(cls, hdwallet, t):
         """
-        Create WalletTransaction object from a Transaction object
+        Create a WalletTransaction object from a Transaction object
 
         :param hdwallet: Wallet object, wallet name or ID
         :type hdwallet: HDwallet, str, int
@@ -891,6 +891,7 @@ class WalletTransaction(Transaction):
             self.hdwallet._balance_update(network=self.network.name)
             return None
         self.error = "Transaction not send, unknown response from service providers"
+        return None
 
     def store(self):
         """
@@ -1086,21 +1087,21 @@ class WalletTransaction(Transaction):
         Increase fee for this transaction. If replace-by-fee is signaled in this transaction the fee can be
         increased to speed up inclusion on the blockchain.
 
-        If not fee or extra_fee is provided the extra fee will be increased by the formule you can find in the code
+        If fee or extra_fee is not provided, the extra fee will be increased by the formula you can find in the code
         below using the BUMPFEE_DEFAULT_MULTIPLIER from the config settings.
 
         The extra fee will be deducted from change output. This method fails if there are not enough change outputs
         to cover fees.
 
-        If this transaction does not have enough inputs to cover extra fee, an extra wallet utxo will be aaded to
+        If this transaction does not have enough inputs to cover an extra fee, an extra wallet utxo will be aaded to
         inputs if available.
 
-        Previous broadcasted transaction will be removed from wallet with this replace-by-fee transaction and wallet
+        Previous broadcasted transaction will be removed from the wallet with this replace-by-fee transaction and wallet
         information updated.
 
         :param fee: New fee for this transaction
         :type fee: int
-        :param extra_fee: Extra fee to add to current transaction fee
+        :param extra_fee: Extra fee to add to the current transaction fee
         :type extra_fee: int
         :param broadcast: Increase fee and directly broadcast transaction to the network
         :type broadcast: bool
@@ -1281,8 +1282,8 @@ class Wallet(object):
         >>> w
         <Wallet(name="create_legacy_wallet_test")>
 
-        To create a multi signature wallet specify multiple keys (private or public) and provide the sigs_required
-        argument if it different then len(keys)
+        To create a multi-signature wallet, specify multiple keys (private or public) and provide the sigs_required
+        argument if it is different than len(keys)
 
         >>> if wallet_delete_if_exists('create_legacy_multisig_wallet_test'): pass
         >>> w = Wallet.create('create_legacy_multisig_wallet_test', keys=[HDKey(), HDKey().public()])
@@ -1488,9 +1489,6 @@ class Wallet(object):
                                 db_password=db_password)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
-            # hdpm._dbwallet = hdpm.session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id)
-            # hdpm._dbwallet.update({DbWallet.cosigner_id: hdpm.cosigner_id})
-            # hdpm._dbwallet.update({DbWallet.key_path: hdpm.key_path})
             # hdpm.session.commit()
 
         return hdpm
@@ -1526,7 +1524,7 @@ class Wallet(object):
         else:
             db_wlt = self.session.query(DbWallet).filter_by(name=wallet).scalar()
         if db_wlt:
-            self._dbwallet = db_wlt
+            # self._dbwallet = db_wlt
             self.wallet_id = db_wlt.id
             self._name = db_wlt.name
             self._owner = db_wlt.owner
@@ -1646,7 +1644,7 @@ class Wallet(object):
     @default_account_id.setter
     def default_account_id(self, value):
         self._default_account_id = value
-        self._dbwallet = self.session.query(DbWallet).filter(DbWallet.id == self.wallet_id). \
+        self.session.query(DbWallet).filter(DbWallet.id == self.wallet_id). \
             update({DbWallet.default_account_id: value})
         self._commit()
 
@@ -1672,7 +1670,7 @@ class Wallet(object):
         """
 
         self._owner = value
-        self._dbwallet = self.session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
+        self.session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
             update({DbWallet.owner: value})
         self._commit()
 

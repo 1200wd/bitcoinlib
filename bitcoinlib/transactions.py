@@ -66,7 +66,7 @@ class TransactionError(Exception):
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
     """
-    Specify locking script type and get corresponding script type for unlocking script
+    Specify a locking script type and get a corresponding script type for unlocking script
 
     >>> get_unlocking_script_type('p2wsh')
     'p2sh_multisig'
@@ -98,15 +98,15 @@ def get_unlocking_script_type(locking_script_type, witness_type='legacy', multis
 
 def transaction_update_spents(txs, address):
     """
-    Update spent information for list of transactions for a specific address. This method assumes the list of
-    transaction complete and up-to-date.
+    Update spent information for a list of transactions for the specific address. This method assumes the list of
+    transactions is complete and up to date.
 
-    This method loops through all the transaction and update all transaction outputs for given address, checks
-    if the output is spent and add the spending transaction ID and index number to the outputs.
+    This method loops through all the transactions and updates the transaction outputs for the supplied address, checks
+    if the output is spent and adds the spending transaction ID and index number to the outputs.
 
-    The same list of transactions with updates outputs will be returned
+    The same list of transactions with all updates outputs will be returned
 
-    :param txs: Complete list of transactions for given address
+    :param txs: Complete list of transactions for a given address
     :type txs: list of Transaction
     :param address: Address string
     :type address: str
@@ -140,7 +140,7 @@ class Input(object):
     Transaction Input class, used by Transaction class
     
     An Input contains a reference to an UTXO or Unspent Transaction Output (prev_txid + output_n).
-    To spend the UTXO an unlocking script can be included to prove ownership.
+    To spend the UTXO, an unlocking script can be included to prove ownership.
     
     Inputs are verified by the Transaction class.
     """
