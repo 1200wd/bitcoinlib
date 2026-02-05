@@ -472,12 +472,11 @@ class WalletKey(object):
             self.address_index = wk.address_index
             self.wif = wk.wif
             self.address = wk.address
-            self._balance = wk.balance
+            self.balance = wk.balance
             self.purpose = wk.purpose
             self.parent_id = wk.parent_id
             self.is_private = wk.is_private
             self.path = wk.path
-            self.wallet = wk.wallet
             self.network_name = wk.network_name
             if not self.network_name:
                 self.network_name = wk.wallet.network_name
@@ -487,6 +486,7 @@ class WalletKey(object):
             self.compressed = wk.compressed
             self.encoding = wk.encoding
             self.cosigner_id = wk.cosigner_id
+            self.wallet_cosigner_id = wk.wallet.cosigner_id
             self.used = wk.used
             self.witness_type = wk.witness_type
 
@@ -553,20 +553,14 @@ class WalletKey(object):
 
         return self._hdkey_object
 
-    def balance(self, as_string=False):
+    def balance_str(self):
         """
-        Get total value of unspent outputs
+        Get total value of unspent outputs in string format
 
-        :param as_string: Specify 'string' to return a string in currency format
-        :type as_string: bool
-
-        :return float, str: Key balance
+        :return str: Key balance
         """
 
-        if as_string:
-            return Value.from_satoshi(self._balance, network=self.network).str_unit()
-        else:
-            return self._balance
+        return Value.from_satoshi(self.balance, network=self.network).str_unit()
 
     def public(self):
         """
@@ -639,8 +633,8 @@ class WalletKey(object):
             'address': self.address,
             'encoding': self.encoding,
             'path': self.path,
-            'balance': self.balance(),
-            'balance_str': self.balance(as_string=True)
+            'balance': self.balance,
+            'balance_str': self.balance_str()
         }
         if include_private:
             kdict.update({
@@ -901,7 +895,7 @@ class WalletTransaction(Transaction):
         """
 
         sess = self.hdwallet.session
-        # If txid is unknown add it to database, else update
+        # If txid is unknown, add it to database, else update
         db_tx_query = sess.query(DbTransaction). \
             filter(DbTransaction.wallet_id == self.hdwallet.wallet_id, DbTransaction.txid == bytes.fromhex(self.txid))
         db_tx = db_tx_query.scalar()
@@ -1868,7 +1862,7 @@ class Wallet(object):
                                                                  address=address.address).first()
         if already_found_key:
             return self.key(already_found_key.id)
-        path = [pubk.path for pubk in public_keys if pubk.wallet.cosigner_id == self.cosigner_id][0]
+        path = [pubk.path for pubk in public_keys if pubk.wallet_cosigner_id == self.cosigner_id][0]
         depth = self.cosigner[self.cosigner_id].main_key.depth + len(path.split("/")) - 1
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
@@ -2068,7 +2062,7 @@ class Wallet(object):
         for chg in change_range:
             while True:
                 if self.scheme == 'single':
-                    keys_to_scan = [self.key(k.id) for k in self.keys_addresses()[counter:counter+scan_gap_limit]]
+                    keys_to_scan = [self.key(k.key_id) for k in self.keys_addresses()[counter:counter+scan_gap_limit]]
                     counter += scan_gap_limit
                 else:
                     keys_to_scan = []
@@ -2586,7 +2580,7 @@ class Wallet(object):
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
              has_balance=None, is_active=None, witness_type=None, network=None, include_private=False, as_dict=False):
         """
-        Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
+        Search for keys in the database. Include 0 or more of account_id, name, key_id, change and depth.
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
         >>> all_wallet_keys = w.keys()
@@ -2669,7 +2663,7 @@ class Wallet(object):
                 keys2.append({k: v for (k, v) in key.items()
                               if k[:1] != '_' and k != 'wallet' and k not in private_fields})
             return keys2
-        return keys
+        return [WalletKey(key.id, session=self.session) for key in keys]
 
     def keys_networks(self, used=None, as_dict=False):
         """
@@ -3009,7 +3003,7 @@ class Wallet(object):
 
     def balance(self, account_id=None, network=None, as_string=False):
         """
-        Get total of unspent outputs
+        Get the total of unspent outputs
 
         :param account_id: Account ID filter
         :type account_id: int
@@ -3098,11 +3092,11 @@ class Wallet(object):
             nw_acc_dict["balance"] = sum(item["balance"] for item in grp)
             balance_list.append(nw_acc_dict)
 
-        # Add keys with no UTXO's with 0 balance
+        # Add keys with no UTXO's with (balance 0)
         for key in self.keys(account_id=account_id, network=network, key_id=key_id):
-            if key.id not in [utxo[0].key_id for utxo in utxos]:
+            if key.key_id not in [utxo[0].key_id for utxo in utxos]:
                 key_balance_list.append({
-                    'id': key.id,
+                    'id': key.key_id,
                     'network': network,
                     'account_id': key.account_id,
                     'balance': 0
@@ -3123,7 +3117,7 @@ class Wallet(object):
         # Bulk update database
         for kb in key_balance_list:
             if kb['id'] in self._key_objects:
-                self._key_objects[kb['id']]._balance = kb['balance']
+                self._key_objects[kb['id']].balance = kb['balance']
         self.session.bulk_update_mappings(DbKey, key_balance_list)
         self._commit()
         _logger.info("Got balance for %d key(s)" % len(key_balance_list))
@@ -4660,7 +4654,7 @@ class Wallet(object):
         else:
             db_wks = self.keys_addresses()
             for db_wk in db_wks:
-                wk = WalletKey(key_id=db_wk.id, session=self.session)
+                wk = WalletKey(key_id=db_wk.key_id, session=self.session)
                 if wk.verify_message(message, signature):
                     return True
         return False
@@ -4720,7 +4714,7 @@ class Wallet(object):
                     if detail > 3:
                         is_active = False
                     for key in self.keys(depth=d, network=nw.name, is_active=is_active):
-                        print(f"{str(key.id):>5} {key.path:<28} {key.address:<45} {key.name:<25} "
+                        print(f"{str(key.key_id):>5} {key.path:<28} {key.address:<45} {key.name:<25} "
                               f"{Value.from_satoshi(key.balance, network=nw).str_unit(currency_repr='symbol'):>25}")
 
                 if detail > 2:
