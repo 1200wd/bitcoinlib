@@ -1132,8 +1132,8 @@ class WalletTransaction(Transaction):
 
     def add_input_from_wallet(self, amount_min=0, key_id=None, min_confirms=1):
         """
-        Add a new input from an utxo of this wallet. If not key_id is specified it adds the first input it finds with
-        the minimum amount and minimum confirms specified.
+        Add a new input from an utxo of this wallet. If no key_id is specified, it adds the first input it finds with
+        the minimum amount and minimum confirmations specified.
 
         WARNING: Change output and fees are not updated, so you risk overpaying fees!
 
@@ -1158,7 +1158,8 @@ class WalletTransaction(Transaction):
                                    self.txid)
         # take first input
         utxo = unused_inputs[0]
-        inp_keys, key = self.hdwallet._objects_by_key_id(utxo['key_id'])
+        key = WalletKey(utxo['key_id'], self.hdwallet.session)
+        inp_keys = key.key()
         unlock_script_type = get_unlocking_script_type(utxo['script_type'], self.witness_type,
                                                        multisig=self.hdwallet.multisig)
         return self.add_input(utxo['txid'], utxo['output_n'], keys=inp_keys, script_type=unlock_script_type,
@@ -3768,11 +3769,22 @@ class Wallet(object):
             if not tx.confirmations and tx.date < td:
                 self.transaction_delete(tx.txid)
 
-    def _objects_by_key_id(self, key_id):
-        self.session.expire_all()
-        key = self.session.query(DbKey).filter_by(id=key_id).scalar()
-        if not key:
-            raise WalletError("Key '%s' not found in this wallet" % key_id)
+    def _objects_by_key_id(self, key):
+        """
+        Generates a list of input keys by parsing and verifying the provided key object, based on
+        its type (e.g., 'multisig', 'bip32', 'single'). This function processes the key object's
+        properties to create corresponding HDKey instances for further operations.
+
+        :param key: The key object contains information such as key type, WIF, network name,
+            and compression status.
+        :type key: Any object with accessible attributes 'key_type', 'wif', 'network_name',
+            and 'compressed'.
+        :return: list of HDKey instances derived from the `key`.
+        :rtype: list[HDKey]
+        :raises WalletError: If the key type is unsupported or WIF is not found when expecting
+            it to create the HDKey.
+        """
+
         if key.key_type == 'multisig':
             inp_keys = [HDKey.from_wif(ck.child_key.wif, network=ck.child_key.network_name, compressed=key.compressed)
                         for ck in key.multisig_children]
@@ -3782,7 +3794,7 @@ class Wallet(object):
             inp_keys = [HDKey.from_wif(key.wif, network=key.network_name, compressed=key.compressed)]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
-        return inp_keys, key
+        return inp_keys
 
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=1,
                       max_utxos=None, skip_dust_amounts=True):
@@ -3842,7 +3854,7 @@ class Wallet(object):
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
 
-        # Try to find one utxo with exact amount
+        # Try to find one utxo with the exact amount
         one_utxo = utxo_query.filter(DbTransactionOutput.spent.is_(False),
                                      DbTransactionOutput.value >= amount,
                                      DbTransactionOutput.value <= amount + variance).first()
@@ -3850,7 +3862,7 @@ class Wallet(object):
         if one_utxo:
             selected_utxos = [one_utxo]
         else:
-            # Try to find one utxo with higher amount
+            # Try to find one utxo with a higher amount
             one_utxo = utxo_query. \
                 filter(DbTransactionOutput.spent.is_(False), DbTransactionOutput.value >= amount).\
                 order_by(DbTransactionOutput.value).first()
@@ -3880,7 +3892,8 @@ class Wallet(object):
 
         inputs = []
         for utxo in selected_utxos:
-            inp_keys, key = self._objects_by_key_id(utxo.key_id)
+            key = utxo.key
+            inp_keys = self._objects_by_key_id(key)
             multisig = False if len(inp_keys) < 2 else True
             script_type = get_unlocking_script_type(utxo.script_type, witness_type=key.witness_type, multisig=multisig)
             inputs.append(Input(utxo.transaction.txid, utxo.output_n, keys=inp_keys, script_type=script_type,
@@ -4009,11 +4022,10 @@ class Wallet(object):
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 inp_keys = utxo.keys
-                key = utxo.keys[0]
                 witness_type = utxo.witness_type if utxo.witness_type else self.witness_type
                 transaction.add_input(utxo.prev_txid, utxo.output_n, keys=inp_keys,
                                       script_type=utxo.script_type, sigs_required=self.multisig_n_required,
-                                      sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
+                                      sort=self.sort_keys, compressed=utxo.compressed, value=utxo.value,
                                       address=utxo.address, sequence=sequence,
                                       key_path=utxo.key_path, witness_type=witness_type)
                 # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
@@ -4073,7 +4085,9 @@ class Wallet(object):
                                               "or import transaction as dictionary" % address)
 
                 amount_total_input += value
-                inp_keys, key = self._objects_by_key_id(key_id)
+                # inp_keys, key = self._objects_by_key_id(key_id)
+                key = WalletKey(key_id, session=self.session)
+                inp_keys = key.key()
                 transaction.add_input(prev_txid, output_n, keys=inp_keys, script_type=unlocking_script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
