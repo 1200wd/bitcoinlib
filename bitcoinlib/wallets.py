@@ -515,8 +515,8 @@ class WalletKey(object):
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
-    def __del__(self):
-        self.session.close()
+    # def __del__(self):
+    #     self.session.close()
 
     def __repr__(self):
         return "<WalletKey(key_id=%d, name=%s, wif=%s, path=%s)>" % (self.key_id, self.name, self.wif, self.path)
@@ -1330,16 +1330,16 @@ class Wallet(object):
         :param cosigner_id: Set this if wallet contains only public keys, more than one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the wallet's cosigner_id may be different.
         :type cosigner_id: int
         :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
-            * Path start with masterkey (m) and end with change / address_index
+            * Path starts with a masterkey (m) and ends with change / address_index
             * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
             * All keys must be hardened, except for change, address_index or cosigner_id
-            * Max length of path is 8 levels
+            * Max length of the path is 8 levels
         :type key_path: list, str
-        :param anti_fee_sniping: Set default locktime in transactions as current block height + 1  to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
+        :param anti_fee_sniping: Set default locktime in transactions as current block height + 1 to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
         :type anti_fee_sniping: boolean
         :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
-        :param db_cache_uri: URI of the cache database. If not specified  the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
+        :param db_cache_uri: URI of the cache database. If not specified, the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
         :type db_cache_uri: str
         :param db_password: Password to encrypt the database. Requires the installation of sqlcipher (see 
         documentation).
@@ -4811,7 +4811,7 @@ class Wallet(object):
 
     def as_json(self, include_private=False):
         """
-        Get the current key as json formatted string
+        Get the current key as a JSON formatted string
 
         :param include_private: Include private key information in JSON
         :type include_private: bool
