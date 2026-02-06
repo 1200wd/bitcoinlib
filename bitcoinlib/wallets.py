@@ -2587,7 +2587,7 @@ class Wallet(object):
         >>> w.keys(depth=0) # doctest:+ELLIPSIS
         [<DbKey(id=..., name='bitcoinlib_legacy_wallet_test', wif='xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'>]
 
-        Returns a list of DbKey object or dictionary object if as_dict is True
+        Returns a list of WalletKey objects or dictionary object if as_dict is True
 
         :param account_id: Search for account ID
         :type account_id: int
@@ -2616,7 +2616,7 @@ class Wallet(object):
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list of DbKey: List of Keys
+        :return list of WalletKey or list of dict: List of keys from this wallet
         """
 
         qr = self.session.query(DbKey).filter_by(wallet_id=self.wallet_id).order_by(DbKey.id)
@@ -3785,7 +3785,7 @@ class Wallet(object):
         return inp_keys, key
 
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=1,
-                      max_utxos=None, return_input_obj=True, skip_dust_amounts=True):
+                      max_utxos=None, skip_dust_amounts=True):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
         the specified amount.
@@ -3796,7 +3796,7 @@ class Wallet(object):
 
         :param amount: Total value of inputs in the smallest denominator (sathosi) to select
         :type amount: int
-        :param variance: Allowed difference in total input value. Default is dust amount of selected network. Difference will be added to transaction fee.
+        :param variance: Allowed difference in total input value. Default is the dust amount of selected network. Difference will be added to the transaction fee.
         :type variance: int
         :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
         :type input_key_id: int, list
@@ -3808,13 +3808,11 @@ class Wallet(object):
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
-        :param return_input_obj: Return inputs as Input class object. Default is True
-        :type return_input_obj: bool
-        :param skip_dust_amounts: Do not include small amount to avoid dust inputs
+        :param skip_dust_amounts: Do not include small amounts to avoid dust inputs
         :type skip_dust_amounts: bool
 
-        :return: List of previous outputs
-        :rtype: list[DbTransactionOutput]
+        :return: List of selected unspent transaction outputs
+        :rtype: list[Input]
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
@@ -3880,27 +3878,24 @@ class Wallet(object):
                     selected_utxos.append(utxo)
                     lessers.remove(utxo)
 
-        if not return_input_obj:
-            return selected_utxos
-        else:
-            inputs = []
-            for utxo in selected_utxos:
-                # amount_total_input += utxo.value
-                inp_keys, key = self._objects_by_key_id(utxo.key_id)
-                multisig = False if len(inp_keys) < 2 else True
-                script_type = get_unlocking_script_type(utxo.script_type, multisig=multisig)
-                inputs.append(Input(utxo.transaction.txid, utxo.output_n, keys=inp_keys, script_type=script_type,
-                              sigs_required=self.multisig_n_required, sort=self.sort_keys, address=key.address,
-                              compressed=key.compressed, value=utxo.value, network=key.network_name))
-            return inputs
+        inputs = []
+        for utxo in selected_utxos:
+            inp_keys, key = self._objects_by_key_id(utxo.key_id)
+            multisig = False if len(inp_keys) < 2 else True
+            script_type = get_unlocking_script_type(utxo.script_type, witness_type=key.witness_type, multisig=multisig)
+            inputs.append(Input(utxo.transaction.txid, utxo.output_n, keys=inp_keys, script_type=script_type,
+                                sigs_required=self.multisig_n_required, sort=self.sort_keys, address=key.address,
+                                compressed=key.compressed, value=utxo.value, network=key.network_name,
+                                key_path=key.path, witness_type=key.witness_type))
+        return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
                            min_confirms=1, max_utxos=None, locktime=0, number_of_change_outputs=1,
-                           random_output_order=True, replace_by_fee=False):
+                           random_output_order=True, replace_by_fee=False, skip_dust_amounts=True):
         """
-        Create new transaction with specified outputs.
+        Create a new transaction with specified outputs.
 
-        Inputs can be specified but if not provided they will be selected from wallets utxo's with :func:`select_inputs` method.
+        Inputs can be specified, but if not provided they will be selected from wallets utxo's with the :func:`select_inputs` method.
 
         Output array is a list of 1 or more addresses and amounts.
 
@@ -3931,10 +3926,12 @@ class Wallet(object):
         :type locktime: int
         :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount        :type number_of_change_outputs: int
         :type number_of_change_outputs: int
-        :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
+        :param random_output_order: Shuffle order of transaction outputs to increase privacy. The default is True
         :type random_output_order: bool
-        :param replace_by_fee: Signal replace by fee and allow to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
+        :param replace_by_fee: Signal replace-by-fee and allow you to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
         :type replace_by_fee: bool
+        :param skip_dust_amounts: Do not include small amounts to avoid dust inputs
+        :type skip_dust_amounts: bool
 
         :return WalletTransaction: object
         """
@@ -3953,7 +3950,7 @@ class Wallet(object):
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
 
-        # Create transaction and add outputs
+        # Create a transaction and add outputs
         amount_total_output = 0
         transaction = WalletTransaction(hdwallet=self, account_id=account_id, network=network, locktime=locktime,
                                         replace_by_fee=replace_by_fee)
@@ -4005,21 +4002,20 @@ class Wallet(object):
         amount_total_input = 0
         if input_arr is None:
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,
-                                                input_key_id, account_id, network, min_confirms, max_utxos, False)
+                                                input_key_id, account_id, network, min_confirms, max_utxos,
+                                                skip_dust_amounts)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                inp_keys, key = self._objects_by_key_id(utxo.key_id)
-                multisig = False if isinstance(inp_keys, list) and len(inp_keys) < 2 else True
-                witness_type = utxo.key.witness_type if utxo.key.witness_type else self.witness_type
-                unlock_script_type = get_unlocking_script_type(utxo.script_type, witness_type,
-                                                               multisig=multisig)
-                transaction.add_input(utxo.transaction.txid, utxo.output_n, keys=inp_keys,
-                                      script_type=unlock_script_type, sigs_required=self.multisig_n_required,
+                inp_keys = utxo.keys
+                key = utxo.keys[0]
+                witness_type = utxo.witness_type if utxo.witness_type else self.witness_type
+                transaction.add_input(utxo.prev_txid, utxo.output_n, keys=inp_keys,
+                                      script_type=utxo.script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
-                                      address=utxo.key.address, sequence=sequence,
-                                      key_path=utxo.key.path, witness_type=witness_type)
+                                      address=utxo.address, sequence=sequence,
+                                      key_path=utxo.key_path, witness_type=witness_type)
                 # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
         else:
             for inp in input_arr:
