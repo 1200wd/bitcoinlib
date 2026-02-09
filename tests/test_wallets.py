@@ -61,7 +61,7 @@ def database_init(dbname=DATABASE_NAME):
         cur.close()
         con.close()
         return 'postgresql+psycopg://postgres:postgres@localhost:5432/' + dbname
-    elif os.getenv('UNITTEST_DATABASE') == 'mysql':
+    elif os.getenv('UNITTEST_DATABASE') == 'mysql' or os.getenv('UNITTEST_DATABASE') == 'mariadb':
         con = mysql.connector.connect(user='root', host='localhost', password='root')
         cur = con.cursor()
         cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))

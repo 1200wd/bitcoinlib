@@ -25,15 +25,22 @@ from bitcoinlib.wallets import Wallet, WalletError, WalletTransaction
 from bitcoinlib.transactions import Input, Output
 from bitcoinlib.services.services import Service
 try:
-    import mysql.connector
+    try:
+        import mysql.connector
+    except ImportError:
+        import mariadb.connector
+except ImportError as e:
+    print("Could not import MariaDB modules. Error: %s" % e)
+try:
     import psycopg
     from psycopg import sql
 except ImportError as e:
-    print("Could not import all modules. Error: %s" % e)
+    print("Could not import PostgreSQL modules. Error: %s" % e)
 
 
 DATABASE_NAME = 'bitcoinlib_tmp'
 DATABASE_CACHE_NAME = 'bitcoinlib_cache_tmp'
+
 
 def database_init(dbname=DATABASE_NAME):
     session.close_all_sessions()

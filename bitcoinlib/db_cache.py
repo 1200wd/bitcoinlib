@@ -56,7 +56,7 @@ class DbCache:
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
-        if self.o.scheme == 'mysql':
+        if self.o.scheme == 'mysql' or self.o.scheme == 'mariadb':
             raise NotImplementedError("MySQL does not allow indexing on LargeBinary fields, so caching is not possible")
             # db_uri += "&" if "?" in db_uri else "?"
             # db_uri += 'binary_prefix=true'
