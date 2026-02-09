@@ -767,8 +767,8 @@ class Address(object):
     def parse(cls, address, compressed=None, encoding=None, depth=None, change=None,
               address_index=None, network=None, network_overrides=None):
         """
-        Import an address to the Address class. Specify network if available, otherwise it will be
-        derived form the address.
+        Import an address to the Address class. Specify a network if available, otherwise it will be
+        derived from the address.
 
         >>> addr = Address.parse('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
         >>> addr.as_dict()
@@ -1502,7 +1502,7 @@ class Key(object):
     @property
     def hash160(self):
         """
-        Get public key in RIPEMD-160 + SHA256 format
+        Get the public key in RIPEMD-160 + SHA256 format
 
         :return bytes:
         """
@@ -2018,7 +2018,7 @@ class HDKey(Key):
 
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """
-        Get Extended WIF of current key
+        Get Extended WIF of the current key
 
         >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
         >>> k = HDKey(private_hex)
