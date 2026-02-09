@@ -162,7 +162,7 @@
     "provider_coin_id": "",
     "url": "https://api.bitaps.com/btc/v1/",
     "api_key": "",
-    "priority": 10,
+    "priority": 0,
     "denominator": 100000000,
     "network_overrides": null,
     "timeout": 0
@@ -294,7 +294,7 @@
     "provider_coin_id": "",
     "url": "https://bitcoinblockexplorers.com/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 0,
     "denominator": 100000000,
     "network_overrides": null,
     "timeout": 0
