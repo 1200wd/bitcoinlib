@@ -20,6 +20,8 @@ omit =
     *blocksmurfer.py
     *electrumx.py
     *blockchair.py
+    *blockbook1.py
+    *nownodes.py
 [report]
 exclude_lines =
     pragma: no cover

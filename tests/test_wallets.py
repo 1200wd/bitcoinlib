@@ -779,6 +779,19 @@ class TestWalletKeys(unittest.TestCase):
         w.utxos_update()
         self.assertEqual(sum([k.balance for k in w.keys_addresses()]), 400000000)
 
+    def test_wallet_key_get_keys(self):
+        seed_phrase = 'gentle disagree gentle little razor skull want left emotion addict oppose eye'
+        w = wallet_create_or_open("wallet_get_keys", seed_phrase, db_uri=self.database_uri)
+        w.new_keys(number_of_keys=10)
+
+        k = w.key('bc1q2j845rqtpndyg067zhcta3dqd0qv0m3j4yvcw0')
+        self.assertEqual(k.path, "m/84'/0'/0'/0/10")
+        k = w.key('address index 8')
+        self.assertEqual(k.path, "m/84'/0'/0'/0/8")
+        k = w.key(
+            'zprvAhcLR85RiBnqVkPiLS7Be4k1N7PyAszs8v1cgx2AEc8GMPEVXiH4R6GPm1fcVP8nDbQF1NcJ4M86XS9F6G4nJ1qnwMjnVs2qqVsHKh7u4sv')
+        self.assertEqual(k.address, "bc1qah5u6nex7s3g99uwqlck2dse92s44682dqku9u")
+
     @classmethod
     def tearDownClass(cls):
         del cls.database_uri
