@@ -3048,12 +3048,8 @@ class Wallet(object):
         """
 
         qr = (
-            self.session.query(
-                DbTransactionOutput,
-                func.sum(DbTransactionOutput.value).label('balance'),
-                DbTransaction.network_name.label('network_name'),
-                DbTransaction.account_id.label('account_id')
-            )
+            self.session.query()
+            .select_from(DbTransactionOutput)
             .join(DbTransaction)
             .filter(
                 DbTransactionOutput.spent == False,
@@ -3069,20 +3065,27 @@ class Wallet(object):
             qr = qr.filter(DbTransactionOutput.key_id == key_id)
         else:
             qr = qr.filter(DbTransactionOutput.key_id.isnot(None))
-        utxos = qr.group_by(
+        qr = qr.with_entities(
+            DbTransactionOutput.key_id,
+            DbTransaction.network_name.label('network_name'),
+            DbTransaction.account_id.label('account_id'),
+            func.sum(DbTransactionOutput.value).label('balance')
+        ).group_by(
             DbTransactionOutput.key_id,
             DbTransactionOutput.transaction_id,
             DbTransactionOutput.output_n,
             DbTransaction.network_name,
             DbTransaction.account_id
-        ).all()
+        )
+
+        utxos = qr.all()
 
         key_values = [
             {
-                'id': utxo[0].key_id,
-                'network': utxo[2],
-                'account_id': utxo[3],
-                'balance': float(utxo[1])
+                'id': utxo[0],
+                'network': utxo[1],
+                'account_id': utxo[2],
+                'balance': float(utxo[3])
             }
             for utxo in utxos
         ]
@@ -3103,7 +3106,7 @@ class Wallet(object):
 
         # Add keys with no UTXO's with (balance 0)
         for key in self.keys(account_id=account_id, network=network, key_id=key_id):
-            if key.key_id not in [utxo[0].key_id for utxo in utxos]:
+            if key.key_id not in [utxo[0] for utxo in utxos]:
                 key_balance_list.append({
                     'id': key.key_id,
                     'network': network,
