@@ -3031,7 +3031,7 @@ class Wallet(object):
 
     def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
-        Update balance from UTXO's in database. To get most recent balance use :func:`utxos_update` first.
+        Update balance from UTXO's in the database. To get the most recent balance use the :func:`utxos_update` first.
 
         Also updates the balance of wallet and keys in this wallet for the specified account or all accounts if no account is specified.
 
@@ -3047,12 +3047,20 @@ class Wallet(object):
         :return: Updated balance
         """
 
-        qr = self.session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbTransaction.network_name,
-                                DbTransaction.account_id).\
-            join(DbTransaction). \
-            filter(DbTransactionOutput.spent.is_(False),
-                   DbTransaction.wallet_id == self.wallet_id,
-                   DbTransaction.confirmations >= min_confirms)
+        qr = (
+            self.session.query(
+                DbTransactionOutput,
+                func.sum(DbTransactionOutput.value).label('balance'),
+                DbTransaction.network_name.label('network_name'),
+                DbTransaction.account_id.label('account_id')
+            )
+            .join(DbTransaction)
+            .filter(
+                DbTransactionOutput.spent == False,
+                DbTransaction.wallet_id == self.wallet_id,
+                DbTransaction.confirmations >= min_confirms
+            )
+        )
         if account_id is not None:
             qr = qr.filter(DbTransaction.account_id == account_id)
         if network is not None:
@@ -3228,7 +3236,7 @@ class Wallet(object):
                     elif utxos and 'date' in utxos[-1:][0]:
                         self.last_updated = utxos[-1:][0]['date']
 
-                # If UTXO is new, add to database otherwise update depth (confirmation count)
+                # If UTXO is new, add to the database otherwise update depth (confirmation count)
                 for utxo in utxos:
                     key = single_key
                     if not single_key:
@@ -3324,14 +3332,24 @@ class Wallet(object):
             first_key_id = key_id[0]
         network, account_id, acckey = self._get_account_defaults(network, account_id, first_key_id)
 
-        qr = self.session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.txid,
-                                 DbKey.network_name).\
-            join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spent.is_(False),
-                   DbTransaction.account_id == account_id,
-                   DbTransaction.wallet_id == self.wallet_id,
-                   DbTransaction.network_name == network,
-                   DbTransaction.confirmations >= min_confirms)
+        qr = (
+            self.session.query(
+                DbTransactionOutput,
+                DbKey.address.label('address'),
+                DbTransaction.confirmations.label('confirmations'),
+                DbTransaction.txid.label('txid'),
+                DbKey.network_name.label('network_name'),
+            )
+            .join(DbTransaction)
+            .join(DbKey)
+            .filter(
+                DbTransactionOutput.spent == False,
+                DbTransaction.account_id == account_id,
+                DbTransaction.wallet_id == self.wallet_id,
+                DbTransaction.network_name == network,
+                DbTransaction.confirmations >= min_confirms
+            )
+        )
         if isinstance(key_id, int):
             qr = qr.filter(DbKey.id == key_id)
         elif isinstance(key_id, list):
@@ -3572,26 +3590,48 @@ class Wallet(object):
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         # Transaction inputs
-        qr = self.session.query(DbTransactionInput, DbTransactionInput.address, DbTransaction.confirmations,
-                                 DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
-            join(DbTransaction).join(DbKey). \
-            filter(DbTransaction.account_id == account_id,
-                   DbTransaction.wallet_id == self.wallet_id,
-                   DbKey.wallet_id == self.wallet_id,
-                   DbTransaction.network_name == network)
+        qr = (
+            self.session.query(
+                DbTransactionInput,
+                DbTransactionInput.address.label('address'),
+                DbTransaction.confirmations.label('confirmations'),
+                DbTransaction.txid.label('txid'),
+                DbTransaction.network_name.label('network_name'),
+                DbTransaction.status.label('status'),
+            )
+            .join(DbTransaction)
+            .join(DbKey)
+            .filter(
+                DbTransaction.account_id == account_id,
+                DbTransaction.wallet_id == self.wallet_id,
+                DbKey.wallet_id == self.wallet_id,
+                DbTransaction.network_name == network
+            )
+        )
         if key_id is not None:
             qr = qr.filter(DbTransactionInput.key_id == key_id)
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs = qr.all()
         # Transaction outputs
-        qr = self.session.query(DbTransactionOutput, DbTransactionOutput.address, DbTransaction.confirmations,
-                                 DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
-            join(DbTransaction).join(DbKey). \
-            filter(DbTransaction.account_id == account_id,
-                   DbTransaction.wallet_id == self.wallet_id,
-                   DbKey.wallet_id == self.wallet_id,
-                   DbTransaction.network_name == network)
+        qr = (
+            self.session.query(
+                DbTransactionOutput,
+                DbTransactionOutput.address.label('address'),
+                DbTransaction.confirmations.label('confirmations'),
+                DbTransaction.txid.label('txid'),
+                DbTransaction.network_name.label('network_name'),
+                DbTransaction.status.label('status'),
+            )
+            .join(DbTransaction)
+            .join(DbKey)
+            .filter(
+                DbTransaction.account_id == account_id,
+                DbTransaction.wallet_id == self.wallet_id,
+                DbKey.wallet_id == self.wallet_id,
+                DbTransaction.network_name == network
+            )
+        )
         if key_id is not None:
             qr = qr.filter(DbTransactionOutput.key_id == key_id)
         if not include_new:
@@ -3725,8 +3765,8 @@ class Wallet(object):
         txid = to_bytes(txid)
         if isinstance(output_n, bytes):
             output_n = int.from_bytes(output_n, 'big')
-        qr = self.session.query(DbTransactionInput, DbTransaction.confirmations,
-                                 DbTransaction.txid, DbTransaction.status). \
+        qr = self.session.query(DbTransactionInput, DbTransaction.confirmations, DbTransaction.txid,
+                                DbTransaction.status). \
             join(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id,
                    DbTransactionInput.prev_txid == txid, DbTransactionInput.output_n == output_n).scalar()

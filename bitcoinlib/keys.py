@@ -2538,7 +2538,7 @@ class Signature(object):
         >>> sig.r
         15186587944669097449478602251208188095231503054964345209048973685229045586304
         >>> sig.s
-        43218737792637084485764095584496845697473864189275335601242497774821186855105
+        72573351444679110937806889424191062155363700089799568781362665366696974639232
 
         :param message: Transaction signature or transaction hash (txid). If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
         :type message: bytes, str
