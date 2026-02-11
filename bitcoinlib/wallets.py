@@ -3337,7 +3337,15 @@ class Wallet(object):
 
         qr = (
             self.session.query(
-                DbTransactionOutput,
+                DbTransactionOutput.key_id,
+                DbTransactionOutput.output_n,
+                DbTransactionOutput.script,
+                DbTransactionOutput.script_type,
+                DbTransactionOutput.value,
+                DbTransactionOutput.spent,
+                DbTransactionOutput.is_change,
+                DbTransactionOutput.spending_txid,
+                DbTransactionOutput.spending_index_n,
                 DbKey.address.label('address'),
                 DbTransaction.confirmations.label('confirmations'),
                 DbTransaction.txid.label('txid'),
@@ -3360,13 +3368,20 @@ class Wallet(object):
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
-            u = utxo[0].__dict__
-            # if '_sa_instance_state' in u:
-            #     del u['_sa_instance_state']
-            u['address'] = utxo[1]
-            u['confirmations'] = int(utxo[2])
-            u['txid'] = utxo[3].hex()
-            u['network_name'] = utxo[4]
+            u = dict()
+            u['key_id'] = utxo[0]
+            u['output_n'] = utxo[1]
+            u['script'] = utxo[2].hex()
+            u['script_type'] = utxo[3]
+            u['value'] = utxo[4]
+            u['spent'] = utxo[5]
+            u['is_change'] = utxo[6]
+            u['spending_txid'] = utxo[7].hex() if utxo[7] else None
+            u['spending_index_n'] = utxo[8]
+            u['address'] = utxo[9]
+            u['confirmations'] = int(utxo[10])
+            u['txid'] = utxo[11].hex()
+            u['network_name'] = utxo[12]
             res.append(u)
         return res
 
