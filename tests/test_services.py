@@ -200,7 +200,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
         for provider in srv.results:
-            # print("Comparing provider %s" % provider)
+            print("Comparing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_estimatefee(self):
