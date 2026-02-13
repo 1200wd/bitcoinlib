@@ -1,3 +1,11 @@
+RELEASE 0.7.7 - MariaDb support, fix database issues
+====================================================
+* Add and test support for MariaDb
+* Fix database issues
+* Avoid returning database objects
+* Update docstrings
+* Fix various provider issues
+
 RELEASE 0.7.6 - Message signing and deterministic signatures
 ============================================================
 * Add signing and verifying of Bitcoin messages

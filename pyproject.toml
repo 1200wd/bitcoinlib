@@ -1,6 +1,5 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools==76.1.0", "wheel"]
 
 [tool.coverage.run]
 branch = true
