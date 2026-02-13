@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==76.1.0", "wheel"]
+requires = ["setuptools<=76.1.0", "wheel"]
 
 [tool.coverage.run]
 branch = true
