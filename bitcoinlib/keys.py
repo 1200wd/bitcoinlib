@@ -2801,13 +2801,10 @@ class Signature(object):
         if not self._base64:
             if not self.k:
                 raise BKeyError('Message hash required to create base64 signature. k is not set')
-            # for recid in range(4):
             p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
             recid = p1[1] & 1
             if p1[0] > secp256k1_n:
                 recid += 2
-            # for i in range(3):
-            #     print(i)
             first = 27 + recid
             if not self.witness_type or self.witness_type == 'legacy':
                 first += (4 if self.public_key.compressed else 0)

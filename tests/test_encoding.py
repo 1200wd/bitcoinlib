@@ -18,7 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 import unittest
+from random import randint
 
 from bitcoinlib.config.opcodes import op
 from bitcoinlib.encoding import *
@@ -241,6 +243,29 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         der_sig = '3045022100b2b31575f8536b284410d01217f688be3a9faf4ba0ba3a9093f983e40d630' \
                   'ec7022022a7a25b01403cff0d00b3b853d230f8e96ff832b15d4ccc75203cb65896a2d5'
         self.assertEqual(to_hexstring(der_encode_sig(r, s)), der_sig)
+
+    def test_der_decode_sig(self):
+        # source: https://bitcoindevs.xyz/decoding/transaction-signing-06
+        der_signature = bytes.fromhex(
+            "304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee01")
+        expected_r = int('3609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a', 16)
+        expected_s = int('573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee', 16)
+
+        r, s = der_decode_sig(der_signature)
+        self.assertEqual(r, expected_r)
+        self.assertEqual(s, expected_s)
+
+    def test_signature_encode_decode(self):
+        for _ in range(10000):
+            r = randint(1, 2 ** 256)
+            s = randint(1, 2 ** 256)
+
+            der_sig = der_encode_sig(r, s)
+            r2, s2 = der_decode_sig(der_sig)
+
+            self.assertEqual(r, r2)
+            self.assertEqual(s, s2)
+
 
 
 VALID_CHECKSUM = [

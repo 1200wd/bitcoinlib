@@ -453,24 +453,50 @@ def convert_der_sig(signature, as_hex=True):
 
     if not signature:
         return ""
-    if USE_FASTECDSA:
-        r, s = DEREncoder.decode_signature(bytes(signature))
-    else:
-        sg, junk = ecdsa.der.remove_sequence(signature)
-        if junk != b'':
-            raise EncodingError("Junk found in encoding sequence %s" % junk)
-        r, sg = ecdsa.der.remove_integer(sg)
-        s, sg = ecdsa.der.remove_integer(sg)
+    r, s = der_decode_sig(signature)
+
     sig = '%064x%064x' % (r, s)
     if as_hex:
         return sig
     else:
         return bytes.fromhex(sig)
 
+def der_decode_sig(signature):
+    """
+    Decode a DER encoded signature and extract an r and s value
+
+    :param signature: DER encoded signature
+    :type signature: bytes
+
+    :return (int, int): Tuple with r and s value
+    """
+
+    if signature[0] != 0x30:
+        raise EncodingError("Signature must start with a sequence byte (x30)")
+
+    siglen, size = varbyteint_to_int(signature[1:])
+    if len(signature) == siglen + 1 + size + 1:  # ignore extra sighash byte
+        signature = signature[:-1]
+    if len(signature) != siglen + 1 + size:
+        raise EncodingError("Unexpected signature length")
+
+    pos = 1+size
+    rs_values = ()
+    while pos < len(signature):
+        if signature[pos] != 0x02:
+            raise EncodingError("Expected integer marker byte (x02)")
+        vlen, size = varbyteint_to_int(signature[pos+1:])
+        rs_values += (int.from_bytes(signature[pos+1+size:pos+1+size+vlen], 'big'), )
+        pos += vlen + size + 1
+
+    return rs_values
+
 
 def der_encode_sig(r, s):
     """
     Create DER encoded signature string with signature r and s value.
+
+    A DER encoded signature has the following format:
 
     :param r: r value of signature
     :type r: int
@@ -479,12 +505,15 @@ def der_encode_sig(r, s):
 
     :return bytes:
     """
-    if USE_FASTECDSA:
-        return DEREncoder.encode_signature(r, s)
-    else:
-        rb = ecdsa.der.encode_integer(r)
-        sb = ecdsa.der.encode_integer(s)
-        return ecdsa.der.encode_sequence(rb, sb)
+
+    rb = int.to_bytes(r, 32,'big').lstrip(b'\x00')
+    rb = b'\x00' + rb if rb[0] & 0x80 else rb
+
+    sb = int.to_bytes(s, 32,).lstrip(b'\x00')
+    sb = b'\x00' + sb if sb[0] & 0x80 else sb
+
+    sig = b'\x30' + varstr(b'\x02' + varstr(rb) + b'\x02' + varstr(sb))
+    return sig
 
 
 def addr_to_pubkeyhash(address, as_hex=False, encoding=None):
