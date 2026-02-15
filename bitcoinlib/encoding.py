@@ -505,11 +505,10 @@ def der_encode_sig(r, s):
 
     :return bytes:
     """
-
     rb = int.to_bytes(r, 32,'big').lstrip(b'\x00')
     rb = b'\x00' + rb if rb[0] & 0x80 else rb
 
-    sb = int.to_bytes(s, 32,).lstrip(b'\x00')
+    sb = int.to_bytes(s, 32, 'big').lstrip(b'\x00')
     sb = b'\x00' + sb if sb[0] & 0x80 else sb
 
     sig = b'\x30' + varstr(b'\x02' + varstr(rb) + b'\x02' + varstr(sb))
