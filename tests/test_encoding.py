@@ -23,6 +23,7 @@ import unittest
 from random import randint
 
 from bitcoinlib.config.opcodes import op
+from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.encoding import _bech32_polymod, _codestring_to_array
 
@@ -257,14 +258,31 @@ class TestEncodingMethodsStructures(unittest.TestCase):
 
     def test_signature_encode_decode(self):
         for _ in range(10000):
-            r = randint(1, 2 ** 256)
-            s = randint(1, 2 ** 256)
+            r = randint(1, secp256k1_n)
+            s = randint(1, secp256k1_n)
 
             der_sig = der_encode_sig(r, s)
             r2, s2 = der_decode_sig(der_sig)
 
             self.assertEqual(r, r2)
             self.assertEqual(s, s2)
+
+    def test_signature_encode_compare_libraries(self):
+        for _ in range(50000):
+            r = randint(1, secp256k1_n)
+            s = randint(1, secp256k1_n)
+
+            # Encode with bitcoinlib
+            sig_bitcoinlib = der_encode_sig(r, s)
+
+            if USE_FASTECDSA:
+                sig = DEREncoder.encode_signature(r, s)
+            else:  # ecdsa library
+                rb = ecdsa.der.encode_integer(r)
+                sb = ecdsa.der.encode_integer(s)
+                sig = ecdsa.der.encode_sequence(rb, sb)
+
+            self.assertEqual(sig, sig_bitcoinlib)
 
 
 
