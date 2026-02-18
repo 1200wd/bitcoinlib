@@ -284,6 +284,43 @@ class TestEncodingMethodsStructures(unittest.TestCase):
 
             self.assertEqual(sig, sig_bitcoinlib)
 
+    def test_signature_decode_invalid(self):
+        der_signature = bytes.fromhex(
+            "304502203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
+            "e8f3358f51928d43c212a8caed02de67eebeebb01")
+        self.assertRaisesRegex(EncodingError, "Unexpected rest bytes at end of signature",
+                               der_decode_sig, der_signature)
+
+        der_signature = bytes.fromhex(
+            "304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0420573a954c4518331561406f90300"
+            "e8f3358f51928d43c212a8caed02de67eebee01")
+        self.assertRaisesRegex(EncodingError, "Expected integer marker byte",
+                               der_decode_sig, der_signature)
+
+        der_signature = bytes.fromhex(
+            "404502203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
+            "e8f3358f51928d43c212a8caed02de67eebeebb01")
+        self.assertRaisesRegex(EncodingError, "Signature must start with a sequence byte",
+                               der_decode_sig, der_signature)
+
+        der_signature = bytes.fromhex(
+            "304602203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
+            "e8f3358f51928d43c212a8caed02de67eebee01")
+        self.assertRaisesRegex(EncodingError, "Unexpected signature length: 71 != 72",
+                               der_decode_sig, der_signature)
+
+        der_signature = bytes.fromhex(
+            "304502203609e2217b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
+            "e8f3358f51928d43c212a8caed02de67eebee01")
+        self.assertRaisesRegex(EncodingError, "Expected integer marker byte",
+                               der_decode_sig, der_signature)
+
+        der_signature = bytes.fromhex(
+            "304502203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0225573a954c4518331561406f90300"
+            "e8f3358f51928d43c212a8caed02de67eebeebb01")
+        self.assertRaisesRegex(EncodingError, "Unexpected signature integer length",
+                               der_decode_sig, der_signature)
+
 
 
 VALID_CHECKSUM = [
