@@ -439,22 +439,39 @@ def int_to_varbyteint(inp):
         return b'\xff' + inp.to_bytes(8, 'little')
 
 
-def decode_der_sig_bytes(signature):
-    r, s = der_decode_sig(signature)
-    sig = '%064x%064x' % (r, s)
-    return bytes.fromhex(sig)
-
-
 def decode_der_sig_str(signature):
+    """
+    Extract r and s value from DER encoded string and convert to string.
+
+    :param signature: DER encoded signature
+    :type signature: bytes
+
+    :return str: Signature bytes encoded with r and s value
+    """
     r, s = der_decode_sig(signature)
     return '%064x%064x' % (r, s)
 
 
+def decode_der_sig_bytes(signature):
+    """
+    Extract r and s value from DER encoded string and convert to bytes.
+
+    :param signature: DER encoded signature
+    :type signature: bytes
+
+    :return bytes: Signature bytes encoded with r and s value
+    """
+    return bytes.fromhex(decode_der_sig_str(signature))
+
+
+@deprecated
 def convert_der_sig(signature, as_hex=True):
     """
     Extract content from DER encoded string: Convert DER encoded signature to signature string.
 
-    :param signature: DER signature
+    Replaced by :func:`decode_der_sig_bytes` amd :func:`decode_der_sig_str` method
+
+    :param signature: DER encoed signature
     :type signature: bytes
     :param as_hex: Output as hexstring
     :type as_hex: bool

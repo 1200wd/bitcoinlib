@@ -2476,7 +2476,7 @@ class Signature(object):
         if len(signature) > 64 and signature.startswith(b'\x30'):
             der_signature = signature[:-1]
             hash_type = int.from_bytes(signature[-1:], 'big')
-            signature = convert_der_sig(signature[:-1], as_hex=False)
+            signature = decode_der_sig_bytes(signature[:-1])
         if len(signature) != 64:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
         r = int.from_bytes(signature[:32], 'big')
@@ -2962,7 +2962,7 @@ class Signature(object):
             try:
                 if len(signature) > 64 and signature.startswith(b'\x30'):
                     try:
-                        signature = convert_der_sig(signature[:-1], as_hex=False)
+                        signature = decode_der_sig_bytes(signature[:-1])
                     except Exception:
                         pass
                 ver_key.verify_digest(signature, transaction_to_sign)
