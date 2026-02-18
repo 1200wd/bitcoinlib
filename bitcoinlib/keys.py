@@ -2601,9 +2601,7 @@ class Signature(object):
                                              message_bytes)
             sig_der = sk.sign_digest(message_bytes, hashlib.sha256, ecdsa.util.sigencode_der, k=k)
 
-            signature = convert_der_sig(sig_der)
-            r = int(signature[:64], 16)
-            s = int(signature[64:], 16)
+            r, s = der_decode_sig(sig_der)
             if s > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - s
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)

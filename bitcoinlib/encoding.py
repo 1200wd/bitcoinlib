@@ -439,6 +439,17 @@ def int_to_varbyteint(inp):
         return b'\xff' + inp.to_bytes(8, 'little')
 
 
+def decode_der_sig_bytes(signature):
+    r, s = der_decode_sig(signature)
+    sig = '%064x%064x' % (r, s)
+    return bytes.fromhex(sig)
+
+
+def decode_der_sig_str(signature):
+    r, s = der_decode_sig(signature)
+    return '%064x%064x' % (r, s)
+
+
 def convert_der_sig(signature, as_hex=True):
     """
     Extract content from DER encoded string: Convert DER encoded signature to signature string.
@@ -471,6 +482,15 @@ def der_decode_sig(signature):
     :return (int, int): Tuple with r and s value
     """
 
+    def _unpack_int(sigbytes):
+        if sigbytes[0] != 0x02:
+            raise EncodingError("Expected integer marker byte (x02)")
+        vlen, size = varbyteint_to_int(sigbytes[1:])
+        if len(sigbytes[:size+vlen+1]) != 1 + size + vlen:
+            raise EncodingError(f"Unexpected signature integer length: {len(sigbytes)} != {1 + size + vlen}")
+        ivar = int.from_bytes(sigbytes[1+size:1+size+vlen], 'big')
+        return ivar, sigbytes[size+vlen+1:]
+
     if signature[0] != 0x30:
         raise EncodingError("Signature must start with a sequence byte (x30)")
 
@@ -478,18 +498,14 @@ def der_decode_sig(signature):
     if len(signature) == siglen + 1 + size + 1:  # ignore extra sighash byte
         signature = signature[:-1]
     if len(signature) != siglen + 1 + size:
-        raise EncodingError("Unexpected signature length")
+        raise EncodingError(f"Unexpected signature length: {len(signature)} != {siglen + 1 + size}")
 
-    pos = 1+size
-    rs_values = ()
-    while pos < len(signature):
-        if signature[pos] != 0x02:
-            raise EncodingError("Expected integer marker byte (x02)")
-        vlen, size = varbyteint_to_int(signature[pos+1:])
-        rs_values += (int.from_bytes(signature[pos+1+size:pos+1+size+vlen], 'big'), )
-        pos += vlen + size + 1
+    r, rest = _unpack_int(signature[1+size:])
+    s, rest2 = _unpack_int(rest)
+    if rest2 != b'':
+        raise EncodingError(f"Unexpected rest bytes at end of signature: {rest2}")
 
-    return rs_values
+    return r, s
 
 
 def der_encode_sig(r, s):
