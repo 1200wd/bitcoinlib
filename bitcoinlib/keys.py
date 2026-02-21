@@ -2476,7 +2476,7 @@ class Signature(object):
         if len(signature) > 64 and signature.startswith(b'\x30'):
             der_signature = signature[:-1]
             hash_type = int.from_bytes(signature[-1:], 'big')
-            signature = decode_der_sig_bytes(signature[:-1])
+            signature = signature_der_decode_bytes(signature[:-1])
         if len(signature) != 64:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
         r = int.from_bytes(signature[:32], 'big')
@@ -2601,7 +2601,7 @@ class Signature(object):
                                              message_bytes)
             sig_der = sk.sign_digest(message_bytes, hashlib.sha256, ecdsa.util.sigencode_der, k=k)
 
-            r, s = der_decode_sig(sig_der)
+            r, s = signature_der_decode(sig_der)
             if s > secp256k1_n / 2 and force_canonical:
                 s = secp256k1_n - s
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
@@ -2675,7 +2675,7 @@ class Signature(object):
         self.witness_type = witness_type
 
         if not der_signature:
-            self.der_signature = der_encode_sig(self.r, self.s)
+            self.der_signature = signature_der_encode(self.r, self.s)
 
         self._der_encoded = to_bytes(der_signature) + self.hash_type_byte
 
@@ -2779,12 +2779,12 @@ class Signature(object):
         :return bytes: 
         """
         if not self._der_encoded or len(self._der_encoded) < 2:
-            self._der_encoded = der_encode_sig(self.r, self.s) + self.hash_type_byte
+            self._der_encoded = signature_der_encode(self.r, self.s) + self.hash_type_byte
 
         if include_hash_type:
             return self._der_encoded.hex() if as_hex else self._der_encoded
         else:
-            return der_encode_sig(self.r, self.s).hex() if as_hex else der_encode_sig(self.r, self.s)
+            return signature_der_encode(self.r, self.s).hex() if as_hex else signature_der_encode(self.r, self.s)
 
     def as_base64(self):
         """
@@ -2962,7 +2962,7 @@ class Signature(object):
             try:
                 if len(signature) > 64 and signature.startswith(b'\x30'):
                     try:
-                        signature = decode_der_sig_bytes(signature[:-1])
+                        signature = signature_der_decode_bytes(signature[:-1])
                     except Exception:
                         pass
                 ver_key.verify_digest(signature, transaction_to_sign)

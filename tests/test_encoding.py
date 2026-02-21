@@ -238,21 +238,21 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         self.assertEqual('07dc5820a0e518215d212cd5188ae02c5635faab',
                          to_hexstring(u'07dc5820a0e518215d212cd5188ae02c5635faab'))
 
-    def test_der_encode_sig(self):
+    def test_signature_der_encode(self):
         r = 80828100789555555332401870818771238079532314371107341426356071258591122886343
         s = 15674820848044112551623338734376985640551839688984719714434052277382938010325
         der_sig = '3045022100b2b31575f8536b284410d01217f688be3a9faf4ba0ba3a9093f983e40d630' \
                   'ec7022022a7a25b01403cff0d00b3b853d230f8e96ff832b15d4ccc75203cb65896a2d5'
-        self.assertEqual(to_hexstring(der_encode_sig(r, s)), der_sig)
+        self.assertEqual(to_hexstring(signature_der_encode(r, s)), der_sig)
 
-    def test_der_decode_sig(self):
+    def test_signature_der_decode(self):
         # source: https://bitcoindevs.xyz/decoding/transaction-signing-06
         der_signature = bytes.fromhex(
             "304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee01")
         expected_r = int('3609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a', 16)
         expected_s = int('573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee', 16)
 
-        r, s = der_decode_sig(der_signature)
+        r, s = signature_der_decode(der_signature)
         self.assertEqual(r, expected_r)
         self.assertEqual(s, expected_s)
 
@@ -261,8 +261,8 @@ class TestEncodingMethodsStructures(unittest.TestCase):
             r = randint(1, secp256k1_n)
             s = randint(1, secp256k1_n)
 
-            der_sig = der_encode_sig(r, s)
-            r2, s2 = der_decode_sig(der_sig)
+            der_sig = signature_der_encode(r, s)
+            r2, s2 = signature_der_decode(der_sig)
 
             self.assertEqual(r, r2)
             self.assertEqual(s, s2)
@@ -273,7 +273,7 @@ class TestEncodingMethodsStructures(unittest.TestCase):
             s = randint(1, secp256k1_n)
 
             # Encode with bitcoinlib
-            sig_bitcoinlib = der_encode_sig(r, s)
+            sig_bitcoinlib = signature_der_encode(r, s)
 
             if USE_FASTECDSA:
                 sig = DEREncoder.encode_signature(r, s)
@@ -289,37 +289,37 @@ class TestEncodingMethodsStructures(unittest.TestCase):
             "304502203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
             "e8f3358f51928d43c212a8caed02de67eebeebb01")
         self.assertRaisesRegex(EncodingError, "Unexpected rest bytes at end of signature",
-                               der_decode_sig, der_signature)
+                               signature_der_decode, der_signature)
 
         der_signature = bytes.fromhex(
             "304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0420573a954c4518331561406f90300"
             "e8f3358f51928d43c212a8caed02de67eebee01")
         self.assertRaisesRegex(EncodingError, "Expected integer marker byte",
-                               der_decode_sig, der_signature)
+                               signature_der_decode, der_signature)
 
         der_signature = bytes.fromhex(
             "404502203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
             "e8f3358f51928d43c212a8caed02de67eebeebb01")
         self.assertRaisesRegex(EncodingError, "Signature must start with a sequence byte",
-                               der_decode_sig, der_signature)
+                               signature_der_decode, der_signature)
 
         der_signature = bytes.fromhex(
             "304602203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
             "e8f3358f51928d43c212a8caed02de67eebee01")
         self.assertRaisesRegex(EncodingError, "Unexpected signature length: 71 != 72",
-                               der_decode_sig, der_signature)
+                               signature_der_decode, der_signature)
 
         der_signature = bytes.fromhex(
             "304502203609e2217b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300"
             "e8f3358f51928d43c212a8caed02de67eebee01")
         self.assertRaisesRegex(EncodingError, "Expected integer marker byte",
-                               der_decode_sig, der_signature)
+                               signature_der_decode, der_signature)
 
         der_signature = bytes.fromhex(
             "304502203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0225573a954c4518331561406f90300"
             "e8f3358f51928d43c212a8caed02de67eebeebb01")
         self.assertRaisesRegex(EncodingError, "Unexpected signature integer length",
-                               der_decode_sig, der_signature)
+                               signature_der_decode, der_signature)
 
 
 

@@ -439,7 +439,7 @@ def int_to_varbyteint(inp):
         return b'\xff' + inp.to_bytes(8, 'little')
 
 
-def decode_der_sig_bytes(signature):
+def signature_der_decode_bytes(signature):
     """
     Extract r and s value from DER encoded string and convert to bytes.
 
@@ -448,7 +448,7 @@ def decode_der_sig_bytes(signature):
 
     :return bytes: Signature bytes encoded with r and s value
     """
-    r, s = der_decode_sig(signature)
+    r, s = signature_der_decode(signature)
     return int.to_bytes(r, 32, 'big') + int.to_bytes(s, 32, 'big')
 
 
@@ -469,7 +469,7 @@ def convert_der_sig(signature, as_hex=True):
 
     if not signature:
         return ""
-    r, s = der_decode_sig(signature)
+    r, s = signature_der_decode(signature)
 
     sig = '%064x%064x' % (r, s)
     if as_hex:
@@ -477,7 +477,7 @@ def convert_der_sig(signature, as_hex=True):
     else:
         return bytes.fromhex(sig)
 
-def der_decode_sig(signature):
+def signature_der_decode(signature):
     """
     Decode a DER encoded signature and extract an r and s value
 
@@ -513,7 +513,24 @@ def der_decode_sig(signature):
     return r, s
 
 
+@deprecated
 def der_encode_sig(r, s):
+    """
+    Create DER encoded signature string with signature r and s value.
+
+    Replaced by the :func:`signature_der_encode` method
+
+    :param r: r value of signature
+    :type r: int
+    :param s: s value of signature
+    :type s: int
+
+    :return bytes:
+    """
+    return signature_der_encode(r, s)
+
+
+def signature_der_encode(r, s):
     """
     Create DER encoded signature string with signature r and s value.
 
