@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2016 - 2021 January - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2026 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -66,7 +66,7 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
 
     def test_change_base_bin_b58(self):
         self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM',
-                         change_base("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58))
+                         change_base(b"\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58))
 
     def test_change_base_hex_bin(self):
         self.assertEqual(b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f',
@@ -110,10 +110,6 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
 
     def test_change_base_list(self):
         self.assertEqual('00124c', change_base([b'\0', b'\x12', b'L'], 256, 16, 6))
-
-    def test_change_base_bytes_as_string(self):
-        s = '\xc8\xe9\t\x96\xc7\xc6\x08\x0e\xe0b\x84`\x0chN\xd9\x04\xd1L\\'
-        self.assertEqual('c8e90996c7c6080ee06284600c684ed904d14c5c', change_base(s, 256, 16))
 
     def test_change_base_decimal_input_lenght_exception(self):
         self.assertRaisesRegex(EncodingError, "For a decimal input a minimum output length is required",

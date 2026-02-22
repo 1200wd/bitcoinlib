@@ -131,27 +131,24 @@ def _codestring_to_array(codestring, base):
 
 def normalize_var(var, base=256):
     """
-    For Python 2 convert variable to string
-
-    For Python 3 convert to bytes
-
-    Convert decimals to integer type
+    Convert variable to normalized value:
+    - UTF-8 encoded bytes for string values
+    - Integer value for numbers
+    - Deepcopy of list for lists
 
     :param var: input variable in any format
     :type var: str, byte
     :param base: specify variable format, i.e. 10 for decimal, 16 for hex
     :type base: int
 
-    :return: Normalized var in string for Python 2, bytes for Python 3, decimal for base10
+    :return: Normalized variable
+    :rtype: bytes, int, list
     """
     try:
         if isinstance(var, str):
-            var = var.encode('ISO-8859-1')
-    except ValueError:
-        try:
             var = var.encode('utf-8')
-        except ValueError:
-            raise EncodingError("Unknown character '%s' in input format" % var)
+    except ValueError:
+        raise EncodingError("Unknown character '%s' in input format" % var)
 
     if base == 10:
         return int(var)
@@ -307,13 +304,14 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             output = [code_str[0]] + output
 
     if not output_as_list and isinstance(output, list):
-        output = 0 if not len(output) else ''.join([chr(c) for c in output])
+        output = 0 if not len(output) else b''.join([bytes([c]) for c in output])
     if base_to == 10:
         return int(0) or (output != '' and int(output))
-    if base_to == 256 and not output_as_list:
-        return output.encode('ISO-8859-1')
-    else:
+
+    if base_to == 256 or output_as_list:
         return output
+    else:
+        return output.decode('utf-8')
 
 
 def base58encode(inp):
