@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Methods for encoding and conversion
-#    © 2016 - 2024 June - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2026 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -457,7 +457,7 @@ def convert_der_sig(signature, as_hex=True):
     """
     Extract content from DER encoded string: Convert DER encoded signature to signature string.
 
-    Replaced by :func:`decode_der_sig_bytes` amd :func:`decode_der_sig_str` method
+    Replaced by :func:`signature_der_decode_bytes` method
 
     :param signature: DER encoed signature
     :type signature: bytes
@@ -481,6 +481,9 @@ def signature_der_decode(signature):
     """
     Decode a DER encoded signature and extract an r and s value
 
+    The DER encoded signature must have the following format:
+        <sequence byte> <integer byte> r <integer byte> s
+
     :param signature: DER encoded signature
     :type signature: bytes
 
@@ -490,11 +493,11 @@ def signature_der_decode(signature):
     def _unpack_int(sigbytes):
         if sigbytes[0] != 0x02:
             raise EncodingError("Expected integer marker byte (x02)")
-        vlen, size = varbyteint_to_int(sigbytes[1:])
-        if len(sigbytes[:size+vlen+1]) != 1 + size + vlen:
-            raise EncodingError(f"Unexpected signature integer length: {len(sigbytes)} != {1 + size + vlen}")
-        ivar = int.from_bytes(sigbytes[1+size:1+size+vlen], 'big')
-        return ivar, sigbytes[size+vlen+1:]
+        vlen, vsize = varbyteint_to_int(sigbytes[1:])
+        if len(sigbytes[:vsize+vlen+1]) != 1 + vsize + vlen:
+            raise EncodingError(f"Unexpected signature integer length: {len(sigbytes)} != {1 + vsize + vlen}")
+        ivar = int.from_bytes(sigbytes[1+vsize:1+vsize+vlen], 'big')
+        return ivar, sigbytes[vsize+vlen+1:]
 
     if signature[0] != 0x30:
         raise EncodingError("Signature must start with a sequence byte (x30)")

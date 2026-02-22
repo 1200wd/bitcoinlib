@@ -1099,6 +1099,20 @@ class TestKeysSignatures(unittest.TestCase):
 
         self.assertEqual(sig1, sig2)
 
+    def test_signatures_invalid(self):
+        sig_bytes = (b'4\x1b\xe66\xacHD~\xe5\xa7\x81\x8e\x13\xe3\x9a(\x80\x0e;3\xfc\xc4\xc9\xc3x\x15\xd7\x81S\xcb\xc8'
+                     b'\x96\xf0\x14E\xdf\xa4+\xa9\xe7\x0b\xc3\xd2\xf3\x02\x80\x918\xb9\xc4\xd8I&;\xdbc\xa3*\xc2/:\x95'
+                     b'X\xeb`')
+        self.assertRaisesRegex(BKeyError,
+                               "Invalid signature, please provide valid DER encoded string or 64 bytes string",
+                               Signature.parse_bytes, sig_bytes)
+        self.assertRaisesRegex(TypeError,
+                               "argument must be str, not bytes",
+                               Signature.parse_hex, sig_bytes)
+        self.assertRaisesRegex(BKeyError,
+                               "Unrecognised base64, DER encoded or bytes signature",
+                               Signature.parse, sig_bytes)
+
 
 class TestKeysTaproot(unittest.TestCase):
 

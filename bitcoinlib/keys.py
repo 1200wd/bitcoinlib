@@ -2446,12 +2446,19 @@ class Signature(object):
             try:
                 return cls.parse_bytes(signature, public_key)
             except (ValueError, BKeyError):
-                return cls.parse_base64(signature, public_key)
+                try:
+                    return cls.parse_base64(signature, public_key)
+                except:
+                    raise BKeyError("Unrecognised base64, DER encoded or bytes signature")
         elif isinstance(signature, str):
             try:
                 return cls.parse_hex(signature, public_key)
             except ValueError:
-                return cls.parse_base64(signature, public_key)
+                try:
+                    return cls.parse_base64(signature, public_key)
+                except:
+                    raise BKeyError("Unrecognised base64, DER encoded or hexstring signature")
+        raise BKeyError("Unrecognised base64, DER encoded, bytes of hexstring signature")
 
     @classmethod
     def parse_hex(cls, signature, public_key=None):
@@ -2460,8 +2467,8 @@ class Signature(object):
     @staticmethod
     def parse_bytes(signature, public_key=None):
         """
-        Create a signature from signature string with r and s part. Signature length must be 64 bytes or 128
-        character hexstring
+        Create a signature from signature string with r and s part. Signature should be a DER encoded byte string
+        of a 64 bytes string with an r and s value
 
         :param signature: Signature string
         :type signature: bytes
@@ -2471,14 +2478,14 @@ class Signature(object):
         :return Signature:
         """
 
-        der_signature = ''
+        der_signature = None
         hash_type = SIGHASH_ALL
         if len(signature) > 64 and signature.startswith(b'\x30'):
             der_signature = signature[:-1]
             hash_type = int.from_bytes(signature[-1:], 'big')
             signature = signature_der_decode_bytes(signature[:-1])
         if len(signature) != 64:
-            raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
+            raise BKeyError("Invalid signature, please provide valid DER encoded string or 64 bytes string")
         r = int.from_bytes(signature[:32], 'big')
         s = int.from_bytes(signature[32:], 'big')
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
