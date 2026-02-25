@@ -50,7 +50,6 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * fastecdsa (or ecdsa on Windows)
 * sqlalchemy
 * requests
-* numpy
 * pycryptodome
 
 
