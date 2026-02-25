@@ -2241,6 +2241,23 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verified)
         self.assertEqual(1, len(t.inputs))
 
+    def test_wallet_multiple_change_outputs_large(self):
+        w = wallet_create_or_open('changetest', network='bitcoinlib_test', db_uri=self.database_uri)
+        w.utxos_update()
+        t = w.send_to('blt1q80u2p7jy2nvztl4c5a72cthrjly5h3zl7y56qe', 555555, number_of_change_outputs=1000, fee=100000)
+        self.assertEqual(t.fee, 100000)
+        self.assertEqual(len(t.outputs), 1001)
+        self.assertTrue(t.verify())
+        self.assertEqual(sum([i.value for i in t.inputs]), sum([o.value for o in t.outputs]) + t.fee)
+        self.assertFalse([i for i in t.inputs if i.value < w.network.dust_amount])
+
+    def test_wallet_multiple_change_outputs_errors(self):
+        w = wallet_create_or_open('changetest', network='bitcoinlib_test', db_uri=self.database_uri)
+        w.utxos_update()
+        self.assertRaisesRegex(WalletError, "Not enough funds to create multiple change outputs",
+            w.send_to, 'blt1q80u2p7jy2nvztl4c5a72cthrjly5h3zl7y56qe', 199900000,
+                               number_of_change_outputs=10, fee=10000)
+
     def test_wallet_transaction_save_and_load(self):
         w = wallet_create_or_open('wallet_transaction_save_and_load', network='bitcoinlib_test',
                                   db_uri=self.database_uri)
