@@ -21,7 +21,6 @@ import json
 import random
 from itertools import groupby
 from operator import itemgetter
-import numpy as np
 import pickle
 from datetime import timedelta
 from bitcoinlib.db import *
@@ -4102,7 +4101,8 @@ class Wallet(object):
             if transaction.fee and transaction.size:
                 if not transaction.fee_per_kb:
                     transaction.fee_per_kb = round((transaction.fee * 1000.0) / transaction.vsize)
-                min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
+                # Avoid outputs that are too small, and economically unspendable in the future
+                min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 2 + \
                                    transaction.network.dust_amount
 
             if number_of_change_outputs == 0:
@@ -4119,8 +4119,8 @@ class Wallet(object):
 
             average_change = transaction.change // number_of_change_outputs
             if number_of_change_outputs > 1 and average_change < min_output_value:
-                raise WalletError("Not enough funds to create multiple change outputs. Try less change outputs "
-                                  "or lower fees")
+                raise WalletError("Not enough funds to create multiple change outputs. Decrease number of change "
+                                  "outputs, lower fees or change inputs")
 
             if self.scheme == 'single':
                 change_keys = [self.get_key(account_id, self.witness_type, network, change=1)]
@@ -4129,15 +4129,13 @@ class Wallet(object):
                                             number_of_keys=number_of_change_outputs)
 
             if number_of_change_outputs > 1:
-                rand_prop = transaction.change - number_of_change_outputs * min_output_value
-                change_amounts = list(((np.random.dirichlet(np.ones(number_of_change_outputs), size=1)[0] *
-                                        rand_prop) + min_output_value).astype(int))
-                # Fix rounding problems / small amount differences
-                diffs = transaction.change - sum(change_amounts)
-                for idx, co in enumerate(change_amounts):
-                    if co - diffs > min_output_value:
-                        change_amounts[idx] += change_amounts.index(co) + diffs
-                        break
+                random_change_amounts = [random.random() for _ in range(number_of_change_outputs)]
+                total_minus_min_output_value = transaction.change - number_of_change_outputs * min_output_value
+                change_amounts = [int(min_output_value +
+                                      (yi / sum(random_change_amounts)) * total_minus_min_output_value)
+                                  for yi in random_change_amounts]
+                rounding_diff = transaction.change - sum(change_amounts)
+                change_amounts[0] += rounding_diff
             else:
                 change_amounts = [transaction.change]
 
