@@ -30,6 +30,7 @@ jobs:
         parallel: true
         flag-name: run-${{ join(matrix.*, '-') }}
         github-token: ${{ github.token }}
+        fail-on-error: false
 
   coveralls_finish:
     needs: test
