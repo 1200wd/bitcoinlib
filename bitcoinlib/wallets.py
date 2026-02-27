@@ -2742,7 +2742,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict)
+        :return list of WalletKey, list of dict
         """
 
         if depth is None:
@@ -2763,7 +2763,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict)
+        :return list of WalletKey, list of dict
         """
 
         return self.keys(account_id, depth=self.key_depth, change=0, used=used, network=network, as_dict=as_dict)
@@ -2781,7 +2781,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict)
+        :return list of WalletKey, list of dict
         """
 
         return self.keys(account_id, depth=self.key_depth, change=1, used=used, network=network, as_dict=as_dict)
@@ -4721,9 +4721,8 @@ class Wallet(object):
             wk = self.key(key_term)
             return wk.verify_message(message, signature)
         else:
-            db_wks = self.keys_addresses()
-            for db_wk in db_wks:
-                wk = WalletKey(key_id=db_wk.key_id, session=self.session)
+            walletkeys = self.keys_addresses()
+            for wk in walletkeys:
                 if wk.verify_message(message, signature):
                     return True
         return False
