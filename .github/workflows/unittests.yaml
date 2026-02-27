@@ -42,3 +42,4 @@ jobs:
         parallel-finished: true
         debug: true
         carryforward: "run-3.8,run-3.12"
+        fail-on-error: false
