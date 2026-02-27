@@ -2587,7 +2587,7 @@ class Wallet(object):
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
         >>> all_wallet_keys = w.keys()
         >>> w.keys(depth=0) # doctest:+ELLIPSIS
-        [<DbKey(id=..., name='bitcoinlib_legacy_wallet_test', wif='xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'>]
+        [<WalletKey(id=..., name='bitcoinlib_legacy_wallet_test', wif='xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'>]
 
         Returns a list of WalletKey objects or dictionary object if as_dict is True
 
@@ -2615,7 +2615,7 @@ class Wallet(object):
         :type network: str
         :param include_private: Include private key information in dictionary
         :type include_private: bool
-        :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
+        :param as_dict: Return keys as dictionary objects. Default is False: WalletKey objects
         :type as_dict: bool
 
         :return list of WalletKey or list of dict: List of keys from this wallet
@@ -2678,10 +2678,10 @@ class Wallet(object):
 
         :param used: Only return used or unused keys
         :type used: bool
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of DbKey, list of dict:
+        :return list of WalletKey, list of dict:
 
         """
 
@@ -2710,10 +2710,10 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name filter
         :type network: str
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict):
+        :return list of (WalletKey, dict):
         """
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
@@ -2739,7 +2739,7 @@ class Wallet(object):
         :type network: str
         :param depth: Filter by key depth. Default for BIP44 and multisig is 5
         :type depth: int
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
         :return list of WalletKey, list of dict
@@ -2760,7 +2760,7 @@ class Wallet(object):
         :type used: bool
         :param network: Network name filter
         :type network: str
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
         :return list of WalletKey, list of dict
@@ -2778,7 +2778,7 @@ class Wallet(object):
         :type used: bool
         :param network: Network name filter
         :type network: str
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
         :return list of WalletKey, list of dict
