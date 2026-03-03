@@ -21,9 +21,17 @@ import bitcoinlib.encoding
 import bitcoinlib.mnemonic
 import bitcoinlib.keys
 import bitcoinlib.transactions
-import bitcoinlib.wallets
-import bitcoinlib.tools
 import bitcoinlib.blocks
 import bitcoinlib.values
+
+import importlib.util
+
+if not importlib.util.find_spec('sqlalchemy'):
+    pass
+else:
+    import bitcoinlib.wallets
+    import bitcoinlib.tools
+
+
 
 __all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "tools", "blocks", "values"]
