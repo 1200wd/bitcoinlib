@@ -1892,7 +1892,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000)
         t2 = wlt.transaction_import_raw(t.raw())
-        self.assertDictEqualExt(t.as_dict(), t2.as_dict(), ['spending_txid', 'spending_index_n'])
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict(), ['spending_txid', 'spending_index_n'],
+                                ['fee_per_kb'])
         del wlt
 
     def test_wallet_transaction_import_raw_locktime(self):
