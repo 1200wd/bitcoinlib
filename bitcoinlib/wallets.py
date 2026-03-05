@@ -4677,7 +4677,7 @@ class Wallet(object):
     def sign_message(self, message, key_term=None, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL,
                      force_canonical=False):
         """
-        Sign a message with this wallet and the provided key. If no key ID is provided the message will be signed with the first available key.
+        Sign a message with this wallet and the provided key. If no key ID is provided, the message will be signed with the first available key.
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring

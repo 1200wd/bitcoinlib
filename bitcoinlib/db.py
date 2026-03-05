@@ -41,10 +41,10 @@ def compile_largebinary_mysql(type_, compiler, **kwargs):
 
 class Db:
     """
-    Bitcoinlib Database object used by Service() and HDWallet() class. Initialize database and open session when
-    creating database object.
+    Bitcoinlib Database object used by Service() and HDWallet() class. Initialize the database and open a session when
+    creating a database object.
 
-    Create new database if it doesn't exist yet
+    Create the new database if it doesn't exist yet
 
     """
     def __init__(self, db_uri=None, password=None):
@@ -121,7 +121,7 @@ class Db:
 
 def add_column(engine, table_name, column):  # pragma: no cover
     """
-    Used to add new column to database with migration and update scripts
+    Used to add a new column to the database with migration and update scripts
 
     :param engine:
     :param table_name:
