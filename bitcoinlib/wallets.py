@@ -1566,7 +1566,8 @@ class Wallet(object):
                 self.key_depth = len(self.key_path) - 1
             self.last_updated = None
             self.anti_fee_sniping = db_wlt.anti_fee_sniping
-            self.strict = True
+            self.strict = True   # ToDo: Add to database
+            self.ignore_dust = False  # ToDo: Default to True(?), add to database
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -3065,6 +3066,8 @@ class Wallet(object):
             qr = qr.filter(DbTransactionOutput.key_id == key_id)
         else:
             qr = qr.filter(DbTransactionOutput.key_id.isnot(None))
+        if self.ignore_dust:
+            qr = qr.filter(DbTransactionOutput.value >= self.network.dust_amount)
         qr = qr.with_entities(
             DbTransactionOutput.key_id,
             DbTransaction.network_name.label('network_name'),
@@ -3654,6 +3657,8 @@ class Wallet(object):
             qr = qr.filter(DbTransactionOutput.key_id == key_id)
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+        if self.ignore_dust:
+            qr = qr.filter(DbTransactionOutput.value >= self.network.dust_amount)
         txs += qr.all()
 
         txs = sorted(txs, key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True)
