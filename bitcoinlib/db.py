@@ -250,6 +250,8 @@ class DbWallet(Base):
                           " Max length of path is 8 levels")
     anti_fee_sniping = Column(Boolean, default=True, doc="Set default locktime in transactions to avoid fee-sniping")
     default_account_id = Column(Integer, doc="ID of default account for this wallet if multiple accounts are used")
+    strict = Column(Boolean, default=True, doc="Raise exception if incorrect scripts or signatures are detected")
+    ignore_dust = Column(Boolean, default=True, doc="Ignore dust outputs")
 
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
@@ -516,13 +518,14 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):  # pragma: no co
         # Example: column = Column('latest_txid', String(32))
         column = Column('witnesses', LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
         add_column(db.engine, 'transaction_inputs', column)
-        # version_db = db_update_version_id(db, '0.6.4')
     if version_db < '0.7.0' and code_version >= '0.7.0':
         raise ValueError("Old database version %s is not supported in version 0.7+. "
                          "Please copy private keys and recreate wallets" % version_db)
-        # column = Column('witness_type', String(20), doc="Wallet witness type. Can be 'legacy', 'segwit' or "
-        #                                                      "'p2sh-segwit'. Default is segwit.")
-        # add_column(db.engine, 'keys', column)
+    if version_db < '0.7.8' and code_version >= '0.7.8':
+        strict = Column('strict', Boolean, default=True, doc="Raise exception if incorrect scripts or signatures are detected")
+        ignore_dust = Column('ignore_dust', Boolean, default=True, doc="Ignore dust outputs")
+        add_column(db.engine, 'wallets', strict)
+        add_column(db.engine, 'wallets', ignore_dust)
 
     version_db = db_update_version_id(db, code_version)
     return version_db

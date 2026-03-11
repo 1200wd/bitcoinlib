@@ -1837,7 +1837,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
             "hJzfabX"
         wlt = Wallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
-                            witness_type='legacy', db_uri=self.database_uri)
+                            witness_type='legacy', ignore_dust=False, db_uri=self.database_uri)
         wlt.new_key()
         wlt.new_account(network='testnet')
         wlt.import_key(k)

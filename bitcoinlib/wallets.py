@@ -109,7 +109,8 @@ def wallet_exists(wallet, db_uri=None, db_password=None):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None, db_password=None):
+        key_path=None, anti_fee_sniping=True, strict=True, ignore_dust=True, db_uri=None, db_cache_uri=None,
+        db_password=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise open the existing wallet.
 
@@ -124,7 +125,7 @@ def wallet_create_or_open(
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                              password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                             key_path, anti_fee_sniping, db_uri=db_uri, db_cache_uri=db_cache_uri,
+                             key_path, anti_fee_sniping, strict, ignore_dust, db_uri=db_uri, db_cache_uri=db_cache_uri,
                              db_password=db_password)
 
 
@@ -1185,7 +1186,7 @@ class Wallet(object):
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
                 witness_type, encoding, multisig, sigs_required, cosigner_id, key_path,
-                anti_fee_sniping, db_uri, db_cache_uri, db_password):
+                anti_fee_sniping, strict, ignore_dust, db_uri, db_cache_uri, db_password):
 
         db = Db(db_uri, db_password)
         session = db.session
@@ -1225,7 +1226,8 @@ class Wallet(object):
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
-                              key_path=key_path, anti_fee_sniping=anti_fee_sniping)
+                              key_path=key_path, anti_fee_sniping=anti_fee_sniping, strict=strict,
+                              ignore_dust=ignore_dust)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -1264,8 +1266,8 @@ class Wallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None,
-               db_password=None):
+               cosigner_id=None, key_path=None, anti_fee_sniping=True, strict=True, ignore_dust=True, db_uri=None,
+               db_cache_uri=None, db_password=None):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
 
@@ -1462,8 +1464,8 @@ class Wallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           anti_fee_sniping=anti_fee_sniping, key_path=main_key_path, db_uri=db_uri,
-                           db_cache_uri=db_cache_uri, db_password=db_password)
+                           anti_fee_sniping=anti_fee_sniping, strict=strict, ignore_dust=ignore_dust,
+                           key_path=main_key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
 
         if multisig:
             wlt_cos_id = 0
@@ -1481,6 +1483,7 @@ class Wallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
+                                strict=strict, ignore_dust=ignore_dust,
                                 anti_fee_sniping=anti_fee_sniping, db_uri=db_uri, db_cache_uri=db_cache_uri,
                                 db_password=db_password)
                 hdpm.cosigner.append(w)
@@ -1566,8 +1569,8 @@ class Wallet(object):
                 self.key_depth = len(self.key_path) - 1
             self.last_updated = None
             self.anti_fee_sniping = db_wlt.anti_fee_sniping
-            self.strict = True   # ToDo: Add to database
-            self.ignore_dust = False  # ToDo: Default to True(?), add to database
+            self.strict = db_wlt.strict
+            self.ignore_dust = db_wlt.ignore_dust
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
