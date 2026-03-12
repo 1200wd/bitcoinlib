@@ -1339,6 +1339,10 @@ class Wallet(object):
         :type key_path: list, str
         :param anti_fee_sniping: Set default locktime in transactions as current block height + 1 to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
         :type anti_fee_sniping: boolean
+        :param strict: Set to False, to ignore non-standard signatures or script. Can be usefull for blockchain parsing or external transactions
+        :type strict: boolean
+        :param ignore_dust: Ignore dust outputs in unspent transaction outputs. The dust output amount is defined in the network settings. Default is True.
+        :type ignore_dust: boolean
         :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
         :param db_cache_uri: URI of the cache database. If not specified, the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
@@ -3863,7 +3867,7 @@ class Wallet(object):
         return inp_keys
 
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=1,
-                      max_utxos=None, skip_dust_amounts=True):
+                      max_utxos=None, ignore_dust=None):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
         the specified amount.
@@ -3886,8 +3890,8 @@ class Wallet(object):
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
-        :param skip_dust_amounts: Do not include small amounts to avoid dust inputs
-        :type skip_dust_amounts: bool
+        :param ignore_dust: Do not include small amounts to avoid dust inputs. Default is to use the Wallet.ignore dust setting which is True by default.
+        :type ignore_dust: bool
 
         :return: List of selected unspent transaction outputs
         :rtype: list[Input]
@@ -3907,7 +3911,8 @@ class Wallet(object):
                 utxo_query = utxo_query.filter(DbKey.id == input_key_id)
             else:
                 utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
-        if skip_dust_amounts:
+        ignore_dust = self.ignore_dust if ignore_dust is None else ignore_dust
+        if ignore_dust:
             utxo_query = utxo_query.filter(DbTransactionOutput.value >= dust_amount)
         utxo_query = utxo_query.order_by(DbTransaction.confirmations.desc())
         try:
@@ -3970,7 +3975,7 @@ class Wallet(object):
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
                            min_confirms=1, max_utxos=None, locktime=0, number_of_change_outputs=1,
-                           random_output_order=True, replace_by_fee=False, skip_dust_amounts=True):
+                           random_output_order=True, replace_by_fee=False, ignore_dust=None):
         """
         Create a new transaction with specified outputs.
 
@@ -4009,8 +4014,8 @@ class Wallet(object):
         :type random_output_order: bool
         :param replace_by_fee: Signal replace-by-fee and allow you to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
         :type replace_by_fee: bool
-        :param skip_dust_amounts: Do not include small amounts to avoid dust inputs
-        :type skip_dust_amounts: bool
+        :param ignore_dust: Do not include small amounts to avoid dust inputs. Default is to use the Wallet.ignore dust setting which is True by default.
+        :type ignore_dust: bool
 
         :return WalletTransaction: object
         """
@@ -4082,7 +4087,7 @@ class Wallet(object):
         if input_arr is None:
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,
                                                 input_key_id, account_id, network, min_confirms, max_utxos,
-                                                skip_dust_amounts)
+                                                ignore_dust)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -4550,7 +4555,7 @@ class Wallet(object):
             raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
             # Skip dust transactions to avoid forced address reuse
-            if utxo['value'] <= self.network.dust_amount:
+            if self.ignore_dust and utxo['value'] <= self.network.dust_amount:
                 continue
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']

@@ -2514,6 +2514,41 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertEqual(len(w.send([(w.get_key().address, 120000)], fee=1000).inputs), 6)
         self.assertEqual(len(w.send([(w.get_key().address, 130000)], fee=1000).inputs), 7)
 
+    def test_wallet_transactions_ignore_dust(self):
+        w = wallet_create_or_open('test_wallet_transactions_ignore_dust', network='bitcoinlib_test',
+                                  ignore_dust=True, db_uri=self.database_uri)
+        w.new_key()
+        w.utxos_update()
+        a2 = w.new_key()
+        w.utxo_add(a2.address, 547,
+                   '5ebffe4747dc6ee7d32c3fae2330ad936e63294bec29637cf8bfa40e6e54c2fc', 1)
+        self.assertEqual(w.balance(), 400000000)
+        w.ignore_dust = False
+        self.assertEqual(w.balance(), 400000547)
+
+    def test_wallet_transactions_ignore_dust_sweep(self):
+        w = wallet_create_or_open('test_wallet_transactions_ignore_dust_sweep', network='bitcoinlib_test',
+                                  ignore_dust=False, db_uri=self.database_uri)
+        for i in range(2, 13):
+            w.utxo_add(w.new_key().address, i*100, os.urandom(32).hex(), 1)
+        self.assertEqual(w.balance(), 7700)
+        t = w.sweep('blt1q2wmk2sf7x59w58ndzc73yx8r3nfw6wdrd9z9uv', fee=1000)
+        self.assertEqual(t.output_total, 6700)
+        w.ignore_dust = True
+        t2 = w.sweep('blt1q2wmk2sf7x59w58ndzc73yx8r3nfw6wdrd9z9uv', fee=1000)
+        self.assertEqual(t2.output_total, 1300)
+
+    def test_wallet_transactions_ignore_dust_send(self):
+        w = wallet_create_or_open('test_wallet_transactions_ignore_dust_send', network='bitcoinlib_test',
+                                  ignore_dust=True, db_uri=self.database_uri)
+        w.utxo_add(w.new_key().address, 999, os.urandom(32).hex(), 0)
+        w.utxo_add(w.new_key().address, 10000, os.urandom(32).hex(), 0)
+        self.assertEqual(w.balance(), 10000)
+        t = w.send_to('blt1q2wmk2sf7x59w58ndzc73yx8r3nfw6wdrd9z9uv', 9000, fee=1000)
+        self.assertEqual(t.input_total, 10000)
+        w.ignore_dust = False
+        t2 = w.send_to('blt1q2wmk2sf7x59w58ndzc73yx8r3nfw6wdrd9z9uv', 9500, fee=1000)
+        self.assertEqual(t2.input_total, 10999)
 
     @classmethod
     def tearDownClass(cls):
@@ -3029,7 +3064,6 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
 
         w = wallet_create_or_open('bumpfeetest04', keys=pkm, network='bitcoinlib_test', db_uri=self.database_uri)
         w.utxos_update()
-        w.info()
         t = w.send_to('blt1qm89pcm4392vj93q9s2ft8saqzm4paruzj95a83', 199900000, fee=100000,
                       broadcast=True)
         self.assertRaisesRegex(TransactionError, "Not enough unspent inputs found for transaction", t.bumpfee)
