@@ -135,7 +135,7 @@ def normalize_var(var, base=256):
 
     For Python 3 convert to bytes
 
-    Convert decimals to integer type
+    Convert decimals to an integer type
 
     :param var: input variable in any format
     :type var: str, byte
@@ -163,9 +163,9 @@ def normalize_var(var, base=256):
 
 def change_base(chars, base_from, base_to, min_length=0, output_even=None, output_as_list=None):
     """
-    Convert input chars from one numeric base to another. For instance from hexadecimal (base-16) to decimal (base-10)
+    Convert input chars from one numeric base to another. For instance, from hexadecimal (base-16) to decimal (base-10)
 
-    From and to numeric base can be any base. If base is not found in definitions an array of index numbers will be returned
+    From and to numeric base can be any base. If base is not found in definitions, an array of index numbers will be returned
 
     Examples:
 
@@ -191,18 +191,18 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
 
     :param chars: Input string
     :type chars: any
-    :param base_from: Base number or name from input. For example 2 for binary, 10 for decimal and 16 for hexadecimal
+    :param base_from: Base number or name from input. For example, 2 for binary, 10 for decimal and 16 for hexadecimal
     :type base_from: int, str
-    :param base_to: Base number or name for output. For example 2 for binary, 10 for decimal and 16 for hexadecimal
+    :param base_to: Base number or name for output. For example, 2 for binary, 10 for decimal and 16 for hexadecimal
     :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
-    :param output_even: Specify if output must contain an even number of characters. Sometimes handy for hex conversions.
+    :param output_even: Specify if an output must contain an even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
-    :param output_as_list: Always output as list instead of string.
+    :param output_as_list: Always output as a list instead of string.
     :type output_as_list: bool
 
-    :return str, list: Base converted input as string or list.
+    :return str, list: Base converted input as a string or list.
     """
     if base_from == 10 and not min_length:
         raise EncodingError("For a decimal input a minimum output length is required")
@@ -552,13 +552,13 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     >>> addr_bech32_to_pubkeyhash('bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84', as_hex=True)
     '21c1bc695a56f47991e95ff26856e50f78d3c118'
 
-    Validate the bech32 string, and determine HRP and data. Only standard data size of 20 and 32 bytes are excepted
+    Validate the bech32 string and determine HRP and data. Only standard data sizes of 20 and 32 bytes are supported
 
     :param bech: Bech32 address to convert
     :type bech: str
     :param prefix: Address prefix called Human-readable part. Default is None and tries to derive prefix, for bitcoin specify 'bc' and for bitcoin testnet 'tb'
     :type prefix: str
-    :param include_witver: Include witness version in output? Default is False
+    :param include_witver: Include a witness version in output? Default is False
     :type include_witver: bool
     :param as_hex: Output public key hash as hex or bytes. Default is False
     :type as_hex: bool
@@ -680,7 +680,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1', 
 
     Format of address is prefix/hrp + seperator + bech32 address + checksum
 
-    For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+    For more information see the BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
     :param pubkeyhash: Public key hash
     :type pubkeyhash: str, bytes
@@ -823,8 +823,7 @@ def to_bytes(string, unhexlify=True):
 
 def to_hexstring(string):
     """
-    Convert bytes, string to a hexadecimal string. Use instead of built-in hex() method if format
-    of input string is not known.
+    Convert bytes, string to a hexadecimal string. Use instead of built-in hex() method if the format of the input string is not known.
 
     >>> to_hexstring(b'\\x12\\xaa\\xdd')
     '12aadd'
@@ -849,7 +848,7 @@ def to_hexstring(string):
 
 def normalize_string(string):
     """
-    Normalize a string to the default NFKD unicode format
+    Normalize a string to the default NFKD Unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
     :param string: string value
@@ -949,7 +948,7 @@ def aes_decrypt(encrypted_data, key):
     Decrypt encrypted data using AES Symmetric Block cipher Encryption in SIV mode. Use to decrypt data encrypted
     with the :func:`aes_encrypt` method. The encrypted data attribute must contain a Ciphertext and 16-byte tag.
 
-    A nonce is not used so data is encrypted deterministic, in SIV mode this doesn't reduce security.
+    A nonce is not used, so data is encrypted deterministic, in SIV mode this doesn't reduce security.
     (see https://pycryptodome.readthedocs.io/en/latest/src/cipher/modern.html#siv-mode)
 
     :param encrypted_data: Data to decrypt. Must consist of a ciphertext and 16 byte tag.

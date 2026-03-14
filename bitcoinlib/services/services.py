@@ -49,7 +49,7 @@ class Service(object):
     get specific transaction information, current network fees or push a raw transaction.
 
     The Service class connects to 1 or more service providers at random to retrieve or send information. If a service
-    providers fails to correctly respond the Service class will try another available provider.
+    provider fails to correctly respond, the Service class will try another available provider.
 
     """
 
@@ -57,12 +57,12 @@ class Service(object):
                  timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
                  max_errors=SERVICE_MAX_ERRORS, strict=True, wallet_name=None, provider_name=None):
         """
-        Create a service object for the specified network. By default, the object connect to 1 service provider, but you
+        Create a service object for the specified network. By default, the object connects to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
         :type network: str, Network
-        :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive fee information from a number of providers and calculate the average fee.
+        :param min_providers: Minimum number of providers to connect to. Default is 1. Use, for instance, to receive fee information from a number of providers and calculate the average fee.
         :type min_providers: int
         :param max_providers: Maximum number of providers to connect to. Default is 1.
         :type max_providers: int
@@ -80,7 +80,7 @@ class Service(object):
         :type strict: bool
         :param wallet_name: Name of wallet if connecting to bitcoin node
         :type wallet_name: str
-        :param provider_name: Name of specific provider to connect to. Note this is different from the providers list argument: the lists mention a type of provider such as 'blockbook' or 'bcoin', the provider name is a key in providers.json list such as 'bcoin.testnet.localhost'.
+        :param provider_name: Name of a specific provider to connect to. Note this is different from the providers list argument: the lists mention a type of provider such as 'blockbook' or 'bcoin', the provider name is a key in the providers.json dictionary file such as 'bcoin.testnet.localhost'.
         :type provider_name: str
 
         """
@@ -122,12 +122,13 @@ class Service(object):
         else:
             for p in self.providers_defined:
                 if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
+                        self.providers_defined[p]['priority'] > 0 and \
                         (not providers or self.providers_defined[p]['provider'] in providers):
                     self.providers.update({p: self.providers_defined[p]})
         exclude_providers_keys = {pi: self.providers[pi]['provider'] for
                                   pi in self.providers if self.providers[pi]['provider'] in exclude_providers}.keys()
         for provider_key in exclude_providers_keys:
-            del(self.providers[provider_key])
+            del self.providers[provider_key]
 
         if not self.providers:
             raise ServiceError("No providers found for network %s" % network)
@@ -270,13 +271,13 @@ class Service(object):
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         """
-        Get list of unspent outputs (UTXO's) for specified address.
+        Get a list of unspent outputs (UTXO's) for the specified address.
 
         Sorted from old to new, so the highest number of confirmations first.
 
         :param address: Address string
         :type address: str
-        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
+        :param after_txid: Transaction ID of the last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
         :type after_txid: str
         :param limit: Maximum number of utxo's to return. Sometimes ignored by service providers if more results are returned by default.
         :type limit: int
@@ -317,7 +318,7 @@ class Service(object):
 
     def gettransaction(self, txid):
         """
-        Get a transaction by its transaction hash. Convert to Bitcoinlib Transaction object.
+        Get a transaction by its transaction hash. Convert to a Bitcoinlib Transaction object.
 
         :param txid: Transaction identification hash
         :type txid: str
@@ -342,13 +343,13 @@ class Service(object):
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         """
-        Get all transactions for specified address.
+        Get all transactions for the specified address.
 
         Sorted from old to new, so transactions with the highest number of confirmations first.
 
         :param address: Address string
         :type address: str
-        :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
+        :param after_txid: Transaction ID of the last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
         :type after_txid: str
         :param limit: Maximum number of transactions to return
         :type limit: int
@@ -494,9 +495,9 @@ class Service(object):
 
     def blockcount(self):
         """
-        Get the latest block number: The block number of last block in longest chain on the Blockchain.
+        Get the latest block number: The block number of the last block in the longest chain on the Blockchain.
 
-        Block count is cashed for BLOCK_COUNT_CACHE_TIME seconds to avoid to many calls to service providers.
+        Block count is cashed for BLOCK_COUNT_CACHE_TIME seconds to avoid too many calls to service providers.
 
         :return int:
         """
@@ -529,14 +530,14 @@ class Service(object):
 
     def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
         """
-        Get block with specified block height or block hash from service providers.
+        Get the block with the specified block height or block hash from service providers.
 
-        If parse_transaction is set to True a list of Transaction object will be returned otherwise a
-        list of transaction ID's.
+        If parse_transaction is set to True, a list of Transaction objects will be returned otherwise a
+        list of transaction IDs.
 
-        Some providers require 1 or 2 extra request per transaction, so to avoid timeouts or rate limiting errors
-        you can specify a page and limit for the transaction. For instance with page=2, limit=4 only transaction
-        5 to 8 are returned to the Blocks's 'transaction' attribute.
+        Some providers require 1 or 2 extra requests per transaction, so to avoid timeouts or rate limiting errors,
+        you can specify a page and limit for the transaction. For instance, with page=2 and limit=4 only transaction
+        5 to 8 are returned to the Block's 'transaction' attribute.
 
         If you only use a local bcoin or bitcoind provider, make sure you set the limit to maximum (i.e. 9999)
         because all transactions are already downloaded when fetching the block.
@@ -598,7 +599,7 @@ class Service(object):
 
     def getrawblock(self, blockid):
         """
-        Get raw block as hexadecimal string for block with specified hash or block height.
+        Get a raw block as a hexadecimal string for a block with a specified hash or block height.
 
         Not many providers offer this option, and it can be slow, so it is advised to use a local client such
         as bitcoind.
@@ -617,7 +618,7 @@ class Service(object):
         A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise,
         specify the txid option to verify if a transaction is added to the mempool.
 
-        :param txid: Check if transaction with this hash exists in memory pool
+        :param txid: Check if a transaction with this hash exists in memory pool
         :type txid: str
 
         :return list:
@@ -626,7 +627,7 @@ class Service(object):
 
     def getcacheaddressinfo(self, address):
         """
-        Get address information from cache. I.e. balance, number of transactions, number of utxo's, etc
+        Get address information from the cache. I.e. balance, number of transactions, number of utxo's, etc.
 
         Cache will only be filled after all transactions for a specific address are retrieved (with gettransactions ie)
 
@@ -646,7 +647,7 @@ class Service(object):
 
     def isspent(self, txid, output_n):
         """
-        Check if the output with provided transaction ID and output number is spent.
+        Check if the output with the provided transaction ID and output number is already spent.
 
         :param txid: Transaction ID hex
         :type txid: str
@@ -663,7 +664,7 @@ class Service(object):
 
     def getinfo(self):
         """
-        Returns info about current network. Such as difficulty, latest block, mempool size and network hashrate.
+        Returns info about the current network. Such as difficulty, latest block, mempool size and network hashrate.
 
         :return dict:
         """
@@ -671,12 +672,12 @@ class Service(object):
 
     def getinputvalues(self, t):
         """
-        Retrieve values for transaction inputs for given Transaction.
+        Retrieve values for transaction inputs for a given Transaction.
 
         Raw transactions as stored on the blockchain do not contain the input values but only the previous
         transaction hash and index number. This method retrieves the previous transaction and reads the value.
 
-        :param t: Transaction
+        :param t: A Transaction object
         :type t: Transaction
 
         :return Transaction:
@@ -694,13 +695,13 @@ class Service(object):
 
 class Cache(object):
     """
-    Store transaction, utxo and address information in database to increase speed and avoid duplicate calls to
+    Store transaction, utxo and address information in the database to increase speed and avoid duplicate calls to
     service providers.
 
-    Once confirmed a transaction is immutable so we have to fetch it from a service provider only once. When checking
-    for new transactions or utxo's for a certain address we only have to check the new blocks.
+    Once confirmed, a transaction is immutable, so we have to fetch it from a service provider only once. When checking
+    for new transactions or utxo's for a certain address, we only have to check the new blocks.
 
-    This class is used by the Service class and normally you won't need to access it directly.
+    This class is used by the Service class, and normally you won't need to access it directly.
 
     """
 
@@ -792,7 +793,7 @@ class Cache(object):
 
     def getaddress(self, address):
         """
-        Get address information from cache, with links to transactions and utxo's and latest update information.
+        Get address information from the cache, with links to transactions and utxo's and latest update information.
 
         :param address: Address string
         :type address: str
@@ -805,11 +806,11 @@ class Cache(object):
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         """
-        Get transactions from cache. Returns empty list if no transactions are found or caching is disabled.
+        Get transactions from the cache. Returns an empty list if no transactions are found or caching is disabled.
 
         :param address: Address string
         :type address: str
-        :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
+        :param after_txid: Transaction ID of the last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
         :type after_txid: bytes
         :param limit: Maximum number of transactions to return
         :type limit: int
@@ -859,7 +860,7 @@ class Cache(object):
 
     def getblocktransactions(self, height, page, limit):
         """
-        Get range of transactions from a block
+        Get a range of transactions from a block
 
         :param height: Block height
         :type height: int
@@ -903,13 +904,13 @@ class Cache(object):
 
     def getutxos(self, address, after_txid=''):
         """
-        Get list of unspent outputs (UTXO's) for specified address from database cache.
+        Get a list of unspent outputs (UTXO's) for the specified address from the database cache.
 
         Sorted from old to new, so the highest number of confirmations first.
 
         :param address: Address string
         :type address: str
-        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
+        :param after_txid: Transaction ID of the last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
         :type after_txid: bytes
 
         :return dict: UTXO's per address
@@ -947,9 +948,9 @@ class Cache(object):
 
     def estimatefee(self, blocks):
         """
-        Get fee estimation from cache for confirmation within specified amount of blocks.
+        Get fee estimation from cache for confirmation within the specified number of blocks.
 
-        Stored in cache in three groups: low, medium and high fees.
+        Stored in the cache in three groups: low, medium and high fees.
 
         :param blocks: Expected confirmation time in blocks.
         :type blocks: int
@@ -972,9 +973,9 @@ class Cache(object):
 
     def blockcount(self, never_expires=False):
         """
-        Get number of blocks on the current network from cache if recent data is available.
+        Get the number of blocks on the current network from the cache if recent data is available.
 
-        :param never_expires: Always return latest blockcount found. Can be used to avoid return to old blocks if service providers are not up-to-date.
+        :param never_expires: Always return the latest blockcount found. Can be used to avoid return to old blocks if service providers are not up to date.
         :type never_expires: bool
 
         :return int:
@@ -991,7 +992,7 @@ class Cache(object):
 
     def getblock(self, blockid):
         """
-        Get specific block from database cache.
+        Get specific block from the database cache.
 
         :param blockid: Block height or block hash
         :type blockid: int, str
@@ -1016,7 +1017,7 @@ class Cache(object):
 
     def store_blockcount(self, blockcount):
         """
-        Store network blockcount in cache for 60 seconds
+        Store network blockcount in the cache for 60 seconds
 
         :param blockcount: Number of latest block
         :type blockcount: int, str
@@ -1032,13 +1033,13 @@ class Cache(object):
 
     def store_transaction(self, t, index=None, commit=True):
         """
-        Store transaction in cache. Use order number to determine order in a block
+        Store transaction in the cache. Use order number to determine order in a block
 
-        :param t: Transaction
+        :param t: The Transaction object
         :type t: Transaction
         :param index: Order in block
         :type index: int
-        :param commit: Commit transaction to database. Default is True. Can be disabled if a larger number of transactions are added to cache, so you can commit outside this method.
+        :param commit: Commit transaction to the database. Default is True. Can be disabled if a larger number of transactions are added to the cache, so you can commit outside this method.
         :type commit: bool
 
         :return:
@@ -1119,11 +1120,11 @@ class Cache(object):
 
     def store_address(self, address, last_block=None, balance=0, n_utxos=None, txs_complete=False, last_txid=None):
         """
-        Store address information in cache
+        Store address information in the cache
 
         :param address: Address string
         :type address: str
-        :param last_block: Number or last block retrieved from service provider. For instance if address contains a large number of transactions and they will be retrieved in more then one request.
+        :param last_block: Number or last block retrieved from the service provider. For instance, if an address contains a large number of transactions, and they will be retrieved in more than one request.
         :type last_block: int
         :param balance: Total balance of address in sathosis, or smallest network detominator
         :type balance: int
@@ -1195,9 +1196,9 @@ class Cache(object):
 
     def store_block(self, block):
         """
-        Store block in cache database
+        Store block in the cache database
 
-        :param block: Block
+        :param block: The Block object to store in the cache
         :type block: Block
 
         :return:

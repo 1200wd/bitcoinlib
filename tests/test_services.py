@@ -56,7 +56,7 @@ DATABASES_CACHE = [
     DATABASE_CACHE_UNITTESTS2,
 ]
 
-TIMEOUT_TEST = 3
+TIMEOUT_TEST = 5
 
 
 # Wrapper class for the Service client: Set cache_uri, timeout and ignore provider priority
@@ -178,7 +178,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
-        srv = ServiceTest(min_providers=3)
+        srv = ServiceTest(min_providers=3, timeout=10)
         txid = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
@@ -200,7 +200,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
         for provider in srv.results:
-            # print("Comparing provider %s" % provider)
+            print("Comparing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_estimatefee(self):
@@ -627,19 +627,14 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
+        # Test 4 bitcoins providers for now. Skip result for first provider with lowest blockcount.
         for nw in ['bitcoin']:
-            srv = ServiceTest(min_providers=3, cache_uri='', network=nw)
+            srv = ServiceTest(min_providers=4, cache_uri='', network=nw)
             srv.blockcount()
-            n_blocks = None
-            delta = 200
-            if nw == 'testnet':  # Testnet 3 has frequent blockstorms causing delay in processing for various providers
-                delta = 25000
-            for provider in srv.results:
-                if n_blocks is not None:
-                    self.assertAlmostEqual(srv.results[provider], n_blocks, delta=delta,
-                                           msg="Network %s, provider %s value %d != %d" %
-                                               (nw, provider, srv.results[provider], n_blocks))
-                n_blocks = srv.results[provider]
+            delta = 5
+            heights = sorted(list(srv.results.values()))
+            self.assertAlmostEqual(heights[1], heights[-1], delta=delta,
+                                   msg=f"Inconsistent blockcount results {srv.results}")
 
     def test_service_max_providers(self):
         srv = ServiceTest(max_providers=1, cache_uri='')
@@ -716,7 +711,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_getblock_parse_tx_paging(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(120000, parse_transactions=True, limit=25, page=2)
-        # print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
         self.assertEqual(b.height, 120000)

@@ -1,4 +1,4 @@
-name: Bitcoinlib Tests Ubuntu - MySQL
+name: Bitcoinlib Tests Ubuntu - MySQL / MariaDB
 on: [push]
 
 jobs:
@@ -10,8 +10,8 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-          python-version: '3.10'
-          architecture: 'x64'
+        python-version: '3.10'
+        architecture: 'x64'
     - name: Set up MySQL
       env:
         DB_DATABASE: bitcoinlib_test

@@ -67,7 +67,7 @@ class BitGoClient(BaseClient):
                         'confirmations': utxo['confirmations'],
                         'output_n': utxo['tx_output_n'],
                         'input_n': 0,
-                        'block_height': round(utxo['blockHeight']) if utxo['blockHeight'] else None,
+                        'block_height': round(int(utxo['blockHeight'])) if utxo['blockHeight'] else None,
                         'fee': None,
                         'size': 0,
                         'value': round(utxo['value'] * self.units),
@@ -95,8 +95,8 @@ class BitGoClient(BaseClient):
     #     if 'height' in tx:
     #         t.block_height = tx['height']
     #         t.block_hash = tx['blockhash']
-    #     t.fee = tx['fee']
-    #     t.rawtx = to_bytes(tx['hex'])
+    #     t.fee = tx['fee'] or 0
+    #     t.rawtx = bytes.fromhex(tx['hex'])
     #     t.size = len(tx['hex']) // 2
     #     t.network = self.network
     #     if t.coinbase:
@@ -111,7 +111,7 @@ class BitGoClient(BaseClient):
     #         if not i.address and not t.coinbase:
     #             raise ClientError("Address missing in input. Provider might not support segwit transactions")
     #         if len(t.inputs) != len(input_values):
-    #             i.value = None
+    #             i.value = 0
     #             continue
     #         value = [x[1] for x in input_values if x[0] == i.address]
     #         if len(value) != 1:

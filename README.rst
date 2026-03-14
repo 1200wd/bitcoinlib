@@ -99,8 +99,6 @@ for instance about the `Wallet.create() <https://bitcoinlib.readthedocs.io/en/la
 There are many working examples on how to create wallets, specific transactions, encrypted databases, parse the
 blockchain, connect to specific service providers in the `examples directory <https://github.com/1200wd/bitcoinlib/tree/master/examples>`_ in the source code of this library.
 
-Some more specific examples can be found on the `Coineva website <https://coineva.com/category/bitcoinlib.html>`_.
-
 BitcoinLib is used at `Blocksmurfer Explorer <https://blocksmurfer.io/>`_ and many other repositories:
 https://github.com/1200wd/bitcoinlib/network/dependents
 

@@ -1,5 +1,5 @@
 FROM linuxmintd/mint22-amd64
-MAINTAINER Cryp Toon <info@1200wd.com>
+LABEL org.opencontainers.image.authors="info@1200wd.com"
 
 WORKDIR /code
 
@@ -19,4 +19,4 @@ WORKDIR /code/bitcoinlib
 RUN python3 -m venv /opt/venv
 RUN /opt/venv/bin/python3 -m pip install .[dev]
 
-CMD /opt/venv/bin/python3 -m unittest
+CMD ["/opt/venv/bin/python3", "-m", "unittest"]
