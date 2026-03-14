@@ -68,7 +68,7 @@ print(to_hexstring(hash160(to_bytes(redeemscript))))
 der_signature = '3045022100f952ff1b290c54d8b9fd35573b50f1af235632c595bb2f10b34127fb82f66d18022068b59150f825a81032c' \
                 '22ce2db091d6fd47294c9e2144fa0291949402e3003ce'
 print("\n=== Convert DER encoded signature ===")
-print(convert_der_sig(to_bytes(der_signature)))
+print(signature_der_decode_bytes(to_bytes(der_signature)))
 
 print("\n=== Varbyte Int conversions ===")
 print("Number 1000 as Varbyte Integer (hexstring): %s" % to_hexstring(int_to_varbyteint(1000)))

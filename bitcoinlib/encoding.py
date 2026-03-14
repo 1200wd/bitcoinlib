@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Methods for encoding and conversion
-#    © 2016 - 2024 June - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2026 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -131,27 +131,24 @@ def _codestring_to_array(codestring, base):
 
 def normalize_var(var, base=256):
     """
-    For Python 2 convert variable to string
-
-    For Python 3 convert to bytes
-
-    Convert decimals to an integer type
+    Convert variable to normalized value:
+    - UTF-8 encoded bytes for string values
+    - Integer value for numbers
+    - Deepcopy of list for lists
 
     :param var: input variable in any format
     :type var: str, byte
     :param base: specify variable format, i.e. 10 for decimal, 16 for hex
     :type base: int
 
-    :return: Normalized var in string for Python 2, bytes for Python 3, decimal for base10
+    :return: Normalized variable
+    :rtype: bytes, int, list
     """
     try:
         if isinstance(var, str):
-            var = var.encode('ISO-8859-1')
-    except ValueError:
-        try:
             var = var.encode('utf-8')
-        except ValueError:
-            raise EncodingError("Unknown character '%s' in input format" % var)
+    except ValueError:
+        raise EncodingError("Unknown character '%s' in input format" % var)
 
     if base == 10:
         return int(var)
@@ -307,13 +304,14 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             output = [code_str[0]] + output
 
     if not output_as_list and isinstance(output, list):
-        output = 0 if not len(output) else ''.join([chr(c) for c in output])
+        output = 0 if not len(output) else b''.join([bytes([c]) for c in output])
     if base_to == 10:
         return int(0) or (output != '' and int(output))
-    if base_to == 256 and not output_as_list:
-        return output.encode('ISO-8859-1')
-    else:
+
+    if base_to == 256 or output_as_list:
         return output
+    else:
+        return output.decode('utf-8')
 
 
 def base58encode(inp):
@@ -439,11 +437,27 @@ def int_to_varbyteint(inp):
         return b'\xff' + inp.to_bytes(8, 'little')
 
 
+def signature_der_decode_bytes(signature):
+    """
+    Extract r and s value from DER encoded string and convert to bytes.
+
+    :param signature: DER encoded signature
+    :type signature: bytes
+
+    :return bytes: Signature bytes encoded with r and s value
+    """
+    r, s = signature_der_decode(signature)
+    return int.to_bytes(r, 32, 'big') + int.to_bytes(s, 32, 'big')
+
+
+@deprecated
 def convert_der_sig(signature, as_hex=True):
     """
     Extract content from DER encoded string: Convert DER encoded signature to signature string.
 
-    :param signature: DER signature
+    Replaced by :func:`signature_der_decode_bytes` method
+
+    :param signature: DER encoed signature
     :type signature: bytes
     :param as_hex: Output as hexstring
     :type as_hex: bool
@@ -453,24 +467,59 @@ def convert_der_sig(signature, as_hex=True):
 
     if not signature:
         return ""
-    if USE_FASTECDSA:
-        r, s = DEREncoder.decode_signature(bytes(signature))
-    else:
-        sg, junk = ecdsa.der.remove_sequence(signature)
-        if junk != b'':
-            raise EncodingError("Junk found in encoding sequence %s" % junk)
-        r, sg = ecdsa.der.remove_integer(sg)
-        s, sg = ecdsa.der.remove_integer(sg)
+    r, s = signature_der_decode(signature)
+
     sig = '%064x%064x' % (r, s)
     if as_hex:
         return sig
     else:
         return bytes.fromhex(sig)
 
+def signature_der_decode(signature):
+    """
+    Decode a DER encoded signature and extract an r and s value
 
+    The DER encoded signature must have the following format:
+        <sequence byte> <integer byte> r <integer byte> s
+
+    :param signature: DER encoded signature
+    :type signature: bytes
+
+    :return (int, int): Tuple with r and s value
+    """
+
+    def _unpack_int(sigbytes):
+        if sigbytes[0] != 0x02:
+            raise EncodingError("Expected integer marker byte (x02)")
+        vlen, vsize = varbyteint_to_int(sigbytes[1:])
+        if len(sigbytes[:vsize+vlen+1]) != 1 + vsize + vlen:
+            raise EncodingError(f"Unexpected signature integer length: {len(sigbytes)} != {1 + vsize + vlen}")
+        ivar = int.from_bytes(sigbytes[1+vsize:1+vsize+vlen], 'big')
+        return ivar, sigbytes[vsize+vlen+1:]
+
+    if signature[0] != 0x30:
+        raise EncodingError("Signature must start with a sequence byte (x30)")
+
+    siglen, size = varbyteint_to_int(signature[1:])
+    if len(signature) == siglen + 1 + size + 1:  # ignore extra sighash byte
+        signature = signature[:-1]
+    if len(signature) != siglen + 1 + size:
+        raise EncodingError(f"Unexpected signature length: {len(signature)} != {siglen + 1 + size}")
+
+    r, rest = _unpack_int(signature[1+size:])
+    s, rest2 = _unpack_int(rest)
+    if rest2 != b'':
+        raise EncodingError(f"Unexpected rest bytes at end of signature: {rest2}")
+
+    return r, s
+
+
+@deprecated
 def der_encode_sig(r, s):
     """
     Create DER encoded signature string with signature r and s value.
+
+    Replaced by the :func:`signature_der_encode` method
 
     :param r: r value of signature
     :type r: int
@@ -479,12 +528,31 @@ def der_encode_sig(r, s):
 
     :return bytes:
     """
-    if USE_FASTECDSA:
-        return DEREncoder.encode_signature(r, s)
-    else:
-        rb = ecdsa.der.encode_integer(r)
-        sb = ecdsa.der.encode_integer(s)
-        return ecdsa.der.encode_sequence(rb, sb)
+    return signature_der_encode(r, s)
+
+
+def signature_der_encode(r, s):
+    """
+    Create DER encoded signature string with signature r and s value.
+
+    A DER encoded signature has the following format:
+        <sequence byte> <integer byte> r <integer byte> s
+
+    :param r: r value of signature
+    :type r: int
+    :param s: s value of signature
+    :type s: int
+
+    :return bytes:
+    """
+    rb = int.to_bytes(r, 32,'big').lstrip(b'\x00')
+    rb = b'\x00' + rb if rb[0] & 0x80 else rb
+
+    sb = int.to_bytes(s, 32, 'big').lstrip(b'\x00')
+    sb = b'\x00' + sb if sb[0] & 0x80 else sb
+
+    sig = b'\x30' + varstr(b'\x02' + varstr(rb) + b'\x02' + varstr(sb))
+    return sig
 
 
 def addr_to_pubkeyhash(address, as_hex=False, encoding=None):
