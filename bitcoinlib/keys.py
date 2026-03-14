@@ -61,20 +61,20 @@ class BKeyError(Exception):
 
 def check_network_and_key(key, network=None, kf_networks=None, default_network=DEFAULT_NETWORK):
     """
-    Check if given key corresponds with given network and return network if it does. If no network is specified
-    this method tries to extract the network from the key. If no network can be extracted from the key the
+    Check if a given key corresponds with the given network and return network if it does. If no network is specified,
+    this method tries to extract the network from the key. If no network can be extracted from the key, the
     default network will be returned.
 
     >>> check_network_and_key('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
     'bitcoin'
     
-    A BKeyError will be raised if key does not correspond with network or if multiple network are found.
+    A BKeyError will be raised if the key does not correspond with the network or if multiple networks are found.
     
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes
-    :param network: Optional network. Method raises BKeyError if keys belongs to another network
+    :param network: Optional network. Method raises BKeyError if keys belong to another network
     :type network: str, None
-    :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
+    :param kf_networks: Optional list of networks, which is returned by get_key_format. If left empty, the get_key_format function will be called.
     :type kf_networks: list, None
     :param default_network: Specify different default network, leave empty for default (bitcoin)
     :type default_network: str, None
@@ -105,7 +105,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
 def get_key_format(key, is_private=None):
     """
     Determines the type (private or public), format and network key.
-    
+
     This method does not validate if a key is valid.
 
     >>> get_key_format('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
@@ -121,7 +121,7 @@ def get_key_format(key, is_private=None):
     :type key: str, int, bytes
     :param is_private: Is key private or not?
     :type is_private: bool
-    
+
     :return dict: Dictionary with format, network and is_private
     """
     if not key:
@@ -239,7 +239,7 @@ def deserialize_address(address, encoding=None, network=None):
 
     The 'network' dictionary item with contains the network with the highest priority if multiple networks are found. Same applies for the script type.
 
-    Specify the network argument if network is known to avoid unexpected results.
+    Specify the network argument if the network is known to avoid unexpected results.
 
     If more networks and or script types are found you can find these in the 'networks' field.
 
@@ -1558,7 +1558,7 @@ class Key(object):
 
     def address_uncompressed(self, prefix=None, script_type=None, encoding=None):
         """
-        Get uncompressed address from public key
+        Get uncompressed address from the public key
 
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
@@ -1666,7 +1666,7 @@ class HDKey(Key):
         :type encoding: str
         :param witness_type: Witness type used when creating scripts: legacy, p2sh-segwit or segwit.
         :type witness_type: str
-        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addresses
+        :param multisig: Specify if this key is part of a multisig wallet, used when creating key representations such as WIF and addresses
         :type multisig: bool
 
         :return HDKey:
@@ -1685,9 +1685,9 @@ class HDKey(Key):
     def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, key_type='bip32', compressed=True,
                         encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
-        Create key from Mnemonic passphrase
+        Create a key from the provided Mnemonic passphrase
 
-        :param passphrase: Mnemonic passphrase, list of words as string seperated with a space character
+        :param passphrase: Mnemonic passphrase, list of words as string separated with a space character
         :type passphrase: str
         :param password: Password to protect passphrase
         :type password: str
@@ -1764,7 +1764,7 @@ class HDKey(Key):
         """
         Hierarchical Deterministic Key class init function.
 
-        If no import_key is specified a key will be generated with systems cryptographically random function.
+        If no import_key is specified, a key will be generated with systems cryptographically random function.
         Import key can be any format normal or HD key (extended key) accepted by get_key_format.
         If a normal key with no chain part is provided, a chain with only 32 0-bytes will be used.
 
@@ -1892,7 +1892,7 @@ class HDKey(Key):
 
     def inverse(self):
         """
-        Return inverse of private or public key
+        Return inverse of this private or public key
 
         :return Key:
         """
@@ -1930,7 +1930,7 @@ class HDKey(Key):
 
     def as_dict(self, include_private=False):
         """
-        Get current HDKey class as dictionary. Byte values are represented by hexadecimal strings.
+        Get the current HDKey class as a dictionary. Byte values are represented by hexadecimal strings.
 
         :param include_private: Include private key information in dictionary
         :type include_private: bool
@@ -1952,11 +1952,11 @@ class HDKey(Key):
 
     def as_json(self, include_private=False):
         """
-        Get current key as json formatted string
+        Get the current key as a JSON formatted string
 
         :param include_private: Include private key information in dictionary
         :type include_private: bool
-        
+
         :return str:
         """
         return json.dumps(self.as_dict(include_private=include_private), indent=4)
@@ -2067,7 +2067,7 @@ class HDKey(Key):
 
     def wif_key(self, prefix=None):
         """
-        Get WIF of Key object. Call to parent object Key.wif()
+        Get WIF of the Key object. Call to parent object Key.wif()
 
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
@@ -2209,7 +2209,7 @@ class HDKey(Key):
 
     def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None, as_private=False):
         """
-        Derives a public master key for current HDKey. A public master key can be shared with other software
+        Derives a public master key for the current HDKey. A public master key can be shared with other software
         administration tools to create readonly wallets or can be used to create multisignature wallets.
 
         >>> private_hex = 'b66ed9778029d32ebede042c79f448da8f7ab9efba19c63b7d3cdf6925203b71'
@@ -2237,7 +2237,7 @@ class HDKey(Key):
 
         path_template, purpose, _ = get_key_structure_data(self.witness_type, self.multisig, purpose)
 
-        # Use last hardened key as public master root
+        # Use the last hardened key as a public master root
         pm_depth = path_template.index([x for x in path_template if x[-1:] == "'"][-1]) + 1
         path = path_expand(path_template[:pm_depth], path_template, account_id=account_id, purpose=purpose,
                            witness_type=self.witness_type, network=self.network.name)
@@ -2255,9 +2255,9 @@ class HDKey(Key):
         :type account_id: int
         :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit.
         :type purpose: int
-        :param witness_type: Specify witness type, default is legacy. Use 'segwit' or 'p2sh-segwit' for segregated witness.
+        :param witness_type: Specify a witness type, default is legacy. Use 'segwit' or 'p2sh-segwit' for segregated witness.
         :type witness_type: str
-        :param as_private: Return private key if available. Default is to return public key
+        :param as_private: Return a private key if available. The default is to return the public key
 
         :return HDKey:
         """
@@ -2278,9 +2278,9 @@ class HDKey(Key):
 
     def child_private(self, index=0, hardened=False, network=None):
         """
-        Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
+        Use Child Key Derivation (CDK) to derive a child private key of the current HD Key object.
 
-        Used by :func:`key_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+        Used by :func:`key_for_path` to create key paths, for instance, to use in HD wallets. You can use this method to create your own key structures.
 
         This method create private child keys, use :func:`child_public` to create public child keys.
 
@@ -2296,7 +2296,7 @@ class HDKey(Key):
 
         :param index: Key index number
         :type index: int
-        :param hardened: Specify if key must be hardened (True) or normal (False)
+        :param hardened: Specify if a key must be hardened (True) or normal (False)
         :type hardened: bool
         :param network: Network name.
         :type network: str
@@ -2329,11 +2329,11 @@ class HDKey(Key):
 
     def child_public(self, index=0, network=None):
         """
-        Use Child Key Derivation to derive child public key of current HD Key object.
+        Use Child Key Derivation to derive a child public key of the current HD Key object.
 
-        Used by :func:`key_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+        Used by :func:`key_for_path` to create key paths, for instance, to use in HD wallets. You can use this method to create your own key structures.
 
-        This method create public child keys, use :func:`child_private` to create private child keys.
+        This method creates public child keys, use :func:`child_private` to create private child keys.
 
         >>> private_hex = 'd02220828cad5e0e0f25057071f4dae9bf38720913e46a596fd7eb8f83ad045d'
         >>> k = HDKey(private_hex)
@@ -2384,8 +2384,8 @@ class HDKey(Key):
 
     def public(self):
         """
-        Public version of current private key. Strips all private information from HDKey object, returns deepcopy
-        version of current object
+        Public version of the current private key. Strips all private information from HDKey object, returns deepcopy
+        version of the current object
 
         :return HDKey:
         """
@@ -2424,7 +2424,7 @@ class HDKey(Key):
 class Signature(object):
     """
     Signature class for transactions. Used to create signatures to sign transaction and verification
-    
+
     Sign a transaction hash with a private key and show DER encoded signature:
 
     >>> sk = HDKey('f2620684cef2b677dc2f043be8f0873b61e79b274c7e7feeb434477c082e0dc2')
@@ -2487,9 +2487,9 @@ class Signature(object):
     @staticmethod
     def parse_base64(signature, public_key=None):
         """
-        Parse base64 encoded signature and return Signature object.
+        Parse base64 encoded signature and return a Signature object.
 
-        Extract compressed and recovery ID info from first byte.
+        Extract compressed and recovery ID info from the first byte.
 
         :param signature: Base64 encoded signature
         :type signature: str, bytes
@@ -2555,7 +2555,7 @@ class Signature(object):
         :param force_canonical: Calculate signature with canonical s value. Default is True, needed for valid transacton signatures. Only set to False for signing messages.
         :type force_canonical: bool
 
-        :return Signature: 
+        :return Signature:
         """
         if isinstance(message, bytes):
             message_bytes = message
@@ -2611,14 +2611,14 @@ class Signature(object):
     def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL, compressed=True, recid=0, witness_type=None, network=None):
         """
-        Initialize Signature object with provided r and r value
+        Initialize a Signature object with provided r and r value
 
         >>> r = 32979225540043540145671192266052053680452913207619328973512110841045982813493
         >>> s = 12990793585889366641563976043319195006380846016310271470330687369836458989268
         >>> sig = Signature(r, s)
         >>> sig.hex()
         '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
-        
+
         :param r: r value of signature
         :type r: int
         :param s: s value of signature
@@ -2721,8 +2721,8 @@ class Signature(object):
     def public_key(self):
         """
         Return public key as HDKey object
-        
-        :return HDKey: 
+
+        :return HDKey:
         """
         return self._public_key
 
@@ -2778,7 +2778,7 @@ class Signature(object):
         :param include_hash_type: Include hash_type byte at end of signatures as used in raw scripts. Default is True
         :type include_hash_type: bool
 
-        :return bytes: 
+        :return bytes:
         """
         if not self._der_encoded or len(self._der_encoded) < 2:
             self._der_encoded = der_encode_sig(self.r, self.s) + self.hash_type_byte
@@ -2790,7 +2790,7 @@ class Signature(object):
 
     def as_base64(self):
         """
-        Return current Signature in base64 format following the bip-0137 standard, used for message signing.
+        Return the current Signature in base64 format following the bip-0137 standard, used for message signing.
 
         Uses this format:
         [1 byte of header data][32 bytes for r value][32 bytes for s value]
@@ -2848,7 +2848,7 @@ class Signature(object):
 
     def verify_message(self, message, address=None, network=None):
         """
-        Verify if provided message is signed with this signature. Provide address to check if address matches the
+        Verify if the provided message is signed with this signature. Provide address to check if address matches the
         signature.
 
         :param message: Message to verify. Must be unhashed and in bytes format.
@@ -2918,7 +2918,7 @@ class Signature(object):
 
     def verify(self, message=None, public_key=None):
         """
-        Verify this signature. Provide message/txid or public_key if not already known
+        Verify this signature. Provide a message/txid or public_key if not already known
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
         >>> pub_key = HDKey(k).public()
@@ -2982,7 +2982,7 @@ class Signature(object):
 def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True,
          network=DEFAULT_NETWORK):
     """
-    Sign transaction hash or message with secret private key. Creates a signature object.
+    Sign the transaction hash or message with the secret private key. Creates a signature object.
     
     Sign a transaction hash with a private key and show DER encoded signature
 
@@ -3002,7 +3002,7 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
     :type k: int
     :param hash_type: Specific hash type, default is SIGHASH_ALL
     :type hash_type: int
-    :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True, if set to False the message will be hashed with double_sha256 by this create method.
+    :param prehashed: Whether the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True, if set to False the message will be hashed with double_sha256 by this create method.
     :type prehashed: bool
     :param force_canonical: Force canonicalization of signature s value. Default is True
     :type force_canonical: bool
@@ -3017,7 +3017,7 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
 
 def verify(message, signature, public_key=None):
     """
-    Verify provided signature with message / txid. If provided signature is no Signature object a new object will
+    Verify the provided signature with the message / txid. If provided signature is no Signature object a new object will
     be created for verification.
 
     >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
@@ -3090,7 +3090,7 @@ def mod_sqrt(a):
     """
     Compute the square root of 'a' using the secp256k1 'bitcoin' curve
 
-    Used to calculate y-coordinate if only x-coordinate from public key point is known.
+    Used to calculate y-coordinate if only x-coordinate from a public key point is known.
     Formula: y ** 2 == x ** 3 + 7
     
     :param a: Number to calculate square root
@@ -3106,7 +3106,7 @@ def mod_sqrt(a):
 
 def message_magic(message, network=None):
     """
-    Add network magic to message string, so "Hello world!" results in "BITCOIN Signed Message: Hello world!
+    Add network magic to a message string, so "Hello world!" results in "BITCOIN Signed Message: Hello world!
 
     :param message: Message text
     :type message: str
@@ -3125,7 +3125,7 @@ def message_magic(message, network=None):
 
 def verify_message(message, sig, address, network=None):
     """
-    Verify signed message. Prove owner of provided address did sign exact message.
+    Verify a signed message. Prove if the owner of the provided address did sign this exact message.
 
     >>> message = 'this is a unittest'
     >>> sig = 'IBqszVUdhXkJnZpcoQh+EyEZicOQP0fZ2z/Rzw4Xa+YgCXtsOYSR1RvAYAeejCkEW6iQZ9e5j8AqSH2zxvshZPM='

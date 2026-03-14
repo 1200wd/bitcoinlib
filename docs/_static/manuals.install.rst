@@ -94,6 +94,19 @@ Then run the unittests to see if everything works
 ``python -m unittest``
 
 
+Run without database
+~~~~~~~~~~~~~~~~~~~~
+
+If you do need the Wallet, Service or bitcoinlib tools you can use the library without database. Remove the
+sqlalchemy module from the requirements or uninstall it with:
+
+``python -m pip uninstall sqlalchemy``
+
+When you uninstall the sqlalchemy database not all unittests will run, you need to run them separately. For instance
+to run the test_keys unittest:
+
+``python -m pip unittest tests/test_keys.py``
+
 
 Other requirements Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

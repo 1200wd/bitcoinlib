@@ -109,7 +109,8 @@ def wallet_exists(wallet, db_uri=None, db_password=None):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None, db_password=None):
+        key_path=None, anti_fee_sniping=True, strict=True, ignore_dust=True, db_uri=None, db_cache_uri=None,
+        db_password=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise open the existing wallet.
 
@@ -124,7 +125,7 @@ def wallet_create_or_open(
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                              password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                             key_path, anti_fee_sniping, db_uri=db_uri, db_cache_uri=db_cache_uri,
+                             key_path, anti_fee_sniping, strict, ignore_dust, db_uri=db_uri, db_cache_uri=db_cache_uri,
                              db_password=db_password)
 
 
@@ -1185,7 +1186,7 @@ class Wallet(object):
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
                 witness_type, encoding, multisig, sigs_required, cosigner_id, key_path,
-                anti_fee_sniping, db_uri, db_cache_uri, db_password):
+                anti_fee_sniping, strict, ignore_dust, db_uri, db_cache_uri, db_password):
 
         db = Db(db_uri, db_password)
         session = db.session
@@ -1225,7 +1226,8 @@ class Wallet(object):
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
-                              key_path=key_path, anti_fee_sniping=anti_fee_sniping)
+                              key_path=key_path, anti_fee_sniping=anti_fee_sniping, strict=strict,
+                              ignore_dust=ignore_dust)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -1264,8 +1266,8 @@ class Wallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, anti_fee_sniping=True, db_uri=None, db_cache_uri=None,
-               db_password=None):
+               cosigner_id=None, key_path=None, anti_fee_sniping=True, strict=True, ignore_dust=True, db_uri=None,
+               db_cache_uri=None, db_password=None):
         """
         Create Wallet and insert in database. Generate masterkey or import key when specified.
 
@@ -1337,6 +1339,10 @@ class Wallet(object):
         :type key_path: list, str
         :param anti_fee_sniping: Set default locktime in transactions as current block height + 1 to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
         :type anti_fee_sniping: boolean
+        :param strict: Set to False, to ignore non-standard signatures or script. Can be usefull for blockchain parsing or external transactions
+        :type strict: boolean
+        :param ignore_dust: Ignore dust outputs in unspent transaction outputs. The dust output amount is defined in the network settings. Default is True.
+        :type ignore_dust: boolean
         :param db_uri: URI of the database for wallets, wallet transactions and keys
         :type db_uri: str
         :param db_cache_uri: URI of the cache database. If not specified, the default cache database is used when using sqlite, for other databasetypes the cache database is merged with the wallet database (db_uri)
@@ -1462,8 +1468,8 @@ class Wallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           anti_fee_sniping=anti_fee_sniping, key_path=main_key_path, db_uri=db_uri,
-                           db_cache_uri=db_cache_uri, db_password=db_password)
+                           anti_fee_sniping=anti_fee_sniping, strict=strict, ignore_dust=ignore_dust,
+                           key_path=main_key_path, db_uri=db_uri, db_cache_uri=db_cache_uri, db_password=db_password)
 
         if multisig:
             wlt_cos_id = 0
@@ -1481,6 +1487,7 @@ class Wallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
+                                strict=strict, ignore_dust=ignore_dust,
                                 anti_fee_sniping=anti_fee_sniping, db_uri=db_uri, db_cache_uri=db_cache_uri,
                                 db_password=db_password)
                 hdpm.cosigner.append(w)
@@ -1566,7 +1573,8 @@ class Wallet(object):
                 self.key_depth = len(self.key_path) - 1
             self.last_updated = None
             self.anti_fee_sniping = db_wlt.anti_fee_sniping
-            self.strict = True
+            self.strict = db_wlt.strict
+            self.ignore_dust = db_wlt.ignore_dust
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -2587,7 +2595,7 @@ class Wallet(object):
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
         >>> all_wallet_keys = w.keys()
         >>> w.keys(depth=0) # doctest:+ELLIPSIS
-        [<DbKey(id=..., name='bitcoinlib_legacy_wallet_test', wif='xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'>]
+        [<WalletKey(id=..., name='bitcoinlib_legacy_wallet_test', wif='xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'>]
 
         Returns a list of WalletKey objects or dictionary object if as_dict is True
 
@@ -2615,7 +2623,7 @@ class Wallet(object):
         :type network: str
         :param include_private: Include private key information in dictionary
         :type include_private: bool
-        :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
+        :param as_dict: Return keys as dictionary objects. Default is False: WalletKey objects
         :type as_dict: bool
 
         :return list of WalletKey or list of dict: List of keys from this wallet
@@ -2678,10 +2686,10 @@ class Wallet(object):
 
         :param used: Only return used or unused keys
         :type used: bool
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of DbKey, list of dict:
+        :return list of WalletKey, list of dict:
 
         """
 
@@ -2710,10 +2718,10 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name filter
         :type network: str
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict):
+        :return list of (WalletKey, dict):
         """
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
@@ -2739,10 +2747,10 @@ class Wallet(object):
         :type network: str
         :param depth: Filter by key depth. Default for BIP44 and multisig is 5
         :type depth: int
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict)
+        :return list of WalletKey, list of dict
         """
 
         if depth is None:
@@ -2760,10 +2768,10 @@ class Wallet(object):
         :type used: bool
         :param network: Network name filter
         :type network: str
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict)
+        :return list of WalletKey, list of dict
         """
 
         return self.keys(account_id, depth=self.key_depth, change=0, used=used, network=network, as_dict=as_dict)
@@ -2778,10 +2786,10 @@ class Wallet(object):
         :type used: bool
         :param network: Network name filter
         :type network: str
-        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :param as_dict: Return as dictionary or WalletKey object. Default is False: WalletKey objects
         :type as_dict: bool
 
-        :return list of (DbKey, dict)
+        :return list of WalletKey, list of dict
         """
 
         return self.keys(account_id, depth=self.key_depth, change=1, used=used, network=network, as_dict=as_dict)
@@ -3065,6 +3073,8 @@ class Wallet(object):
             qr = qr.filter(DbTransactionOutput.key_id == key_id)
         else:
             qr = qr.filter(DbTransactionOutput.key_id.isnot(None))
+        if self.ignore_dust:
+            qr = qr.filter(DbTransactionOutput.value >= self.network.dust_amount)
         qr = qr.with_entities(
             DbTransactionOutput.key_id,
             DbTransaction.network_name.label('network_name'),
@@ -3654,6 +3664,8 @@ class Wallet(object):
             qr = qr.filter(DbTransactionOutput.key_id == key_id)
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+        if self.ignore_dust:
+            qr = qr.filter(DbTransactionOutput.value >= self.network.dust_amount)
         txs += qr.all()
 
         txs = sorted(txs, key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True)
@@ -3855,7 +3867,7 @@ class Wallet(object):
         return inp_keys
 
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=1,
-                      max_utxos=None, skip_dust_amounts=True):
+                      max_utxos=None, ignore_dust=None):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
         the specified amount.
@@ -3878,8 +3890,8 @@ class Wallet(object):
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
-        :param skip_dust_amounts: Do not include small amounts to avoid dust inputs
-        :type skip_dust_amounts: bool
+        :param ignore_dust: Do not include small amounts to avoid dust inputs. Default is to use the Wallet.ignore dust setting which is True by default.
+        :type ignore_dust: bool
 
         :return: List of selected unspent transaction outputs
         :rtype: list[Input]
@@ -3899,7 +3911,8 @@ class Wallet(object):
                 utxo_query = utxo_query.filter(DbKey.id == input_key_id)
             else:
                 utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
-        if skip_dust_amounts:
+        ignore_dust = self.ignore_dust if ignore_dust is None else ignore_dust
+        if ignore_dust:
             utxo_query = utxo_query.filter(DbTransactionOutput.value >= dust_amount)
         utxo_query = utxo_query.order_by(DbTransaction.confirmations.desc())
         try:
@@ -3962,7 +3975,7 @@ class Wallet(object):
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
                            min_confirms=1, max_utxos=None, locktime=0, number_of_change_outputs=1,
-                           random_output_order=True, replace_by_fee=False, skip_dust_amounts=True):
+                           random_output_order=True, replace_by_fee=False, ignore_dust=None):
         """
         Create a new transaction with specified outputs.
 
@@ -4001,8 +4014,8 @@ class Wallet(object):
         :type random_output_order: bool
         :param replace_by_fee: Signal replace-by-fee and allow you to send a new transaction with higher fees. Sets sequence value to SEQUENCE_REPLACE_BY_FEE
         :type replace_by_fee: bool
-        :param skip_dust_amounts: Do not include small amounts to avoid dust inputs
-        :type skip_dust_amounts: bool
+        :param ignore_dust: Do not include small amounts to avoid dust inputs. Default is to use the Wallet.ignore dust setting which is True by default.
+        :type ignore_dust: bool
 
         :return WalletTransaction: object
         """
@@ -4074,7 +4087,7 @@ class Wallet(object):
         if input_arr is None:
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,
                                                 input_key_id, account_id, network, min_confirms, max_utxos,
-                                                skip_dust_amounts)
+                                                ignore_dust)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -4542,7 +4555,7 @@ class Wallet(object):
             raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
             # Skip dust transactions to avoid forced address reuse
-            if utxo['value'] <= self.network.dust_amount:
+            if self.ignore_dust and utxo['value'] <= self.network.dust_amount:
                 continue
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
@@ -4677,7 +4690,7 @@ class Wallet(object):
     def sign_message(self, message, key_term=None, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL,
                      force_canonical=False):
         """
-        Sign a message with this wallet and the provided key. If no key ID is provided the message will be signed with the first available key.
+        Sign a message with this wallet and the provided key. If no key ID is provided, the message will be signed with the first available key.
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
@@ -4721,9 +4734,8 @@ class Wallet(object):
             wk = self.key(key_term)
             return wk.verify_message(message, signature)
         else:
-            db_wks = self.keys_addresses()
-            for db_wk in db_wks:
-                wk = WalletKey(key_id=db_wk.key_id, session=self.session)
+            walletkeys = self.keys_addresses()
+            for wk in walletkeys:
                 if wk.verify_message(message, signature):
                     return True
         return False

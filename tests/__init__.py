@@ -21,11 +21,19 @@ import tests.test_custom
 import tests.test_encoding
 import tests.test_keys
 import tests.test_mnemonic
-import tests.test_wallets
 import tests.test_transactions
-import tests.test_services
-import tests.test_tools
-import tests.test_db
 import tests.test_blocks
 import tests.test_values
 import tests.test_script
+import tests.test_networks
+
+import importlib.util
+
+if not importlib.util.find_spec('sqlalchemy'):
+    pass
+else:
+    import tests.test_wallets
+    import tests.test_services
+    import tests.test_tools
+    import tests.test_db
+    import tests.test_security

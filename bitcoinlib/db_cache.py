@@ -37,9 +37,9 @@ class WitnessTypeTransactions(enum.Enum):
 
 class DbCache:
     """
-    Cache Database object. Initialize database and open session when creating database object.
+    Cache Database object. Initialize the database and open a session when creating the database object.
 
-    Create new database if it doesn't exist yet
+    Create a new database if it doesn't exist yet
 
     """
     def __init__(self, db_uri=None):

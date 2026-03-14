@@ -132,5 +132,6 @@ class TestSecurity(TestCase):
         self.assertRaisesRegex(ValueError, "Data is encrypted please provide key in environment",
                                Wallet, 'wlt-encryption-test', db_uri=db)
 
+
 if __name__ == '__main__':
     main()
