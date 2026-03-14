@@ -1850,12 +1850,14 @@ class Wallet(object):
             self._key_objects.update({mk.key_id: mk})
             if mk.key_id == self.main_key.key_id:
                 self.main_key = mk
+            self._balance_update()
             return mk
         else:
             account_key = hdkey.public_master(witness_type=self.witness_type, multisig=True).wif()
             for w in self.cosigner:
                 if w.main_key.key().wif_public() == account_key:
                     _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)
+                    self._balance_update()
                     return w.import_master_key(hdkey)
             raise WalletError("Unknown key: Can only import a private key for a known public key in multisig wallets")
 
