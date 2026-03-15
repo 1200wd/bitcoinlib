@@ -1106,9 +1106,14 @@ class TestKeysSignatures(unittest.TestCase):
         self.assertRaisesRegex(BKeyError,
                                "Invalid signature, please provide valid DER encoded string or 64 bytes string",
                                Signature.parse_bytes, sig_bytes)
-        self.assertRaisesRegex(TypeError,
-                               "argument must be str, not bytes",
-                               Signature.parse_hex, sig_bytes)
+        if sys.version_info < (3, 14):
+            self.assertRaisesRegex(TypeError,
+                                   "argument must be str, not bytes",
+                                   Signature.parse_hex, sig_bytes)
+        else:
+            self.assertRaisesRegex(ValueError,
+                                   "non-hexadecimal number found",
+                                   Signature.parse_hex, sig_bytes)
         self.assertRaisesRegex(BKeyError,
                                "Unrecognised base64, DER encoded or bytes signature",
                                Signature.parse, sig_bytes)
