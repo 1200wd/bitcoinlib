@@ -1,3 +1,14 @@
+RELEASE 0.7.8 - Improve encoding, allow to use database-less
+============================================================
+* Write own DER signatures encoding and decoding methods
+* Write own Dirichlet distribution method, avoid use of numpy
+* Avoid use of DbKey in Wallet class
+* Allow to run Bitcoinlib without sqlalchemy database
+* Correct grammar, typos in docstrings
+* Ignore dust outputs in Wallet class
+* Test with Python 3.13 and 3.14
+* Avoid unittest failures on Coveralls outage
+
 RELEASE 0.7.7 - MariaDb support, fix database issues
 ====================================================
 * Add and test support for MariaDb

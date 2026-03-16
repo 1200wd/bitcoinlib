@@ -77,6 +77,7 @@ def database_init(dbname=DATABASE_NAME):
                 db_obj.engine.dispose()
         return dburi
 
+
 class TestDb(unittest.TestCase):
 
     @classmethod
