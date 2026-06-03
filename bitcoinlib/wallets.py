@@ -3449,12 +3449,17 @@ class Wallet(object):
 
         :return str:
         """
-        to = self.session.query(
-            DbTransaction.txid, DbTransaction.confirmations). \
-            join(DbTransactionOutput).join(DbKey). \
-            filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
-                   DbTransactionOutput.spent.is_(False)). \
-            order_by(DbTransaction.confirmations).first()
+        query = self.session.query(
+                DbTransaction.txid, DbTransaction.confirmations
+        ).join(DbTransactionOutput).join(DbKey).filter(
+            DbKey.address == address,
+            DbTransaction.wallet_id == self.wallet_id,
+            DbTransactionOutput.spent.is_(False)
+        )
+        if self.ignore_dust:
+            query = query.filter(DbTransactionOutput.value >= self.network.dust_amount)
+
+        to = query.order_by(DbTransaction.confirmations).first()
         return '' if not to else to[0].hex()
 
     def transactions_update_confirmations(self):
