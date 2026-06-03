@@ -2057,7 +2057,7 @@ class Wallet(object):
         # Rescan used addresses
         if rescan_used:
             for key in self.keys_addresses(account_id=account_id, change=change, network=network, used=True):
-                self.scan_key(key.id)
+                self.scan_key(key.key_id)
 
         # Update already known transactions with known block height
         self.transactions_update_confirmations()
@@ -3449,12 +3449,17 @@ class Wallet(object):
 
         :return str:
         """
-        to = self.session.query(
-            DbTransaction.txid, DbTransaction.confirmations). \
-            join(DbTransactionOutput).join(DbKey). \
-            filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
-                   DbTransactionOutput.spent.is_(False)). \
-            order_by(DbTransaction.confirmations).first()
+        query = self.session.query(
+                DbTransaction.txid, DbTransaction.confirmations
+        ).join(DbTransactionOutput).join(DbKey).filter(
+            DbKey.address == address,
+            DbTransaction.wallet_id == self.wallet_id,
+            DbTransactionOutput.spent.is_(False)
+        )
+        if self.ignore_dust:
+            query = query.filter(DbTransactionOutput.value >= self.network.dust_amount)
+
+        to = query.order_by(DbTransaction.confirmations).first()
         return '' if not to else to[0].hex()
 
     def transactions_update_confirmations(self):
@@ -3766,7 +3771,7 @@ class Wallet(object):
 
             # Loop through all transaction inputs and outputs
             for tei in te:
-                # Create string with  list of inputs addresses for incoming transactions, and outputs addresses
+                # Create string with a list of inputs addresses for incoming transactions, and outputs addresses
                 # for outgoing txs
                 addr_list_in = tei[3] if isinstance(tei[3], list) else [tei[3]]
                 addr_list_out = tei[4] if isinstance(tei[4], list) else [tei[4]]

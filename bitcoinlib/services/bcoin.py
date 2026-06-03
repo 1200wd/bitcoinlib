@@ -149,16 +149,17 @@ class BcoinClient(BaseClient):
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid)['hex']
 
-    def sendrawtransaction(self, rawtx):
-        res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
-        txid = ''
-        if 'success' in res and res['success']:
-            t = Transaction.parse_hex(rawtx, network=self.network)
-            txid = t.txid
-        return {
-            'txid': txid,
-            'response_dict': res
-        }
+    # Gives a false success response for invalid transactions!
+    # def sendrawtransaction(self, rawtx):
+    #     res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
+    #     txid = ''
+    #     if 'success' in res and res['success']:
+    #         t = Transaction.parse_hex(rawtx, network=self.network)
+    #         txid = t.txid
+    #     return {
+    #         'txid': txid,
+    #         'response_dict': res
+    #     }
 
     def estimatefee(self, blocks):
         if blocks > 15:

@@ -68,8 +68,7 @@ class ElectrumxClient(BaseClient):
                     await session.send_request('server.version', ["Bitcoinlib", ELECTRUMX_PROTOCOL_VERSION])
                     return await session.send_request(method, parameters)
 
-            loop = asyncio.get_event_loop()
-            return loop.run_until_complete(main(host, port, method, parameters))
+            return asyncio.run(main(host, port, method, parameters))
         else:
             content = {
                 "method": method,
