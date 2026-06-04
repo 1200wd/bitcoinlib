@@ -2896,13 +2896,16 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         addr = Address.parse('12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN')
         w.import_key(addr)
         self.assertEqual(len(w.accounts()), 1)
-        w.utxos_update()
+        w.utxo_add('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', 5000000000,
+                   '2d05f0c9c3e1c226e63b5fac240137687544cf631cd616fd34fd188fc9020866', 0, 952263)
+        w.utxo_add('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', 4532991,
+                   '98120f3d9834dc61839339123001717218428397ea8ab48412e53aa2bb8fbd64', 0, 484666)
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN'])
-        self.assertGreaterEqual(w.balance(), 4532991)
+        self.assertEqual(w.balance(), 5004532991)
         self.assertRaisesRegex(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
         self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
-                         '22965c151d850b5c7d98561e5432459141b1321a299cdcac1764f540eef56451')
+                         '98120f3d9834dc61839339123001717218428397ea8ab48412e53aa2bb8fbd64')
 
     def test_wallet_address_import_public_key(self):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
