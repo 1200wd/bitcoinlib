@@ -27,10 +27,10 @@ Example: Create wallet and generate new address (key) to receive bitcoins
 .. code-block:: pycon
 
    >>> from bitcoinlib.wallets import Wallet
-   >>> w = Wallet.create('Wallet1')
+   >>> w = Wallet.create('MyWallet')
    >>> key1 = w.get_key()
    >>> key1.address
-   '1Fo7STj6LdRhUuD1AiEsHpH65pXzraGJ9j'
+   'bc1q037g9zlyjzyznqhhqjqhd94s7tsphl0yczlpcs'
 
 Now send a small transaction to your wallet and use the scan() method to update transactions and UTXO's
 
@@ -44,35 +44,10 @@ If successful a transaction ID is returned
 
 .. code-block:: pycon
 
-    >>> t = w.send_to('1PWXhWvUH3bcDWn6Fdq3xhMRPfxRXTjAi1', '0.001 BTC')
+    >>> t = w.send_to('bc1q9fvq0dq8ku3ygjmjxx06x80mzafe4z5gzdah95', '0.001 BTC')
     'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
     >>> t.info()  # Shows transaction information and send results
 
-
-
-Segregated Witness Wallet
--------------------------
-
-Easily create and manage Segwit wallets. Both native Segwit with base32/bech32 addresses and P2SH nested Segwit
-wallets with traditional addresses are available.
-
-Create a native single key P2WPKH wallet:
-
-.. code-block:: pycon
-
-    >>> from bitcoinlib.wallets import Wallet
-    >>> w = Wallet.create('segwit_p2wpkh', witness_type='segwit')
-    >>> w.get_key().address
-    bc1q84y2quplejutvu0h4gw9hy59fppu3thg0u2xz3
-
-Or create a P2SH nested single key P2SH_P2WPKH wallet:
-
-.. code-block:: pycon
-
-    >>> from bitcoinlib.wallets import Wallet
-    >>> w = Wallet.create('segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
-    >>> w.get_key().address
-    36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp
 
 
 Wallet from passphrase with accounts and multiple currencies
@@ -166,7 +141,7 @@ To create a new Bitcoin wallet
 .. code-block:: bash
 
    $ python bitcoinlib/tools/clw.py new -w newwallet
-   Command Line Wallet - BitcoinLib 0.6.14
+   Command Line Wallet - BitcoinLib 0.6.29
 
    CREATE wallet 'newwallet' (bitcoin network)
    Passphrase: sibling undo gift cat garage survey taxi index admit odor surface waste
