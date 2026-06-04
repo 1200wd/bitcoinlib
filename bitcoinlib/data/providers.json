@@ -162,7 +162,7 @@
     "provider_coin_id": "",
     "url": "https://api.bitaps.com/btc/v1/",
     "api_key": "",
-    "priority": 0,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null,
     "timeout": 0
@@ -197,18 +197,6 @@
     "client_class": "BitapsClient",
     "provider_coin_id": "",
     "url": "https://api.bitaps.com/ltc/testnet/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null,
-    "timeout": 0
-  },
-  "litecoinblockexplorer.litecoin": {
-    "provider": "litecoinblockexplorer",
-    "network": "litecoin",
-    "client_class": "LitecoinBlockexplorerClient",
-    "provider_coin_id": "",
-    "url": "https://litecoinblockexplorer.net/api/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
@@ -270,7 +258,7 @@
     "provider_coin_id": "",
     "url": "https://litecoinblockexplorer.net/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 0,
     "denominator": 100000000,
     "network_overrides": null,
     "timeout": 0
@@ -282,7 +270,7 @@
     "provider_coin_id": "",
     "url": "https://litecoinblockexplorer.net/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 0,
     "denominator": 100000000,
     "network_overrides": null,
     "timeout": 0
