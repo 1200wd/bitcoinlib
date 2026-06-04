@@ -188,9 +188,6 @@ class BlockstreamClient(BaseClient):
     def estimatefee(self, blocks):
         est = self.compose_request('fee-estimates')
         closest = (sorted([int(i) - blocks for i in est.keys() if int(i) - blocks >= 0]))
-        # FIXME: temporary fix for too low testnet tx fees:
-        if self.network.name == 'testnet':
-            return 2000
         if closest:
             return round(est[str(closest[0] + blocks)] * 1000)
         else:

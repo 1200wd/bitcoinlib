@@ -1,7 +1,7 @@
 requests>=2.25.0
-fastecdsa>=2.3.0
-scrypt>=0.8.20
-pycryptodome>=3.19.0
+fastecdsa>=3.0.0
+scrypt>=0.9.0
+pycryptodome>=3.20.0
 SQLAlchemy>=2.0.20
 sphinx>=7.2.0
 psycopg>=3.1.16
