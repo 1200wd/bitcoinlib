@@ -1,6 +1,6 @@
 requests>=2.25.0
 SQLAlchemy>=2.0.20
-fastecdsa>=2.3.0
+fastecdsa>=2.3.2
 sphinx>=7.2.0
 sphinx_rtd_theme>=2.0.0
-pycryptodome>=3.19.0
+pycryptodome>=3.20.0
