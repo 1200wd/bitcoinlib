@@ -1,3 +1,12 @@
+RELEASE 0.7.9 - Improve wallet transaction scanning
+===================================================
+* Fix and improve ElectrumX client
+* Fix WalletKey errors when scanning
+* Ignore dust transactions in utxo_last
+* Improve unit-testing, update Github Actions
+* Fix various provider issues
+* Improved scanning for unconfirmed transactions
+
 RELEASE 0.7.8 - Improve encoding, allow to use database-less
 ============================================================
 * Write own DER signatures encoding and decoding methods
