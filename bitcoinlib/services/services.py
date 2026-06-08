@@ -187,13 +187,13 @@ class Service(object):
 
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                    self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict,
-                    self.wallet_name, self.providers[sp].get('secure', True))
+                    self.providers[sp].get('api_key', ''), self.providers[sp].get('provider_coin_id', ''),
+                    self.providers[sp].get('network_overrides', ''), self.providers[sp].get('timeout', self.timeout),
+                    self._blockcount, self.strict, self.wallet_name, self.providers[sp].get('secure', True))
                 if not hasattr(pc_instance, method):
                     _logger.debug("Method %s not found for provider %s" % (method, sp))
                     continue
-                if self.providers[sp]['api_key'] == 'api-key-needed':
+                if self.providers[sp].get('api_key') == 'api-key-needed':
                     _logger.debug("API key needed for provider %s" % sp)
                     continue
                 providermethod = getattr(pc_instance, method)
