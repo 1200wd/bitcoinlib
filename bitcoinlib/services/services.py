@@ -189,7 +189,7 @@ class Service(object):
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
                     self.providers[sp]['network_overrides'], self.timeout, self._blockcount, self.strict,
-                    self.wallet_name)
+                    self.wallet_name, self.providers[sp].get('secure', True))
                 if not hasattr(pc_instance, method):
                     _logger.debug("Method %s not found for provider %s" % (method, sp))
                     continue

@@ -39,7 +39,8 @@ To use Blockbook with bitcoinlib add the credentials to the providers.json confi
       "priority": 20,
       "denominator": 100000000,
       "network_overrides": null,
-      "timeout", 0
+      "timeout": 0
+      "secure": false
     }
 
 You can increase the priority so the Service object always connects to the Blockbook service first.

@@ -28,8 +28,9 @@ Example:
             "api_key": "",
             "priority": 10,
             "denominator": 1,
-            "network_overrides": null
-            "timeout": 0
+            "network_overrides": null,
+            "timeout": 0,
+            "secure": true
         }
     }
 
