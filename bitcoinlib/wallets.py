@@ -657,7 +657,7 @@ class WalletTransaction(Transaction):
     All WalletTransaction items are stored in a database
     """
 
-    def __init__(self, hdwallet, account_id=None, *args, **kwargs):
+    def __init__(self, hdwallet, account_id=None, name=None, *args, **kwargs):
         """
         Initialize a WalletTransaction object with reference to a Wallet object
 
@@ -677,6 +677,7 @@ class WalletTransaction(Transaction):
         self.error = None
         self.response_dict = None
         self.account_id = account_id
+        self.name = name
         if not account_id:
             self.account_id = self.hdwallet.default_account_id
         witness_type = 'legacy'
@@ -992,6 +993,8 @@ class WalletTransaction(Transaction):
         Transaction.info(self)
         print(f"Pushed to network: %s" % self.pushed)
         print(f"Wallet: {self.hdwallet.name}")
+        if self.name:
+            print(f"Tx name: {self.name}")
         if self.error:
             print(f"Errors: {self.error}")
         print("\n")
