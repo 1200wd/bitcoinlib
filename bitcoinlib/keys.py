@@ -1852,7 +1852,11 @@ class HDKey(Key):
                     child_index = int.from_bytes(bkey[9:13], 'big')
                     chain = bkey[13:45]
                 elif kf['format'] == 'mnemonic':
-                    raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
+                    try:
+                        seed = Mnemonic().to_seed(import_key, password)
+                        key, chain = self._key_derivation(seed)
+                    except Exception as e:
+                        raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 elif kf['format'] == 'wif_protected':
                     key, compressed = self._bip38_decrypt(import_key, password, network.name, witness_type)
                     chain = chain if chain else b'\0' * 32
