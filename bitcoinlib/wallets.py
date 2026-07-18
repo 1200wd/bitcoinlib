@@ -4764,6 +4764,7 @@ class Wallet(object):
         print(f" Name                           {self.name}")
         print(f" Owner                          {self.owner}")
         print(f" Scheme                         {self.scheme}")
+        print(f" Key Path                       {'/'.join(self.key_path)}")
         print(f" Multisig                       {self.multisig}")
         if self.multisig:
             print(f" Multisig Wallet IDs            {str([w.wallet_id for w in self.cosigner]).strip('[]')}")
