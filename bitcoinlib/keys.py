@@ -1827,7 +1827,6 @@ class HDKey(Key):
                 if not import_key.private_byte:
                     raise BKeyError('Cannot import public Key in HDKey')
                 key = import_key.private_byte
-                key_type = 'private'
             else:
                 kf = get_key_format(import_key, is_private=is_private)
                 if kf['format'] == 'address':
@@ -1860,12 +1859,10 @@ class HDKey(Key):
                 elif kf['format'] == 'wif_protected':
                     key, compressed = self._bip38_decrypt(import_key, password, network.name, witness_type)
                     chain = chain if chain else b'\0' * 32
-                    key_type = 'private'
                 else:
                     key = import_key
                     chain = chain if chain else b'\0' * 32
                     is_private = kf['is_private']
-                    key_type = 'private' if is_private else 'public'
 
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
