@@ -1227,13 +1227,11 @@ class Wallet(object):
                 key_path = ['M'] + key_path[key.depth+1:]
                 base_path = 'M'
 
-        if isinstance(key_path, list):
-            key_path = '/'.join(key_path)
         session.merge(DbNetwork(name=network))
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
-                              key_path=key_path, anti_fee_sniping=anti_fee_sniping, strict=strict,
+                              key_path='/'.join(key_path), anti_fee_sniping=anti_fee_sniping, strict=strict,
                               ignore_dust=ignore_dust)
         session.add(new_wallet)
         session.commit()
@@ -1442,6 +1440,8 @@ class Wallet(object):
         else:
             if purpose is None:
                 purpose = 0
+            # TODO: Parse key_paths for multisig wallets here
+            # if multisig and
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)
 
