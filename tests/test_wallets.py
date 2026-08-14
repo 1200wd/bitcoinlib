@@ -30,7 +30,7 @@ except ImportError as e:
     print("Could not import all modules. Error: %s" % e)
     # from psycopg2cffi import compat  # Use for PyPy support
     # compat.register()
-    pass  # Only necessary when mysql or postgres is used
+    pass  # Only necessary when MySQL or PostgreSQL is used
 from bitcoinlib.wallets import *
 from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
@@ -280,6 +280,29 @@ class TestWalletCreate(unittest.TestCase):
         ke = k.encrypt('hoihoi')
         w = wallet_create_or_open('kewallet', ke, password='hoihoi', network='bitcoin', db_uri=self.database_uri)
         self.assertEqual(k.private_hex, w.main_key.key_private.hex())
+
+    def test_wallet_create_multisig_different_keypath(self):
+        pk1 = HDKey(network='bitcoinlib_test')
+        pk2 = HDKey(network='bitcoinlib_test')
+        key_paths1 = [
+                ["m", "change", "address_index"],
+                KEY_PATH_BITCOINCORE
+            ]
+        key_paths2 = [
+                "m/change/address_index",
+                "m/account'/change'/address_index'"
+            ]
+
+        w1 = wallet_create_or_open('test_wallet_create_multisig_different_keypath_w1', keys=[pk1, pk2],
+                                   key_path=key_paths1, cosigner_id=0)
+        a1 = w1.get_key()
+        w2 = wallet_create_or_open('test_wallet_create_multisig_different_keypath_w2', keys=[pk1, pk2],
+                                   key_path=key_paths2, cosigner_id=0)
+        a2 = w2.get_key()
+        self.assertEqual(a1.address, a2.address)
+        self.assertEqual(w2.cosigner[0].key_path, ["m", "change", "address_index"],)
+        self.assertEqual(w2.cosigner[1].key_path, ["m", "account'", "change'", "address_index'"])
+
 
     @classmethod
     def tearDownClass(cls):

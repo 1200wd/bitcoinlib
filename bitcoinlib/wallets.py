@@ -1437,11 +1437,18 @@ class Wallet(object):
                 purpose = 0
             else:
                 key_path, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
+            key_paths = [key_path] if not multisig else [key_path for _ in range(len(keys))]
         else:
             if purpose is None:
                 purpose = 0
-            # TODO: Parse key_paths for multisig wallets here
-            # if multisig and
+            if multisig:
+                if isinstance(key_path[0], list) or len(key_path[0]) > 1:
+                    # This multisignature wallet has a separate key path for each cosigner
+                    key_paths = key_path
+                else:
+                    key_paths = [key_path for _ in range(len(keys))]
+            else:
+                key_paths = [key_path]
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)
 
@@ -1450,7 +1457,7 @@ class Wallet(object):
         else:
             key = hdkey_list[0]
 
-        main_key_path = key_path
+        main_key_path = key_paths[0]
         if multisig:
             if sort_keys:
                 # FIXME: Think of simple construction to distinct between key order and cosigner id, the solution below is a bit confusing
@@ -1486,7 +1493,7 @@ class Wallet(object):
                                       (cokey.wif(is_private=False), cokey.network.name, network, hdpm.network.name))
                 scheme = 'bip32'
                 wn = name + '-cosigner-%d' % wlt_cos_id
-                c_key_path = key_path
+                c_key_path = key_paths[wlt_cos_id]
                 if cokey.key_type == 'single':
                     scheme = 'single'
                     c_key_path = ['m']

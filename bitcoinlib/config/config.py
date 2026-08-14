@@ -165,7 +165,7 @@ KEY_PATH_LEGACY = ["m", "purpose'", "coin_type'",  "account'", "change", "addres
 KEY_PATH_P2SH = ["m", "purpose'", "cosigner_index", "change", "address_index"]
 KEY_PATH_P2WSH = ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
 KEY_PATH_P2WPKH = ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
-KEY_PATH_BITCOINCORE = ['m', "account'", "change'", "address_index'"]
+KEY_PATH_BITCOINCORE = ["m", "account'", "change'", "address_index'"]
 
 # Wallets
 WALLET_KEY_STRUCTURES = [
