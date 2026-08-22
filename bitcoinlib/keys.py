@@ -1083,6 +1083,8 @@ class Key(object):
         if self.key_format == "wif_protected":
             import_key, self.compressed = self._bip38_decrypt(import_key, password, network)
             self.key_format = 'bin_compressed' if self.compressed else 'bin'
+        elif password:
+            _logger.warning("Password parameter ignored. Provided key is not a WIF protected key")
 
         if not self.is_private:
             self.secret = None
@@ -1854,6 +1856,7 @@ class HDKey(Key):
                     try:
                         seed = Mnemonic().to_seed(import_key, password)
                         key, chain = self._key_derivation(seed)
+                        password = ''
                     except Exception as e:
                         raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 elif kf['format'] == 'wif_protected':
