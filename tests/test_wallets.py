@@ -864,6 +864,19 @@ class TestWalletElectrum(unittest.TestCase):
         self.assertEqual(wlt.get_key().address, '3ArRVGXfqcjw68XzUZr4iCCemrPoFZxm7s')
         self.assertEqual(wlt.get_key_change().address, '3FZEUFf59C3psUUiKB8TFbjsFUGWD73QPY')
 
+    def test_wallet_electrum_multisig_segwit(self):
+        p1 = 'bid elegant lake burst wink friend crime ecology pitch cruise hill lend'
+        p2 = 'seven burger spy pioneer civil chalk sight slam script diary innocent bullet'
+
+        pmk0_segwit = 'Zpub74auNqPDuu9MUhVwdoNJXfTF9Z5aQAagd7iCj13bKkeDbugha47szqY8WPLdib1aSoNWg5JSxkqNUgKicRhnmcGJiPFyeBfwyGjtmZgBrkp'
+        pmk1_segwit = 'Zpub75mPLTt9uC4g4jB8oQB3x57jjac6XxZTyEHqDSva2pZYWey6qckdxf7JvEsx4Mu56AfLdo4YWXrLa49sEwf1kBJfWgoMGw3tJLeJPEfsWeQ'
+
+
+        w = wallet_create_or_open('test_wallet_electrum_multisig_segwit', keys=[p1, p2], cosigner_id=0, multisig=True)
+        self.assertEqual(w.get_key().address, 'bc1q5r786qf39823r3wmtn5f59usmt4srhqwcuyfkcz2e2q0r2n7js7skkx7nn')
+        self.assertEqual(w.cosigner[0].wif(), pmk0_segwit)
+        self.assertEqual(w.cosigner[1].wif(), pmk1_segwit)
+
     @classmethod
     def tearDownClass(cls):
         del cls.wallet
