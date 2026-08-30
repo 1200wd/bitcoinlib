@@ -1324,7 +1324,7 @@ class Wallet(object):
         :type scheme: str
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
-        :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
+        :param password: Password to encrypt passphrase, only used if a passphrase is supplied in the 'key' argument. If you create a mulitisig wallet, all provided passphrases are encrypted with the same password. If you would like to create a multisit wallet with various passwords or other settings create HDKey objects first and use them as 'keys' argument.
         :type password: str
         :param witness_type: Specify a witness type, default is 'segwit', for native segregated witness wallet. Use 'legacy' for an old-style wallets or 'p2sh-segwit' for legacy compatible wallets
         :type witness_type: str
@@ -1372,8 +1372,6 @@ class Wallet(object):
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
 
         if multisig:
-            if password:
-                raise WalletError("Password protected multisig wallets not supported")
             if scheme != 'bip32':
                 raise WalletError("Multisig wallets should use bip32 scheme not %s" % scheme)
             if sigs_required is None:
@@ -1409,7 +1407,7 @@ class Wallet(object):
                             key = key._hdkey_object
                         else:
                             key = HDKey(key, password=password, witness_type=witness_type, network=network)
-                    except BKeyError:
+                    except BKeyError as e:
                         try:
                             scheme = 'single'
                             key = Address.parse(key, encoding=encoding, network=network)

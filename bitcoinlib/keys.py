@@ -1084,7 +1084,7 @@ class Key(object):
             import_key, self.compressed = self._bip38_decrypt(import_key, password, network)
             self.key_format = 'bin_compressed' if self.compressed else 'bin'
         elif password:
-            _logger.warning("Password parameter ignored. Provided key is not a WIF protected key")
+            raise BKeyError("Password parameter provided, but key is not a WIF protected key")
 
         if not self.is_private:
             self.secret = None
@@ -1862,6 +1862,7 @@ class HDKey(Key):
                 elif kf['format'] == 'wif_protected':
                     key, compressed = self._bip38_decrypt(import_key, password, network.name, witness_type)
                     chain = chain if chain else b'\0' * 32
+                    password = ''
                 else:
                     key = import_key
                     chain = chain if chain else b'\0' * 32
