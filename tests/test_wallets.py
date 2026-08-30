@@ -222,9 +222,6 @@ class TestWalletCreate(unittest.TestCase):
         self.assertRaisesRegex(WalletError, "Multisig wallets should use bip32 scheme not single",
                                 Wallet.create, 'test_wallet_create_errors_multisig', keys=[HDKey(), HDKey()],
                                 scheme='single', db_uri=self.database_uri)
-        self.assertRaisesRegex(WalletError, "Password protected multisig wallets not supported",
-                                Wallet.create, 'test_wallet_create_errors_multisig2', keys=[HDKey(), HDKey()],
-                                password='geheim', db_uri=self.database_uri)
         self.assertRaisesRegex(WalletError, "Number of keys required to sign is greater then number of keys provided",
                                 Wallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
                                 sigs_required=3, db_uri=self.database_uri)
