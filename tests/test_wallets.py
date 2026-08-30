@@ -3151,13 +3151,13 @@ class TestWalletMixedWitnessTypes(unittest.TestCase):
             },
         ]
         w.utxos_update(utxos=utxos)
-        w.send_to('blt1qvtaw9m9ut96ykt2n2kdra8jpv3m5z2s8krqwsv', 50000, broadcast=True)
+        w.send_to('blt1qvtaw9m9ut96ykt2n2kdra8jpv3m5z2s8krqwsv', 50000, fee=4700, broadcast=True)
         self.assertEqual(len(w.utxos()), 5)
         self.assertEqual(w.balance(), 104441650)
         w.transactions_remove_unconfirmed(1)
         self.assertEqual(len(w.utxos()), 5)
         self.assertEqual(w.balance(), 104441650)
-        time.sleep(3)
+        time.sleep(1)
         w.transactions_remove_unconfirmed(0)
         self.assertEqual(len(w.utxos()), 3)
         self.assertEqual(w.balance(), 102057170)
