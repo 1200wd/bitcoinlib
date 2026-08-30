@@ -305,7 +305,7 @@ class WalletKey(object):
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
                  cosigner_id=None, new_key_id=None):
         """
-        Create WalletKey from an HDKey object or key.
+        Create WalletKey from an HDKey object or key, and add key to the wallet database.
 
         Normally you don't need to call this method directly. Key creation is handled by the Wallet class.
 
