@@ -297,9 +297,8 @@ class TestWalletCreate(unittest.TestCase):
                                    key_path=key_paths2, cosigner_id=0)
         a2 = w2.get_key()
         self.assertEqual(a1.address, a2.address)
-        self.assertEqual(w2.cosigner[0].key_path, ["m", "change", "address_index"],)
-        self.assertEqual(w2.cosigner[1].key_path, ["m", "account'", "change'", "address_index'"])
-
+        self.assertEqual(w2.cosigner[0].key_path, ["m", "account'", "change'", "address_index'"])
+        self.assertEqual(w2.cosigner[1].key_path, ["m", "change", "address_index"],)
 
     @classmethod
     def tearDownClass(cls):

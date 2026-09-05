@@ -1341,6 +1341,7 @@ class Wallet(object):
             * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
             * All keys must be hardened, except for change, address_index or cosigner_id
             * Max length of the path is 8 levels
+            For a multisig wallet you can provide a list of key paths with a different key path for each key. If you provide a single key path, the same key path will be used for all keys.
         :type key_path: list, str
         :param anti_fee_sniping: Set default locktime in transactions as current block height + 1 to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
         :type anti_fee_sniping: boolean
@@ -1458,12 +1459,10 @@ class Wallet(object):
         main_key_path = key_paths[0]
         if multisig:
             if sort_keys:
-                # FIXME: Think of simple construction to distinct between key order and cosigner id, the solution below is a bit confusing
-                # cosigner_id_key = None if cosigner_id is None else hdkey_list[cosigner_id].public_byte
-                hdkey_list.sort(key=lambda x: x.public_byte)
-                # Update cosigner id if order of keys changed
-                # cosigner_id = cosigner_id if (cosigner_id is None or cosigner_id_key is None) else (
-                #     hdkey_list.index([k for k in hdkey_list if k.public_byte == cosigner_id_key][0]))
+                # TODO: Use cosigner key instead of cosigner_id in this create()
+                paired = sorted(zip(hdkey_list, key_paths), key=lambda pair: pair[0].public_byte)
+                hdkey_list, key_paths = (list(t) for t in zip(*paired))
+                main_key_path = key_paths[0]
 
             cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
             if cosigner_id is None:
