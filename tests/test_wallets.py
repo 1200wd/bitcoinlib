@@ -279,8 +279,10 @@ class TestWalletCreate(unittest.TestCase):
         self.assertEqual(k.private_hex, w.main_key.key_private.hex())
 
     def test_wallet_create_multisig_different_keypath(self):
-        pk1 = HDKey(network='bitcoinlib_test')
-        pk2 = HDKey(network='bitcoinlib_test')
+        pk1 = HDKey('02f677505d031120ab8fc123f22844403edbc1f2d90154de248149a049d14963a1',
+                    network='bitcoinlib_test')
+        pk2 = HDKey('0275fc9447307a0f9b9c569fc174619dcbe71bb537c13edcbaab4671db9c735eb1',
+                    network='bitcoinlib_test')
         key_paths1 = [
                 ["m", "change", "address_index"],
                 KEY_PATH_BITCOINCORE
