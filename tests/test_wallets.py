@@ -293,10 +293,10 @@ class TestWalletCreate(unittest.TestCase):
             ]
 
         w1 = wallet_create_or_open('test_wallet_create_multisig_different_keypath_w1', keys=[pk1, pk2],
-                                   key_path=key_paths1, cosigner_id=0)
+                                   key_path=key_paths1, cosigner_id=0, db_uri=self.database_uri)
         a1 = w1.get_key()
         w2 = wallet_create_or_open('test_wallet_create_multisig_different_keypath_w2', keys=[pk1, pk2],
-                                   key_path=key_paths2, cosigner_id=0)
+                                   key_path=key_paths2, cosigner_id=0, db_uri=self.database_uri)
         a2 = w2.get_key()
         self.assertEqual(a1.address, a2.address)
         self.assertEqual(w2.cosigner[0].key_path, ["m", "account'", "change'", "address_index'"])
@@ -869,10 +869,33 @@ class TestWalletElectrum(unittest.TestCase):
         pmk0_segwit = 'Zpub74auNqPDuu9MUhVwdoNJXfTF9Z5aQAagd7iCj13bKkeDbugha47szqY8WPLdib1aSoNWg5JSxkqNUgKicRhnmcGJiPFyeBfwyGjtmZgBrkp'
         pmk1_segwit = 'Zpub75mPLTt9uC4g4jB8oQB3x57jjac6XxZTyEHqDSva2pZYWey6qckdxf7JvEsx4Mu56AfLdo4YWXrLa49sEwf1kBJfWgoMGw3tJLeJPEfsWeQ'
 
-        w = wallet_create_or_open('test_wallet_electrum_multisig_segwit', keys=[p1, p2], cosigner_id=0, multisig=True)
+        w = wallet_create_or_open('test_wallet_electrum_multisig_segwit', keys=[p1, p2], cosigner_id=0,
+                                  multisig=True, db_uri=self.database_uri)
         self.assertEqual(w.get_key().address, 'bc1q5r786qf39823r3wmtn5f59usmt4srhqwcuyfkcz2e2q0r2n7js7skkx7nn')
         self.assertEqual(w.cosigner[0].wif(), pmk0_segwit)
         self.assertEqual(w.cosigner[1].wif(), pmk1_segwit)
+
+    def test_wallet_electrum_trezor_multisig_different_keypaths(self):
+        # Test 2-of-2 multisig wallet with different key paths
+        # Key 1 - Electrum - m/40'/4'/account'/script_type'/change/address_index
+        # Key 2 - Trezor - m/purpose'/cosigner_index'/change/address_index
+
+        p1 = 'sweet make slow ticket entire mystery point elite depart evidence path raccoon'
+        key1 = ('Zpub75cBbYicXXVDTgB4LJ3VVf2SKH9T8g8XhGmzHWTzqAijqkNR3E61516ywZUJTtBTYhEN4xP82t87qxtk16UyKQMuH8HKqj'
+                'c2SgKPseLsiGa')
+        key2 = ('Zpub75iXtZD6drZz7VXHKVF9odjAqk2HFkV6r2CFdDSoRMMzYkfgYzwnfXfRXwpNdNiDKDxCBRjoGP4x1eu4pZ6gqw83yRqpAq'
+                '39s9QaEwAXKME')
+
+        key_paths = [
+            ["m", "40'", "4'", "account'", "script_type'", "change", "address_index"],
+            ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
+        ]
+
+        w = wallet_create_or_open('test_wallet_electrum_trezor_multisig_different_keypaths',
+                                  keys=[p1, key2], cosigner_id=0, sigs_required=2, key_path=key_paths,
+                                  db_uri=self.database_uri)
+        self.assertEqual(w.cosigner[0].wif(is_private=False), key1)
+        self.assertEqual(w.new_key().address, 'bc1qm4ev28gqw5wpwff780es7326s4sekfr3hadvkz4sk8y7xmy24gzq5xql9t')
 
     @classmethod
     def tearDownClass(cls):
