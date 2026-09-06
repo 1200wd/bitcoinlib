@@ -1438,8 +1438,8 @@ class Wallet(object):
                 key_path, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
             key_paths = [key_path] if not multisig else [key_path for _ in range(len(keys))]
         else:
-            if purpose is None:
-                purpose = 0
+            if purpose is None or encoding is None:
+                _, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
             if multisig:
                 if isinstance(key_path[0], list) or len(key_path[0]) > 1:
                     # This multisignature wallet has a separate key path for each cosigner

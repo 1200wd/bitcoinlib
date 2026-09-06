@@ -574,6 +574,20 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
         self.assertEqual('Ltpv75tiiksDF3fUqK8jkAfwY1h3zDLs3oCFQa5wXDNh981n6LDJZ6juFWUJwwkN3pKbr3diSdMkZfYAhwhkhjP9qG'
                          'wviSbMXtEJYxoH2m3FbDQ', str(k.key_for_path('3H/1').wif(is_private=True)))
 
+    def test_hdkey_public_masterkey(self):
+        p = 'enrich sugar salon distance actress process glory donor beauty bronze tower exact'
+        k_ms = HDKey(p, multisig=True)
+        k = HDKey(p)
+        public_master_multisig = ('Zpub7528pJuy6DBmLHLCqk3EGR87g7H9GVaB9VRDwTEWaHU4i9KUqjAQVTu2rZ1ytmukwrELjDK7ARxK2rs'
+                                  'FNBnjZARAdTxjDLBdHTVaM44oCRg')
+        public_master = ('zpub6rw2kyDeaBa4VoCr3muPEAhCVthEx4VwzV9Z2hbMz22sTJGR48eGSXkXsF9YmPKisACY5PBNpsB3gL3F5ufJfBW8'
+                         'mbG7ciiFRFYfQWaATwu')
+        self.assertEqual(k_ms.public_master_multisig().wif(), public_master_multisig)
+        self.assertEqual(k_ms.key_for_path(['m', "48'", "0'", "0'", "2'"]).wif(), public_master_multisig)
+
+        self.assertEqual(k.public_master().wif(), public_master)
+        self.assertEqual(k.key_for_path(["m", "84'", "0'", "0'"]).wif(), public_master)
+
 
 class TestHDKeys(unittest.TestCase):
 

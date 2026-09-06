@@ -2246,7 +2246,6 @@ class HDKey(Key):
         pm_depth = path_template.index([x for x in path_template if x[-1:] == "'"][-1]) + 1
         path = path_expand(path_template[:pm_depth], path_template, account_id=account_id, purpose=purpose,
                            witness_type=self.witness_type, network=self.network.name)
-        print(path)
         if as_private:
             return self.key_for_path(path)
         else:
