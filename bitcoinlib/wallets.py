@@ -1386,8 +1386,6 @@ class Wallet(object):
                               "locked up funds")
 
         hdkey_list = []
-        # if keys and isinstance(keys, list) and sort_keys:
-        #     keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
         for key in keys:
             if isinstance(key, HDKey):
                 if network and network != key.network.name:
@@ -1458,12 +1456,6 @@ class Wallet(object):
 
         main_key_path = key_paths[0]
         if multisig:
-            if sort_keys:
-                # TODO: Use cosigner key instead of cosigner_id in this create()
-                paired = sorted(zip(hdkey_list, key_paths), key=lambda pair: pair[0].public_byte)
-                hdkey_list, key_paths = (list(t) for t in zip(*paired))
-                main_key_path = key_paths[0]
-
             cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
             if cosigner_id is None:
                 if not cos_prv_lst:
@@ -1474,7 +1466,8 @@ class Wallet(object):
                                       "cosigner_id for this wallet")
                 cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
             if hdkey_list[cosigner_id].key_type == 'single':
-                main_key_path = 'm'
+                key_paths[cosigner_id] = 'm'
+            main_key_path = key_paths[cosigner_id]
 
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
@@ -3998,7 +3991,7 @@ class Wallet(object):
         """
         Create a new transaction with specified outputs.
 
-        Inputs can be specified, but if not provided they will be selected from the wallets utxo's with :func:`select_inputs` method.
+        Inputs can be specified, but if not provided, they will be selected from the wallets utxo's with :func:`select_inputs` method.
 
         Output array is a list of 1 or more addresses and amounts.
 
