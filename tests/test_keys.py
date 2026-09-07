@@ -748,6 +748,16 @@ class TestBip38(unittest.TestCase):
             self.assertEqual(res['confirmation_code'], ew['confirmation_code'])
             self.assertEqual(res['address'], ew['address'])
 
+    def test_bip38_defaults_are_random_on_each_call(self):
+        # owner_salt and seed default to fresh random bytes on every call, not to bytes drawn once at import
+        ip1 = bip38_intermediate_password(passphrase="TestingOneTwoThree")
+        ip2 = bip38_intermediate_password(passphrase="TestingOneTwoThree")
+        self.assertNotEqual(ip1, ip2)
+        ew1 = bip38_create_new_encrypted_wif(ip1)
+        ew2 = bip38_create_new_encrypted_wif(ip1)
+        self.assertNotEqual(ew1['encrypted_wif'], ew2['encrypted_wif'])
+        self.assertNotEqual(ew1['confirmation_code'], ew2['confirmation_code'])
+
     def test_bip38_decrypt_wif(self):
         bip38_decrypt_test_vectors = [
             {"encrypted_wif": "6PRL8jj6dLQjBBJjHMdUKLSNLEpjTyAfmt8GnCnfT87NeQ2BU5eAW1tcsS",
