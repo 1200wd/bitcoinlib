@@ -640,13 +640,13 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     owner_salt = to_bytes(owner_salt)
     if len(owner_salt) not in [4, 8]:
         raise ValueError(f"Invalid owner salt length (expected: 4 or 8 bytes, got: {len(owner_salt)})")
-    if len(owner_salt) == 4 and (not lot or not sequence):
+    if len(owner_salt) == 4 and (lot is None or sequence is None):
         raise ValueError(f"Invalid owner salt length for non lot/sequence (expected: 8 bytes, got:"
                          f" {len(owner_salt)})")
-    if (lot and not sequence) or (not lot and sequence):
+    if (lot is None) != (sequence is None):
         raise ValueError(f"Both lot & sequence are required, got: (lot {lot}) (sequence {sequence})")
 
-    if lot and sequence:
+    if lot is not None and sequence is not None:
         lot, sequence = int(lot), int(sequence)
         if not 100000 <= lot <= 999999:
             raise ValueError(f"Invalid lot, (expected: 100000 <= lot <= 999999, got: {lot})")
