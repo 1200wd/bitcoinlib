@@ -650,7 +650,7 @@ class TestHDKeys(unittest.TestCase):
         self.assertEqual(k.as_hex(), pkhex)
 
 
-class TestBip38(unittest.TestCase):
+class TestKeysBip38(unittest.TestCase):
 
     def setUp(self):
         workdir = os.path.dirname(__file__)

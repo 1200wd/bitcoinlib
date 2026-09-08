@@ -21,6 +21,7 @@
 import unittest
 import time
 from random import shuffle
+import itertools
 
 try:
     import mysql.connector
@@ -3251,3 +3252,58 @@ class TestWalletSignMessages(unittest.TestCase):
                 message, sig_b64, addr, network = signed_message_parse(signed_message)
                 self.assertTrue(verify_message(message, sig_b64, addr, network))
                 self.assertTrue(w.verify_message(message, sig))
+
+
+class TestWalletsBip67(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.database_uri = database_init()
+        cls.BIP67_KEYS = [
+            "022df8750480ad5b26950b25c7ba79d3e37d75f640f8e5d9bcd5b150a0f85014da",
+            "03e3818b65bcc73a7d64064106a859cc1a5a728c4345ff0b641209fba0d90de6e9",
+            "021f2f6e1e50cb6a953935c3601284925decd3fd21bc445712576873fb8c6ebc18",
+        ]
+
+    def test_wallets_bip67_sorted_key_order(self):
+        # Create a multisig wallet with unsorted masterkeys and no key path, the main key should have sorted public
+        # keys values
+
+        keys = [HDKey(k, key_type='single') for k in self.BIP67_KEYS]
+        w = wallet_create_or_open('test_wallets_bip67_sorted_key_order', keys=keys, cosigner_id=0,
+                                  db_uri=self.database_uri)
+        main_key = w.new_key()
+        self.assertEqual([k.hex() for k in main_key.keys_public], sorted(self.BIP67_KEYS))
+
+    def test_wallets_bip67_address_invariant_under_permutation(self):
+        key_list = [HDKey() for _ in range(3)]
+        all_permutations = list(itertools.permutations(key_list))
+        prev_addr = ''
+        for perm in all_permutations:
+            perm = list(perm)
+            wallet_name = f"bip67_perm_{''.join(map(str, perm))}"
+            w = wallet_create_or_open(wallet_name, keys=perm, sigs_required=3, db_uri=self.database_uri, cosigner_id=0)
+            addr = w.get_key().address
+            if prev_addr:
+                assert addr == prev_addr
+
+    def test_wallets_bip67_idempotence(self):
+        key_list = [HDKey() for _ in range(3)]
+        w = wallet_create_or_open('test_wallets_bip67_idempotence', keys=key_list, sigs_required=3,
+                                  db_uri=self.database_uri, cosigner_id=0)
+        for _ in range(25):
+            wk = w.new_key()
+            pub_keylist = [k.hex() for k in wk.keys_public]
+            print(pub_keylist)
+            self.assertEqual(pub_keylist, sorted(pub_keylist))
+
+    def test_wallets_bip67_bitcoinjslib(self):
+        key_list = [
+            '03b3a4dd978c378098a28b0e25384834a53aec908648d4878737c1b36316a81c82',
+            '028375fa3da74010c161885601a5ae1a9fee03d8725f11e1052bb44415669b5461',
+            '02a7c3e2cdf0718eea2b7f9fdc185ee1cca493e41eb314b960dbcdd01bd3c1e881',
+        ]
+        keys = [HDKey(k, key_type='single') for k in key_list]
+        w = wallet_create_or_open('test_wallets_bip67_bitcoinjslib', keys=keys, sigs_required=2,
+                                  db_uri=self.database_uri, cosigner_id=0, witness_type='legacy')
+        self.assertEqual(w.new_key().address, '3NGvCwgCXwpPKr3NvbCaP621te4UAUfDme')
