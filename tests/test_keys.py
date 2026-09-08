@@ -718,6 +718,20 @@ class TestBip38(unittest.TestCase):
                                                                 ic['owner_salt'])
             self.assertEqual(intermediate_password, ic['intermediate_passphrase'])
 
+    def test_bip38_intermediate_password_sequence_zero(self):
+        # Sequence 0 is the first value of the documented 0 <= sequence <= 4095 range and produces a
+        # lot/sequence intermediate passphrase.
+        seq_zero = bip38_intermediate_password("MOLON LABE", 100000, 0, "d7ebe42cf42a79f4")
+        self.assertTrue(seq_zero.startswith('passphrase'))
+        self.assertEqual(change_base(seq_zero, 58, 256)[:8], BIP38_MAGIC_LOT_AND_SEQUENCE)
+        no_lot = bip38_intermediate_password("MOLON LABE", owner_salt="d7ebe42cf42a79f4")
+        self.assertNotEqual(seq_zero, no_lot)
+        self.assertEqual(change_base(no_lot, 58, 256)[:8], BIP38_MAGIC_NO_LOT_AND_SEQUENCE)
+        # An existing lot/sequence vector is unchanged.
+        self.assertEqual(bip38_intermediate_password(passphrase="TestingOneTwoThree", lot=199999, sequence=1,
+                                                     owner_salt="75ed1cdeb254cb38"),
+                         'passphraseb7ruSN4At4Rb8hPTNcAVezfsjonvUs4Qo3xSp1fBFsFPvVGSbpP2WTJMhw3mVZ')
+
     def test_bip38_create_new_encrypted_wif(self):
         create_new_encrypted_wif = [
             {"intermediate_passphrase": "passphraserDFxboKK9cTkBQMb73vdzgsXB5L6cCMFCzTVoMTpMWYD8SJXv3jcKyHbRWBcza",
