@@ -3281,7 +3281,7 @@ class TestWalletsBip67(unittest.TestCase):
         prev_addr = ''
         for perm in all_permutations:
             perm = list(perm)
-            wallet_name = f"bip67_perm_{''.join(map(str, perm))}"
+            wallet_name = f"bip67_perm_{''.join([k.public_hex[10:] for k in perm])}"
             w = wallet_create_or_open(wallet_name, keys=perm, sigs_required=3, db_uri=self.database_uri, cosigner_id=0)
             addr = w.get_key().address
             if prev_addr:
