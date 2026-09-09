@@ -3281,7 +3281,7 @@ class TestWalletsBip67(unittest.TestCase):
         prev_addr = ''
         for perm in all_permutations:
             perm = list(perm)
-            wallet_name = f"bip67_perm_{''.join([k.public_hex[10:] for k in perm])}"
+            wallet_name = f"bip67_perm_{''.join([k.public_hex[-20:] for k in perm])}"
             w = wallet_create_or_open(wallet_name, keys=perm, sigs_required=3, db_uri=self.database_uri, cosigner_id=0)
             addr = w.get_key().address
             if prev_addr:
@@ -3294,7 +3294,6 @@ class TestWalletsBip67(unittest.TestCase):
         for _ in range(25):
             wk = w.new_key()
             pub_keylist = [k.hex() for k in wk.keys_public]
-            print(pub_keylist)
             self.assertEqual(pub_keylist, sorted(pub_keylist))
 
     def test_wallets_bip67_bitcoinjslib(self):
