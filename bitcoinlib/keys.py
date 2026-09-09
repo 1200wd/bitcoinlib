@@ -651,7 +651,7 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
         if not 100000 <= lot <= 999999:
             raise ValueError(f"Invalid lot, (expected: 100000 <= lot <= 999999, got: {lot})")
         if not 0 <= sequence <= 4095:
-            raise ValueError(f"Invalid lot, (expected: 0 <= sequence <= 4095, got: {sequence})")
+            raise ValueError(f"Invalid sequence, (expected: 0 <= sequence <= 4095, got: {sequence})")
 
         pre_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt[:4], 32, 16384, 8, 8)
         owner_entropy = owner_salt[:4] + int.to_bytes((lot * 4096 + sequence), 4, 'big')
