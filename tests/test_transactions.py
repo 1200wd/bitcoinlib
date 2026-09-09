@@ -86,7 +86,7 @@ class TestTransactionInputs(unittest.TestCase):
     def test_transaction_input_value(self):
         ti = Input(prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1.23 mBTC')
         self.assertEqual(ti.value, 123000)
-        self.assertRaisesRegex(ValueError, "Value uses different network \(litecoin\) then supplied network: bitcoin",
+        self.assertRaisesRegex(ValueError, r"Value uses different network \(litecoin\) then supplied network: bitcoin",
                                Input, prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1 LTC')
 
     def test_transaction_hash_type(self):
@@ -145,7 +145,7 @@ class TestTransactionOutputs(unittest.TestCase):
     def test_transaction_output_value(self):
         to = Output('132.23 satTBTC', address=HDKey(network='testnet').address(), network='testnet')
         self.assertEqual(to.value, 132)
-        self.assertRaisesRegex(ValueError, "Value uses different network \(bitcoin\) then supplied network: testnet",
+        self.assertRaisesRegex(ValueError, r"Value uses different network \(bitcoin\) then supplied network: testnet",
                                Output, '1 BTC', address=HDKey(network='testnet').address(), network='testnet')
 
     def test_transaction_output_witness_types(self):
