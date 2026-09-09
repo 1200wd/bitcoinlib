@@ -227,7 +227,7 @@ class TestWalletCreate(unittest.TestCase):
                                 Wallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
                                 sigs_required=3, db_uri=self.database_uri)
         self.assertRaisesRegex(WalletError,
-                                "Network from key \(litecoin\) is different then specified network \(bitcoin\)",
+                                r"Network from key \(litecoin\) is different then specified network \(bitcoin\)",
                                 Wallet.create, 'test_wallet_create_errors_multisig4',
                                 keys=[HDKey(), HDKey(network='litecoin')], db_uri=self.database_uri)
         self.assertRaisesRegex(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
@@ -583,7 +583,7 @@ class TestWalletKeys(unittest.TestCase):
         w = Wallet.create('test_wallet_keys_single_key', wk, scheme='single', db_uri=self.database_uri)
         self.assertEqual(w.new_key(), w.new_key())
         self.assertRaisesRegex(WalletError,
-                                "Single wallet has only one \(master\)key. Use get_key\(\) or main_key\(\) method",
+                                r"Single wallet has only one \(master\)key. Use get_key\(\) or main_key\(\) method",
                                 w.get_keys)
 
     def test_wallet_create_uncompressed_masterkey(self):
@@ -697,7 +697,7 @@ class TestWalletKeys(unittest.TestCase):
     def test_wallet_key_exceptions(self):
         w = Wallet.create('test_wallet_key_not_found', db_uri=self.database_uri)
         self.assertRaisesRegex(WalletError, 'Key with id 1000000 not found', WalletKey, 1000000, w.session)
-        self.assertRaisesRegex(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
+        self.assertRaisesRegex(BKeyError, r"Specified key \['litecoin', 'litecoin_legacy'\] is from different "
                                            "network then specified: bitcoin",
                                 WalletKey.from_key, '', w.wallet_id, w.session,
                                 'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
