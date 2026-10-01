@@ -305,7 +305,7 @@ class WalletKey(object):
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
                  cosigner_id=None, new_key_id=None):
         """
-        Create WalletKey from an HDKey object or key.
+        Create WalletKey from an HDKey object or key, and add key to the wallet database.
 
         Normally you don't need to call this method directly. Key creation is handled by the Wallet class.
 
@@ -657,7 +657,7 @@ class WalletTransaction(Transaction):
     All WalletTransaction items are stored in a database
     """
 
-    def __init__(self, hdwallet, account_id=None, *args, **kwargs):
+    def __init__(self, hdwallet, account_id=None, name=None, *args, **kwargs):
         """
         Initialize a WalletTransaction object with reference to a Wallet object
 
@@ -677,6 +677,7 @@ class WalletTransaction(Transaction):
         self.error = None
         self.response_dict = None
         self.account_id = account_id
+        self.name = name
         if not account_id:
             self.account_id = self.hdwallet.default_account_id
         witness_type = 'legacy'
@@ -992,6 +993,8 @@ class WalletTransaction(Transaction):
         Transaction.info(self)
         print(f"Pushed to network: %s" % self.pushed)
         print(f"Wallet: {self.hdwallet.name}")
+        if self.name:
+            print(f"Tx name: {self.name}")
         if self.error:
             print(f"Errors: {self.error}")
         print("\n")
@@ -1224,13 +1227,11 @@ class Wallet(object):
                 key_path = ['M'] + key_path[key.depth+1:]
                 base_path = 'M'
 
-        if isinstance(key_path, list):
-            key_path = '/'.join(key_path)
         session.merge(DbNetwork(name=network))
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
-                              key_path=key_path, anti_fee_sniping=anti_fee_sniping, strict=strict,
+                              key_path='/'.join(key_path), anti_fee_sniping=anti_fee_sniping, strict=strict,
                               ignore_dust=ignore_dust)
         session.add(new_wallet)
         session.commit()
@@ -1323,7 +1324,7 @@ class Wallet(object):
         :type scheme: str
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
-        :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
+        :param password: Password to encrypt passphrase, only used if a passphrase is supplied in the 'key' argument. If you create a mulitisig wallet, all provided passphrases are encrypted with the same password. If you would like to create a multisit wallet with various passwords or other settings create HDKey objects first and use them as 'keys' argument.
         :type password: str
         :param witness_type: Specify a witness type, default is 'segwit', for native segregated witness wallet. Use 'legacy' for an old-style wallets or 'p2sh-segwit' for legacy compatible wallets
         :type witness_type: str
@@ -1340,6 +1341,7 @@ class Wallet(object):
             * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
             * All keys must be hardened, except for change, address_index or cosigner_id
             * Max length of the path is 8 levels
+            For a multisig wallet you can provide a list of key paths with a different key path for each key. If you provide a single key path, the same key path will be used for all keys.
         :type key_path: list, str
         :param anti_fee_sniping: Set default locktime in transactions as current block height + 1 to avoid fee-sniping. Default is True, which will make the network more secure. You could disable it to avoid transaction fingerprinting.
         :type anti_fee_sniping: boolean
@@ -1371,8 +1373,6 @@ class Wallet(object):
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
 
         if multisig:
-            if password:
-                raise WalletError("Password protected multisig wallets not supported")
             if scheme != 'bip32':
                 raise WalletError("Multisig wallets should use bip32 scheme not %s" % scheme)
             if sigs_required is None:
@@ -1386,8 +1386,6 @@ class Wallet(object):
                               "locked up funds")
 
         hdkey_list = []
-        # if keys and isinstance(keys, list) and sort_keys:
-        #     keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
         for key in keys:
             if isinstance(key, HDKey):
                 if network and network != key.network.name:
@@ -1408,7 +1406,7 @@ class Wallet(object):
                             key = key._hdkey_object
                         else:
                             key = HDKey(key, password=password, witness_type=witness_type, network=network)
-                    except BKeyError:
+                    except BKeyError as e:
                         try:
                             scheme = 'single'
                             key = Address.parse(key, encoding=encoding, network=network)
@@ -1436,9 +1434,18 @@ class Wallet(object):
                 purpose = 0
             else:
                 key_path, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
+            key_paths = [key_path] if not multisig else [key_path for _ in range(len(keys))]
         else:
-            if purpose is None:
-                purpose = 0
+            if purpose is None or encoding is None:
+                _, purpose, encoding = get_key_structure_data(witness_type, multisig, purpose, encoding)
+            if multisig:
+                if isinstance(key_path[0], list) or len(key_path[0]) > 1:
+                    # This multisignature wallet has a separate key path for each cosigner
+                    key_paths = key_path
+                else:
+                    key_paths = [key_path for _ in range(len(keys))]
+            else:
+                key_paths = [key_path]
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)
 
@@ -1447,16 +1454,8 @@ class Wallet(object):
         else:
             key = hdkey_list[0]
 
-        main_key_path = key_path
+        main_key_path = key_paths[0]
         if multisig:
-            if sort_keys:
-                # FIXME: Think of simple construction to distinct between key order and cosigner id, the solution below is a bit confusing
-                # cosigner_id_key = None if cosigner_id is None else hdkey_list[cosigner_id].public_byte
-                hdkey_list.sort(key=lambda x: x.public_byte)
-                # Update cosigner id if order of keys changed
-                # cosigner_id = cosigner_id if (cosigner_id is None or cosigner_id_key is None) else (
-                #     hdkey_list.index([k for k in hdkey_list if k.public_byte == cosigner_id_key][0]))
-
             cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
             if cosigner_id is None:
                 if not cos_prv_lst:
@@ -1467,7 +1466,8 @@ class Wallet(object):
                                       "cosigner_id for this wallet")
                 cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
             if hdkey_list[cosigner_id].key_type == 'single':
-                main_key_path = 'm'
+                key_paths[cosigner_id] = 'm'
+            main_key_path = key_paths[cosigner_id]
 
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
@@ -1483,7 +1483,7 @@ class Wallet(object):
                                       (cokey.wif(is_private=False), cokey.network.name, network, hdpm.network.name))
                 scheme = 'bip32'
                 wn = name + '-cosigner-%d' % wlt_cos_id
-                c_key_path = key_path
+                c_key_path = key_paths[wlt_cos_id]
                 if cokey.key_type == 'single':
                     scheme = 'single'
                     c_key_path = ['m']
@@ -3991,7 +3991,7 @@ class Wallet(object):
         """
         Create a new transaction with specified outputs.
 
-        Inputs can be specified, but if not provided they will be selected from the wallets utxo's with :func:`select_inputs` method.
+        Inputs can be specified, but if not provided, they will be selected from the wallets utxo's with :func:`select_inputs` method.
 
         Output array is a list of 1 or more addresses and amounts.
 
@@ -4761,6 +4761,7 @@ class Wallet(object):
         print(f" Name                           {self.name}")
         print(f" Owner                          {self.owner}")
         print(f" Scheme                         {self.scheme}")
+        print(f" Key Path                       {'/'.join(self.key_path)}")
         print(f" Multisig                       {self.multisig}")
         if self.multisig:
             print(f" Multisig Wallet IDs            {str([w.wallet_id for w in self.cosigner]).strip('[]')}")

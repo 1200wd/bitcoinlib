@@ -574,6 +574,20 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
         self.assertEqual('Ltpv75tiiksDF3fUqK8jkAfwY1h3zDLs3oCFQa5wXDNh981n6LDJZ6juFWUJwwkN3pKbr3diSdMkZfYAhwhkhjP9qG'
                          'wviSbMXtEJYxoH2m3FbDQ', str(k.key_for_path('3H/1').wif(is_private=True)))
 
+    def test_hdkey_public_masterkey(self):
+        p = 'enrich sugar salon distance actress process glory donor beauty bronze tower exact'
+        k_ms = HDKey(p, multisig=True)
+        k = HDKey(p)
+        public_master_multisig = ('Zpub7528pJuy6DBmLHLCqk3EGR87g7H9GVaB9VRDwTEWaHU4i9KUqjAQVTu2rZ1ytmukwrELjDK7ARxK2rs'
+                                  'FNBnjZARAdTxjDLBdHTVaM44oCRg')
+        public_master = ('zpub6rw2kyDeaBa4VoCr3muPEAhCVthEx4VwzV9Z2hbMz22sTJGR48eGSXkXsF9YmPKisACY5PBNpsB3gL3F5ufJfBW8'
+                         'mbG7ciiFRFYfQWaATwu')
+        self.assertEqual(k_ms.public_master_multisig().wif(), public_master_multisig)
+        self.assertEqual(k_ms.key_for_path(['m', "48'", "0'", "0'", "2'"]).wif(), public_master_multisig)
+
+        self.assertEqual(k.public_master().wif(), public_master)
+        self.assertEqual(k.key_for_path(["m", "84'", "0'", "0'"]).wif(), public_master)
+
 
 class TestHDKeys(unittest.TestCase):
 
@@ -636,7 +650,7 @@ class TestHDKeys(unittest.TestCase):
         self.assertEqual(k.as_hex(), pkhex)
 
 
-class TestBip38(unittest.TestCase):
+class TestKeysBip38(unittest.TestCase):
 
     def setUp(self):
         workdir = os.path.dirname(__file__)
@@ -704,6 +718,20 @@ class TestBip38(unittest.TestCase):
                                                                 ic['owner_salt'])
             self.assertEqual(intermediate_password, ic['intermediate_passphrase'])
 
+    def test_bip38_intermediate_password_sequence_zero(self):
+        # Sequence 0 is the first value of the documented 0 <= sequence <= 4095 range and produces a
+        # lot/sequence intermediate passphrase.
+        seq_zero = bip38_intermediate_password("MOLON LABE", 100000, 0, "d7ebe42cf42a79f4")
+        self.assertTrue(seq_zero.startswith('passphrase'))
+        self.assertEqual(change_base(seq_zero, 58, 256)[:8], BIP38_MAGIC_LOT_AND_SEQUENCE)
+        no_lot = bip38_intermediate_password("MOLON LABE", owner_salt="d7ebe42cf42a79f4")
+        self.assertNotEqual(seq_zero, no_lot)
+        self.assertEqual(change_base(no_lot, 58, 256)[:8], BIP38_MAGIC_NO_LOT_AND_SEQUENCE)
+        # An existing lot/sequence vector is unchanged.
+        self.assertEqual(bip38_intermediate_password(passphrase="TestingOneTwoThree", lot=199999, sequence=1,
+                                                     owner_salt="75ed1cdeb254cb38"),
+                         'passphraseb7ruSN4At4Rb8hPTNcAVezfsjonvUs4Qo3xSp1fBFsFPvVGSbpP2WTJMhw3mVZ')
+
     def test_bip38_create_new_encrypted_wif(self):
         create_new_encrypted_wif = [
             {"intermediate_passphrase": "passphraserDFxboKK9cTkBQMb73vdzgsXB5L6cCMFCzTVoMTpMWYD8SJXv3jcKyHbRWBcza",
@@ -733,6 +761,16 @@ class TestBip38(unittest.TestCase):
             self.assertEqual(res['encrypted_wif'], ew['encrypted_wif'])
             self.assertEqual(res['confirmation_code'], ew['confirmation_code'])
             self.assertEqual(res['address'], ew['address'])
+
+    def test_bip38_defaults_are_random_on_each_call(self):
+        # owner_salt and seed default to fresh random bytes on every call, not to bytes drawn once at import
+        ip1 = bip38_intermediate_password(passphrase="TestingOneTwoThree")
+        ip2 = bip38_intermediate_password(passphrase="TestingOneTwoThree")
+        self.assertNotEqual(ip1, ip2)
+        ew1 = bip38_create_new_encrypted_wif(ip1)
+        ew2 = bip38_create_new_encrypted_wif(ip1)
+        self.assertNotEqual(ew1['encrypted_wif'], ew2['encrypted_wif'])
+        self.assertNotEqual(ew1['confirmation_code'], ew2['confirmation_code'])
 
     def test_bip38_decrypt_wif(self):
         bip38_decrypt_test_vectors = [

@@ -551,7 +551,7 @@ class TestScriptTypes(unittest.TestCase):
                             '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
         self.assertRaisesRegex(ScriptError, '3 keys found but 2 keys expected',
                                 Script.parse, scr)
-        self.assertRaisesRegex(ScriptError, 'Number of signatures required \(3\) is higher then number of keys \(2\)',
+        self.assertRaisesRegex(ScriptError, r'Number of signatures required \(3\) is higher then number of keys \(2\)',
                                 Script.parse,
                                 '532102d9d64770e0510c650cfaa0c05ba34f6faa35a18defcf9f2d493c4c225d93fbf221020c39c418c2'
                                 '38ba876d09c4529bdafb2a1295c57ece923997ab693bf0a84189b852ae')

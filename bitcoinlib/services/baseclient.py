@@ -44,7 +44,8 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True, wallet_name=''):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None, strict=True, wallet_name='',
+                 secure=True):
         try:
             self.network = network
             if not isinstance(network, Network):
@@ -59,6 +60,7 @@ class BaseClient(object):
             self.network_overrides = {}
             self.timeout = timeout
             self.latest_block = latest_block
+            self.secure = secure
             if network_overrides is not None:
                 self.network_overrides = network_overrides
             self.strict = strict
@@ -66,7 +68,7 @@ class BaseClient(object):
         except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def request(self, url_path, variables=None, method='get', secure=True, post_data='', header=None):
+    def request(self, url_path, variables=None, method='get', secure=None, post_data='', header=None):
         url_vars = ''
         url = self.base_url + url_path
         if not url or not self.base_url:
@@ -78,6 +80,9 @@ class BaseClient(object):
         }
         if self.api_key:
             headers["Api-Key"] = self.api_key
+        if secure is not None:
+            self.secure = secure
+
         if header:
             headers.update(header)
         if method == 'get':
@@ -88,12 +93,12 @@ class BaseClient(object):
             url += url_vars
             log_url = url if '@' not in url else url.split('@')[1]
             _logger.info("Url get request %s" % log_url)
-            self.resp = requests.get(url, timeout=self.timeout, verify=secure, headers=headers)
+            self.resp = requests.get(url, timeout=self.timeout, verify=self.secure, headers=headers)
         elif method == 'post':
             log_url = url if '@' not in url else url.split('@')[1]
             _logger.info("Url post request %s" % log_url)
-            self.resp = requests.post(url, json=dict(variables), data=post_data, timeout=self.timeout, verify=secure,
-                                      headers=headers)
+            self.resp = requests.post(url, json=dict(variables), data=post_data, timeout=self.timeout,
+                                      verify=self.secure, headers=headers)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:

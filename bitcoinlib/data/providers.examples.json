@@ -131,7 +131,7 @@
     "denominator": 1,
     "network_overrides": null
   },
-  "cryptoid.litecoin": {
+  "cryptoid.litecoin":
     "provider": "cryptoid",
     "network": "litecoin",
     "client_class": "CryptoID",
@@ -455,9 +455,10 @@
     "network": "bitcoin",
     "client_class": "BlockbookClient",
     "provider_coin_id": "",
-    "url": "http://localhost:9130/api/v2/",
+    "url": "https://localhost:9130/api/v2/",
     "priority": 10,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": null,
+    "secure": false
   }
 }

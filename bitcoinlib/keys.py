@@ -614,7 +614,7 @@ def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     return base58encode(encrypted_privkey)
 
 
-def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=os.urandom(8)):
+def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=None):
     """
     Intermediate passphrase generator for EC multiplied BIP38 encrypted private keys.
     Source: https://github.com/meherett/python-bip38/blob/master/bip38/bip38.py
@@ -627,7 +627,7 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     :type lot: int
     :param sequence: Sequence number  between 0 <= sequence <= 4095 range, default to ``None``
     :type sequence: int
-    :param owner_salt: Owner salt, default to ``os.urandom(8)``
+    :param owner_salt: Owner salt, 8 random bytes by default, drawn on each call
     :type owner_salt: str, bytes
 
     :returns str: Intermediate passphrase
@@ -636,29 +636,27 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     'passphraseb7ruSN4At4Rb8hPTNcAVezfsjonvUs4Qo3xSp1fBFsFPvVGSbpP2WTJMhw3mVZ'
 
     """
+    if owner_salt is None:
+        owner_salt = os.urandom(8)
 
     owner_salt = to_bytes(owner_salt)
     if len(owner_salt) not in [4, 8]:
         raise ValueError(f"Invalid owner salt length (expected: 4 or 8 bytes, got: {len(owner_salt)})")
-    if len(owner_salt) == 4 and (not lot or not sequence):
+    if len(owner_salt) == 4 and (lot is None or sequence is None):
         raise ValueError(f"Invalid owner salt length for non lot/sequence (expected: 8 bytes, got:"
                          f" {len(owner_salt)})")
-    if (lot and not sequence) or (not lot and sequence):
+    if (lot is None) != (sequence is None):
         raise ValueError(f"Both lot & sequence are required, got: (lot {lot}) (sequence {sequence})")
 
-    if lot and sequence:
+    if lot is not None and sequence is not None:
         lot, sequence = int(lot), int(sequence)
         if not 100000 <= lot <= 999999:
             raise ValueError(f"Invalid lot, (expected: 100000 <= lot <= 999999, got: {lot})")
         if not 0 <= sequence <= 4095:
-            raise ValueError(f"Invalid lot, (expected: 0 <= sequence <= 4095, got: {sequence})")
+            raise ValueError(f"Invalid sequence, (expected: 0 <= sequence <= 4095, got: {sequence})")
 
         pre_factor = scrypt_hash(unicodedata.normalize("NFC", passphrase), owner_salt[:4], 32, 16384, 8, 8)
         owner_entropy = owner_salt[:4] + int.to_bytes((lot * 4096 + sequence), 4, 'big')
-        # if isinstance(pre_factor, list):
-        #     for pf in pre_factor:
-        #         print(pf.hex())
-        #     print(len(pre_factor))
         pass_factor = double_sha256(pre_factor + owner_entropy)
         magic = BIP38_MAGIC_LOT_AND_SEQUENCE
     else:
@@ -669,7 +667,7 @@ def bip38_intermediate_password(passphrase, lot=None, sequence=None, owner_salt=
     return pubkeyhash_to_addr_base58(magic + owner_entropy + HDKey(pass_factor).public_byte, prefix=b'')
 
 
-def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, seed=os.urandom(24),
+def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, seed=None,
                                    network=DEFAULT_NETWORK):
     """
     Create new encrypted WIF BIP38 EC multiplied key. Use :func:`bip38_intermediate_password` to create an
@@ -679,7 +677,7 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
     :type intermediate_passphrase: str
     :param compressed: Compressed or uncompressed key
     :type compressed: boolean
-    :param seed: Seed, default to ``os.urandom(24)``
+    :param seed: Seed, 24 random bytes by default, drawn on each call
     :type seed: str, bytes
     :param network: Network name
     :type network: str
@@ -687,6 +685,8 @@ def bip38_create_new_encrypted_wif(intermediate_passphrase, compressed=True, see
     :returns dict: Dictionary with encrypted WIF key and confirmation code
 
     """
+    if seed is None:
+        seed = os.urandom(24)
 
     seed_b = to_bytes(seed)
     intermediate_password_bytes = change_base(intermediate_passphrase, 58, 256)
@@ -1083,6 +1083,8 @@ class Key(object):
         if self.key_format == "wif_protected":
             import_key, self.compressed = self._bip38_decrypt(import_key, password, network)
             self.key_format = 'bin_compressed' if self.compressed else 'bin'
+        elif password:
+            raise BKeyError("Password parameter provided, but key is not a WIF protected key")
 
         if not self.is_private:
             self.secret = None
@@ -1827,7 +1829,6 @@ class HDKey(Key):
                 if not import_key.private_byte:
                     raise BKeyError('Cannot import public Key in HDKey')
                 key = import_key.private_byte
-                key_type = 'private'
             else:
                 kf = get_key_format(import_key, is_private=is_private)
                 if kf['format'] == 'address':
@@ -1852,16 +1853,20 @@ class HDKey(Key):
                     child_index = int.from_bytes(bkey[9:13], 'big')
                     chain = bkey[13:45]
                 elif kf['format'] == 'mnemonic':
-                    raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
+                    try:
+                        seed = Mnemonic().to_seed(import_key, password)
+                        key, chain = self._key_derivation(seed)
+                        password = ''
+                    except Exception as e:
+                        raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 elif kf['format'] == 'wif_protected':
                     key, compressed = self._bip38_decrypt(import_key, password, network.name, witness_type)
                     chain = chain if chain else b'\0' * 32
-                    key_type = 'private'
+                    password = ''
                 else:
                     key = import_key
                     chain = chain if chain else b'\0' * 32
                     is_private = kf['is_private']
-                    key_type = 'private' if is_private else 'public'
 
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
@@ -2596,7 +2601,7 @@ class Signature(object):
                 str(secp256k1_Gx),
                 str(secp256k1_Gy)
             )
-            if int(s) > secp256k1_n / 2 and force_canonical:
+            if int(s) > secp256k1_n // 2 and force_canonical:
                 s = secp256k1_n - int(s)
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
         else:
@@ -2609,7 +2614,7 @@ class Signature(object):
             sig_der = sk.sign_digest(message_bytes, hashlib.sha256, ecdsa.util.sigencode_der, k=k)
 
             r, s = signature_der_decode(sig_der)
-            if s > secp256k1_n / 2 and force_canonical:
+            if s > secp256k1_n // 2 and force_canonical:
                 s = secp256k1_n - s
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
 
