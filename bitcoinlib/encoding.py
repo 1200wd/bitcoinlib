@@ -419,9 +419,9 @@ def int_to_varbyteint(inp):
         raise EncodingError("Input must be a number type")
     if inp < 0xfd:
         return inp.to_bytes(1, 'little')
-    elif inp < 0xffff:
+    elif inp <= 0xffff:
         return b'\xfd' + inp.to_bytes(2, 'little')
-    elif inp < 0xffffffff:
+    elif inp <= 0xffffffff:
         return b'\xfe' + inp.to_bytes(4, 'little')
     else:
         return b'\xff' + inp.to_bytes(8, 'little')
