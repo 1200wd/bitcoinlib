@@ -522,6 +522,15 @@ class TestScriptTypes(unittest.TestCase):
         self.assertEqual('985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
                          s.commands[1].hex())
 
+    def test_script_type_nulldata_64_bytes(self):
+        # OP_RETURN with a 62 byte payload is a 64 byte script, the size of a Schnorr signature
+        data = b'=:c:maya1' + b'q' * 38 + b':39636357793095'
+        script = b'\x6a' + bytes([len(data)]) + data
+        self.assertEqual(len(script), 64)
+        s = Script.parse_bytes(script, is_locking=True)
+        self.assertEqual(['nulldata'], s.script_types)
+        self.assertEqual(data, s.commands[1])
+
     def test_script_type_nulldata_2(self):
         s = Script.parse_bytes(bytes.fromhex('6a'))
         self.assertEqual(['nulldata_2'], s.script_types)

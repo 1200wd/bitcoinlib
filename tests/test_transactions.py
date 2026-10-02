@@ -114,6 +114,12 @@ class TestTransactionOutputs(unittest.TestCase):
                          to.lock_script)
         self.assertEqual(repr(to), '<Output(value=1000, address=1QhnmvncrbZFkjt5R8hs8yHDM7xXX3feg, type=p2pkh)>')
 
+    def test_transaction_output_nulldata_64_bytes(self):
+        # OP_RETURN with a 62 byte payload is a 64 byte script, the size of a Schnorr signature
+        data = b'=:c:maya1' + b'q' * 38 + b':39636357793095'
+        to = Output(0, lock_script=b'\x6a' + bytes([len(data)]) + data)
+        self.assertEqual('nulldata', to.script_type)
+
     def test_transaction_output_address_p2sh(self):
         to = Output(1000, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK', network='testnet')
         self.assertEqual(b'\xa9\x14\x86\x7f\x84`u\x87\xf7\xc2\x05G@\xc6\xca\xe0\x92\x98\xcc\xbc\xd5(\x87',
