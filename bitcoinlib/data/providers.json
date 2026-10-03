@@ -176,7 +176,7 @@
     "network": "litecoin",
     "client_class": "BlockbookClient",
     "url": "https://litecoinblockexplorer.net/api/v2/",
-    "priority": 0,
+    "priority": 10,
     "denominator": 100000000
   },
   "blockbook.litecoin.legacy": {
@@ -184,7 +184,7 @@
     "network": "litecoin_legacy",
     "client_class": "BlockbookClient",
     "url": "https://litecoinblockexplorer.net/api/v2/",
-    "priority": 0,
+    "priority": 10,
     "denominator": 100000000
   },
   "blockbook": {
