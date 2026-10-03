@@ -1,3 +1,14 @@
+RELEASE 0.7.10 - Improve Blockbook, Electrum and Trezor multisig integration
+============================================================================
+* Improved Blockbook integration
+* Improve Electrum and Trezor multisig wallet integration
+* Simplified provider configuration
+* Allow different key paths in multisig wallets
+* Correctly sort key paths in multisig wallets
+* Fix various multisig wallet issues
+* Fully implement BIP67 key sorting
+* Fix BIP38 encryption issues
+
 RELEASE 0.7.9 - Improve wallet transaction scanning
 ===================================================
 * Fix and improve ElectrumX client
