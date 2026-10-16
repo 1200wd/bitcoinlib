@@ -40,3 +40,4 @@ import bitcoinlib.services.blockbook
 import bitcoinlib.services.electrumx
 import bitcoinlib.services.nownodes
 import bitcoinlib.services.blockbook1
+import bitcoinlib.services.sochain

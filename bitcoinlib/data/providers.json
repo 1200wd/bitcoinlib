@@ -356,5 +356,68 @@
     "url": "https://tbtc4-1.trezor.io/api/v2/",
     "priority": 10,
     "denominator": 1
+  },
+  "sochain": {
+    "provider": "sochain",
+    "network": "bitcoin",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "BTC",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "sochain.testnet4": {
+    "provider": "sochain",
+    "network": "testnet4",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "BTCTEST",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "sochain.litecoin": {
+    "provider": "sochain",
+    "network": "litecoin",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "LTC",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "sochain.litecoin_legacy": {
+    "provider": "sochain",
+    "network": "litecoin_legacy",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "LTC",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "sochain.litecoin_testnet": {
+    "provider": "sochain",
+    "network": "litecoin_testnet",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "LTCTEST",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "sochain.dogecoin": {
+    "provider": "sochain",
+    "network": "dogecoin",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "DOGE",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "sochain.dogecoin_testnet": {
+    "provider": "sochain",
+    "network": "dogecoin_testnet",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "DOGETEST",
+    "url": "https://sochain.com/api/v3/",
+    "priority": 10,
+    "denominator": 100000000
   }
 }
