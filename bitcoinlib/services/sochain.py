@@ -31,8 +31,9 @@ PROVIDERNAME = 'sochain'
 # Lookups work without an API key, with a daily limit per IP. To use a key, set 'api_key' for the provider in
 # providers.json: the base client sends it in the Api-Key header.
 #
-# SoChain does not return raw transactions or input sequence numbers. Raw transactions are rebuilt from the
-# transaction's fields, trying these sequence numbers for all inputs until the hash matches the transaction ID.
+# SoChain does not return raw transactions. They are rebuilt from the transaction's fields with each input's
+# sequence number. For answers without sequence numbers, these are tried for all inputs until the hash matches
+# the transaction ID.
 SEQUENCES = [0xffffffff, 0xfffffffd, 0xfffffffe, 0]
 HISTORY_PAGE_SIZE = 100
 HISTORY_MAX_PAGES = 50
@@ -79,13 +80,20 @@ class SoChainClient(BaseClient):
             inputs.append(outpoint + _varbytes(ti['scriptSig']['hex']))
         outputs = b''.join([self._to_units(to['value']).to_bytes(8, 'little') + _varbytes(to['script']['hex'])
                             for to in tx['outputs']])
-        for sequence in SEQUENCES:
-            seq = sequence.to_bytes(4, 'little')
-            txdata = int_to_varbyteint(len(inputs)) + b''.join([i + seq for i in inputs]) + \
+        given = [ti.get('sequence') for ti in tx['inputs']]
+        if all(isinstance(s, int) and 0 <= s <= 0xffffffff for s in given):
+            tries = [given]
+        else:
+            tries = [[s] * len(inputs) for s in SEQUENCES]
+        for sequences in tries:
+            txdata = int_to_varbyteint(len(inputs)) + \
+                b''.join([i + s.to_bytes(4, 'little') for i, s in zip(inputs, sequences)]) + \
                 int_to_varbyteint(len(tx['outputs'])) + outputs
             if double_sha256(version + txdata + locktime)[::-1].hex() == tx['hash']:
                 break
         else:
+            if len(tries) == 1:
+                raise ClientError("SoChain: rebuilt raw transaction %s does not match its transaction ID" % tx['hash'])
             raise ClientError("SoChain: could not rebuild raw transaction %s, input sequence numbers unknown" %
                               tx['hash'])
         if any([ti['witness'] for ti in tx['inputs']]):

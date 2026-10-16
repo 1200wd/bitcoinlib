@@ -1130,6 +1130,13 @@ class TestServiceSoChain(unittest.TestCase):
         self.assertRaisesRegex(ClientError, "input sequence numbers unknown", client.gettransaction, txid)
         self.assertRaisesRegex(ClientError, "input sequence numbers unknown", client.getrawtransaction, txid)
 
+        # With the input's sequence number in the answer, it is rebuilt as it is
+        tx['inputs'][0]['sequence'] = 0x00ffffff
+        client = self.sochain_client('bitcoin', 'BTC', {('transaction/BTC/' + txid, None): tx})
+        t = client.gettransaction(txid)
+        self.assertEqual(t.inputs[0].sequence, 0x00ffffff)
+        self.assertEqual(t.txid, txid)
+
     def test_service_sochain_gettransactions(self):
         # Address history is listed newest first, gettransactions returns the oldest first after after_txid
         address = 'bc1ql6mzaellqgjm6dcyzx88602a23z98hxmk2cgfa'
