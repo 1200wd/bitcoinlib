@@ -155,6 +155,9 @@ class TestValue(unittest.TestCase):
         # self.assertEqual(str(Value('5000000 sat') // 3), '666.00000000 BTC')
         self.assertEqual(str(round(Value('2 BTC') / 3, 2)), '0.67000000 BTC')
         self.assertEqual(str(round(Value('2 BTC') / 3)), '1.00000000 BTC')
+        self.assertEqual(str(round(Value('1234.56 mBTC'), 1)), '1234.60000 mBTC')
+        self.assertEqual(str(round(Value('500.4 mBTC'))), '500.00000 mBTC')
+        self.assertEqual(str(round(Value('12345 sat'), -2)), '12300 sat')
         v1 = Value("10 BTC")
         v2 = Value("5 LTC")
         self.assertRaisesRegex(ValueError, "Cannot calculate with values from different networks",

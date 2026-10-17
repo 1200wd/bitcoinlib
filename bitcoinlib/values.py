@@ -267,7 +267,7 @@ class Value:
         return Value(((self.value / self.denominator) // other), self.denominator, self.network)
 
     def __round__(self, n=0):
-        val = round(self.value / self.denominator, n) * self.denominator
+        val = round(self.value / self.denominator, n)
         return Value(val, self.denominator, self.network)
 
     def __index__(self):
