@@ -372,68 +372,79 @@
     "priority": 10,
     "denominator": 1,
     "network_overrides": null
-  },  "chainso.testnet": {
-    "provider": "chainso",
-    "network": "testnet",
-    "client_class": "ChainSo",
+  },
+  "sochain": {
+    "provider": "sochain",
+    "network": "bitcoin",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "BTC",
+    "url": "https://sochain.com/api/v3/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "sochain.testnet4": {
+    "provider": "sochain",
+    "network": "testnet4",
+    "client_class": "SoChainClient",
     "provider_coin_id": "BTCTEST",
-    "url": "https://chain.so/api/v2/",
+    "url": "https://sochain.com/api/v3/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
-  "chainso.litecoin.testnet": {
-    "provider": "chainso",
-    "network": "litecoin_testnet",
-    "client_class": "ChainSo",
-    "provider_coin_id": "LTCTEST",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.litecoin": {
-    "provider": "chainso",
+  "sochain.litecoin": {
+    "provider": "sochain",
     "network": "litecoin",
-    "client_class": "ChainSo",
+    "client_class": "SoChainClient",
     "provider_coin_id": "LTC",
-    "url": "https://chain.so/api/v2/",
+    "url": "https://sochain.com/api/v3/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
-  "chainso.litecoin.legacy":
-    {
-    "provider": "chainso",
+  "sochain.litecoin_legacy": {
+    "provider": "sochain",
     "network": "litecoin_legacy",
-    "client_class": "ChainSo",
+    "client_class": "SoChainClient",
     "provider_coin_id": "LTC",
-    "url": "https://chain.so/api/v2/",
+    "url": "https://sochain.com/api/v3/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
-  "chainso.dogecoin": {
-    "provider": "chainso",
+  "sochain.litecoin_testnet": {
+    "provider": "sochain",
+    "network": "litecoin_testnet",
+    "client_class": "SoChainClient",
+    "provider_coin_id": "LTCTEST",
+    "url": "https://sochain.com/api/v3/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "sochain.dogecoin": {
+    "provider": "sochain",
     "network": "dogecoin",
-    "client_class": "ChainSo",
+    "client_class": "SoChainClient",
     "provider_coin_id": "DOGE",
-    "url": "https://chain.so/api/v2/",
+    "url": "https://sochain.com/api/v3/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
-  "chainso.dogecoin.testnet": {
-    "provider": "chainso",
+  "sochain.dogecoin_testnet": {
+    "provider": "sochain",
     "network": "dogecoin_testnet",
-    "client_class": "ChainSo",
+    "client_class": "SoChainClient",
     "provider_coin_id": "DOGETEST",
-    "url": "https://chain.so/api/v2/",
+    "url": "https://sochain.com/api/v3/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,

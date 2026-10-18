@@ -31,6 +31,8 @@ except ImportError as e:
     # compat.register()
     pass  # Only necessary when mysql or postgres is used
 from bitcoinlib.services.services import *
+from bitcoinlib.services.baseclient import ClientError
+from bitcoinlib.services.sochain import SoChainClient
 from bitcoinlib.encoding import to_hexstring
 from tests.test_custom import CustomAssertions
 
@@ -1017,3 +1019,164 @@ class TestServiceCache(unittest.TestCase):
         if not srv.results_cache_n:
             self.skipTest('Transaction not indexed for selected provider')
         self.assertEqual(t.index, 5)
+
+
+class TestServiceSoChain(unittest.TestCase):
+    # SoChain client with recorded API answers, so no requests are sent
+
+    TX_SEGWIT = {
+        'hash': '656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963', 'confirmations': 323744,
+        'size': 192, 'version': 2, 'locktime': 0, 'block_height': 647888, 'time': 1599899974, 'fee': '0.00016881',
+        'block_hash': '0000000000000000000b8752666376c87b54f70abe68b08a308dfc46433a38b7',
+        'inputs': [{
+            'value': '0.00026556', 'address': 'bc1ql6mzaellqgjm6dcyzx88602a23z98hxmk2cgfa', 'scriptSig': {'hex': ''},
+            'witness': ['3044022067be0a16037511c15b310bcad2e8d40d36680f4bffbfb1f76a170ac552df8aaf0220110024eb5d17a4'
+                        'b3c3928d3c2ca28bb023b4ee3348004a79632a03613ed6a3b501',
+                        '031811df1f3cc40e1f8bb0e1cd4dbf86a897be03cc8cbddbfa136a1e6f84b540f5'],
+            'previous_output': {'hash': '7d5fbceeba3abcfa9ac88218910e550d860662209a603ba10a7bd3446714832d',
+                                'index': 1}}],
+        'outputs': [{
+            'value': '0.00009675', 'script': {'hex': 'a914da4540e3b144eb0c6d3be573fba0ffab3887c61387'},
+            'spent': {'hash': '4f763bac12fb8839db9b558869e2b0288f2ab2a5f5acec6e06200c58c4b2a56b', 'index': 0}}]
+    }
+    TX_RBF_TAPROOT = {
+        'hash': 'e5be8dbde7d93a1f82eebed0100b13aa283753806c2728a2dd599427b57d2da3', 'confirmations': 2345,
+        'size': 181, 'version': 2, 'locktime': 154340, 'block_height': 154341, 'time': 1790666259, 'fee': '0.00002620',
+        'block_hash': '000000005e40528d6a895d5851eb6169c8df0732d4a12291278763f42a265cb3',
+        'inputs': [{
+            'value': '173.76735269', 'address': 'tb1p25zx90rxjcjspcn2grpvklea30s3qqcuh56cxuky3culsazyfllsy0tyyt',
+            'scriptSig': {'hex': ''},
+            'witness': ['21a394abdd7c3c57408309a0118b851be692a4e1bff4230c3783cae8f65909b4ac94d6bc5b20c438a746ff0ed511'
+                        'ebb7a2093b5f18681bdc5cc3e254464ea589'],
+            'previous_output': {'hash': 'ab7a235c435fca994bf38933d696b661dbcbd618fe76145fd36348cc7c3cccd2',
+                                'index': 1}}],
+        'outputs': [
+            {'value': '173.75732649', 'script': {'hex': '001453508d75b97ba48a270e8f6b21c3a25e522fa846'},
+             'spent': {'hash': '6dba5cce3dc44bc23e152d673f6ed13dca7a97748737f28afffb8d186a531ca6', 'index': 0}},
+            {'value': '0.01000000', 'script': {'hex': '0014ac9fbe1d722fc9c2534e8e078217e86f5c67037c'}, 'spent': None}]
+    }
+
+    @staticmethod
+    def sochain_client(network, provider_coin_id, answers):
+        client = SoChainClient(network, 'https://sochain.com/api/v3/', 100000000, '', provider_coin_id)
+
+        def request(url_path, variables=None, method='get'):
+            cursor = (variables or {}).get('cursor')
+            return {'status': 'success', 'data': answers[(url_path, cursor)]}
+
+        client.request = request
+        return client
+
+    def test_service_sochain_transaction(self):
+        txid = '656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963'
+        rawtx = '020000000001012d83146744d37b0aa13b609a206206860d550e911882c89afabc3abaeebc5f7d0100000000ffffffff01' \
+                'cb2500000000000017a914da4540e3b144eb0c6d3be573fba0ffab3887c6138702473044022067be0a16037511c15b310b' \
+                'cad2e8d40d36680f4bffbfb1f76a170ac552df8aaf0220110024eb5d17a4b3c3928d3c2ca28bb023b4ee3348004a79632a' \
+                '03613ed6a3b50121031811df1f3cc40e1f8bb0e1cd4dbf86a897be03cc8cbddbfa136a1e6f84b540f500000000'
+        client = self.sochain_client('bitcoin', 'BTC', {('transaction/BTC/' + txid, None): self.TX_SEGWIT})
+        self.assertEqual(client.getrawtransaction(txid), rawtx)
+        t = client.gettransaction(txid)
+        self.assertEqual(t.txid, txid)
+        self.assertEqual(t.raw_hex(), rawtx)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.inputs[0].value, 26556)
+        self.assertEqual(t.inputs[0].address, 'bc1ql6mzaellqgjm6dcyzx88602a23z98hxmk2cgfa')
+        self.assertEqual(t.fee, 16881)
+        self.assertEqual(t.block_height, 647888)
+        self.assertEqual(t.status, 'confirmed')
+        self.assertTrue(t.outputs[0].spent)
+        self.assertEqual(t.outputs[0].spending_txid, '4f763bac12fb8839db9b558869e2b0288f2ab2a5f5acec6e06200c58c4b2a56b')
+
+    def test_service_sochain_transaction_sequence(self):
+        # The answer has no input sequence numbers, they are found by matching the transaction ID
+        txid = 'e5be8dbde7d93a1f82eebed0100b13aa283753806c2728a2dd599427b57d2da3'
+        rawtx = '02000000000101d2cc3c7ccc4863d35f1476fe18d6cbdb61b696d63389f34b99ca5f435c237aab0100000000fdffffff02' \
+                'a9a3ac0b0400000016001453508d75b97ba48a270e8f6b21c3a25e522fa84640420f0000000000160014ac9fbe1d722fc9' \
+                'c2534e8e078217e86f5c67037c014021a394abdd7c3c57408309a0118b851be692a4e1bff4230c3783cae8f65909b4ac94' \
+                'd6bc5b20c438a746ff0ed511ebb7a2093b5f18681bdc5cc3e254464ea589e45a0200'
+        client = self.sochain_client('testnet4', 'BTCTEST',
+                                     {('transaction/BTCTEST/' + txid, None): self.TX_RBF_TAPROOT})
+        self.assertEqual(client.getrawtransaction(txid), rawtx)
+        t = client.gettransaction(txid)
+        self.assertEqual(t.inputs[0].sequence, 0xfffffffd)
+        # Taproot input: address taken from the answer
+        self.assertEqual(t.inputs[0].address, 'tb1p25zx90rxjcjspcn2grpvklea30s3qqcuh56cxuky3culsazyfllsy0tyyt')
+        self.assertEqual(t.outputs[1].address, 'tb1q4j0mu8tj9lyuy56w3crcy9lgdawxwqmuh6r2ws')
+        self.assertFalse(t.outputs[1].spent)
+
+    def test_service_sochain_transaction_sequence_unknown(self):
+        # Input sequence number 0x00ffffff is not tried, so the client raises an error and Service tries another
+        # provider
+        txid = '23d7e1fb5c6749c00cb9f0f0c993e0b92c477f095658a8fdaa07ed706209b288'
+        tx = {
+            'hash': txid, 'confirmations': 371634, 'size': 246, 'version': 1, 'locktime': 0, 'block_height': 599999,
+            'time': 1571443335, 'fee': '0.00084000',
+            'block_hash': '00000000000000000003ecd827f336c6971f6f77a0b9fba362398dd867975645',
+            'inputs': [{
+                'value': '101.38852306', 'address': '3Fe8L5dUaRn4uLHQLsfUGSJAT6S23Wtk47',
+                'scriptSig': {'hex': '1600148abcdbc5922083fc6c7f495f579b2f7fb438342e'},
+                'witness': ['304402204edf5b9790570839ee700945082f29a929de91a3fd1e61ee3f8da501556a0a9b0220607ec39ece5c'
+                            '7c8f5d43ecc1eee74bc21cf8c4158b2224ccdf8b245d71e7744f01',
+                            '031b0137dc44f562983225ce25bf77f9b4ec78b060d5f3891f0371b43c58b770db'],
+                'previous_output': {'hash': 'a3cc61610b3a662fd3d3d6b4bf15c6a295cb8246f90e8fe132852f8265a4713b',
+                                    'index': 1}}],
+            'outputs': [
+                {'value': '15.00000000', 'script': {'hex': '00145e4851db69e240a8b05a4c1245c8492b64a20456'},
+                 'spent': {'hash': '20a5ec0e56f28f75c009b3f1827afa014deddbf5fef47fc0718af86d425c846c', 'index': 0}},
+                {'value': '86.38768306', 'script': {'hex': 'a9145d7df25c2450ec89921906cdcd981a1f6962269687'},
+                 'spent': {'hash': 'e883e01a5eac10686ac68d159706eb720c7906d88f607debea3e78476d9dd497', 'index': 0}}]
+        }
+        client = self.sochain_client('bitcoin', 'BTC', {('transaction/BTC/' + txid, None): tx})
+        self.assertRaisesRegex(ClientError, "input sequence numbers unknown", client.gettransaction, txid)
+        self.assertRaisesRegex(ClientError, "input sequence numbers unknown", client.getrawtransaction, txid)
+
+        # With the input's sequence number in the answer, it is rebuilt as it is
+        tx['inputs'][0]['sequence'] = 0x00ffffff
+        client = self.sochain_client('bitcoin', 'BTC', {('transaction/BTC/' + txid, None): tx})
+        t = client.gettransaction(txid)
+        self.assertEqual(t.inputs[0].sequence, 0x00ffffff)
+        self.assertEqual(t.txid, txid)
+
+    def test_service_sochain_gettransactions(self):
+        # Address history is listed newest first, gettransactions returns the oldest first after after_txid
+        address = 'bc1ql6mzaellqgjm6dcyzx88602a23z98hxmk2cgfa'
+        path = 'transactions/BTC/' + address
+        client = self.sochain_client('bitcoin', 'BTC', {
+            (path, None): {'transactions': [{'hash': 'tx5'}, {'hash': 'tx4'}, {'hash': 'tx3'}], 'next_cursor': 'c2'},
+            (path, 'c2'): {'transactions': [{'hash': 'tx3'}, {'hash': 'tx2'}, {'hash': 'tx1'}], 'next_cursor': None},
+        })
+        client.gettransaction = lambda txid: txid
+        self.assertEqual(client.gettransactions(address), ['tx1', 'tx2', 'tx3', 'tx4', 'tx5'])
+        self.assertEqual(client.gettransactions(address, limit=2), ['tx1', 'tx2'])
+        self.assertEqual(client.gettransactions(address, after_txid='tx2'), ['tx3', 'tx4', 'tx5'])
+        self.assertEqual(client.gettransactions(address, after_txid='tx4'), ['tx5'])
+
+    def test_service_sochain_getbalance(self):
+        # Exact amounts, also above the precision of floats
+        address = 'D96yvResbPjbv71A8yR2w3mkwGiYFJkaFQ'
+        client = self.sochain_client('dogecoin', 'DOGE', {
+            ('balance/DOGE/' + address, None): {'confirmed': '128338823749.97261401', 'unconfirmed': '-1.00000000'}})
+        self.assertEqual(client.getbalance([address]), 12833882374897261401)
+
+    def test_service_sochain_estimatefee(self):
+        def projected(num_txs, median, min_possible):
+            return {'num_txs': num_txs, 'median_fee_rate_precise': median,
+                    'min_fee_rate_possible_precise': min_possible}
+
+        mempool = {'loading': False, 'quote_targets': None,
+                   'blocks': [projected(613, '3.14', '1.00')] + [projected(0, '0.00', '1.00')] * 5}
+        client = self.sochain_client('litecoin', 'LTC', {('network_info/LTC', None): {'mempool': mempool}})
+        self.assertEqual(client.estimatefee(1), 3140)
+        # Empty projected block: the lowest fee rate that is accepted
+        self.assertEqual(client.estimatefee(5), 1000)
+
+        # Dogecoin: fee rates its mining pools accepted lately
+        mempool = {'loading': False, 'blocks': [projected(9, '50852.97', '100.00')] + [projected(0, '0', '100')] * 5,
+                   'quote_targets': {'fast': {'fee_rate': 100442, 'within_blocks': 1},
+                                     'normal': {'fee_rate': 50000, 'within_blocks': 3},
+                                     'slow': {'fee_rate': 2000, 'within_blocks': 6},
+                                     'confidence': 0.95, 'samples': 200}}
+        client = self.sochain_client('dogecoin', 'DOGE', {('network_info/DOGE', None): {'mempool': mempool}})
+        self.assertEqual(client.estimatefee(1), 100442000)
+        self.assertEqual(client.estimatefee(5), 50000000)
+        self.assertEqual(client.estimatefee(25), 2000000)
