@@ -283,10 +283,10 @@ class Script(object):
         """
         data_length = None
         if isinstance(script, bytes):
-            data_length = len(script) // 2
+            data_length = len(script)
             script = BytesIO(script)
         elif isinstance(script, str):
-            data_length = len(script)
+            data_length = len(script) // 2
             script = BytesIO(bytes.fromhex(script))
         return cls.parse_bytesio(script, message, env_data, data_length, is_locking, strict, _level)
 
