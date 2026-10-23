@@ -8,7 +8,7 @@
 from bitcoinlib.scripts import *
 import unittest
 from tests.test_custom import CustomAssertions
-
+from unittest.mock import patch
 
 class TestStack(unittest.TestCase):
 
@@ -596,6 +596,34 @@ class TestScriptTypes(unittest.TestCase):
 
 
 class TestScript(unittest.TestCase, CustomAssertions):
+
+    def test_parse_bytes_passes_correct_data_length(self):
+        script = b'\x51\x52\x53'
+
+        with patch.object(Script, 'parse_bytesio') as mock_parse:
+            Script.parse(script)
+
+        self.assertEqual(mock_parse.call_args.args[3], 3)
+
+    def test_parse_hex_passes_correct_data_length(self):
+        script = '515253'
+
+        with patch.object(Script, 'parse_bytesio') as mock_parse:
+            Script.parse(script)
+
+        self.assertEqual(mock_parse.call_args.args[3], 3)
+
+    def test_parse_consistent_for_bytes_and_hex(self):
+        script_hex = '76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac'
+        script_bytes = bytes.fromhex(script_hex)
+
+        parsed_hex = Script.parse(script_hex)
+        parsed_bytes = Script.parse(script_bytes)
+
+        self.assertEqual(parsed_hex.commands, parsed_bytes.commands)
+        self.assertEqual(parsed_hex.as_bytes(), script_bytes)
+        self.assertEqual(parsed_bytes.as_bytes(), script_bytes)
+
 
     def test_script_verify_transaction_input_p2pkh(self):
         # Verify txid 6efe4f943b7898c4308c67b47bac57551ff41977edc254eafb0436467632450f, input 0
