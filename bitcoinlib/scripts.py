@@ -327,7 +327,11 @@ class Script(object):
         chb = script.read(1)
         ch = int.from_bytes(chb, 'big')
         data = None
-        if chb == b'\x30' and 69 <= data_length <= 74:
+        if is_locking:
+            # A locking script is never a bare signature or key, skip guessing below. Otherwise for instance an
+            # OP_RETURN with 62 bytes of data, which is 64 bytes long, is mistaken for a Schnorr signature.
+            data_length = 0
+        elif chb == b'\x30' and 69 <= data_length <= 74:
             data = chb + script.read(data_length - 1)
         elif ((chb == b'\x02' or chb == b'\x03') and data_length == 33) or \
                 (chb == b'\x04' and data_length == 65):
