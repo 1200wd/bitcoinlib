@@ -192,9 +192,33 @@ class TestEncodingMethodsStructures(unittest.TestCase):
     def test_int_to_varbyteint_3(self):
         self.assertEqual(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff', int_to_varbyteint(18446744073709551615))
 
+    def test_int_to_varbyteint_boundaries(self):
+        vectors = [
+            (0, '00'),
+            (252, 'fc'),
+            (253, 'fdfd00'),
+            (254, 'fdfe00'),
+            (65534, 'fdfeff'),
+            (65535, 'fdffff'),
+            (65536, 'fe00000100'),
+            (4294967294, 'fefeffffff'),
+            (4294967295, 'feffffffff'),
+            (4294967296, 'ff0000000001000000'),
+            (18446744073709551615, 'ffffffffffffffffff'),
+        ]
+        for value, expected_hex in vectors:
+            with self.subTest(value=value):
+                encoded = int_to_varbyteint(value)
+                self.assertEqual(bytes.fromhex(expected_hex), encoded)
+                self.assertEqual((value, len(encoded)), varbyteint_to_int(encoded))
+
     def test_varstr(self):
         self.assertEqual(b'\x1eThis string has a length of 30',
                          varstr('This string has a length of 30'))
+
+    def test_varstr_compactsize_boundary(self):
+        payload = b'a' * 65535
+        self.assertEqual(b'\xfd\xff\xff' + payload, varstr(payload))
 
     def test_convert_der_sig(self):
         sig = b'0E\x02!\x00\xe7\x1a\x8d\xd8>y\xfb\xd6/r\xa3\xd0\xd8\xa8\x1f\xdd\xbaS[\xd0\xf0\x88\xfa\x8b\xe1L' \
