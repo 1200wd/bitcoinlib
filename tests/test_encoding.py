@@ -20,6 +20,7 @@
 
 
 import unittest
+from io import BytesIO
 from random import randint
 
 from bitcoinlib.config.opcodes import op
@@ -178,10 +179,35 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         self.assertEqual(100, varbyteint_to_int(b'd')[0])
 
     def test_varbyteint_to_int_2(self):
-        self.assertEqual(254, varbyteint_to_int(b'\xfe\xfe\x00')[0])
+        self.assertEqual(254, varbyteint_to_int(b'\xfd\xfe\x00')[0])
 
     def test_varbyteint_to_int_3(self):
         self.assertEqual(18440744073009551600, varbyteint_to_int(b'\xff\xf0\xd8\x9f\xf9\x07\xaf\xea\xff')[0])
+
+    def test_varbyteint_to_int_boundaries(self):
+        vectors = [(252, 'fc'), (253, 'fdfd00'), (65535, 'fdffff'), (65536, 'fe00000100'),
+                   (4294967295, 'feffffffff'), (4294967296, 'ff0000000001000000'),
+                   (18446744073709551615, 'ffffffffffffffffff')]
+        for value, hex_ in vectors:
+            with self.subTest(hex_):
+                self.assertEqual((value, len(hex_) // 2), varbyteint_to_int(bytes.fromhex(hex_)))
+                self.assertEqual((value, bytes.fromhex(hex_)), read_varbyteint_return(BytesIO(bytes.fromhex(hex_))))
+
+    def test_varbyteint_to_int_non_canonical(self):
+        for hex_ in ['fd0100', 'fdfc00', 'fe01000000', 'feffff0000', 'ff0100000000000000', 'ffffffffff00000000']:
+            with self.subTest(hex_):
+                self.assertRaisesRegex(EncodingError, "Non-canonical CompactSize integer",
+                                       varbyteint_to_int, bytes.fromhex(hex_))
+                self.assertRaisesRegex(EncodingError, "Non-canonical CompactSize integer",
+                                       read_varbyteint_return, BytesIO(bytes.fromhex(hex_)))
+
+    def test_varbyteint_to_int_truncated(self):
+        for hex_ in ['fd', 'fd01', 'fe', 'fe010000', 'ff', 'ff01000000000000']:
+            with self.subTest(hex_):
+                self.assertRaisesRegex(EncodingError, "Truncated CompactSize integer",
+                                       varbyteint_to_int, bytes.fromhex(hex_))
+                self.assertRaisesRegex(EncodingError, "Truncated CompactSize integer",
+                                       read_varbyteint_return, BytesIO(bytes.fromhex(hex_)))
 
     def test_int_to_varbyteint_1(self):
         self.assertEqual(b'd', int_to_varbyteint(100))

@@ -348,12 +348,17 @@ def varbyteint_to_int(byteint):
     if ni < 253:
         return ni, 1
     if ni == 253:  # integer of 2 bytes
-        size = 2
+        size, minimum = 2, 0xfd
     elif ni == 254:  # integer of 4 bytes
-        size = 4
+        size, minimum = 4, 0x10000
     else:  # integer of 8 bytes
-        size = 8
-    return int.from_bytes(byteint[1:1+size][::-1], 'big'), size + 1
+        size, minimum = 8, 0x100000000
+    if len(byteint) < size + 1:
+        raise EncodingError(f"Truncated CompactSize integer: {size + 1} bytes expected, {len(byteint)} given")
+    value = int.from_bytes(byteint[1:1+size][::-1], 'big')
+    if value < minimum:
+        raise EncodingError(f"Non-canonical CompactSize integer: {value} encoded in {size + 1} bytes")
+    return value, size + 1
 
 
 def read_varbyteint(s):
@@ -385,20 +390,9 @@ def read_varbyteint_return(s):
     byteint = s.read(9)
     if not byteint:
         return 0, b''
-
-    ni = byteint[0]
-    if ni < 253:
-        s.seek(pos + 1)
-        return ni, byteint[0:1]
-    if ni == 253:  # integer of 2 bytes
-        size = 2
-    elif ni == 254:  # integer of 4 bytes
-        size = 4
-    else:  # integer of 8 bytes
-        size = 8
-    varbytes = byteint[1:1+size]
-    s.seek(pos + size + 1)
-    return int.from_bytes(varbytes[::-1], 'big'), byteint[0:1] + varbytes
+    value, size = varbyteint_to_int(byteint)
+    s.seek(pos + size)
+    return value, byteint[:size]
 
 
 def int_to_varbyteint(inp):
