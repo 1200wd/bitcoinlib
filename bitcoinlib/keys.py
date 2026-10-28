@@ -31,7 +31,7 @@ from bitcoinlib.mnemonic import Mnemonic
 
 rfc6979_warning_given = False
 if USE_FASTECDSA:
-    from fastecdsa import _ecdsa
+    from fastecdsa import ecdsa
     from fastecdsa.util import RFC6979
     from fastecdsa.curve import secp256k1 as fastecdsa_secp256k1
     from fastecdsa import keys as fastecdsa_keys
@@ -2589,18 +2589,17 @@ class Signature(object):
             if not k:
                 rfc6979 = RFC6979(message_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
                 k = rfc6979.gen_nonce()
+            curve = ecdsa.Curve.secp256k1()
+            field_size = (curve.q.bit_length() + 7) >> 3
+            db = secret.to_bytes(field_size, "little")
+            kb = k.to_bytes(field_size, "little")
+            z = int.from_bytes(message_bytes, "big")
+            z >>= max(len(message_bytes) * 8 - curve.q.bit_length(), 0)
 
-            r, s = _ecdsa.sign(
-                message,
-                str(secret),
-                str(k),
-                str(secp256k1_p),
-                str(secp256k1_a),
-                str(secp256k1_b),
-                str(secp256k1_n),
-                str(secp256k1_Gx),
-                str(secp256k1_Gy)
-            )
+            rb, sb = curve.sign(z.to_bytes(field_size, "little"), db, kb)
+            r = int.from_bytes(rb, "little")
+            s = int.from_bytes(sb, "little")
+
             if int(s) > secp256k1_n // 2 and force_canonical:
                 s = secp256k1_n - int(s)
             return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
@@ -2747,7 +2746,7 @@ class Signature(object):
         self.x, self.y = value.public_point()
 
         if USE_FASTECDSA:
-            if not fastecdsa_secp256k1.is_point_on_curve((self.x, self.y)):
+            if not fastecdsa_secp256k1.is_point_on_curve(ecdsa.Point(self.x, self.y, fastecdsa_secp256k1.secp256k1())):
                 raise BKeyError('Invalid public key, point is not on secp256k1 curve')
         self._public_key = value
 
@@ -2951,19 +2950,9 @@ class Signature(object):
             raise BKeyError("Please provide message and public_key to verify signature")
 
         if USE_FASTECDSA:
-            return _ecdsa.verify(
-                str(self.r),
-                str(self.s),
-                self.message,
-                str(self.x),  # get x and y from public key
-                str(self.y),
-                str(secp256k1_p),
-                str(secp256k1_a),
-                str(secp256k1_b),
-                str(secp256k1_n),
-                str(secp256k1_Gx),
-                str(secp256k1_Gy)
-            )
+            return ecdsa.verify((self.r, self.s), bytes.fromhex(self.message),
+                         ecdsa.Point(self.x, self.y, ecdsa.Curve.secp256k1()), fastecdsa_secp256k1.secp256k1(),
+                                prehashed=True)
         else:
             transaction_to_sign = bytes.fromhex(self.message)
             signature = self.bytes()
