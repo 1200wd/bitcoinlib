@@ -1845,6 +1845,54 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t.inputs[0].value = 506323064
         self.assertTrue(t.verify())
 
+    def test_transaction_segwit_signature_hash_types(self):
+        # BIP143 test vector: P2SH-P2WSH 6-of-6 multisig signed with 6 different sighash types
+        rawtx = "010000000136641869ca081e70f394c6948e8af409e18b619df2ed74aa106c1ca29787b96e0100000000ffffffff0200e9a4" \
+                "35000000001976a914389ffce9cd9ae88dcc0631e88a821ffdbe9bfe2688acc0832f05000000001976a9147480a33f950689" \
+                "af511e6e84c138dbbd3c3ee41588ac00000000"
+        witness_script = "56210307b8ae49ac90a048e9b53357a2354b3334e9c8bee813ecb98e99a7e07e8c3ba32103b28f0c28bfab54554ae8c658ac" \
+                         "5c3e0ce6e79ad336331f78c428dd43eea8449b21034b8113d703413d57761b8b9781957b8c0ac1dfe69f492580ca4195f503" \
+                         "76ba4a21033400f6afecb833092a9a21cfdf1ed1376e58c5d1f47de74683123987e967a8f42103a6d48b1131e94ba04d9737" \
+                         "d61acdaa1322008af9602b3b14862c07a1789aac162102d8b661b0b3302ee2f162b09e07a55ad5dfbe673a9f01d9f0c19617" \
+                         "681024306b56ae"
+        expected = {
+            SIGHASH_ALL: '185c0be5263dce5b4bb50a047973c1b6272bfbd0103a89444597dc40b248ee7c',
+            SIGHASH_NONE: 'e9733bc60ea13c95c6527066bb975a2ff29a925e80aa14c213f686cbae5d2f36',
+            SIGHASH_SINGLE: '1e1f1c303dc025bd664acb72e583e933fae4cff9148bf78c157d1e8f78530aea',
+            SIGHASH_ALL | SIGHASH_ANYONECANPAY: '2a67f03e63a6a422125878b40b82da593be8d4efaafe88ee528af6e5a9955c6e',
+            SIGHASH_NONE | SIGHASH_ANYONECANPAY: '781ba15f3779d5542ce8ecb5c18716733a5ee42a6f51488ec96154934e2c890a',
+            SIGHASH_SINGLE | SIGHASH_ANYONECANPAY: '511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b',
+        }
+        for hash_type, sighash in expected.items():
+            t = Transaction.parse_hex(rawtx)
+            t.witness_type = 'segwit'
+            t.inputs[0].witness_type = 'p2sh-segwit'
+            t.inputs[0].value = 987654321
+            t.inputs[0].redeemscript = bytes.fromhex(witness_script)
+            self.assertEqual(t.signature_hash(0, hash_type, 'segwit', as_hex=True), sighash, msg=hex(hash_type))
+
+    def test_transaction_segwit_verify_hash_types(self):
+        # P2WPKH input signed with NONE|ANYONECANPAY and SINGLE|ANYONECANPAY. Signature hashes calculated with
+        # an independent BIP143 implementation, signed with RFC6979 deterministic ECDSA
+        for hash_type, rawtx in [
+                (SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+                 "02000000000101aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0000000000fdffffff0260" \
+                 "ea000000000000160014343f0373c7089594aae43affb10dc1ba4cfcb41f30750000000000001600142a61c4bc391d400d4e" \
+                 "fdd136b2080fcee7e3a83802483045022100ceb35b2fdf6ff1e2760eb08ca33081ab410d10016ef8420ccd04f119a239a81d" \
+                 "022060d8f882a8d3d7e230d1b6886da946d57a9cf289579d101069d59f9328f144c78221023376a2ff0df3bbeca7a21340e3" \
+                 "075a33fec9aeace4dc9b1ffb2330fdc5f709d500000000"),
+                (SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
+                 "02000000000101aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0000000000fdffffff0260" \
+                 "ea000000000000160014343f0373c7089594aae43affb10dc1ba4cfcb41f30750000000000001600142a61c4bc391d400d4e" \
+                 "fdd136b2080fcee7e3a8380247304402205ae0d67ae66d2d6c04007f2b46a3f32c52cef517360c7dfa7c938761391a4a0e02" \
+                 "202516b6b3771a464a46e6499f5deff8527fdb3799cc3dfde7661af02802122f7a8321023376a2ff0df3bbeca7a21340e307" \
+                 "5a33fec9aeace4dc9b1ffb2330fdc5f709d500000000")]:
+            t = Transaction.parse_hex(rawtx)
+            self.assertEqual(t.inputs[0].hash_type, hash_type)
+            t.inputs[0].value = 100000
+            self.assertTrue(t.verify())
+            self.assertEqual(t.raw_hex(), rawtx)
+
     def test_transaction_segwit_p2wpkh(self):
         pk_input1 = 'bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866'
         pk_input2 = '619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9'
