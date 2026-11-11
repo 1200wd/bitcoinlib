@@ -67,8 +67,14 @@ class ElectrumxClient(BaseClient):
                     session.sent_request_timeout = self.timeout
                     await session.send_request('server.version', ["Bitcoinlib", ELECTRUMX_PROTOCOL_VERSION])
                     return await session.send_request(method, parameters)
-
-            return asyncio.run(main(host, port, method, parameters))
+            try:
+                return asyncio.run(main(host, port, method, parameters))
+            except asyncio.CancelledError as e:
+                # aiorpcx cancels pending requests on timeout/disconnect;
+                # CancelledError is a BaseException so 'except Exception' misses it.
+                raise ClientError('Request cancelled: %s' % e) from e
+            except Exception as e:
+                raise ClientError(str(e)) from e
         else:
             content = {
                 "method": method,
