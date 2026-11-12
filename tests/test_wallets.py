@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import base64
 import unittest
 import time
 from random import shuffle
@@ -33,7 +34,6 @@ except ImportError as e:
     # compat.register()
     pass  # Only necessary when MySQL or PostgreSQL is used
 from bitcoinlib.wallets import *
-from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey, BKeyError, verify_message, signed_message_parse
 from bitcoinlib.values import Value
@@ -2125,9 +2125,6 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.pushed)
 
     def test_wallet_transaction_restore_saved_tx(self):
-        if not USE_FASTECDSA:
-            self.skipTest("Need fastecdsa module with deterministic txid's to run this test")
-
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   db_uri=self.database_uri)
         wk = w.get_key()
@@ -2429,10 +2426,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = w.send_to("blt1qad80unqvexkhm96rxysra2mczy74zlszjr4ty9", "0.5 TST", broadcast=True,
                       fee=4799, random_output_order=False)
         self.assertEqual(w.balance(), 199995201)
-        if USE_FASTECDSA:
-            self.assertEqual(t.txid, expected_txid)
-        else:
-            expected_txid = t.txid
+        self.assertEqual(t.txid, expected_txid)
 
         wlt_utxos = [u['txid'] for u in w.utxos()]
         self.assertEqual(wlt_utxos[2], expected_txid)
@@ -3219,10 +3213,10 @@ class TestWalletSignMessages(unittest.TestCase):
         phrase = 'appear jacket street version hover aware nature exchange color laundry awkward urban'
         message = 'Hi this is a signed message from Electrum'
         expected_addr = 'bc1qn47dp83edwa04sgpxjk2nceg235jalkmnktyge'
-        # Electrum wallet does not follow BIP-0137 standard, so Bitcoinlib can not create expected signature,
-        # as first byte is different:
-        # Elect. sig = 'ICaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
-        expected_sig = 'JyaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+        # Electrum wallet does not follow BIP-0137 standard for segwit addresses, so Bitcoinlib can not create
+        # expected signature, as first byte is different (header 31 + recovery ID instead of 39 + recovery ID):
+        electrum_sig = 'ICaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
+        expected_sig = 'KCaMNV/wPWQ1/1Ff0uoJx0GWmItu++84OON1hL4E+twUTh69y3bSU2fLfj4LXf7k5NyByfN4fGKtr0xryoNFJ3w='
 
         w = wallet_create_or_open('wallet_electrum_message_signing_test', phrase, db_uri=self.database_uri)
         wallet_key = w.address_index(0)
@@ -3231,6 +3225,11 @@ class TestWalletSignMessages(unittest.TestCase):
         sig = wallet_key.sign_message(message, force_canonical=True)
         self.assertEqual(sig.as_base64(), expected_sig)
         self.assertTrue(wallet_key.verify_message(message, sig))
+        # Same signature and recovery ID as Electrum, only the header base differs
+        electrum_sig_bytes = base64.b64decode(electrum_sig)
+        sig_bytes = base64.b64decode(sig.as_base64())
+        self.assertEqual(sig_bytes[1:], electrum_sig_bytes[1:])
+        self.assertEqual((sig_bytes[0] - 27) & 3, (electrum_sig_bytes[0] - 27) & 3)
 
     def test_wallet_sign_and_verify(self):
         message = "test_wallet_sign_and_verify Unittest"

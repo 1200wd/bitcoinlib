@@ -314,21 +314,20 @@ class TestEncodingMethodsStructures(unittest.TestCase):
             self.assertEqual(s, s2)
 
     def test_signature_encode_compare_libraries(self):
+        from coincurve.ecdsa import cdata_to_der, deserialize_compact
+
         for _ in range(50000):
-            r = randint(1, secp256k1_n)
-            s = randint(1, secp256k1_n)
+            r = randint(1, secp256k1_n - 1)
+            s = randint(1, secp256k1_n - 1)
 
             # Encode with bitcoinlib
             sig_bitcoinlib = signature_der_encode(r, s)
 
-            if USE_FASTECDSA:
-                sig = DEREncoder.encode_signature(r, s)
-            else:  # ecdsa library
-                rb = ecdsa.der.encode_integer(r)
-                sb = ecdsa.der.encode_integer(s)
-                sig = ecdsa.der.encode_sequence(rb, sb)
+            # Encode with libsecp256k1
+            sig = cdata_to_der(deserialize_compact(r.to_bytes(32, 'big') + s.to_bytes(32, 'big')))
 
             self.assertEqual(sig, sig_bitcoinlib)
+            self.assertEqual(signature_der_decode(sig), (r, s))
 
     def test_signature_decode_invalid(self):
         der_signature = bytes.fromhex(

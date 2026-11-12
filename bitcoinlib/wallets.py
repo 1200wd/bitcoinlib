@@ -588,13 +588,13 @@ class WalletKey(object):
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True. If set to False 32 random bytes are added to the RFC6979 nonce derivation as extra data, so the signature is not deterministic.
         :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing a wrong value for k can result in leaking your private key!
+        :param k: Deprecated. Provide own k, only for testing. The signature is then calculated in Python and not in constant time. Providing a wrong value for k can leak your private key!
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param force_canonical: Some wallets require a canonical s value, so you could set this to True
+        :param force_canonical: Ignored, signatures always have a canonical (low) s value. Kept for backward compatibility.
         :type force_canonical: bool
 
         :return Signature:
@@ -4704,13 +4704,13 @@ class Wallet(object):
         :type message: bytes, hexstring
         :param key_term: Key ID or address of signing key. Search term can be key ID, key address, key WIF or key name
         :type key_term: int, str
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True. If set to False 32 random bytes are added to the RFC6979 nonce derivation as extra data, so the signature is not deterministic.
         :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :param k: Deprecated. Provide own k, only for testing. The signature is then calculated in Python and not in constant time. Providing a wrong value for k can leak your private key!
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param force_canonical: Some wallets require a canonical s value, so you could set this to True
+        :param force_canonical: Ignored, signatures always have a canonical (low) s value. Kept for backward compatibility.
         :type force_canonical: bool
 
         :return Signature:
