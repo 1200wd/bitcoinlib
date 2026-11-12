@@ -1491,6 +1491,8 @@ class Key(object):
         key.private_byte = None
         key.private_hex = None
         key.secret = None
+        key._wif = None
+        key._wif_prefix = None
         return key
 
     def public_point(self):
@@ -2401,6 +2403,8 @@ class HDKey(Key):
         hdkey.private_hex = None
         hdkey.private_byte = None
         hdkey.key_hex = hdkey.public_hex
+        hdkey._wif = None
+        hdkey._wif_prefix = None
         # hdkey.key = self.key.public()
         return hdkey
 
