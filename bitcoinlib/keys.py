@@ -24,23 +24,15 @@ import collections
 import json
 from binascii import b2a_base64, a2b_base64
 
+import coincurve
+from coincurve.utils import DEFAULT_NONCE
+
 from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
 
 rfc6979_warning_given = False
-if USE_FASTECDSA:
-    from fastecdsa import _ecdsa
-    from fastecdsa.util import RFC6979
-    from fastecdsa.curve import secp256k1 as fastecdsa_secp256k1
-    from fastecdsa import keys as fastecdsa_keys
-    from fastecdsa import point as fastecdsa_point
-else:
-    import ecdsa
-
-    secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
-    secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
 _logger = logging.getLogger(__name__)
 
@@ -1185,12 +1177,8 @@ class Key(object):
             if not self.is_private:
                 raise BKeyError("Private key has no known secret number")
             p = ec_point(self.secret)
-            if USE_FASTECDSA:
-                self._x = p.x
-                self._y = p.y
-            else:
-                self._x = p.x()
-                self._y = p.y()
+            self._x = p.x
+            self._y = p.y
             self.x_hex = change_base(self._x, 10, 16, 64)
             self.y_hex = change_base(self._y, 10, 16, 64)
             if self._y % 2:
@@ -1491,6 +1479,8 @@ class Key(object):
         key.private_byte = None
         key.private_hex = None
         key.secret = None
+        key._wif = None
+        key._wif_prefix = None
         return key
 
     def public_point(self):
@@ -1579,13 +1569,13 @@ class Key(object):
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True. If set to False 32 random bytes are added to the RFC6979 nonce derivation as extra data, so the signature is not deterministic.
         :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :param k: Deprecated. Provide own k, only for testing. The signature is then calculated in Python and not in constant time. Providing a wrong value for k can leak your private key!
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param force_canonical: Some wallets do not require a canonical s value, so you could set this to False
+        :param force_canonical: Ignored, signatures always have a canonical (low) s value. Kept for backward compatibility.
         :type force_canonical: bool
 
         :return Signature:
@@ -2367,22 +2357,12 @@ class HDKey(Key):
         if key >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
-        x, y = self.public_point()
-        if USE_FASTECDSA:
-            ki = ec_point(key) + fastecdsa_point.Point(x, y, fastecdsa_secp256k1)
-            ki_x = ki.x
-            ki_y = ki.y
-        else:
-            ki = ec_point(key) + ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n)
-            ki_x = ki.x()
-            ki_y = ki.y()
-
-        if ki_y % 2:
-            prefix = '03'
-        else:
-            prefix = '02'
-        xhex = change_base(ki_x, 10, 16, 64)
-        secret = bytes.fromhex(prefix + xhex)
+        # Ki = point(IL) + Kpar, computed by libsecp256k1
+        try:
+            ki = coincurve.PublicKey(self.public_compressed_byte).add(key.to_bytes(32, 'big'))
+        except ValueError:
+            raise BKeyError("Derived public key is invalid. Try another index number.")
+        secret = ki.format(compressed=True)
         return HDKey(key=secret, chain=chain, depth=self.depth + 1, parent_fingerprint=self.fingerprint,
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
@@ -2400,6 +2380,8 @@ class HDKey(Key):
         hdkey.secret = None
         hdkey.private_hex = None
         hdkey.private_byte = None
+        hdkey._wif = None
+        hdkey._wif_prefix = None
         hdkey.key_hex = hdkey.public_hex
         # hdkey.key = self.key.public()
         return hdkey
@@ -2410,13 +2392,13 @@ class HDKey(Key):
 
         :param message: Message to be signed. Must be unhashed and in bytes format.
         :type message: bytes, hexstring
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True. If set to False 32 random bytes are added to the RFC6979 nonce derivation as extra data, so the signature is not deterministic.
         :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :param k: Deprecated. Provide own k, only for testing. The signature is then calculated in Python and not in constant time. Providing a wrong value for k can leak your private key!
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param force_canonical: Some wallets do not require a canonical s value, so you could set this to False
+        :param force_canonical: Ignored, signatures always have a canonical (low) s value. Kept for backward compatibility.
         :type force_canonical: bool
 
         :return Signature:
@@ -2550,21 +2532,25 @@ class Signature(object):
         >>> sig.r
         15186587944669097449478602251208188095231503054964345209048973685229045586304
         >>> sig.s
-        72573351444679110937806889424191062155363700089799568781362665366696974639232
+        43218737792637084485764095584496845697473864189275335601242497774821186855105
+
+        The signature is created by libsecp256k1 (via coincurve) in constant time. The nonce k is derived according
+        to RFC6979 and the s value is always canonical (low s). The private key and k are not stored in the
+        Signature object.
 
         :param message: Transaction signature or transaction hash (txid). If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
         :type message: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
         :type private: HDKey, Key, str, hexstring, bytes
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True. If set to False 32 random bytes are added to the RFC6979 nonce derivation as extra data, so the signature is not deterministic.
         :type use_rfc6979: bool
-        :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+        :param k: Deprecated. Provide own k, only for testing. The signature is then calculated in Python and not in constant time. Providing a wrong value for k can leak your private key!
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
         :param prehashed: Wheter the message / txid provided was already prehashed with the Double SHA 256 for instance. Default is True if message size is 32 else False, if set to False the message will be hashed with double_sha256 by this create method.
         :type prehashed: bool
-        :param force_canonical: Calculate signature with canonical s value. Default is True, needed for valid transacton signatures. Only set to False for signing messages.
+        :param force_canonical: Ignored, signatures always have a canonical (low) s value. Kept for backward compatibility.
         :type force_canonical: bool
 
         :return Signature:
@@ -2579,44 +2565,26 @@ class Signature(object):
             message = message_bytes.hex()
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
+        if not private.secret:
+            raise BKeyError("Private key required to create a signature")
         pub_key = private.public()
-        secret = private.secret
 
-        if not k and not use_rfc6979:
-            k = random.SystemRandom().randint(1, secp256k1_n - 1)
-
-        if USE_FASTECDSA:
-            if not k:
-                rfc6979 = RFC6979(message_bytes, secret, secp256k1_n, hashlib.sha256, prehashed=True)
-                k = rfc6979.gen_nonce()
-
-            r, s = _ecdsa.sign(
-                message,
-                str(secret),
-                str(k),
-                str(secp256k1_p),
-                str(secp256k1_a),
-                str(secp256k1_b),
-                str(secp256k1_n),
-                str(secp256k1_Gx),
-                str(secp256k1_Gy)
-            )
-            if int(s) > secp256k1_n // 2 and force_canonical:
-                s = secp256k1_n - int(s)
-            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
+        if k:
+            _logger.warning("Signing with a provided k value is deprecated and will be removed. This signature is "
+                            "calculated in Python and not in constant time.")
+            r, s, recid = _sign_with_k(message_bytes, private.secret, k)
         else:
-            sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
-
-            # Call generate_k method directly because sign_digest_deterministic() does not return k
-            if not k:
-                k = ecdsa.rfc6979.generate_k(ecdsa.SECP256k1.generator.order(), private.secret, hashlib.sha256,
-                                             message_bytes)
-            sig_der = sk.sign_digest(message_bytes, hashlib.sha256, ecdsa.util.sigencode_der, k=k)
-
-            r, s = signature_der_decode(sig_der)
-            if s > secp256k1_n // 2 and force_canonical:
-                s = secp256k1_n - s
-            return Signature(r, s, message, secret, public_key=pub_key, k=k, hash_type=hash_type, network=network)
+            # RFC6979 nonce, with 32 random bytes as extra data if use_rfc6979 is False (RFC6979 section 3.6)
+            nonce = DEFAULT_NONCE if use_rfc6979 else (DEFAULT_NONCE[0], os.urandom(32))
+            try:
+                sig = coincurve.PrivateKey(private.secret.to_bytes(32, 'big')).sign_recoverable(
+                    message_bytes, hasher=None, custom_nonce=nonce)
+            except (ValueError, OverflowError):
+                raise BKeyError("Invalid private key, cannot create signature")
+            r = int.from_bytes(sig[:32], 'big')
+            s = int.from_bytes(sig[32:64], 'big')
+            recid = sig[64]
+        return Signature(r, s, message, public_key=pub_key, hash_type=hash_type, recid=recid, network=network)
 
     def __init__(self, r, s, message=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL, compressed=True, recid=0, witness_type=None, network=None):
@@ -2635,7 +2603,7 @@ class Signature(object):
         :type s: int
         :param message: Transaction hash or message z to sign if known
         :type message: bytes, hexstring
-        :param secret: Private key secret number
+        :param secret: Deprecated. Private key secret number. Not used by this class and not set by :func:`create`; if provided, the private key is stored in this object.
         :type secret: int
         :param signature: r and s value of signature as string
         :type signature: str, bytes
@@ -2643,7 +2611,7 @@ class Signature(object):
         :type der_signature: str, bytes
         :param public_key: Provide public key P if known
         :type public_key: HDKey, Key, str, hexstring, bytes
-        :param k: k value used for signature
+        :param k: Deprecated. k value used for signature. Not used by this class and not set by :func:`create`; anyone who knows k and the signature can calculate the private key.
         :type k: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
@@ -2745,10 +2713,7 @@ class Signature(object):
         if value.is_private:
             value = value.public()
         self.x, self.y = value.public_point()
-
-        if USE_FASTECDSA:
-            if not fastecdsa_secp256k1.is_point_on_curve((self.x, self.y)):
-                raise BKeyError('Invalid public key, point is not on secp256k1 curve')
+        _coincurve_public_key(self.x, self.y)  # Raises BKeyError if point is not on the curve
         self._public_key = value
 
     def hex(self):
@@ -2809,13 +2774,7 @@ class Signature(object):
 
         """
         if not self._base64:
-            if not self.k:
-                raise BKeyError('Message hash required to create base64 signature. k is not set')
-            p1 = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), self.k)
-            recid = p1[1] & 1
-            if p1[0] > secp256k1_n:
-                recid += 2
-            first = 27 + recid
+            first = 27 + self._recovery_id()
             if not self.witness_type or self.witness_type == 'legacy':
                 first += (4 if self.public_key.compressed else 0)
             else:
@@ -2824,6 +2783,37 @@ class Signature(object):
             sig = b2a_base64(first.to_bytes(1, 'big') + self.bytes()).strip()
             self._base64 = sig.decode("utf8")
         return self._base64
+
+    def _message_digest(self):
+        """
+        The 32 byte message hash this signature is for: the message itself if it is 32 bytes long, otherwise the
+        double SHA256 hash of the message.
+
+        :return bytes:
+        """
+        message = bytes.fromhex(self.message)
+        return message if len(message) == 32 else double_sha256(message)
+
+    def _recovery_id(self):
+        """
+        Find the recovery ID of this signature: the value which recovers this public key from the signature and the
+        message hash. Works for low and high s values.
+
+        :return int:
+        """
+        if not self.message or not self.public_key:
+            raise BKeyError('Message hash and public key required to create base64 signature')
+        message = self._message_digest()
+        signature = self.r.to_bytes(32, 'big') + self.s.to_bytes(32, 'big')
+        for recid in range(4):
+            try:
+                pub = coincurve.PublicKey.from_signature_and_message(signature + bytes([recid]), message,
+                                                                    hasher=None)
+            except ValueError:
+                continue
+            if pub.point() == (self.x, self.y):
+                return recid
+        raise BKeyError('Public key cannot be recovered from this signature and message hash')
 
     def as_signed_message(self, message):
         """
@@ -2879,37 +2869,19 @@ class Signature(object):
 
         network_msg = message_magic(message, self.network)
         msg_hash = double_sha256(network_msg)
-        message_int = int.from_bytes(msg_hash, 'big')
 
         # If public key is unknown, derive from message hash and signature
         if not self.public_key:
             if not address:
                 raise BKeyError('Public key is unknown, please provide address to derive public key')
-            # Compute the x‑coordinate of R
-            j = self.recid // 2
-            x = (self.r + j * secp256k1_n) % secp256k1_p
-
-            # Recover the full point R
-            # Solve y² = x³ + ax + b (mod p) and pick the root with the correct parity
-            alpha = (pow(x, 3, secp256k1_p) + secp256k1_b) % secp256k1_p
-            beta = pow(alpha, (secp256k1_p + 1) // 4, secp256k1_p)  # sqrt modulo p (since p ≡ 3 (mod 4))
-
-            # Determine which of the two square roots is the right one.
-            # Parity is defined by the least‑significant bit of y.
-            if (beta & 1) == (self.recid & 1):
-                y = beta
-            else:
-                y = secp256k1_p - beta
-
-            # Calculate the original public key: Q = r⁻¹·(s·R – e·G)
-            R = fastecdsa_point.Point(x, y, curve=fastecdsa_secp256k1) if USE_FASTECDSA else (
-                ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n))
-            r_inv = pow(self.r, -1, secp256k1_n)
-            sR = self.s * R
-            eG = ec_point_multiplication((secp256k1_Gx, secp256k1_Gy), message_int, return_point=True)
-            Q = r_inv * (sR + -eG)
-            q_tup = (Q.x, Q.y) if USE_FASTECDSA else (Q.x(), Q.y())
-            self.public_key = HDKey(q_tup, witness_type=address.witness_type, compressed=self.compressed,
+            # Recover public key Q = r⁻¹·(s·R – e·G) with libsecp256k1
+            signature = self.r.to_bytes(32, 'big') + self.s.to_bytes(32, 'big') + bytes([self.recid])
+            try:
+                q = coincurve.PublicKey.from_signature_and_message(signature, msg_hash, hasher=None)
+            except ValueError:
+                _logger.info("Could not recover public key from signed message")
+                return False
+            self.public_key = HDKey(q.point(), witness_type=address.witness_type, compressed=self.compressed,
                                     network=self.network)
 
             if self.public_key.hash160 != address.hash_bytes and self.public_key.address() != address.address:
@@ -2950,40 +2922,12 @@ class Signature(object):
         if not self.message or not self.public_key:
             raise BKeyError("Please provide message and public_key to verify signature")
 
-        if USE_FASTECDSA:
-            return _ecdsa.verify(
-                str(self.r),
-                str(self.s),
-                self.message,
-                str(self.x),  # get x and y from public key
-                str(self.y),
-                str(secp256k1_p),
-                str(secp256k1_a),
-                str(secp256k1_b),
-                str(secp256k1_n),
-                str(secp256k1_Gx),
-                str(secp256k1_Gy)
-            )
-        else:
-            transaction_to_sign = bytes.fromhex(self.message)
-            signature = self.bytes()
-            if len(transaction_to_sign) != 32:
-                transaction_to_sign = double_sha256(transaction_to_sign)
-            ver_key = ecdsa.VerifyingKey.from_string(self.public_key.public_uncompressed_byte[1:],
-                                                     curve=ecdsa.SECP256k1)
-            try:
-                if len(signature) > 64 and signature.startswith(b'\x30'):
-                    try:
-                        signature = signature_der_decode_bytes(signature[:-1])
-                    except Exception:
-                        pass
-                ver_key.verify_digest(signature, transaction_to_sign)
-            except ecdsa.keys.BadSignatureError:
-                return False
-            except ecdsa.keys.BadDigestError as e:
-                _logger.info("Bad Digest %s (error %s)" % (signature.hex(), e))
-                return False
-            return True
+        message = self._message_digest()
+        # libsecp256k1 only accepts low s values. Both (r, s) and (r, n - s) are valid ECDSA signatures, and
+        # transactions with high s values are valid by consensus, so normalize s before verification.
+        s = min(self.s, secp256k1_n - self.s)
+        pub = _coincurve_public_key(self.x, self.y)
+        return pub.verify(signature_der_encode(self.r, s), message, hasher=None)
 
 
 def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, prehashed=True, force_canonical=True,
@@ -3003,15 +2947,15 @@ def sign(message, private, use_rfc6979=True, k=None, hash_type=SIGHASH_ALL, preh
     :type message: bytes, str
     :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
     :type private: HDKey, Key, str, hexstring, bytes
-    :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
+    :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True. If set to False 32 random bytes are added to the RFC6979 nonce derivation as extra data, so the signature is not deterministic.
     :type use_rfc6979: bool
-    :param k: Provide own k. Only use for testing or if you know what you are doing. Providing wrong value for k can result in leaking your private key!
+    :param k: Deprecated. Provide own k, only for testing. The signature is then calculated in Python and not in constant time. Providing a wrong value for k can leak your private key!
     :type k: int
     :param hash_type: Specific hash type, default is SIGHASH_ALL
     :type hash_type: int
     :param prehashed: Whether the message / txid provided was already prehashed with the Double SHA 256 for instance.  Default is True, if set to False the message will be hashed with double_sha256 by this create method.
     :type prehashed: bool
-    :param force_canonical: Force canonicalization of signature s value. Default is True
+    :param force_canonical: Ignored, signatures always have a canonical (low) s value. Kept for backward compatibility.
     :type force_canonical: bool
     :param network: Specific network, default is DEFAULT_NETWORK
     :type network: str, Network
@@ -3050,47 +2994,132 @@ def verify(message, signature, public_key=None):
     return signature.verify(message, public_key)
 
 
+class ECPoint(collections.namedtuple('ECPoint', ['x', 'y'])):
+    """
+    Point on the secp256k1 curve as an (x, y) tuple, returned by :func:`ec_point` and
+    :func:`ec_point_multiplication`.
+
+    Supports point addition, negation, subtraction and multiplication by an integer. These operations are done by
+    libsecp256k1. Multiplication of a point by a scalar does not run in constant time, see
+    :func:`ec_point_multiplication`. The point at infinity cannot be represented, an operation which results in it
+    raises a BKeyError.
+    """
+    __slots__ = ()
+
+    def __add__(self, other):
+        if not isinstance(other, ECPoint):
+            return NotImplemented
+        try:
+            q = coincurve.PublicKey.combine_keys([_coincurve_public_key(*self), _coincurve_public_key(*other)])
+        except ValueError:
+            raise BKeyError("Point addition results in the point at infinity")
+        return ECPoint(*q.point())
+
+    def __neg__(self):
+        return ECPoint(self.x, secp256k1_p - self.y)
+
+    def __sub__(self, other):
+        if not isinstance(other, ECPoint):
+            return NotImplemented
+        return self + (-other)
+
+    def __mul__(self, m):
+        if not isinstance(m, int):
+            return NotImplemented
+        return ec_point_multiplication(self, m)
+
+    __rmul__ = __mul__
+
+
+def _coincurve_public_key(x, y):
+    """
+    Create a coincurve PublicKey from a point and check if the point is on the secp256k1 curve.
+
+    :param x: x coordinate
+    :type x: int
+    :param y: y coordinate
+    :type y: int
+
+    :return coincurve.PublicKey:
+    """
+    try:
+        return coincurve.PublicKey.from_point(x, y)
+    except (ValueError, OverflowError):
+        raise BKeyError('Invalid public key, point is not on secp256k1 curve')
+
+
+def _sign_with_k(message_bytes, secret, k):
+    """
+    Deprecated: create an ECDSA signature with a nonce k provided by the caller. Only kept for backward compatibility
+    of the k argument of :func:`Signature.create`.
+
+    The modular arithmetic in this method is done in Python and does not run in constant time. Point multiplication
+    k·G is done by libsecp256k1. The s value is normalized to a low s value.
+
+    :param message_bytes: 32 byte message hash
+    :type message_bytes: bytes
+    :param secret: Private key secret
+    :type secret: int
+    :param k: Nonce
+    :type k: int
+
+    :return tuple: (r, s, recovery id)
+    """
+    k = int(k)
+    if not 0 < k < secp256k1_n:
+        raise BKeyError("Invalid k value, k must be between 1 and secp256k1_n - 1")
+    rx, ry = coincurve.PublicKey.from_secret(k.to_bytes(32, 'big')).point()
+    r = rx % secp256k1_n
+    z = int.from_bytes(message_bytes, 'big')
+    s = pow(k, -1, secp256k1_n) * (z + r * secret) % secp256k1_n
+    if not r or not s:
+        raise BKeyError("Invalid k value, please use another value")
+    recid = (ry & 1) | (2 if rx >= secp256k1_n else 0)
+    if s > secp256k1_n // 2:
+        s = secp256k1_n - s
+        recid ^= 1
+    return r, s, recid
+
+
 def ec_point(m):
     """
     Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
 
+    The multiplication is done by libsecp256k1 in constant time.
+
     :param m: A scalar multiplier
     :type m: int
 
-    :return Point: Generator point G multiplied by m
+    :return ECPoint: Generator point G multiplied by m as (x, y) tuple
     """
-    m = int(m)
-    if USE_FASTECDSA:
-        return fastecdsa_keys.get_public_key(m, fastecdsa_secp256k1)
-    else:
-        point = secp256k1_generator
-        return point * m
+    m = int(m) % secp256k1_n
+    if not m:
+        raise BKeyError("Multiplier m must not be a multiple of secp256k1_n")
+    return ECPoint(*coincurve.PublicKey.from_secret(m.to_bytes(32, 'big')).point())
 
 
 def ec_point_multiplication(p, m, return_point=False):
     """
-    Method for elliptic curve multiplication on the secp256k1 curve. Multiply Generator point G by m
+    Method for elliptic curve multiplication on the secp256k1 curve. Multiply point p by m
+
+    The multiplication is done by libsecp256k1 (secp256k1_ec_pubkey_tweak_mul), which does not run in constant time.
+    Do not use it with a secret multiplier if timing side channels are a concern. To multiply the generator point G
+    by a secret, use :func:`ec_point`, which runs in constant time.
 
     :param p: Point on SECP256k1 curve
     :type p: tuple
     :param m: A scalar multiplier
     :type m: int
+    :param return_point: Not used anymore, the result is always an ECPoint, which is also an (x, y) tuple. Kept for backward compatibility.
+    :type return_point: bool
 
-    :return tuple: Generator point G multiplied by m as tuple in (x, y) format
+    :return ECPoint: Point p multiplied by m as tuple in (x, y) format
     """
-    m = int(m)
-    if USE_FASTECDSA:
-        point = fastecdsa_point.Point(p[0], p[1], fastecdsa_secp256k1)
-        point_m = point * m
-        tup = (point_m.x, point_m.y)
-    else:
-        point = ecdsa.ellipticcurve.Point(ecdsa.SECP256k1.curve, p[0], p[1])
-        point_m = point * m
-        tup = (point_m.x(), point_m.y())
-    if return_point:
-        return point_m
-    else:
-        return tup
+    m = int(m) % secp256k1_n
+    if not m:
+        raise BKeyError("Multiplier m must not be a multiple of secp256k1_n")
+    point = _coincurve_public_key(p[0], p[1]).multiply(m.to_bytes(32, 'big'))
+    return ECPoint(*point.point())
 
 
 def mod_sqrt(a):

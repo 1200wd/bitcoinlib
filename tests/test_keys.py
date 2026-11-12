@@ -1071,19 +1071,105 @@ class TestKeysSignatures(unittest.TestCase):
         for vector in test_vectors:
             msg_hash = hashlib.sha256(to_bytes(vector[1])).digest()
             secret = int(vector[0])
-            if USE_FASTECDSA:
-                rfc6979 = RFC6979(msg_hash, secret, secp256k1_n, hashlib.sha256, prehashed=True)
-                k = rfc6979.gen_nonce()
-                expected = vector[2]
-                if expected is not None:
-                    self.assertEqual(k, expected)
+            # libsecp256k1 derives the nonce with RFC 6979
+            sig = sign(msg_hash, secret)
+            self.assertEqual(sig.hex(), vector[3])
+            self.assertTrue(sig.verify())
+            self.assertTrue(verify(msg_hash, sig, HDKey(secret).public()))
+            self.assertIsNone(sig.secret)
+            self.assertIsNone(sig.k)
+            if vector[2] is not None:
+                # r is the x coordinate of the expected RFC 6979 nonce point k·G
+                self.assertEqual(sig.r, ec_point(vector[2]).x % secp256k1_n)
+                # The deprecated explicit k gives the same signature
+                with self.assertLogs('bitcoinlib.keys', level='WARNING'):
+                    self.assertEqual(sign(msg_hash, secret, k=vector[2]).hex(), vector[3])
 
-            else:
-                k = ecdsa.rfc6979.generate_k(ecdsa.SECP256k1.generator.order(), secret, hashlib.sha256,
-                                             msg_hash)
-                self.assertTrue((vector[2] is None) or vector[2] == k)
-            sig = sign(msg_hash, secret, k=k).hex()
-            self.assertEqual(sig, vector[3])
+    def test_signatures_libsecp256k1(self):
+        pk = HDKey()
+        pk_wif = pk.wif_key()
+        pub = pk.public()
+        msg_hash = hashlib.sha256(b'bitcoinlib libsecp256k1 signatures').digest()
+
+        sig = sign(msg_hash, pk)
+        self.assertTrue(verify(msg_hash, sig, pub))
+        self.assertLessEqual(sig.s, secp256k1_n // 2)
+        # The signature object does not keep the private key or the nonce
+        self.assertIsNone(sig.secret)
+        self.assertIsNone(sig.k)
+        self.assertIsNone(sig.public_key.secret)
+        self.assertNotIn(pk_wif, str(vars(sig.public_key)))
+
+        # Verification with the unhashed message keeps the signature usable for base64 encoding
+        sig_raw = sign(b'abc', pk)
+        self.assertTrue(sig_raw.verify(b'abc'))
+        self.assertEqual(sig_raw.as_base64(), sign(b'abc', pk).as_base64())
+        # force_canonical is ignored, signatures are always low s
+        self.assertEqual(sign(msg_hash, pk, force_canonical=False), sig)
+
+        # High s signatures are valid by consensus and still verify
+        sig_high_s = Signature(sig.r, secp256k1_n - sig.s)
+        self.assertTrue(verify(msg_hash, sig_high_s, pub))
+        self.assertFalse(verify(hashlib.sha256(b'other message').digest(), sig_high_s, pub))
+        self.assertFalse(verify(msg_hash, Signature(sig.r, sig.s - 1), pub))
+
+        # Without RFC 6979 the nonce gets random extra data: signatures differ, but are valid
+        sig_r1 = sign(msg_hash, pk, use_rfc6979=False)
+        sig_r2 = sign(msg_hash, pk, use_rfc6979=False)
+        self.assertNotEqual(sig_r1.r, sig_r2.r)
+        self.assertNotEqual(sig_r1.r, sig.r)
+        self.assertTrue(verify(msg_hash, sig_r1, pub))
+        self.assertTrue(verify(msg_hash, sig_r2, pub))
+
+        # Errors
+        self.assertRaisesRegex(BKeyError, "Private key required", sign, msg_hash, pub)
+        with self.assertLogs('bitcoinlib.keys', level='WARNING'):
+            self.assertRaises(BKeyError, sign, msg_hash, pk, k=secp256k1_n)
+
+    def test_signatures_message_recovery_id(self):
+        # The recovery ID in base64 message signatures recovers the signer's public key, for any s value
+        for _ in range(10):
+            pk = HDKey(witness_type='legacy')
+            message = os.urandom(16).hex()
+            for force_canonical in (True, False):
+                sig = pk.sign_message(message, force_canonical=force_canonical)
+                self.assertTrue(verify_message(message, sig.as_base64(), pk.address()))
+
+    def test_keys_ec_point_arithmetic(self):
+        self.assertEqual(ec_point(1), (secp256k1_Gx, secp256k1_Gy))
+        a = random.randint(1, secp256k1_n - 1)
+        b = random.randint(1, secp256k1_n - 1)
+        pa = ec_point(a)
+        pb = ec_point(b)
+        self.assertEqual((pa.x, pa.y), tuple(pa))
+        self.assertEqual(pa + pb, ec_point(a + b))
+        self.assertEqual(pa - pb, ec_point(a - b))
+        self.assertEqual(-pa, ec_point(secp256k1_n - a))
+        self.assertEqual(pa * b, ec_point(a * b))
+        self.assertEqual(b * pa, ec_point(a * b))
+        self.assertEqual(ec_point_multiplication(pa, b), ec_point(a * b))
+        self.assertEqual(ec_point_multiplication((pa.x, pa.y), b), ec_point(a * b))
+        self.assertRaises(BKeyError, ec_point, 0)
+        self.assertRaises(BKeyError, ec_point, secp256k1_n)
+        self.assertRaises(BKeyError, lambda: pa + (-pa))
+        self.assertRaises(BKeyError, ec_point_multiplication, pa, 0)
+        self.assertRaises(BKeyError, ec_point_multiplication, (1, 1), 2)
+
+    def test_keys_public_without_private_wif(self):
+        k = Key()
+        wif = k.wif()
+        self.assertIsNone(k.public()._wif)
+        self.assertNotIn(wif, str(vars(k.public())))
+        hk = HDKey()
+        wif = hk.wif_key()
+        self.assertIsNone(hk.public()._wif)
+        self.assertNotIn(wif, str(vars(hk.public())))
+
+    def test_keys_public_child_derivation_libsecp256k1(self):
+        # BIP32 public child derivation (CKDpub) gives the same keys as private child derivation (CKDpriv)
+        k = HDKey(witness_type='legacy')
+        for index in [0, 1, 1000, 0x7fffffff]:
+            self.assertEqual(k.public().child_public(index).public_hex, k.child_private(index).public_hex)
 
     def test_signatures_from_r_and_s(self):
         r = 0x657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c
@@ -1202,28 +1288,33 @@ class TestKeysMessages(unittest.TestCase):
         self.assertTrue(verify_message(message, sig, address))
 
     def test_keys_message_signing_pycoin(self):
-        # Compared with pycoin library output - step-by-step compared results
+        # Compared with pycoin library output - step-by-step compared results. The pycoin signature has a high s
+        # value, signatures created by bitcoinlib are always low s: s is replaced by n - s and the recovery ID flips.
         wif = 'L4gXBvYrXHo59HLeyem94D9yLpRkURCHmCwQtPuWW9m6o1X8p8sp'
         addr = '1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv'
         msg = 'test message A'
-        expected_sig_base64 = ("H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN"
-                               "+0phX6ysIGdNe99EJPobpcNwl4ht790=")
-        expected_sig_der = ("30460221008dde7014a7a75f90d2227bc1bb4173f7042c620b9f436f29be54ad3789a80d3b02210087263e140"
-                            "ed205558dfb4a615facac20674d7bdf4424fa1ba5c37097886defdd01")
+        pycoin_sig_base64 = "H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN+0phX6ysIGdNe99EJPobpcNwl4ht790="
+        expected_sig_base64 = "II3ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07eNnB6/Et+qpyBLWeoFNT3lNhYQdrI6YgGg7t9UfIUWQ="
+        expected_sig_der = ("30450221008dde7014a7a75f90d2227bc1bb4173f7042c620b9f436f29be54ad3789a80d3b022078d9c1ebf"
+                            "12dfaaa7204b59ea05353de536161076b23a6201a0eedf547c8516401")
         expected_signed_message = \
             "-----BEGIN BITCOIN SIGNED MESSAGE-----\n" \
             "test message A\n" \
             "-----BEGIN SIGNATURE-----\n" \
             "1LsPb3D1o1Z7CzEt1kv5QVxErfqzXxaZXv\n" \
-            "H43ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07hyY+FA7SBVWN+0phX6ysIGdNe99EJPobpcNwl4ht790=\n" \
+            "II3ecBSnp1+Q0iJ7wbtBc/cELGILn0NvKb5UrTeJqA07eNnB6/Et+qpyBLWeoFNT3lNhYQdrI6YgGg7t9UfIUWQ=\n" \
             "-----END BITCOIN SIGNED MESSAGE-----\n" \
 
         pk = HDKey(wif, witness_type='legacy')
         self.assertEqual(pk.address(), addr)
+        # The high s signature from pycoin still verifies
+        self.assertTrue(verify_message(msg, pycoin_sig_base64, addr))
 
+        # force_canonical=False is ignored, the signature is low s
         sig = pk.sign_message(msg, force_canonical=False)
         self.assertEqual(64169125251067142060049740121784818273156574831540951431018131832714377563451, sig.r)
-        self.assertEqual(61129803196235745037234955305700148791464496745709279972088993803821678194653, sig.s)
+        self.assertEqual(54662286041080450386336029702987759061373067533365624410516169337696483299684, sig.s)
+        self.assertEqual(sig.s, secp256k1_n - 61129803196235745037234955305700148791464496745709279972088993803821678194653)
 
         pub_key = pk.public()
         self.assertTrue(pub_key.verify_message(msg, sig))
@@ -1241,36 +1332,48 @@ class TestKeysMessages(unittest.TestCase):
     def test_keys_message_signing_and_verification(self):
         private_hex = '06cffb14a8b9a901c60486e139f435cc7042d9ce78c65ebf94e7a62697e1dbfa'
         message = 'bitcoinlib rocks'
+        # Signatures are always created with a low s value. The high s signatures in the last column were created by
+        # older bitcoinlib versions with force_canonical=False and must still verify.
         test_messages = [
-            # network, witness_type, expected_sig
+            # network, witness_type, expected_sig, high_s_sig
             ('litecoin', 'legacy',        # tested with litecoinpool.org
-             'IJZPEvxNKTqXNe2NBvKhFIrDrnl14S629hH9y5jR+EO3SwYi6/Rpc+F40X3cCmXVZcrXfqPxpavLMzoQSdFaK/0='),
+             'IJZPEvxNKTqXNe2NBvKhFIrDrnl14S629hH9y5jR+EO3SwYi6/Rpc+F40X3cCmXVZcrXfqPxpavLMzoQSdFaK/0=', None),
             ('bitcoin', 'legacy',
-             # tested with verifybitcoinmessage, checkmsg.org, bitcoinmessage.tools, bitcoin core, etc
+             # high s signature tested with verifybitcoinmessage, checkmsg.org, bitcoinmessage.tools, bitcoin core, etc
+             'Hy5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfblp3ACGWQBxXBaDmZgNFWtNR+WqaYdZNXURHIP/0AF4=',
              'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
-            ('bitcoin', 'p2sh-segwit',    # tested with verifybitcoinmessage
+            ('bitcoin', 'p2sh-segwit',    # high s signature tested with verifybitcoinmessage
+             'Iy5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfblp3ACGWQBxXBaDmZgNFWtNR+WqaYdZNXURHIP/0AF4=',
              'JC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
-            ('bitcoin', 'segwit',         # tested with verifybitcoinmessage
+            ('bitcoin', 'segwit',         # high s signature tested with verifybitcoinmessage
+             'Jy5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfblp3ACGWQBxXBaDmZgNFWtNR+WqaYdZNXURHIP/0AF4=',
              'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
-            ('testnet', 'legacy',         # tested with bluewallet.github.io, verifybitcoinmessage
+            ('testnet', 'legacy',         # high s signature tested with bluewallet.github.io, verifybitcoinmessage
+             'Hy5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfblp3ACGWQBxXBaDmZgNFWtNR+WqaYdZNXURHIP/0AF4=',
              'IC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
-            ('testnet4', 'segwit',        # tested with bluewallet.github.io, verifybitcoinmessage
+            ('testnet4', 'segwit',        # high s signature tested with bluewallet.github.io, verifybitcoinmessage
+             'Jy5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfblp3ACGWQBxXBaDmZgNFWtNR+WqaYdZNXURHIP/0AF4=',
              'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
-            ('signet', 'segwit',          # tested with bluewallet.github.io, verifybitcoinmessage
+            ('signet', 'segwit',          # high s signature tested with bluewallet.github.io, verifybitcoinmessage
+             'Jy5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfblp3ACGWQBxXBaDmZgNFWtNR+WqaYdZNXURHIP/0AF4=',
              'KC5ZJ73WMxnDfvtmncgSlGRyIxBoAUibqUrdGCDeV+bfkaWI/95pv+Oo+l8Zmfy6o+dc43wU5snuYo4Xa9BCQOM='),
         ]
         for tmsg in test_messages:
             # print(f"network={tmsg[0]}, witness_type={tmsg[1]}")
             pk = HDKey(private_hex, network=tmsg[0], witness_type=tmsg[1])
 
-            # Sign message and check base64 signature
-            sig = pk.sign_message(message, force_canonical=False)
-            self.assertEqual(sig.as_base64(), tmsg[2])
+            # Sign message and check base64 signature, force_canonical is ignored
+            for force_canonical in (True, False):
+                sig = pk.sign_message(message, force_canonical=force_canonical)
+                self.assertEqual(sig.as_base64(), tmsg[2])
 
             # Verify message with public key
             pub_key = pk.public()
             self.assertEqual(pub_key.witness_type, tmsg[1])
             self.assertTrue(pub_key.verify_message(message, sig))
+            self.assertTrue(verify_message(message, tmsg[2], pk.address_obj, network=tmsg[0]))
+            if tmsg[3]:
+                self.assertTrue(verify_message(message, tmsg[3], pk.address_obj, network=tmsg[0]))
 
     def test_keys_message_verify_found_signed_messages(self):
         # RFC2440
@@ -1440,16 +1543,21 @@ KIRCb9mBPBfpEZy02dvIHDw+o58MQfXkXk5EDmYmH7LCc9DLKuUrZ+1/114fyBbttIFdEL42zvr8Wxa+
 
     def test_keys_message_sign_verify_electrum(self):
         #
-        # Electrum uses a different method to determine recovery id and also grinds r values. So the tests below
-        # are a copy of the Electrum unittests, but with grinding disabled and a different recovery ID.
+        # Electrum grinds r values. So the tests below are a copy of the Electrum unittests, but with grinding
+        # disabled.
         #
         msg1 = b'Chancellor on brink of second bailout for banks'
         addr1 = '15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz'
-        expected_sig1 = 'IP9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y='
+        expected_sig1 = 'H/9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y='
         pk = HDKey('L1TnU2zbNaAqMoVh65Cyvmcjzbrj41Gs9iTLcWbpJCMynXuap6UN', witness_type='legacy')
         self.assertEqual(pk.address(), addr1)
         sig1 = pk.sign_message(msg1, force_canonical=True)
         self.assertEqual(sig1.as_base64(), expected_sig1)
+        # The recovery ID matches the normalized s value, so the signature verifies by public key recovery
+        self.assertTrue(verify_message(msg1, sig1.as_base64(), addr1))
+        # Older versions created this signature with a recovery ID that does not match the low s value
+        self.assertFalse(verify_message(
+            msg1, 'IP9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y=', addr1))
 
         msg2 = 'Electrum'
         addr2 = '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6'

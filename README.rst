@@ -38,7 +38,7 @@ Install required packages on Ubuntu or related Linux systems:
 
 .. code-block:: bash
 
-    $ sudo apt install build-essential python3-dev libgmp3-dev
+    $ sudo apt install build-essential python3-dev
 
 Then install using pip
 
