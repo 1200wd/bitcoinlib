@@ -244,12 +244,20 @@ class ElectrumxClient(BaseClient):
     #     res = self.compose_request('blockchain.block.header', [blockid])
     #     return res
 
-    # def isspent(self, txid, output_n):
-    #     res = self.compose_request('isspent', txid, str(output_n))
-    #     return 1 if res['spent'] else 0
-    #
-    # def getinfo(self):
-    #     res = self.compose_request('')
-    #     info = {k: v for k, v in res.items() if k in ['chain', 'blockcount', 'hashrate', 'mempool_size',
-    #                                                   'difficulty']}
-    #     return info
+    def isspent(self, txid, output_n):
+        tx = self.gettransaction(txid)
+        scripthash = self._get_scripthash(tx.outputs[output_n].address)
+        unspent = self.compose_request('blockchain.scripthash.listunspent', [scripthash])
+        return 0 if (txid, output_n) in [(u['tx_hash'], u['tx_pos']) for u in unspent] else 1
+
+    def getinfo(self):
+        res = self.compose_request('blockchain.headers.subscribe')
+        mempool = self.compose_request('mempool.get_fee_histogram')
+        return {
+            'blockcount': res.get('height'),
+            'chain': '',
+            'difficulty': 0,
+            'hashrate': 0,
+            'mempool_size': mempool[-1::][0][1] // 200,
+        }
+        return info

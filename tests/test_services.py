@@ -756,9 +756,14 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(prb, rb)
 
     def test_service_isspent(self):
-        srv = ServiceTest()
+        srv = ServiceTest(exclude_providers=['electrumx'])   # ElectrumX does not index old blocks
         self.assertFalse(srv.isspent('9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5', 0))
         self.assertTrue(srv.isspent('b51104386fa9422f04fffaa09f76b69fc17f91238c93e10f58eafaaf671db6d4', 0))
+
+    def test_service_isspent2(self):
+        srv = ServiceTest()
+        self.assertTrue(srv.isspent('303b3378408a20f1b7d5934dee61eaac61a12869c62ecfa008c02c0489a19cd4', 0))
+        self.assertFalse(srv.isspent('608edaf2848e288f3bbb0374ba5ed8366315a7bec5d7a60626dbfd8ba21a23f0', 2))
 
     def test_service_isspent_litecoin(self):
         srv = ServiceTest(network='litecoin')
