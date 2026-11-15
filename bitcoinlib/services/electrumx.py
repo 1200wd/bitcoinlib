@@ -27,6 +27,7 @@ try:
 except ImportError:
     pass
 import asyncio
+import ipaddress
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -41,7 +42,7 @@ _logger = logging.getLogger(__name__)
 
 class ElectrumxClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key, *args):
+    def __init__(self, network, base_url, denominator=1, api_key='', *args):
         self.aiorpcx_installed = True
         if 'aiorpcx' not in sys.modules:
             self.aiorpcx_installed = False
@@ -51,12 +52,20 @@ class ElectrumxClient(BaseClient):
 
     def compose_request(self, method, parameters=None):
         try:
-            host, port = self.base_url.split(':')
+            host, port = self.base_url.rsplit(':', 1)
         except ValueError:
             raise ClientError('Please specify ElectrumX uri in format host:port')
         parameters = parameters or []
-        if self.aiorpcx_installed:
+
+        ip = ipaddress.ip_address(host)
+        if isinstance(ip, ipaddress.IPv4Address):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        elif isinstance(ip, ipaddress.IPv6Address):
+            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        else:
+            raise ClientError("Invalid IP address format: {0}".format(ip))
+
+        if self.aiorpcx_installed:
             sock.settimeout(0.5)
             if sock.connect_ex((host, int(port))) != 0:
                 raise ClientError('ElectrumX server %s unavailable at port %s' % (host, port))
@@ -82,7 +91,6 @@ class ElectrumxClient(BaseClient):
                 "id": 0
             }
 
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(10)
             sock.connect((host, int(port)))
             import json
@@ -235,7 +243,7 @@ class ElectrumxClient(BaseClient):
                 return [t.txid]
         return []
 
-    # Only returns headers, not full block
+    # Only returns headers, not full blocks because ElectrumX is a SPV client
     # def getblock(self, blockid, parse_transactions, page, limit):
     #     braw = self.getrawblock(blockid)
     #     return Block.parse(bytes.fromhex(braw), height=blockid, parse_transactions=parse_transactions, limit=limit)
@@ -260,4 +268,7 @@ class ElectrumxClient(BaseClient):
             'hashrate': 0,
             'mempool_size': mempool[-1::][0][1] // 200,
         }
-        return info
+
+    def getpeers(self):
+        peers = self.compose_request('server.peers.subscribe')
+        return peers
