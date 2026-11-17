@@ -42,7 +42,7 @@ _logger = logging.getLogger(__name__)
 
 class ElectrumxClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator=1, api_key='', *args):
+    def __init__(self, network, base_url, denominator, api_key, *args):
         self.aiorpcx_installed = True
         if 'aiorpcx' not in sys.modules:
             self.aiorpcx_installed = False
@@ -57,13 +57,13 @@ class ElectrumxClient(BaseClient):
             raise ClientError('Please specify ElectrumX uri in format host:port')
         parameters = parameters or []
 
-        ip = ipaddress.ip_address(host)
-        if isinstance(ip, ipaddress.IPv4Address):
+        try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        elif isinstance(ip, ipaddress.IPv6Address):
-            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-        else:
-            raise ClientError("Invalid IP address format: {0}".format(ip))
+            ip = ipaddress.ip_address(host)
+            if isinstance(ip, ipaddress.IPv6Address):
+                sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        except ValueError:
+            pass
 
         if self.aiorpcx_installed:
             sock.settimeout(0.5)

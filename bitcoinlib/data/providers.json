@@ -40,7 +40,7 @@
     "priority": 10,
     "denominator": 1
   },
-    "blockcypher": {
+  "blockcypher": {
     "provider": "blockcypher",
     "network": "bitcoin",
     "client_class": "BlockCypher",
@@ -91,7 +91,7 @@
     "priority": 10,
     "denominator": 100000000
   },
-    "blockchair.litecoin_legacy": {
+  "blockchair.litecoin_legacy": {
     "provider": "blockchair",
     "network": "litecoin_legacy",
     "client_class": "BlockChairClient",
@@ -308,7 +308,7 @@
     "priority": 10,
     "denominator": 1
   },
-   "blockbook.signet": {
+  "blockbook.signet": {
     "provider": "blockbook",
     "network": "signet",
     "client_class": "BlockbookClient",
@@ -316,7 +316,7 @@
     "priority": 10,
     "denominator": 1
   },
-    "blocksmurfer": {
+  "blocksmurfer": {
     "provider": "blocksmurfer",
     "network": "bitcoin",
     "client_class": "BlocksmurferClient",
@@ -419,5 +419,137 @@
     "url": "https://sochain.com/api/v3/",
     "priority": 10,
     "denominator": 100000000
+  },
+  "provider3.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "65.109.168.25:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider4.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "electrum.dev:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider5.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "4.214.88.34.bc.googleusercontent.com:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider6.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "100.9.39.34.bc.googleusercontent.com:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider7.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "104.198.149.61:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider8.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "209.38.172.84:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider9.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "214.22.197.35.bc.googleusercontent.com:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider10.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "81.0.248.23:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider11.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "215.81.128.34.bc.googleusercontent.com:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider12.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "61.149.198.104.bc.googleusercontent.com:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider13.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "216.152.151.246:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
+  },
+  "provider14.electrumx": {
+    "provider": "electrumx",
+    "network": "bitcoin",
+    "client_class": "ElectrumxClient",
+    "provider_coin_id": "",
+    "url": "129.212.164.62:50001",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1,
+    "network_overrides": null
   }
 }
