@@ -35,7 +35,6 @@ import bitcoinlib.services.litecoinblockexplorer
 import bitcoinlib.services.blockstream
 import bitcoinlib.services.blocksmurfer
 import bitcoinlib.services.mempool
-import bitcoinlib.services.bitflyer
 import bitcoinlib.services.blockbook
 import bitcoinlib.services.electrumx
 import bitcoinlib.services.nownodes
