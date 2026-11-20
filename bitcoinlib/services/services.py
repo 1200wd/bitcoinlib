@@ -921,7 +921,7 @@ class Cache(object):
                                       DbCacheTransaction.date, DbCacheTransaction.txid).join(DbCacheTransaction). \
             order_by(DbCacheTransaction.block_height, DbCacheTransaction.index). \
             filter(DbCacheTransactionNode.address == address, DbCacheTransactionNode.is_input == False,
-                   DbCacheTransaction.network_name == self.network.name).all()
+                   DbCacheTransaction.network_name == self.network.name, DbCacheTransactionNode.spent == False).all()
         utxos = []
         for db_utxo in db_utxos:
             if db_utxo.spent is False:
@@ -938,8 +938,6 @@ class Cache(object):
                     'script': '',
                     'date': db_utxo.date
                 })
-            elif db_utxo.spent is None:
-                return utxos
             if db_utxo.txid == after_txid:
                 utxos = []
         return utxos
