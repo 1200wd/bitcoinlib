@@ -262,7 +262,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'value': 4527385460
         }
 
-        srv = ServiceTest(min_providers=3, exclude_providers=['electrumx'])
+        srv = ServiceTest(min_providers=3)
         srv.gettransactions(address)
         for provider in srv.results:
             # print("Testing: %s" % provider)
@@ -402,7 +402,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 8, 4, 5, 17, 27)
         }
 
-        srv = ServiceTest(network='bitcoin', min_providers=3)
+        srv = ServiceTest(network='bitcoin', min_providers=3, exclude_providers=['electrumx'])
 
         # Get transactions by hash
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
