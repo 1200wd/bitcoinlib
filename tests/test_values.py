@@ -32,6 +32,8 @@ class TestValue(unittest.TestCase):
         self.assertEqual(str(Value('10')), '10.00000000 BTC')
         self.assertEqual(str(Value('10 ltc')), '10.00000000 LTC')
         self.assertEqual(str(Value('10', network='litecoin')), '10.00000000 LTC')
+        self.assertEqual(Value('10', network='testnet4').network.name, 'testnet4')
+        self.assertEqual(Value('10 mtBTC', network='testnet4').network.name, 'testnet4')
         self.assertEqual(float(Value('0.001 BTC')), 0.001)
         self.assertEqual(float(Value('1 msat')), 0.00000000001)
         self.assertEqual(int(Value('1 BTC')), 1)

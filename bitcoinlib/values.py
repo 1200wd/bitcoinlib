@@ -160,7 +160,8 @@ class Value:
             network_names = [n for n in NETWORK_DEFINITIONS if
                              NETWORK_DEFINITIONS[n]['currency_code'].upper() == cur_code.upper()]
             if network_names:
-                self.network = Network(network_names[0])
+                if self.network.name not in network_names:
+                    self.network = Network(network_names[0])
                 self.currency = cur_code
             else:
                 for den, symb in NETWORK_DENOMINATORS.items():
@@ -169,7 +170,8 @@ class Value:
                         network_names = [n for n in NETWORK_DEFINITIONS if
                                          NETWORK_DEFINITIONS[n]['currency_code'].upper() == cur_code.upper()]
                         if network_names:
-                            self.network = Network(network_names[0])
+                            if self.network.name not in network_names:
+                                self.network = Network(network_names[0])
                             self.currency = cur_code
                         elif len(cur_code):
                             raise ValueError("Currency symbol not recognised")
