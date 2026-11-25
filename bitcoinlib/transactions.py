@@ -977,6 +977,8 @@ class Transaction(object):
                 inputs[n].script = script if not inputs[n].script else inputs[n].script + script
                 inputs[n].keys = script.keys
                 inputs[n].signatures = script.signatures
+                if script.signatures:
+                    inputs[n].hash_type = script.signatures[0].hash_type
                 if not script.script_types:
                     inputs[n].script_type = 'unknown'
                 elif script.script_types[0][:13] == 'p2sh_multisig' or script.script_types[0] =='signature_multisig':
@@ -994,7 +996,7 @@ class Transaction(object):
                 elif 'unknown' in script.script_types and not coinbase:
                     inputs[n].script_type = 'unknown'
 
-                inputs[n].update_scripts()
+                inputs[n].update_scripts(hash_type=inputs[n].hash_type)
 
         locktime_bytes = rawtx.read(4)[::-1]
         if len(locktime_bytes) != 4 and strict:
@@ -1557,7 +1559,7 @@ class Transaction(object):
                 outputs_serialized += int(o.value).to_bytes(8, 'little')
                 outputs_serialized += varstr(o.lock_script)
             hash_outputs = double_sha256(outputs_serialized)
-        elif (hash_type & 0x1f) != SIGHASH_SINGLE and sign_id < len(self.outputs):
+        elif (hash_type & 0x1f) == SIGHASH_SINGLE and sign_id < len(self.outputs):
             outputs_serialized += int(self.outputs[sign_id].value).to_bytes(8, 'little')
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
             hash_outputs = double_sha256(outputs_serialized)
