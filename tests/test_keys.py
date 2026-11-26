@@ -416,6 +416,82 @@ class TestHDKeysImport(unittest.TestCase):
         except KeyError as e:
             self.assertEqual('WIF format not supported for public key', e.args[0])
 
+    def test_hdkey_import_bip32_vector_5(self):
+        # Invalid extended keys from BIP32 test vector 5. An empty message means any BKeyError (unknown version)
+        for wif, error in [
+            # pubkey version / prvkey mismatch
+            ('xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU'
+             '6LBpB85b3D2yc8sfvZU521AAwdZafEz7mnzBBsz4wKY5fTtTQBm', 'public key version without'),
+            # prvkey version / pubkey mismatch
+            ('xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZz'
+             'FGTQQD3dC4H2D5GBj7vWvSQaaBv5cxi9gafk7NF3pnBju6dwKvH', 'private key version without'),
+            # invalid pubkey prefix 04
+            ('xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU'
+             '6Txnt3siSujt9RCVYsx4qHZGc62TG4McvMGcAUjeuwZdduYEvFn', 'public key version without'),
+            # invalid prvkey prefix 04
+            ('xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZz'
+             'FGpWnsj83BHtEy5Zt8CcDr1UiRXuWCmTQLxEK9vbz5gPstX92JQ', 'private key version without'),
+            # invalid pubkey prefix 01
+            ('xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU'
+             '6N8ZMMXctdiCjxTNq964yKkwrkBJJwpzZS4HS2fxvyYUA4q2Xe4', 'public key version without'),
+            # invalid prvkey prefix 01
+            ('xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZz'
+             'FAzHGBP2UuGCqWLTAPLcMtD9y5gkZ6Eq3Rjuahrv17fEQ3Qen6J', 'private key version without'),
+            # zero depth with non-zero parent fingerprint
+            ('xprv9s2SPatNQ9Vc6GTbVMFPFo7jsaZySyzk7L8n2uqKXJen3KUmvQNTuLh3'
+             'fhZMBoG3G4ZW1N2kZuHEPY53qmbZzCHshoQnNf4GvELZfqTUrcv', 'depth 0 with non-zero'),
+            # zero depth with non-zero parent fingerprint
+            ('xpub661no6RGEX3uJkY4bNnPcw4URcQTrSibUZ4NqJEw5eBkv7ovTwgiT91X'
+             'X27VbEXGENhYRCf7hyEbWrR3FewATdCEebj6znwMfQkhRYHRLpJ', 'depth 0 with non-zero'),
+            # zero depth with non-zero index
+            ('xprv9s21ZrQH4r4TsiLvyLXqM9P7k1K3EYhA1kkD6xuquB5i39AU8KF42acD'
+             'yL3qsDbU9NmZn6MsGSUYZEsuoePmjzsB3eFKSUEh3Gu1N3cqVUN', 'depth 0 with non-zero'),
+            # zero depth with non-zero index
+            ('xpub661MyMwAuDcm6CRQ5N4qiHKrJ39Xe1R1NyfouMKTTWcguwVcfrZJaNvh'
+             'pebzGerh7gucBvzEQWRugZDuDXjNDRmXzSZe4c7mnTK97pTvGS8', 'depth 0 with non-zero'),
+            # unknown extended key version
+            ('DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8Xnmdf'
+             'HGMQzT7ayAmfo4z3gY5KfbrZWZ6St24UVf2Qgo6oujFktLHdHY4', ''),
+            # unknown extended key version
+            ('DMwo58pR1QLEFihHiXPVykYB6fJmsTeHvyTp7hRThAtCX8CvYzgPcn8Xnmdf'
+             'HPmHJiEDXkTiJTVV9rHEBUem2mwVbbNfvT2MTcAqj3nesx8uBf9', ''),
+            # private key 0 not in 1..n-1
+            ('xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZz'
+             'F93Y5wvzdUayhgkkFoicQZcP3y52uPPxFnfoLZB21Teqt1VvEHx', 'not in range 1..n-1'),
+            # private key n not in 1..n-1
+            ('xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZz'
+             'FAzHGBP2UuGCqWLTAPLcMtD5SDKr24z3aiUvKr9bJpdrcLg1y3G', 'not in range 1..n-1'),
+            # invalid pubkey 020000000000000000000000000000000000000000000000000000000000000007
+            ('xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU'
+             '6Q5JXayek4PRsn35jii4veMimro1xefsM58PgBMrvdYre8QyULY', 'not on the secp256k1 curve'),
+            # invalid checksum
+            ('xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiC'
+             'hkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHL', 'checksum'),
+        ]:
+            for f in [HDKey, HDKey.from_wif]:
+                self.assertRaisesRegex(BKeyError, error, f, wif)
+
+    def test_hdkey_import_checksum(self):
+        xpub = ('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7u'
+                'sUDFdp6W1EGMcet8')
+        self.assertEqual(HDKey(xpub).wif_public(), xpub)
+        typo = xpub[:105] + 'g' + xpub[106:]  # one character with the wrong case
+        for f in [HDKey, HDKey.from_wif]:
+            self.assertRaisesRegex(BKeyError, "Invalid extended key checksum", f, typo)
+
+    def test_hdkey_import_public_key_out_of_field(self):
+        # x = 1 is on the curve; x = 1 + p must not be accepted as the same point
+        self.assertEqual(HDKey('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gYym6yCVZtiQKSpLUqpuy2xafs'
+                               'ZZR8vydJmD1kZ1yXu2LoQw6Avc').public_hex, '02' + '00' * 31 + '01')
+        self.assertRaisesRegex(BKeyError, "not on the secp256k1 curve", HDKey,
+                               'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ1hr9Rwbk95YadvBkQXxzHBSn'
+                               'gB8ndpW6QH7zhhrnjWVqCYHJ8N')
+
+    def test_hdkey_import_invalid_length(self):
+        # An uncompressed public key does not fit the 82-byte BIP32 serialization
+        wif = HDKey(b'\x11' * 32 + b'\x22' * 32, compressed=False).wif_public()
+        self.assertRaisesRegex(BKeyError, "Invalid extended key length", HDKey, wif)
+
     def test_hdkey_import_segwit_wifs(self):
         wifs = [
             ('zprvAe9nVpMfBzSSSCr8WHYiv5a6TeSojETexJfZhvu9oYuENwQkEqRHH7nnwGzscgkCCu9S2PrwnD1VJHXXfLUbSG8yqZoKpi2CaoY'
