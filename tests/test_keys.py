@@ -313,6 +313,22 @@ class TestPublicKeyConversion(unittest.TestCase):
     def test_public_key_try_private(self):
         self.assertFalse(self.K.private_hex)
 
+    def test_public_key_without_cached_private_wif(self):
+        # public() must not keep the private WIF which wif() and wif_key() cache in the key object
+        k = Key()
+        wif = k.wif()
+        pub = k.public()
+        self.assertIsNone(pub._wif)
+        self.assertNotIn(wif, str(vars(pub)))
+        self.assertRaisesRegex(BKeyError, "WIF format not supported for public key", pub.wif)
+        self.assertEqual(k.wif(), wif)
+        hk = HDKey()
+        wif = hk.wif_key()
+        hpub = hk.public()
+        self.assertIsNone(hpub._wif)
+        self.assertNotIn(wif, str(vars(hpub)))
+        self.assertEqual(hk.wif_key(), wif)
+
     def test_public_key_import_error(self):
         self.assertRaisesRegex(BKeyError, "Unrecognised key format",
                                 Key, '064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
