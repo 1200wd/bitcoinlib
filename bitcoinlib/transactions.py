@@ -211,8 +211,11 @@ class Input(object):
         else:
             self.output_n_int = int.from_bytes(output_n, 'big')
             self.output_n = output_n
-        self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
-        self.locking_script = b'' if locking_script is None else to_bytes(locking_script)
+        # Raw bytes are kept as-is: to_bytes() would unhexlify scripts that happen to be ASCII hex (e.g. b'\x65\x63')
+        self.unlocking_script = b'' if unlocking_script is None else \
+            unlocking_script if isinstance(unlocking_script, bytes) else to_bytes(unlocking_script)
+        self.locking_script = b'' if locking_script is None else \
+            locking_script if isinstance(locking_script, bytes) else to_bytes(locking_script)
         self.script = None
         self.hash_type = SIGHASH_ALL
         if isinstance(sequence, numbers.Number):
@@ -642,7 +645,8 @@ class Output(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.value = value_to_satoshi(value, network=network)
-        self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
+        self.lock_script = b'' if lock_script is None else \
+            lock_script if isinstance(lock_script, bytes) else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
         if isinstance(address, Address):
             self._address = address.address
@@ -1564,11 +1568,12 @@ class Transaction(object):
         if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
             for o in self.outputs:
                 outputs_serialized += int(o.value).to_bytes(8, 'little')
-                outputs_serialized += varstr(o.lock_script)
+                outputs_serialized += int_to_varbyteint(len(o.lock_script)) + o.lock_script
             hash_outputs = double_sha256(outputs_serialized)
         elif (hash_type & 0x1f) == SIGHASH_SINGLE and sign_id < len(self.outputs):
             outputs_serialized += int(self.outputs[sign_id].value).to_bytes(8, 'little')
-            outputs_serialized += varstr(self.outputs[sign_id].lock_script)
+            outputs_serialized += int_to_varbyteint(len(self.outputs[sign_id].lock_script)) + \
+                self.outputs[sign_id].lock_script
             hash_outputs = double_sha256(outputs_serialized)
 
         is_coinbase = self.inputs[sign_id].script_type == 'coinbase'
@@ -1657,7 +1662,8 @@ class Transaction(object):
                 r += b'\xff' * 8 + b'\0'
                 continue
             r += int(o.value).to_bytes(8, 'little')
-            r += varstr(o.lock_script)
+            # Not varstr(): it serializes b'\0' without length byte, which drops a 1-byte OP_0 output script
+            r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
 
         if sign_id is None and witness_type == 'segwit':
             r += r_witness
@@ -1958,7 +1964,7 @@ class Transaction(object):
         :return int: Transaction output number (output_n)
         """
 
-        lock_script = to_bytes(lock_script)
+        lock_script = lock_script if isinstance(lock_script, bytes) else to_bytes(lock_script)
         if output_n is None:
             output_n = len(self.outputs)
         if not float(value).is_integer():
