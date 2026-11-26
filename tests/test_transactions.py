@@ -1893,6 +1893,81 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
             self.assertTrue(t.verify())
             self.assertEqual(t.raw_hex(), rawtx)
 
+    def test_transaction_legacy_signature_hash_types(self):
+        # Vectors from Bitcoin Core's src/test/data/sighash.json: [raw transaction, script, input index, hash type
+        # as a signed 32-bit integer, signature hash in reversed byte order]. Their hash types are random 32-bit
+        # values: the low 5 bits and the ANYONECANPAY bit select the rules, here in order ALL, ALL|ANYONECANPAY,
+        # NONE, NONE|ANYONECANPAY, SINGLE and SINGLE|ANYONECANPAY, and the whole value is appended when hashing
+        for rawtx, script, sign_id, hash_type, sighash in [
+                ("e8c0dec5026575ddf31343c20aeeca8770afb33d4e562aa8ee52eeda6b88806fdfd4fe0a97030000000953acabab65ab" \
+                 "516552ffffffffdde122c2c3e9708874286465f8105f43019e837746686f442666629088a970e0010000000153ffffff" \
+                 "ff01f98eee0100000000025251fe87379a",
+                 '63', 1, 633826334, 'abe441209165d25bc6d8368f2e7e7dc21019056719fef1ace45542aa2ef282e2'),
+                ("94083c840288d40a6983faca876d452f7c52a07de9268ad892e70a81e150d602a773c175ad03000000007ec3637d7e11" \
+                 "03e2e7e0c61896cbbf8d7e205b2ecc93dd0d6d7527d39cdbf6d335789f660300000000ffffffff019e1f7b0300000000" \
+                 "0800ac0051acac0053539cb363",
+                 '', 1, -183614058, 'a17b66d6bb427f42653d08207a22b02353dd19ccf2c7de6a9a3a2bdb7c49c9e7'),
+                ("2f7353dd02e395b0a4d16da0f7472db618857cd3de5b9e2789232952a9b154d249102245fd030000000151617fd88f10" \
+                 "3280b85b0a198198e438e7cab1a4c92ba58409709997cc7a65a619eb9eec3c0200000003636aabffffffff0397481c02" \
+                 "00000000045300636a0dc97803000000000009d389030000000003ac6a53134007bb",
+                 '0000536552526a', 0, -1912746174, '30c4cd4bd6b291f7e9489cc4b4440a083f93a7664ea1f93e77a9597dab8ded9c'),
+                ("32fa0b0804e6ea101e137665a041cc2350b794e59bf42d9b09088b01cde806ec1bbea077df0200000008515153650000" \
+                 "006506a11c55904258fa418e57b88b12724b81153260d3f4c9f080439789a391ab147aabb0fa0000000007000052ac51" \
+                 "ab510986f2a15c0d5e05d20dc876dd2dafa435276d53da7b47c393f20900e55f163b97ce0b800000000008ab526a5200" \
+                 "65636a8087df7d4d9c985fb42308fb09dce704650719140aa6050e8955fa5d2ea46b464a333f87000000000963630063" \
+                 "6a6565006affffffff01994a0d040000000002536500000000",
+                 '516563530065', 2, -163068286, 'f58637277d2bc42e18358dc55f7e87e7043f5e33f4ce1fc974e715ef0d3d1c2a'),
+                ("ae23424d040cd884ebfb9a815d8f17176980ab8015285e03fdde899449f4ae71e04275e9a80100000007ab0065535300" \
+                 "53ffffffff018e06db6af519dadc5280c07791c0fd33251500955e43fe4ac747a4df5c54df020000000251ac330e977c" \
+                 "0fec6149a1768e0d312fdb53ed9953a3737d7b5d06aad4d86e9970346a4feeb5030000000951ab51ac6563ab526a67ca" \
+                 "bc431ee3d8111224d5ecdbb7d717aa8fe82ce4a63842c9bd1aa848f111910e5ae1eb0100000004ac515300bfb7e0d704" \
+                 "8acddc030000000009636a5253636a655363a3428e040000000001525b99c6050000000004655265ab717e6e02000000" \
+                 "0000d99011eb",
+                 'ac6a6a516565', 1, -716251549, 'b098eb9aff1bbd375c70a0cbb9497882ab51f3abfebbf4e1f8d74c0739dc7717'),
+                ("d3b7421e011f4de0f1cea9ba7458bf3486bee722519efab711a963fa8c100970cf7488b7bb0200000003525352dcd61b" \
+                 "300148be5d05000000000000000000",
+                 '535251536aac536a', 0, -1960128125, '29aa6d2d752d3310eba20442770ad345b7f6a35f96161ede5f07b33e92053e2a'),
+        ]:
+            t = Transaction.parse_hex(rawtx, strict=False)
+            t.inputs[sign_id].locking_script = bytes.fromhex(script)
+            self.assertEqual(t.signature_hash(sign_id, hash_type & 0xffffffff, 'legacy')[::-1].hex(), sighash)
+
+    def test_transaction_legacy_signature_hash_single_no_output(self):
+        # SIGHASH_SINGLE for an input without an output at the same index signs the number 1 (legacy consensus rule)
+        t = Transaction(witness_type='legacy')
+        t.add_input('a' * 64, 0, keys=Key(1), witness_type='legacy')
+        t.add_input('b' * 64, 0, keys=Key(2), witness_type='legacy')
+        t.add_output(1000, Key(3).address())
+        self.assertEqual(t.signature_hash(1, SIGHASH_SINGLE), b'\x01' + b'\x00' * 31)
+        self.assertRaisesRegex(TransactionError, "SIGHASH_SINGLE needs an output", t.sign, Key(2), 1,
+                               hash_type=SIGHASH_SINGLE)
+
+    def test_transaction_sign_hash_types(self):
+        keys = [HDKey(bytes([i + 1]) * 32, network='testnet') for i in range(3)]
+        for hash_type in [SIGHASH_ALL, SIGHASH_NONE, SIGHASH_SINGLE, SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+                          SIGHASH_NONE | SIGHASH_ANYONECANPAY, SIGHASH_SINGLE | SIGHASH_ANYONECANPAY]:
+            for witness_type in ['legacy', 'segwit', 'p2sh-segwit']:
+                msg = '%s %s' % (hex(hash_type), witness_type)
+                t = Transaction(network='testnet', witness_type='legacy' if witness_type == 'legacy' else 'segwit')
+                for i in range(2):
+                    t.add_input(bytes([i + 1]) * 32, 0, keys=keys[i], value=100000, witness_type=witness_type)
+                t.add_output(40000, keys[2].address())
+                t.add_output(50000, keys[2].address())
+                for i in range(2):
+                    t.sign(keys[i], i, hash_type=hash_type)
+                self.assertTrue(t.verify(), msg=msg)
+                t2 = Transaction.parse_bytes(t.raw(), network='testnet')
+                for inp in t2.inputs:
+                    inp.value = 100000
+                self.assertTrue(t2.verify(), msg=msg)
+                t.sign_and_update()
+                self.assertEqual(t.inputs[0].signatures[0].hash_type, hash_type, msg=msg)
+                self.assertTrue(t.verify(), msg=msg)
+        t = Transaction()
+        t.add_input('a' * 64, 0, keys=Key(1), witness_type='legacy')
+        t.add_output(1000, Key(3).address())
+        self.assertRaisesRegex(TransactionError, "Unknown hash type", t.sign, Key(1), hash_type=0x04)
+
     def test_transaction_segwit_p2wpkh(self):
         pk_input1 = 'bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866'
         pk_input2 = '619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9'
