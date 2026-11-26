@@ -196,7 +196,8 @@ def get_key_format(key, is_private=None):
             else:
                 networks = network_by_value('prefix_wif', key_hex[:2])
                 if networks:
-                    if key_hex[-10:-8] == '01':
+                    # Compressed WIF: version byte, 32-byte key, 0x01 and checksum (38 bytes)
+                    if (len(key_hex) + 1) // 2 == 38 and key_hex[-10:-8] == '01':
                         key_format = 'wif_compressed'
                     else:
                         key_format = 'wif'
@@ -1163,12 +1164,17 @@ class Key(object):
                 #         _logger.warning("Current network %s is different from the one found in key: %s" %
                 #                         (network, found_networks[0]))
                 #         self.network = Network(found_networks[0])
-                if key[-1:] == b'\x01':
+                # A private key that ends with 0x01 must not be read as the compressed flag
+                if len(key) == 34 and key[-1:] == b'\x01':
                     self.compressed = True
                     key = key[:-1]
-                else:
+                elif len(key) == 33:
                     self.compressed = False
+                else:
+                    raise BKeyError("Invalid WIF private key length")
                 key_byte = key[1:]
+                if not 0 < int.from_bytes(key_byte, 'big') < secp256k1_n:
+                    raise BKeyError("Invalid WIF private key, not in range 1..n-1")
                 key_hex = key_byte.hex()
             else:
                 raise BKeyError("Unknown key format %s" % self.key_format)
