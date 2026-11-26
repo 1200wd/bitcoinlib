@@ -255,6 +255,35 @@ class TestPrivateKeyImport(unittest.TestCase):
         self.assertFalse(self.k.compressed)
         self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.private_hex)
 
+    def test_private_key_import_wif_uncompressed_ending_01(self):
+        # An uncompressed WIF whose private key ends with 0x01 must not be read as a compressed 31-byte key
+        k = Key('5HwoXVkHoRM8sL2KmNRS217n1g8mPPBomrY7yehCuXBzyAQyaGw')
+        self.assertFalse(k.compressed)
+        self.assertEqual(k.private_hex, '11' * 31 + '01')
+        self.assertEqual(k.address(), '1Gn6ADaJfVjMRXEDgUC6LK3U4RPX62c1uU')
+        self.assertEqual(k.wif(), '5HwoXVkHoRM8sL2KmNRS217n1g8mPPBomrY7yehCuXBzyAQyaGw')
+        # Signet key from Bitcoin Core's src/test/data/key_io_valid.json
+        wif = '92QuSnywrhsV7WPZChTgSQA23uSmj9MCEEno1eRBDG9sg8M29cX'
+        self.assertEqual(get_key_format(wif)['format'], 'wif')
+        for k in [Key(wif, network='signet'), Key.from_wif(wif, network='signet'), HDKey(wif, network='signet')]:
+            self.assertFalse(k.compressed)
+            self.assertEqual(k.private_hex, '6cf636ed8ac1bab033b64f66feaba65f70e684731e3f39105605968d3a963801')
+
+    def test_private_key_import_wif_invalid_length(self):
+        # Valid checksums, but a 34-byte payload without 0x01 flag, a 31-byte key and a 33-byte key with 0x01 flag
+        for wif in ['KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZfwvuEr',
+                    'yQHtKJ4MVAzyGBirvns5JhWEJ2Jm3JrZpUSbav4c1VmtXH8BM',
+                    '2ScqXfvxRLE9ctz9UW9HWioD1V3PbE1i1Xf1tnDTiBRZED4abiUPMH']:
+            self.assertRaisesRegex(BKeyError, "Invalid WIF private key length", Key, wif)
+
+    def test_private_key_import_wif_out_of_range(self):
+        # Private key 0 and n (uncompressed and compressed) are invalid, n - 1 is valid
+        for wif in ['5HpHagT65TZzG1PH3CSu63k8DbpvD8s5ip4nEB3kEsreAbuatmU',
+                    '5Km2kuu7vtFDPpxywn4u3NLpbr5jKpTB3jsuDU2KYEqetwr388P',
+                    'L5oLkpV3aqBjhki6LmvChTCV6odsp4SXM6FfU2Gppt5kFqRzExJJ']:
+            self.assertRaisesRegex(BKeyError, "not in range 1..n-1", Key, wif)
+        self.assertEqual(Key('5Km2kuu7vtFDPpxywn4u3NLpbr5jKpTB3jsuDU2KYEqetqj84qw').secret, secp256k1_n - 1)
+
     def test_private_key_import_generate_random(self):
         self.k = Key()
         self.assertIn(self.k.wif()[0], ['K', 'L'])
