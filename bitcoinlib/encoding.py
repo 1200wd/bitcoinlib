@@ -51,20 +51,9 @@ except ImportError:
         _logger.warning("The bip38_decrypt and bip38_encrypt methods need a scrypt library to work!")
         USING_MODULE_SCRYPT = False
 
-USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
-try:
-    if USE_FASTECDSA is not False:
-        from fastecdsa.encoding.der import DEREncoder
-        USE_FASTECDSA = True
-except ImportError:
-    pass
-if 'fastecdsa' not in sys.modules:
-    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead.")
-    USE_FASTECDSA = False
-    try:
-        import ecdsa
-    except ImportError:
-        raise ImportError("Could not include ecdsa library. Please install fastecdsa or ecdsa library.")
+# Elliptic curve operations use coincurve (libsecp256k1) on all platforms. The fastecdsa and ecdsa backends are not
+# used anymore, this constant is only kept so existing imports do not break.
+USE_FASTECDSA = False
 
 
 class EncodingError(Exception):

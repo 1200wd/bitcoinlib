@@ -18,7 +18,7 @@ Install from source
 
 Required packages for Ubuntu, for other systems see below:
 
-``apt install build-essential python3-dev libgmp3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
+``apt install build-essential python3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
 
 Create a virtual environment for instance on linux with virtualenv:
 
@@ -47,7 +47,7 @@ Package dependencies
 
 Required Python Packages, are automatically installed upon installing bitcoinlib:
 
-* fastecdsa (or ecdsa on Windows)
+* coincurve (Python bindings for libsecp256k1)
 * sqlalchemy
 * requests
 * pycryptodome
@@ -58,19 +58,19 @@ Other requirements Linux
 
 On Debian, Ubuntu or their derivatives:
 
-``apt install build-essential python3-dev libgmp3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
+``apt install build-essential python3-dev pkg-config postgresql postgresql-contrib mariadb-server libpq-dev libmysqlclient-dev pkg-config``
 
 On Fedora, CentOS or RHEL:
 
-``dnf install python3-devel gmp-devel``
+``dnf install python3-devel``
 
 On Alpine Linux, lightweight Linux used for Docker images:
 
-``apk add python3-dev gmp-dev py3-pip gcc musl-dev libpq-dev postgresql postgresql-contrib mariadb-dev mysql-client``
+``apk add python3-dev py3-pip gcc musl-dev libpq-dev postgresql postgresql-contrib mariadb-dev mysql-client``
 
 On Kali linux:
 
-``apt install libgmp3-dev postgresql postgresql-contrib libpq-dev pkg-config default-libmysqlclient-dev default-mysql-server``
+``apt install postgresql postgresql-contrib libpq-dev pkg-config default-libmysqlclient-dev default-mysql-server``
 
 
 Development environment
@@ -114,9 +114,9 @@ This library requires a Microsoft Visual C++ Compiler. For python version 3.5+ y
 Install Microsoft Visual Studio and include the "Microsoft Visual C++ Build Tools" which can be downloaded from
 https://visualstudio.microsoft.com/downloads. Also see https://wiki.python.org/moin/WindowsCompilers
 
-The fastecdsa library is not enabled at this moment in the windows install, the slower ecdsa library is installed.
-Installation of fastecdsa on Windows is possible but not easy, read https://github.com/AntonKueltz/fastecdsa/issues/11
-for steps you could take to install this library.
+Elliptic curve operations use the coincurve library (libsecp256k1) on all platforms, including Windows. coincurve
+provides binary wheels for Linux, macOS and Windows. If there is no wheel for your Python version or platform, pip
+builds coincurve from source, which needs a C compiler.
 
 When using Python on Windows it needs to be set to UTF-8 mode. You can do this by adding the PYTHONUTF8=1 to the
 environment variables or use the -X utf8 command line option. Please see

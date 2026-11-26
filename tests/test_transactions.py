@@ -1134,8 +1134,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.signature_hash(sign_id=0).hex(),
                          '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
         t.sign_and_update()
-        if USE_FASTECDSA:
-            self.assertEqual(t.txid, "3216789c4333e4d00b5112e4fc6c1697f976b0aa11a52ba1004c1bade456b679")
+        self.assertEqual(t.txid, "3216789c4333e4d00b5112e4fc6c1697f976b0aa11a52ba1004c1bade456b679")
 
     def test_transaction_sign_p2pk_value(self):
         wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \

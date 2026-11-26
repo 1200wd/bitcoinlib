@@ -5,7 +5,7 @@ WORKDIR /code
 
 RUN yum update -y; yum clean all
 
-RUN yum install -y python3-devel gmp-devel python3-pip git gcc
+RUN yum install -y python3-devel python3-pip git gcc
 
 RUN yum install -y postgresql postgresql-server mariadb-server libpq-devel mariadb-devel
 
