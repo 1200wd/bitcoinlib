@@ -1640,6 +1640,36 @@ class Key(object):
         print(f" Point y                     {point_y}")
 
 
+def _check_extended_key(bkey, is_private):
+    """
+    Check a decoded BIP32 extended key and raise BKeyError if it is invalid, as listed in BIP32 test vector 5.
+
+    :param bkey: Base58 decoded extended key, including the 4-byte checksum
+    :type bkey: bytes
+    :param is_private: True if the version bytes are for a private key
+    :type is_private: bool
+
+    :return None:
+    """
+    if len(bkey) != 82:
+        raise BKeyError("Invalid extended key length")
+    if double_sha256(bkey[:78])[:4] != bkey[78:]:
+        raise BKeyError("Invalid extended key checksum")
+    if bkey[4] == 0 and (bkey[5:9] != b'\0\0\0\0' or bkey[9:13] != b'\0\0\0\0'):
+        raise BKeyError("Invalid extended key, depth 0 with non-zero parent fingerprint or child index")
+    if is_private:
+        if bkey[45] != 0:
+            raise BKeyError("Invalid extended key, private key version without private key data")
+        if not 0 < int.from_bytes(bkey[46:78], 'big') < secp256k1_n:
+            raise BKeyError("Invalid extended key, private key not in range 1..n-1")
+    else:
+        if bkey[45] not in (2, 3):
+            raise BKeyError("Invalid extended key, public key version without compressed public key")
+        x = int.from_bytes(bkey[46:78], 'big')
+        if x >= secp256k1_p or pow(x ** 3 + secp256k1_b, (secp256k1_p - 1) // 2, secp256k1_p) != 1:
+            raise BKeyError("Invalid extended key, public key is not on the secp256k1 curve")
+
+
 class HDKey(Key):
     """
     Class for Hierarchical Deterministic keys as defined in BIP0032
@@ -1730,6 +1760,10 @@ class HDKey(Key):
         bkey = change_base(wif, 58, 256)
         if len(bkey) != 82:
             raise BKeyError("Invalid BIP32 HDkey WIF. Length must be 82 characters")
+        prefix_data = wif_prefix_search(bkey[:4].hex(), network=network, multisig=multisig)
+        if not prefix_data:
+            raise BKeyError("Invalid BIP32 HDkey WIF. Cannot find prefix in network definitions")
+        _check_extended_key(bkey, prefix_data[0]['is_private'])
 
         if ord(bkey[45:46]):
             is_private = False
@@ -1741,11 +1775,6 @@ class HDKey(Key):
         parent_fingerprint = bkey[5:9]
         child_index = int.from_bytes(bkey[9:13], 'big')
         chain = bkey[13:45]
-
-        key_hex = bkey.hex()
-        prefix_data = wif_prefix_search(key_hex[:8], network=network, multisig=multisig)
-        if not prefix_data:
-            raise BKeyError("Invalid BIP32 HDkey WIF. Cannot find prefix in network definitions")
 
         networks = list(dict.fromkeys([n['network'] for n in prefix_data]))
         if not network and networks:
@@ -1842,6 +1871,7 @@ class HDKey(Key):
                 network = Network(check_network_and_key(import_key, network, kf["networks"]))
                 if kf['format'] in ['hdkey_private', 'hdkey_public']:
                     bkey = change_base(import_key, 58, 256)
+                    _check_extended_key(bkey, kf['format'] == 'hdkey_private')
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
                         is_private = False
