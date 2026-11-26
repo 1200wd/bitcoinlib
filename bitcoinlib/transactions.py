@@ -1503,6 +1503,13 @@ class Transaction(object):
 
         :return bytes: Transaction signature hash
         """
+        if witness_type is None:
+            witness_type = self.witness_type
+        if sign_id is not None and witness_type == 'legacy' and (hash_type & 0x1f) == SIGHASH_SINGLE and \
+                sign_id >= len(self.outputs):
+            # Legacy SIGHASH_SINGLE without an output at the same index signs the number 1 (consensus rule)
+            one = b'\x01' + b'\0' * 31
+            return one.hex() if as_hex else one
         return double_sha256(self.signature(sign_id, hash_type, witness_type), as_hex=as_hex)
 
     def signature(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
@@ -1608,9 +1615,13 @@ class Transaction(object):
             r += b'\x00'  # marker (BIP 141)
             r += b'\x01'  # flag (BIP 141)
 
-        r += int_to_varbyteint(len(self.inputs))
+        hash_type_base = hash_type & 0x1f
+        inputs = self.inputs
+        if sign_id is not None and hash_type & SIGHASH_ANYONECANPAY:
+            inputs = [i for i in self.inputs if i.index_n == sign_id]
+        r += int_to_varbyteint(len(inputs))
         r_witness = b''
-        for i in self.inputs:
+        for i in inputs:
             r += i.prev_txid[::-1] + i.output_n[::-1]
             if i.witnesses and i.witness_type != 'legacy':
                 r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
@@ -1627,12 +1638,24 @@ class Transaction(object):
                     r += varstr(i.locking_script)
             else:
                 r += b'\0'
-            r += i.sequence.to_bytes(4, 'little')
+            if sign_id is not None and sign_id != i.index_n and hash_type_base in [SIGHASH_NONE, SIGHASH_SINGLE]:
+                r += b'\0\0\0\0'
+            else:
+                r += i.sequence.to_bytes(4, 'little')
 
-        r += int_to_varbyteint(len(self.outputs))
-        for o in self.outputs:
+        outputs = self.outputs
+        if sign_id is not None and hash_type_base == SIGHASH_NONE:
+            outputs = []
+        elif sign_id is not None and hash_type_base == SIGHASH_SINGLE:
+            outputs = self.outputs[:sign_id + 1]
+        r += int_to_varbyteint(len(outputs))
+        for n, o in enumerate(outputs):
             if o.value < 0:
                 raise TransactionError("Output value < 0 not allowed")
+            if sign_id is not None and hash_type_base == SIGHASH_SINGLE and n < sign_id:
+                # Outputs before the signed one are blanked: value -1 and an empty script (legacy SIGHASH_SINGLE)
+                r += b'\xff' * 8 + b'\0'
+                continue
             r += int(o.value).to_bytes(8, 'little')
             r += varstr(o.lock_script)
 
@@ -1722,13 +1745,16 @@ class Transaction(object):
         :return None:
         """
 
-        if hash_type != SIGHASH_ALL:
-            raise TransactionError("Hash type othen than SIGHASH_ALL are not supported at the moment")
+        if (hash_type & ~SIGHASH_ANYONECANPAY) not in [SIGHASH_ALL, SIGHASH_NONE, SIGHASH_SINGLE]:
+            raise TransactionError("Unknown hash type %d" % hash_type)
 
         if index_n is None:
             tids = range(len(self.inputs))
         else:
             tids = [index_n]
+
+        if (hash_type & 0x1f) == SIGHASH_SINGLE and max(tids, default=-1) >= len(self.outputs):
+            raise TransactionError("SIGHASH_SINGLE needs an output with the same index as the input to sign")
 
         if keys is None:
             keys = []
@@ -1794,6 +1820,7 @@ class Transaction(object):
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
+            self.inputs[tid].hash_type = hash_type
             self.inputs[tid].update_scripts(hash_type)
 
     def sign_and_update(self, index_n=None):
@@ -1807,7 +1834,8 @@ class Transaction(object):
         """
 
         self.version = self.version_int.to_bytes(4, 'big')
-        self.sign(index_n=index_n, replace_signatures=True)
+        for tid in range(len(self.inputs)) if index_n is None else [index_n]:
+            self.sign(index_n=tid, hash_type=self.inputs[tid].hash_type, replace_signatures=True)
         self.txid = self.signature_hash()[::-1].hex()
         self.size = len(self.raw())
         self.calc_weight_units()
