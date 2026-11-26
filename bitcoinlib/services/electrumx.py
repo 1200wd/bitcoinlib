@@ -27,6 +27,7 @@ try:
 except ImportError:
     pass
 import asyncio
+import ipaddress
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -51,12 +52,20 @@ class ElectrumxClient(BaseClient):
 
     def compose_request(self, method, parameters=None):
         try:
-            host, port = self.base_url.split(':')
+            host, port = self.base_url.rsplit(':', 1)
         except ValueError:
             raise ClientError('Please specify ElectrumX uri in format host:port')
         parameters = parameters or []
-        if self.aiorpcx_installed:
+
+        try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            ip = ipaddress.ip_address(host)
+            if isinstance(ip, ipaddress.IPv6Address):
+                sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        except ValueError:
+            pass
+
+        if self.aiorpcx_installed:
             sock.settimeout(0.5)
             if sock.connect_ex((host, int(port))) != 0:
                 raise ClientError('ElectrumX server %s unavailable at port %s' % (host, port))
@@ -67,8 +76,14 @@ class ElectrumxClient(BaseClient):
                     session.sent_request_timeout = self.timeout
                     await session.send_request('server.version', ["Bitcoinlib", ELECTRUMX_PROTOCOL_VERSION])
                     return await session.send_request(method, parameters)
-
-            return asyncio.run(main(host, port, method, parameters))
+            try:
+                return asyncio.run(main(host, port, method, parameters))
+            except asyncio.CancelledError as e:
+                # aiorpcx cancels pending requests on timeout/disconnect;
+                # CancelledError is a BaseException so 'except Exception' misses it.
+                raise ClientError('Request cancelled: %s' % e) from e
+            except Exception as e:
+                raise ClientError(str(e)) from e
         else:
             content = {
                 "method": method,
@@ -76,7 +91,6 @@ class ElectrumxClient(BaseClient):
                 "id": 0
             }
 
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(10)
             sock.connect((host, int(port)))
             import json
@@ -229,7 +243,7 @@ class ElectrumxClient(BaseClient):
                 return [t.txid]
         return []
 
-    # Only returns headers, not full block
+    # Only returns headers, not full blocks because ElectrumX is a SPV client
     # def getblock(self, blockid, parse_transactions, page, limit):
     #     braw = self.getrawblock(blockid)
     #     return Block.parse(bytes.fromhex(braw), height=blockid, parse_transactions=parse_transactions, limit=limit)
@@ -238,12 +252,23 @@ class ElectrumxClient(BaseClient):
     #     res = self.compose_request('blockchain.block.header', [blockid])
     #     return res
 
-    # def isspent(self, txid, output_n):
-    #     res = self.compose_request('isspent', txid, str(output_n))
-    #     return 1 if res['spent'] else 0
-    #
-    # def getinfo(self):
-    #     res = self.compose_request('')
-    #     info = {k: v for k, v in res.items() if k in ['chain', 'blockcount', 'hashrate', 'mempool_size',
-    #                                                   'difficulty']}
-    #     return info
+    def isspent(self, txid, output_n):
+        tx = self.gettransaction(txid)
+        scripthash = self._get_scripthash(tx.outputs[output_n].address)
+        unspent = self.compose_request('blockchain.scripthash.listunspent', [scripthash])
+        return 0 if (txid, output_n) in [(u['tx_hash'], u['tx_pos']) for u in unspent] else 1
+
+    def getinfo(self):
+        res = self.compose_request('blockchain.headers.subscribe')
+        mempool = self.compose_request('mempool.get_fee_histogram')
+        return {
+            'blockcount': res.get('height'),
+            'chain': '',
+            'difficulty': 0,
+            'hashrate': 0,
+            'mempool_size': mempool[-1::][0][1] // 200,
+        }
+
+    def getpeers(self):
+        peers = self.compose_request('server.peers.subscribe')
+        return peers

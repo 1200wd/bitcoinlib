@@ -18,7 +18,7 @@ jobs:
         DB_USER: root
         DB_PASSWORD: root
       run: |
-        sudo /etc/init.d/mysql start
+        sudo systemctl start mysql
         mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
     - name: Install dependencies
       run: |

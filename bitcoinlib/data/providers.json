@@ -40,7 +40,7 @@
     "priority": 10,
     "denominator": 1
   },
-    "blockcypher": {
+  "blockcypher": {
     "provider": "blockcypher",
     "network": "bitcoin",
     "client_class": "BlockCypher",
@@ -91,7 +91,7 @@
     "priority": 10,
     "denominator": 100000000
   },
-    "blockchair.litecoin_legacy": {
+  "blockchair.litecoin_legacy": {
     "provider": "blockchair",
     "network": "litecoin_legacy",
     "client_class": "BlockChairClient",
@@ -308,7 +308,7 @@
     "priority": 10,
     "denominator": 1
   },
-   "blockbook.signet": {
+  "blockbook.signet": {
     "provider": "blockbook",
     "network": "signet",
     "client_class": "BlockbookClient",
@@ -316,7 +316,7 @@
     "priority": 10,
     "denominator": 1
   },
-    "blocksmurfer": {
+  "blocksmurfer": {
     "provider": "blocksmurfer",
     "network": "bitcoin",
     "client_class": "BlocksmurferClient",

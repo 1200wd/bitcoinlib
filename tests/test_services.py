@@ -402,7 +402,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 8, 4, 5, 17, 27)
         }
 
-        srv = ServiceTest(network='bitcoin', min_providers=3)
+        srv = ServiceTest(network='bitcoin', min_providers=3, exclude_providers=['electrumx'])
 
         # Get transactions by hash
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
@@ -756,9 +756,14 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(prb, rb)
 
     def test_service_isspent(self):
-        srv = ServiceTest()
+        srv = ServiceTest(exclude_providers=['electrumx'])   # ElectrumX does not index old blocks
         self.assertFalse(srv.isspent('9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5', 0))
         self.assertTrue(srv.isspent('b51104386fa9422f04fffaa09f76b69fc17f91238c93e10f58eafaaf671db6d4', 0))
+
+    def test_service_isspent2(self):
+        srv = ServiceTest()
+        self.assertTrue(srv.isspent('303b3378408a20f1b7d5934dee61eaac61a12869c62ecfa008c02c0489a19cd4', 0))
+        self.assertFalse(srv.isspent('608edaf2848e288f3bbb0374ba5ed8366315a7bec5d7a60626dbfd8ba21a23f0', 2))
 
     def test_service_isspent_litecoin(self):
         srv = ServiceTest(network='litecoin')
@@ -907,7 +912,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['mempool'])
+        srv = ServiceTest(cache_uri=DATABASE_CACHE_UNITTESTS2, exclude_providers=['mempool', 'electrumx'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')

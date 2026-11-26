@@ -131,7 +131,7 @@
     "denominator": 1,
     "network_overrides": null
   },
-  "cryptoid.litecoin":
+  "cryptoid.litecoin": {
     "provider": "cryptoid",
     "network": "litecoin",
     "client_class": "CryptoID",

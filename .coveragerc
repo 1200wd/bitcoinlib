@@ -16,7 +16,6 @@ omit =
     *chainso.py
     *litecoreio.py
     *litecoinblockexplorer.py
-    *bitflyer.py
     *blocksmurfer.py
     *electrumx.py
     *blockchair.py
