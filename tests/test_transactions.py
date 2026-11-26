@@ -1054,6 +1054,14 @@ class TestTransactions(unittest.TestCase):
         self.assertRaisesRegex(TransactionError, "Please specify a valid witness type: legacy or segwit",
                                 Transaction, witness_type='error')
 
+    def test_transaction_script_bytes_kept(self):
+        # Scripts given as bytes are kept as-is, hex strings are converted
+        t = Transaction()
+        t.add_output(1000, lock_script=b'ec')
+        t.add_output(1000, lock_script='6563')
+        self.assertEqual([o.lock_script for o in t.outputs], [b'ec', b'ec'])
+        self.assertEqual(Input('11' * 32, 0, locking_script=b'ec').locking_script, b'ec')
+
 
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
@@ -1844,6 +1852,22 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.outputs[0].address, 'bc1qly3xxn4qqfeyy8lakmcc0y6kqg2eu96srjzycu')
         t.inputs[0].value = 506323064
         self.assertTrue(t.verify())
+
+    def test_transaction_script_raw_bytes(self):
+        # A 1-byte OP_0 output script and scripts made of ASCII hex characters must not be altered
+        for script in ['00', '6563']:
+            s = '%02x' % (len(script) // 2) + script
+            rawtx = '0100000001' + '11' * 32 + '00000000' + s + 'ffffffff01e803000000000000' + s + '00000000'
+            self.assertEqual(Transaction.parse_hex(rawtx, strict=False).raw_hex(), rawtx)
+            stripped = '0100000001' + '11' * 32 + '0000000000ffffffff01e803000000000000' + s + '00000000'
+            t = Transaction.parse_hex(stripped[:8] + '0001' + stripped[8:-8] + '010151' + '00000000', strict=False)
+            self.assertEqual(t.txid, double_sha256(bytes.fromhex(stripped))[::-1].hex())
+        t = Transaction(witness_type='segwit')
+        t.add_input('11' * 32, 0, keys=Key(1), value=2000, witness_type='segwit')
+        t.add_output(1000, lock_script=b'\x00')
+        self.assertEqual(t.signature_hash(0).hex(), '58efa93cbef87b772892607c94c329500f6df95da3c23af7ce064530f61292f1')
+        self.assertEqual(t.signature_hash(0, SIGHASH_SINGLE).hex(),
+                         '4edb2c88ee59366751925ebb065b5d7ee32846482004029c007db6cc200c528c')
 
     def test_transaction_segwit_signature_hash_types(self):
         # BIP143 test vector: P2SH-P2WSH 6-of-6 multisig signed with 6 different sighash types
