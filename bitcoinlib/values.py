@@ -319,15 +319,16 @@ class Value:
             denominator = self.denominator
         elif denominator == 'auto':
             # First try denominator=1 and smallest denominator (satoshi)
-            if 0.001 <= self.value < 1000:
+            value_abs = abs(self.value)
+            if 0.001 <= value_abs < 1000 or not value_abs:
                 denominator = 1
-            elif 1 <= self.value / self.network.denominator < 1000:
+            elif 1 <= value_abs / self.network.denominator < 1000:
                 denominator = self.network.denominator
             else:  # Try other frequently used denominators
                 for den, symb in NETWORK_DENOMINATORS.items():
                     if symb in ['n', 'fin', 'da', 'c', 'd', 'h']:
                         continue
-                    if 1 <= self.value / den < 1000:
+                    if 1 <= value_abs / den < 1000:
                         denominator = den
         elif isinstance(denominator, str):
             dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator[:len(symb)] and len(symb)]

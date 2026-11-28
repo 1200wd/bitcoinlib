@@ -114,6 +114,9 @@ class TestValue(unittest.TestCase):
         self.assertEqual(Value('0.001 mBTC').str('auto'), '100 sat')
         self.assertEqual(Value('50000000000 µBTC').str('auto'), '50.00000000 kBTC')
         self.assertEqual(Value('2100000000000000 sat').str('auto'), '21.00000000 MBTC')
+        self.assertEqual(Value(0).str('auto'), '0.00000000 BTC')
+        self.assertEqual(Value('-0.0005 BTC').str('auto'), '-500.00 µBTC')
+        self.assertEqual(Value('-1200 sat').str_auto(), '-12.00 µBTC')
 
     def test_value_operators_comparison(self):
         self.assertTrue(Value(3) < Value(5))
